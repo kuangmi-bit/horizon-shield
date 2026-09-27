@@ -6,6 +6,30 @@ This directory holds the reference witness client for the [A2A Conduct Extension
 
 Honest numbers as of 2026-09-06: 9 rows on the register, 1 outside witness, 37 ledger entries anchored to Bitcoin. That is why this file exists.
 
+## For any agent and any client: `a2a_conduct` (conduct-v1.4 in three calls)
+
+Install: `pip install "git+https://github.com/ogasurfproject-jpg/horizon-shield#subdirectory=workers/hs-ledger/nenrin/a2a-conduct-walk"` (standard library only).
+
+An agent becomes conformant in three lines:
+
+```python
+import a2a_conduct as ac
+ext = ac.extension({"paid_by": "buyer", "referral_fee": False, "listing_fee": False}, ["https://you.example/a2a"])
+card["capabilities"].setdefault("extensions", []).append(ext)        # the card
+headers.update(ac.echo_headers(request.headers))                    # every A2A response
+ac.attach(result, ext, request.url)                                  # the Message or Task, when activated
+```
+
+A client checks an agent before delegating work to it, in one call:
+
+```python
+report = ac.preflight("https://agent.example")   # declared?, who pays it, the register's reading per endpoint, where to file
+```
+
+or from a shell: `python3 -m a2a_conduct https://agent.example`. `a2a_conduct_selftest.py` builds an agent from these helpers
+alone and walks it with the unchanged reference client: 8 of 8 walks (message and task, measured and unmeasured A2A URL,
+both wires) hold every applicable assertion.
+
 ## 1. One command (any machine with Python 3.8+ and [uv](https://docs.astral.sh/uv/))
 
 ```
