@@ -181,6 +181,7 @@ details p{color:var(--mute);margin:0 0 20px;max-width:44em}
 .doc-b li{margin:6px 0}
 .doc-b .caps{text-transform:uppercase;font-size:14px;letter-spacing:.01em;line-height:1.6}
 .doc-b table{width:100%;border-collapse:collapse;font-size:14px;margin:16px 0 24px}
+.doc-b .scroll{overflow-x:auto;margin:16px 0 24px}.doc-b .scroll>table{margin:0}.doc-b table.tight td{white-space:nowrap}
 .doc-b th,.doc-b td{text-align:left;vertical-align:top;padding:10px 12px 10px 0;border-bottom:1px solid var(--line)}
 .doc-b th{font:500 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--fg)}
 .doc-b dl{display:grid;grid-template-columns:minmax(140px,30%) 1fr;margin:16px 0}
