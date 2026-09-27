@@ -353,6 +353,11 @@ body.lp .top.on-photo::before{content:"";position:absolute;inset:0 0 -40px 0;bac
 .fld input,.fld select,.fld textarea{width:100%;min-height:44px;background:transparent;color:var(--fg);border:1px solid var(--line2);padding:10px 12px;font:15px/1.4 var(--sans)}
 .fld textarea{min-height:120px;resize:vertical}
 .fld input:focus-visible,.fld select:focus-visible,.fld textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.fld [aria-invalid=true],.chk [aria-invalid=true],.bar [aria-invalid=true]{border-color:#d92d20;outline:2px solid #d92d20;outline-offset:1px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.filebox{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.filebox .cta{height:36px;justify-self:start;cursor:pointer}
+.filebox .picked{color:var(--fg);text-transform:none;letter-spacing:0;font-size:12px}
 .chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5}
 .chk input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex:none}
 .msg{margin:0;font-size:14px;min-height:1.4em;color:var(--mute)}
@@ -367,6 +372,6 @@ body.lp .top.on-photo::before{content:"";position:absolute;inset:0 0 -40px 0;bac
 .qt{width:100%;border-collapse:collapse;font-size:13px}
 .qt th{font:500 10.5px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--fg)}
 .qt td{padding:8px 8px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
-.quick-out .note{color:var(--mute);font-size:13px;margin:0}
+.quick-out .note,.pane>.note{color:var(--mute);font-size:13px;margin:0}
 .chk-list{margin:0;padding-left:18px;font-size:14px;color:var(--mute)}
 @media (max-width:900px){.two-forms{grid-template-columns:1fr;gap:48px}}

@@ -249,12 +249,15 @@
     <input type="hidden" name="plan" value="detailed_estimate">
     <span class="mono">Detailed Estimate &nbsp;/&nbsp; $119</span>
     <label class="fld"><span class="mono">Describe the job and your measurements</span><textarea name="description" rows="6" maxlength="20000" placeholder="Example: replace the asphalt shingle roof, about 24 squares, one layer to tear off, two-story house, 6/12 pitch." required></textarea></label>
-    <label class="fld"><span class="mono">Photos (optional, PDF, JPG or PNG, up to 5)</span><input type="file" name="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></label>
+    <div class="fld"><span class="mono" id="est-file-l">Photos (optional, PDF, JPG or PNG, up to 5)</span>
+     <div class="filebox"><label class="cta ghost" for="est-file">Add photos</label><span class="picked mono" id="est-picked">No files chosen</span></div>
+     <input id="est-file" class="vh" type="file" name="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-labelledby="est-file-l"></div>
     <label class="fld"><span class="mono">ZIP code</span><input name="zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="78745" autocomplete="postal-code" required></label>
     <label class="fld"><span class="mono">Email for the estimate</span><input type="email" name="email" autocomplete="email" required></label>
     <label class="chk"><input type="checkbox" name="agree" value="yes" required> <span>I agree to the <a href="/us/terms/">Terms of Service</a> and have read the <a href="/us/privacy/#notice">notice at collection</a>. I understand that no one visits or measures my home.</span></label>
     <button class="cta" type="submit">Continue to PayPal, $119</button>
     <p class="msg" role="status" aria-live="polite"></p>
+    <p class="note">The PayPal page opens after you continue. Nothing is charged until you pay there.</p>
    </form>
   </div>
  </div>
@@ -331,10 +334,11 @@
  function $(s,r){return (r||document).querySelector(s);}
  function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
  function say(form,text,bad){var m=$('.msg',form);if(!m)return;m.textContent=text;m.classList.toggle('bad',!!bad);}
+ function flag(f){if(!f)return;f.setAttribute('aria-invalid','true');f.focus();var clear=function(){f.removeAttribute('aria-invalid');f.removeEventListener('input',clear);f.removeEventListener('change',clear);};f.addEventListener('input',clear);f.addEventListener('change',clear);}
  function check(form){
-  var zip=form.elements.zip; if(zip&&!/^\d{5}$/.test(zip.value.trim())){zip.focus();return 'Enter a 5-digit ZIP code.';}
-  var em=form.elements.email; if(em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em.value.trim())){em.focus();return 'Enter the email address where we should send it.';}
-  var ag=form.elements.agree; if(ag&&!ag.checked){ag.focus();return 'Please agree to the Terms of Service to continue.';}
+  var zip=form.elements.zip; if(zip&&!/^\d{5}$/.test(zip.value.trim())){flag(zip);return 'Enter a 5-digit ZIP code.';}
+  var em=form.elements.email; if(em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em.value.trim())){flag(em);return 'Enter the email address where we should send it.';}
+  var ag=form.elements.agree; if(ag&&!ag.checked){flag(ag);return 'Please agree to the Terms of Service to continue.';}
   return '';
  }
  function order(form,btn){
@@ -355,8 +359,9 @@
  if(b&&t){b.addEventListener('click',function(){var o=t.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');if(o)t.focus();});t.addEventListener('input',refresh);}
  if(file)file.addEventListener('change',refresh);
  if(qc)qc.addEventListener('submit',function(e){e.preventDefault(); if(file&&Array.prototype.some.call(file.files,function(f){return f.size>5*1024*1024;})){say(qc,'Each file must be under 5 MB. A smaller photo size or a PDF works best.',true);return;} if(file&&file.files.length>5){say(qc,'Send at most 5 files: the pages of one quote.',true);return;} if(!(file&&file.files.length)&&!(t&&t.value.trim().length>=20)){say(qc,'Upload the quote or paste its lines.',true);return;} order(qc,pay);});
- var est=$('#estimate');
- if(est)est.addEventListener('submit',function(e){e.preventDefault(); if(est.elements.description.value.trim().length<40){say(est,'Describe the job and your measurements in a few sentences.',true);est.elements.description.focus();return;} order(est,$('button[type=submit]',est));});
+ var est=$('#estimate'),ef=$('#est-file'),ep=$('#est-picked');
+ if(ef&&ep)ef.addEventListener('change',function(){var n=ef.files.length; ep.textContent=n?(n>5?'Up to 5 files, please. ':'')+Array.prototype.slice.call(ef.files,0,5).map(function(f){return f.name;}).join('  /  '):'No files chosen';});
+ if(est)est.addEventListener('submit',function(e){e.preventDefault(); if(est.elements.description.value.trim().length<40){say(est,'Describe the job and your measurements in a few sentences.',true);flag(est.elements.description);return;} if(ef&&ef.files.length>5){say(est,'Send at most 5 files.',true);return;} if(ef&&Array.prototype.some.call(ef.files,function(f){return f.size>5*1024*1024;})){say(est,'Each file must be under 5 MB. A smaller photo size or a PDF works best.',true);return;} order(est,$('button[type=submit]',est));});
  var qf=$('#quick-form'),out=$('#quick-out');
  if(qf)qf.addEventListener('submit',function(e){
   e.preventDefault(); var err=check(qf); if(err){say(qf,err,true);return;}
