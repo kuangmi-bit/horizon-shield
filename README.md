@@ -10,7 +10,7 @@ An [MCP](https://modelcontextprotocol.io) server that lets AI agents check wheth
 
 [![MCP Registry](https://img.shields.io/badge/MCP-Registry-2f6feb)](https://registry.modelcontextprotocol.io/v0.1/servers?search=horizon-shield)
 [![Transport: streamable-http](https://img.shields.io/badge/transport-streamable--http-2ea043)](https://mcp.horizonshield.dev)
-[![Open data: JCCDB 95,403 · CC BY 4.0](https://img.shields.io/badge/open%20data-JCCDB%2095%2C403%20%C2%B7%20CC--BY%204.0-e36209)](https://github.com/ogasurfproject-jpg/japan-construction-cost-database)
+[![Open data: JCCDB 425,765 · CC BY 4.0](https://img.shields.io/badge/open%20data-JCCDB%20425%2C765%20%C2%B7%20CC--BY%204.0-e36209)](https://github.com/ogasurfproject-jpg/japan-construction-cost-database)
 [![Anchored: Bitcoin / OpenTimestamps](https://img.shields.io/badge/anchored-Bitcoin%20%2F%20OpenTimestamps-f7931a)](https://ledger.horizonshield.dev/ledger)
 [![Auth: none](https://img.shields.io/badge/auth-none-6e7681)]()
 [![GitHub stars](https://img.shields.io/github/stars/ogasurfproject-jpg/horizon-shield?style=social)](https://github.com/ogasurfproject-jpg/horizon-shield/stargazers)
@@ -207,7 +207,7 @@ A homeowner commissioning construction work cannot reliably judge whether a quot
 - **Transport:** MCP over Streamable HTTP (JSON-RPC 2.0). The legacy SSE transport is not implemented; GET on /sse answers 405 sse_not_supported.
 - **Endpoint:** `https://mcp.horizonshield.dev`
 - **Access:** read only, no API key required
-- **Data region:** fair-price verdicts for Japan (JPY), built on the open JCCDB dataset (95,403 line items); construction cost data for Japan (JCCDB observation layer) and the United States (USCCDB, the United States Construction Cost Database)
+- **Data region:** fair-price verdicts for Japan (JPY), built on the open JCCDB dataset (425,765 records: line items and observations); construction cost data for Japan (JCCDB observation layer) and the United States (USCCDB, the United States Construction Cost Database)
 - **Tools:** 30 (15 for fair price, verification and contractors; 15 for construction cost data)
 
 ## Tools
@@ -234,7 +234,7 @@ A homeowner commissioning construction work cannot reliably judge whether a quot
 
 | Tool | Description |
 |------|-------------|
-| `search_jccdb_items` | Searches the 95,403 JCCDB line items (materials, products, labor) by name; returns whether each exists in a public document, with its evidence URL. |
+| `search_jccdb_items` | Searches the JCCDB line items (materials, products, labor) by name; returns whether each exists in a public document, with its evidence URL. |
 | `get_jccdb_observations` | Region, date and price status of an item in Japanese and U.S. public documents. Values only where the licence allows redistribution; every row carries licence, attribution and evidence URL. |
 | `get_jccdb_labor_rate` | MLIT public-works design labor rates by prefecture and trade (wage per 8 hours); latest by default, yearly series with `history:true`. |
 | `compare_jccdb_regions` | Latest value per region for an item and spec, with min, median (computed) and max; only identical spec, unit and basis are compared. |
@@ -302,7 +302,7 @@ Google's Agent Payments Protocol (AP2) makes what a user **authorized** verifiab
 
 ## Data and academic record
 
-- Fair price data is built on the openly published **JCCDB** dataset (95,403 Japanese construction line items, CC BY 4.0): <https://github.com/ogasurfproject-jpg/japan-construction-cost-database>
+- Fair price data is built on the openly published **JCCDB** dataset (425,765 records: 95,403 Japanese construction line items and 330,362 source-cited observations, CC BY 4.0): <https://github.com/ogasurfproject-jpg/japan-construction-cost-database>
 - PTKA protocol declaration anchored at Bitcoin block 949356 (2026-05-14); JCCDB Extended paper at block 951871 (2026-06-01)
 - JCCDB origin paper: [Zenodo 10.5281/zenodo.20019572](https://doi.org/10.5281/zenodo.20019572)
 - Audit hash and macro correction: [SSRN 6738701](https://ssrn.com/abstract=6738701), mirrored at [engrXiv](https://engrxiv.org/preprint/view/7007)

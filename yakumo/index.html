@@ -198,7 +198,7 @@
     </div>
     <div class="proof">
       <p class="line" id="proofLine" style="display:none;"><span class="dotlive"></span>HORIZON SHIELD の適正診断は <span class="nv" id="vLookups">0</span> 回 AIに照会され、<span class="nv" id="vVerified">0</span> 件が <b>独立検証</b>に付された。</p>
-      <p class="back">裏付け ・ souba-db <b id="vSrc">8</b>ソース 照合 ／ JCCDB <b id="vJccdb">95,403</b>項目(DOI) ／ Yakumo 検証済み加盟店 <b id="vVerifiedStores">0</b>社(募集中)</p>
+      <p class="back">裏付け ・ souba-db <b id="vSrc">8</b>ソース 照合 ／ JCCDB <b id="vJccdb">425,765</b>件(DOI) ／ Yakumo 検証済み加盟店 <b id="vVerifiedStores">0</b>社(募集中)</p>
     </div>
   </section>
 
@@ -378,7 +378,7 @@
     STATE.contractors = d.contractors || [];
     const s = d.stats || {};
     const src = document.getElementById('vSrc'); if(src && s.source_count) src.textContent = s.source_count;
-    const jc = document.getElementById('vJccdb'); if(jc && s.jccdb_items) jc.textContent = Number(s.jccdb_items).toLocaleString();
+    const jc = document.getElementById('vJccdb'); if(jc && s.jccdb_records) jc.textContent = Number(s.jccdb_records).toLocaleString();
     render();
     // 貢献レポート用: モール一覧に表示された店を件数だけ計上(初回描画時に1回。入力内容や個人情報は送らない)
     try {

@@ -48,7 +48,9 @@ AEO_MAP = {
 JCCDB_SOURCE = "data/jccdb-manifest.json"
 
 def fetch_jccdb():
-    """(件数int, 表示用str, バージョンstr) を返す。読めなければ例外で生成を止める。"""
+    """(品目数int, 表示用str, バージョンstr) を返す。読めなければ例外で生成を止める。
+    2026-09-27: 記事に出す数は v5.0 の計の件数(品目 + 観測、manifest の records)に変えた。
+    品目数だけを出すと「9 万品目」になり、観測層を足した今の大きさとずれる(TOshi の指摘)。"""
     try:
         with open(JCCDB_SOURCE, encoding="utf-8") as f:
             d = json.load(f)
@@ -63,7 +65,20 @@ def fetch_jccdb():
     return n, format(n, ","), v
 
 
+def fetch_jccdb_records():
+    """(計の件数int, 表示用str) を返す。品目 + 観測。無ければ生成を止める(古い数で出さない)。"""
+    with open(JCCDB_SOURCE, encoding="utf-8") as f:
+        d = json.load(f)
+    n = d.get("records")
+    if not isinstance(n, int) or n <= 0:
+        raise RuntimeError("JCCDB.records が不正 (%s): %r" % (JCCDB_SOURCE, n))
+    if n != d.get("items", 0) + d.get("observations", 0):
+        raise RuntimeError("JCCDB.records が items + observations と合わない (%s)" % JCCDB_SOURCE)
+    return n, format(n, ",")
+
+
 JCCDB_ITEMS, JCCDB_ITEMS_FMT, JCCDB_VERSION = fetch_jccdb()
+JCCDB_RECORDS, JCCDB_RECORDS_FMT = fetch_jccdb_records()
 
 
 def load_json(path, default):
@@ -167,7 +182,7 @@ _t = re.sub(r'\s+', "", lead_text)[:200]
 _cut = _t.rfind(chr(0x3002), 140, 160)
 _desc = (_t[:_cut+1] if _cut >= 140 else _t[:158])
 if len(_desc) < 150:
-    _desc = (_desc + target + "の単価目安・価格動向・見積もりで確認すべきポイントを、建設実務30年の監修とオープンデータ" + str(JCCDB_ITEMS) + "品目で解説します。")[:158]
+    _desc = (_desc + target + "の単価目安・価格動向・見積もりで確認すべきポイントを、建設実務30年の監修とオープンデータ" + JCCDB_RECORDS_FMT + "件で解説します。")[:158]
 if _desc and not _desc.endswith(chr(0x3002)):
     _desc = _desc.rstrip(chr(0x3001)) + chr(0x3002)
 
@@ -223,7 +238,7 @@ html = (
     '<article>\n' + content + '\n</article>\n'
     '<div class="related">\n<h3>この数値の裏付けを見る</h3>\n' + related + '</div>\n'
     '<div class="cta">\n<div class="cta-title">その見積書、匿名で無料診断できます</div>\n'
-    '<p style="color:#6a6d75;font-size:14px;margin:0 0 16px;line-height:1.7">「一式」を数量・単価に分解し、オープン建設費DB（' + JCCDB_ITEMS_FMT + '品目）と照合。建設30年監修のAI「KIRA」が「盛られやすい所」に印をつけます。写真を貼るだけ・完全匿名・無料。</p>\n'
+    '<p style="color:#6a6d75;font-size:14px;margin:0 0 16px;line-height:1.7">「一式」を数量・単価に分解し、オープン建設費DB（' + JCCDB_RECORDS_FMT + '件）と照合。建設30年監修のAI「KIRA」が「盛られやすい所」に印をつけます。写真を貼るだけ・完全匿名・無料。</p>\n'
     '<a href="https://shield.the-horizons-innovation.com/ehn/" style="display:inline-block;background:#16181d;color:#ffffff;padding:15px 34px;text-decoration:none;font-weight:bold;font-size:16px;margin:6px 4px">見積もりを匿名で無料診断する（30秒）</a>\n'
     '<div style="color:#3f424a;font-size:13px;margin:10px 0">または</div>\n'
     '<a href="https://line.me/R/ti/p/@172piime" style="display:inline-block;background:#16181d;color:#fff;padding:12px 28px;text-decoration:none;font-weight:bold;font-size:14px;margin:4px">LINEで相談する</a>\n</div>\n'
