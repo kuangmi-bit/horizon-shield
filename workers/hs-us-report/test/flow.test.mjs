@@ -15,11 +15,15 @@ const ctx = { waitUntil() {} };
 const site = { origin: "https://shield.the-horizons-innovation.com", "cf-connecting-ip": "203.0.113.9" };
 const W = "https://hs-us-report.example.workers.dev";
 const lineTexts = () => log.filter((l) => l.url.includes("line.me")).map((l) => JSON.parse(l.body).messages[0].text);
-const pdfDeps = { extract: async () => ({ extracted: EXTRACTED, gates: { pass: true, notes: [] } }), htmlToPdf: async (e, htmls) => htmls.map((h) => new TextEncoder().encode(h)) };
+let extractCalls = 0;
+const pdfDeps = { extract: async () => { extractCalls++; return { extracted: EXTRACTED, gates: { pass: true, notes: [] } }; }, htmlToPdf: async (e, htmls) => htmls.map((h) => new TextEncoder().encode(h)) };
 
-// 1. intake with a photo that carries GPS and a second appended JPEG
+// 1. intake with a photo that carries GPS and a second appended JPEG, plus the hearing answers
 const fd = new FormData();
 fd.set("plan", "quote_check"); fd.set("zip", "78745"); fd.set("email", "homeowner@example.com"); fd.set("agree", "yes"); fd.set("name", "Pat Example");
+fd.set("trade", "roof"); fd.set("h_property_type", "single_family"); fd.set("h_stories", "2"); fd.set("h_year_built", "pre_1978"); fd.set("h_insurance_claim", "yes");
+fd.set("h_contact_origin", "door"); fd.set("h_quotes_count", "1"); fd.set("h_deposit_pct", "50"); fd.append("h_pressure", "today_only"); fd.append("h_pressure", "waive_deductible");
+fd.set("h_layers", "1"); fd.set("h_pitch", "medium"); fd.set("h_roof_area_known", "no"); fd.set("h_crew_told", "no"); fd.set("h_penetrations", "999"); fd.set("h_bogus", "x");
 fd.append("file", new File([readFileSync(new URL("./fixtures/gps_appended.jpg", import.meta.url))], "quote.jpg", { type: "image/jpeg" }));
 fd.append("file", new File([readFileSync(new URL("./fixtures/text.png", import.meta.url))], "page2.png", { type: "image/png" }));
 let res = await handleIntake(new Request(W + "/intake", { method: "POST", body: fd, headers: site }), env);
@@ -32,6 +36,15 @@ assert.equal(body.price, 39, "one quote per order, whatever the page count");
 assert.match(body.checkout_url, /paypal\.com.*amount=39\.00.*currency_code=USD/);
 const up = env.US_FILES.m.get(`uploads/${id}/1.jpg`);
 assert.ok(up && !Buffer.from(up.bytes).includes(Buffer.from("Exif")) && !Buffer.from(up.bytes).includes(Buffer.from("secret-app3")), "stored photo has no metadata");
+{
+  const o1 = JSON.parse(await env.US_ORDERS.get(`order:${id}`));
+  assert.equal(o1.trade, "roof");
+  assert.deepEqual(o1.hearing.answers.pressure, ["today_only", "waive_deductible"]);
+  assert.equal(o1.hearing.answers.deposit_pct, 50);
+  assert.equal(o1.hearing.answers.penetrations, undefined, "out-of-range number dropped");
+  assert.deepEqual(o1.hearing.ignored, ["penetrations"]);
+  assert.equal(o1.hearing.answers.bogus, undefined, "unknown field dropped");
+}
 
 // refused cases
 const bad = new FormData(); bad.set("plan", "quote_check"); bad.set("zip", "78745"); bad.set("email", "a@b.co"); bad.set("text", "x".repeat(30));
@@ -84,8 +97,39 @@ o = JSON.parse(await env.US_ORDERS.get(`order:${id}`));
 assert.equal(o.status, "draft_failed"); assert.equal(o.draft_attempts, 1);
 assert.deepEqual(await draftPending(env), [], "not retried within 10 minutes");
 assert.deepEqual(await draftPending(env, Date.now() + 11 * 60000), [id], "retried after 10 minutes");
-const order = await generateDraft(env, id, pdfDeps);
+
+// 3b. the hearing's follow-up: the quote has a permit line and the homeowner did not say whether
+// the property is inside the city limits, so the draft asks first and waits
+let order = await generateDraft(env, id, pdfDeps);
+assert.equal(order.status, "awaiting_answers");
+assert.equal(order.draft_attempts, 2, "asking is not an attempt");
+assert.deepEqual(order.followup.questions.map((q) => q.id), ["inside_city"]);
+assert.equal(extractCalls, 1);
+const askMail = log.filter((l) => l.url.includes("resend")).pop();
+assert.match(JSON.parse(askMail.body).subject, /One quick question/);
+const answerUrl = String(JSON.parse(askMail.body).html).match(/href="([^"]+\/answer\/[^"]+)"/)[1].replace(/&amp;/g, "&");
+assert.ok(answerUrl.startsWith(W + "/answer/" + id + "?exp="), answerUrl);
+assert.ok(lineTexts().pop().includes("聞き返し中"));
+assert.deepEqual(await draftPending(env), [], "waits for the answer");
+assert.deepEqual(await draftPending(env, Date.now() + 9 * 3600000), [id], "drafts anyway after the wait");
+res = await worker.fetch(new Request(answerUrl), env, ctx);
+assert.equal(res.status, 200);
+let page = await res.text();
+assert.ok(page.includes('name="h_inside_city"') && !page.includes("homeowner@example.com"), "answer form shows the question, no customer data");
+res = await worker.fetch(new Request(answerUrl.replace(/sig=[0-9a-f]{4}/, "sig=0000")), env, ctx);
+assert.equal(res.status, 403, "tampered answer link refused");
+const ans = new URLSearchParams({ h_inside_city: "yes", h_roof_squares: "30", h_email: "x" });
+res = await worker.fetch(new Request(answerUrl, { method: "POST", body: ans, headers: { "content-type": "application/x-www-form-urlencoded" } }), env, ctx);
+assert.equal(res.status, 200);
+o = JSON.parse(await env.US_ORDERS.get(`order:${id}`));
+assert.equal(o.status, "answered");
+assert.equal(o.hearing.answers.inside_city, "yes");
+assert.equal(o.hearing.answers.roof_squares, undefined, "only the asked fields are accepted");
+assert.ok(lineTexts().pop().includes("返答"));
+assert.deepEqual(await draftPending(env), [id], "answered orders are drafted at once");
+order = await generateDraft(env, id, pdfDeps);
 assert.equal(order.status, "draft_ready");
+assert.equal(extractCalls, 1, "the AI read the quote once; the redraft reused it");
 const dir = order.draft.sha256.slice(0, 16);
 const report = JSON.parse(new TextDecoder().decode(env.US_FILES.m.get(`reports/${id}/${dir}/report.json`).bytes));
 const byItem = Object.fromEntries(report.lines.map((l) => [l.item, l]));
@@ -93,11 +137,14 @@ assert.deepEqual(byItem["Architectural shingles, 26 squares"].reference_usd, [21
 assert.equal(byItem["Architectural shingles, 26 squares"].status, "above_floor");
 assert.deepEqual(byItem["Labor, 3 roofers x 3 days"].reference_usd, [3121, 4308], "SOC filter picked Roofers May 2025, not helpers or 2024");
 assert.match(byItem["Labor, 3 roofers x 3 days"].basis.hours_basis, /8-hour day assumed/);
-assert.equal(byItem["Permit"].status, "ask_permit_exemption");
+assert.equal(byItem["Permit"].status, "ask_permit_exemption", "inside the city limits: the Austin exemption applies");
 assert.equal(byItem["Overhead and profit 20%"].status, "overlaps_reference_markups");
 assert.equal(report.quote_total, 19872);
 assert.equal(report.geo.cbsa, "12420");
-assert.equal(report.questions.length, 6);
+assert.deepEqual(report.flags.map((f) => f.id), ["cooling_off", "today_only", "deductible_tx", "adjuster_tx", "deposit_large", "one_quote"]);
+assert.ok(report.flags.every((f) => report.sources.includes(f.source)), "every warning sign cites a listed source");
+assert.equal(report.hearing.answers.find((a) => a.id === "inside_city").value, "Yes");
+assert.equal(report.questions.length, 9, "6 line questions + deductible + adjuster scope + payment schedule");
 assert.ok(jcalls.filter((c) => c.includes("Roofers")).every((c) => !c.includes("state=")), "metro data found for roofers, no state fallback");
 assert.deepEqual(order.draft.docs.map((d) => d.name), ["quote-check-report.pdf", "questions-letter.pdf", "report.json"]);
 const qcHtml = new TextDecoder().decode(env.US_FILES.m.get(`reports/${id}/${dir}/quote-check-report.pdf`).bytes);
@@ -110,7 +157,7 @@ assert.ok(reviewUrl.includes(`/review/${id}/${dir}?`), "review link pinned to th
 // 4. review page: no customer data, links only after POST, approve only by POST, once
 res = await worker.fetch(new Request(reviewUrl), env, ctx);
 assert.equal(res.status, 200);
-let page = await res.text();
+page = await res.text();
 assert.ok(!page.includes("homeowner@example.com") && page.includes("ho***@example.com"), "email masked");
 assert.ok(!page.includes("/files/"), "no file links on GET");
 const openAction = page.match(/action="([^"]+\/open[^"]*)"/)[1].replace(/&amp;/g, "&");

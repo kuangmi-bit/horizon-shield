@@ -57,3 +57,15 @@ export function emailDelivered(order, links) {
 <p>If a report contains a material error, tell us within 30 days and we will correct it within three business days or, if you prefer, refund the full price.</p>`),
   };
 }
+
+// Follow-up: two or three questions whose answers change a number in the report.
+export function emailQuestions(order, questions, url, hoursToWait) {
+  const items = questions.map((q) => `<li>${esc(q.text)}</li>`).join("");
+  return {
+    subject: `${questions.length === 1 ? "One quick question" : "A few quick questions"} about your quote (${order.id})`,
+    html: wrap(`<p>We have read your quote. ${questions.length === 1 ? "One detail" : "A few details"} would make the report sharper, and only you can supply ${questions.length === 1 ? "it" : "them"}:</p>
+<ol>${items}</ol>
+<p><a href="${esc(url)}" style="display:inline-block;padding:10px 16px;background:#0a0a0a;color:#fff;text-decoration:none">Answer in one minute</a></p>
+<p>If we do not hear back within ${hoursToWait} hours we will send the report with what the quote states, and note what was missing. You can still answer later and we will update the report.</p>`),
+  };
+}

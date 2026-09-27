@@ -106,9 +106,25 @@ function basisText(l) {
   }
   if (b.contractor_usd_per_kg) {
     const qty = b.kg_per_square != null ? `${b.squares} squares x ${b.kg_per_square} kg (${b.weight_lb_per_square} lb per square)` : `${b.kg} kg`;
-    return `Floor: ${qty} at $${b.contractor_usd_per_kg[0]} to $${b.contractor_usd_per_kg[1]} per kg (landed $${b.landed_usd_per_kg} per kg, wholesale margin ${Math.round(b.wholesale_gross_margin * 1000) / 10}%, contractor markup ${b.contractor_markup_range.map((m) => Math.round(m * 1000) / 10 + "%").join(" to ")}). Not included: ${b.not_included.join(", ")}.`;
+    const extra = [b.squares_basis ? `Area: ${b.squares_basis}.` : "", b.weight_basis ? `Weight: ${b.weight_basis}.` : ""].filter(Boolean).join(" ");
+    return `Floor: ${qty} at $${b.contractor_usd_per_kg[0]} to $${b.contractor_usd_per_kg[1]} per kg (landed $${b.landed_usd_per_kg} per kg, wholesale margin ${Math.round(b.wholesale_gross_margin * 1000) / 10}%, contractor markup ${b.contractor_markup_range.map((m) => Math.round(m * 1000) / 10 + "%").join(" to ")}). Not included: ${b.not_included.join(", ")}.${extra ? " " + extra : ""}`;
   }
   return "";
+}
+
+// The hearing in the documents: what the homeowner told us, and the warning signs with sources.
+function hearingSection(report) {
+  const h = report.hearing;
+  if (!h || !Array.isArray(h.answers) || !h.answers.length) return "";
+  const rows = h.answers.map((a) => `<tr><td style="width:44%">${esc(a.label)}</td><td>${esc(a.value)}</td></tr>`).join("");
+  return `<h2>What you told us</h2><p class="note" style="margin:0 0 6pt">Your answers on the order form, as given. Where a reference uses one of them, the line says so.</p><table><tbody>${rows}</tbody></table>`;
+}
+
+function flagsSection(report, meta) {
+  const fl = report.flags;
+  if (!Array.isArray(fl) || !fl.length) return "";
+  const items = fl.map((f) => `<li>${esc(f.text)} <span class="mono dim">src ${report.sources.indexOf(f.source) + 1}</span></li>`).join("");
+  return `<h2>Before you sign</h2><p class="note" style="margin:0 0 6pt">Each point matches an answer you gave to a public rule or to consumer guidance. They describe the rule, not the contractor.</p><ol class="q">${items}</ol>`;
 }
 
 function footnote(report) {
@@ -157,7 +173,9 @@ ${metaRow(report, meta)}
 <tbody>${rows}</tbody>
 <tfoot><tr><td>Total</td><td class="r">${usd(s.total)}</td><td></td><td colspan="2"></td></tr></tfoot></table>
 <p class="note" style="margin-top:8pt">${footnote(report)}</p>
+${flagsSection(report, meta)}
 ${qs ? `<h2>Questions to ask the contractor</h2><ol class="q">${qs}</ol><p class="note">A ready-to-send letter with these questions is attached as a separate document.</p>` : ""}
+${hearingSection(report)}
 <h2>Sources</h2>${sourcesList(report, meta)}
 <div class="receipt">Receipt sha256 ${esc(meta.report_sha256)} &nbsp;/&nbsp; ${esc(meta.engine || "")} &nbsp;/&nbsp; recompute it from the report file (JSON) delivered with this document${meta.jidec_entry != null ? ` &nbsp;/&nbsp; JIDEC ledger entry ${esc(meta.jidec_entry)}` : ""}</div>
 <p class="legal">${esc(DISCLAIMER)}<br>${esc(COMPANY.name)}, ${esc(COMPANY.address)}. ${esc(COMPANY.email)}. ${esc(COMPANY.site)}</p>`;
@@ -185,6 +203,8 @@ ${metaRow(report, meta)}
 <table><thead><tr><th>Line and quantity</th><th class="r">Public reference</th><th>Src</th></tr></thead><tbody>${rows}</tbody></table>
 <h2>Scope list to send contractors</h2>
 <div class="box"><p class="note" style="margin:0 0 6pt">Send this list with each quote request and ask for a price per line, so the quotes can be compared on the same scope.</p><ol class="q">${scope}</ol></div>
+${flagsSection(report, meta)}
+${hearingSection(report)}
 <h2>Sources</h2>${sourcesList(report, meta)}
 <div class="receipt">Receipt sha256 ${esc(meta.report_sha256)} &nbsp;/&nbsp; ${esc(meta.engine || "")}</div>
 <p class="legal">Your measurements and description drive these numbers; if they are incomplete, so is this estimate. ${esc(DISCLAIMER)}<br>${esc(COMPANY.name)}, ${esc(COMPANY.address)}. ${esc(COMPANY.email)}.</p>`;

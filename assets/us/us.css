@@ -344,8 +344,24 @@ body.lp .top.on-photo::before{content:"";position:absolute;inset:0 0 -40px 0;bac
 .bar .more{flex-basis:100%;display:grid;gap:10px;padding-top:6px}
 .bar .more[hidden]{display:none}
 .bar .fld span,.bar .chk{color:var(--on-photo-mute)}
-.bar .fld input{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.3);color:var(--on-photo)}
+.bar .fld input,.bar .fld select{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.3);color:var(--on-photo)}
+.bar .fld select option{color:#0a0a0a;background:#fff}
+.bar .hq .multi label,.bar .hq-why,.bar .fld .why{color:var(--on-photo-mute)}
 .bar .chk a{color:var(--on-photo)}
+/* the hearing: job-specific questions rendered by the page from the worker's definitions */
+.hq{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;border-top:1px solid var(--line);padding-top:12px}
+.hq[hidden]{display:none}
+.hq .fld.wide{grid-column:1/-1}
+.hq .fld[hidden]{display:none}
+.hq .multi{display:grid;gap:6px}
+.hq .multi label{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;cursor:pointer}
+.hq .multi input{width:18px;height:18px;min-height:18px;padding:0;margin-top:2px;accent-color:var(--accent);flex:none}
+.fld .why{display:none;font-size:12px;line-height:1.4;color:var(--mute)}
+.fld:focus-within .why{display:block}
+.hq-why{font-size:13px;color:var(--mute);margin:0;border-top:1px solid var(--line);padding-top:12px}
+.hq{border-top:0;padding-top:0}
+.hq-why[hidden]{display:none}
+@media (max-width:640px){.hq{grid-template-columns:1fr}}
 .bar .picked{color:var(--on-photo);margin:0;text-transform:none;letter-spacing:0;font-size:12px}
 .bar .msg{color:var(--on-photo-mute)}
 .fld{display:grid;gap:6px}

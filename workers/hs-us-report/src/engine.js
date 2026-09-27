@@ -43,20 +43,20 @@ function materialLine(line) {
   if (m.form === "roofing_squares") {
     const kgPerSquare = round(m.weight_lb_per_square * LB_TO_KG, 2);
     const ref = unitRange.map((u) => Math.round(m.squares * kgPerSquare * u));
-    return {
-      ref,
-      basis: {
-        contractor_markup_range: m.contractor_markup_range,
-        contractor_usd_per_kg: unitRange,
-        kg_per_square: kgPerSquare,
-        landed_usd_per_kg: m.landed_usd_per_kg,
-        not_included: ["freight to the site", "brand premium", "additional distribution tiers"],
-        reference_formula: `${m.squares} x ${kgPerSquare} x landed / (1 - wholesale margin) x (1 + markup)`,
-        squares: m.squares,
-        weight_lb_per_square: m.weight_lb_per_square,
-        wholesale_gross_margin: m.wholesale_gross_margin,
-      },
+    const basis = {
+      contractor_markup_range: m.contractor_markup_range,
+      contractor_usd_per_kg: unitRange,
+      kg_per_square: kgPerSquare,
+      landed_usd_per_kg: m.landed_usd_per_kg,
+      not_included: ["freight to the site", "brand premium", "additional distribution tiers"],
+      reference_formula: `${m.squares} x ${kgPerSquare} x landed / (1 - wholesale margin) x (1 + markup)`,
+      squares: m.squares,
+      weight_lb_per_square: m.weight_lb_per_square,
+      wholesale_gross_margin: m.wholesale_gross_margin,
     };
+    if (m.squares_basis) basis.squares_basis = m.squares_basis;
+    if (m.weight_basis) basis.weight_basis = m.weight_basis;
+    return { ref, basis };
   }
   // generic: quantity already in kilograms
   const ref = unitRange.map((u) => Math.round(m.kg * u));
@@ -185,6 +185,10 @@ export function computeReport(input) {
     report.estimate_total_usd = [0, 1].map((i) => withRef.reduce((s, l) => s + l.reference_usd[i], 0));
     report.lines_without_benchmark = lines.filter((l) => l.status === "no_public_benchmark").length;
   }
+  // The hearing: the homeowner's answers as given, and the warning signs they match, each
+  // with its public source. Copied, not computed, so the receipt covers them too.
+  if (input.hearing) report.hearing = input.hearing;
+  if (Array.isArray(input.flags) && input.flags.length) report.flags = input.flags;
   if (input.with_questions) report.questions = buildQuestions(report);
   return report;
 }
@@ -239,5 +243,13 @@ export function buildQuestions(report) {
         break;
     }
   }
+  // Questions that follow from the hearing, not from a line.
+  const flagIds = new Set((report.flags || []).map((f) => f.id));
+  if (flagIds.has("deductible_tx") || flagIds.has("deductible_general")) qs.push({ item: "insurance deductible", text: "Could you confirm in writing that I will pay my insurance deductible in full and that no part of it is absorbed, waived or rebated in this quote?" });
+  if (flagIds.has("adjuster_tx")) qs.push({ item: "insurance scope", text: "Could you send the line-item scope you gave the insurer, so I can match each line of this quote to the adjuster's estimate?" });
+  if (flagIds.has("lead_rrp")) qs.push({ item: "lead-safe certification", text: "The house was built before 1978. Could you send your EPA Lead-Safe Certified Firm number and confirm that a certified renovator will be on site?" });
+  if (flagIds.has("no_contract")) qs.push({ item: "written contract", text: "Could you send a written contract that lists the work, the materials by brand and line, the price, the schedule, who pulls the permit, and the warranty?" });
+  if (flagIds.has("license_tx") || flagIds.has("license_ca") || flagIds.has("license_general")) qs.push({ item: "license and insurance", text: "Could you send your license number where one applies, and a certificate of general liability insurance issued to me directly by your insurer?" });
+  if (flagIds.has("deposit_ca") || flagIds.has("deposit_md") || flagIds.has("deposit_large") || flagIds.has("full_upfront")) qs.push({ item: "payment schedule", text: "Could you propose a payment schedule tied to completed stages of the work, with a smaller amount before work starts?" });
   return qs;
 }

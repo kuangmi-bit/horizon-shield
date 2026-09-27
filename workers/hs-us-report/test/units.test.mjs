@@ -7,6 +7,9 @@ import { gates } from "../src/extract.js";
 import { resolveZip } from "../src/geo.js";
 import { tradeKey } from "../src/trades.js";
 import { esc } from "../src/templates.js";
+import { normalizeHearing, roofSquaresFrom, crewHoursFrom, flagsFor, followUpQuestions, hearingSummary, questionsFor, pageDefinition, PITCH_FACTOR } from "../src/hearing.js";
+import { SOURCES } from "../src/sources.js";
+import { existsSync } from "node:fs";
 
 const fx = (n) => new Uint8Array(readFileSync(new URL(`./fixtures/${n}`, import.meta.url)));
 const has = (bytes, s) => Buffer.from(bytes).includes(Buffer.from(s));
@@ -71,4 +74,55 @@ assert.equal(tradeKey("Roof replacement"), "roof"); assert.equal(tradeKey("Kitch
 
 // escaping
 assert.equal(esc('<img src=x onerror="a">&\''), "&lt;img src=x onerror=&quot;a&quot;&gt;&amp;&#39;");
+
+// the hearing: normalization keeps only defined ids, ranges and options
+{
+  const get = (n) => ({ h_roof_squares: "26", h_pitch: "medium", h_layers: "9", h_pressure: ["today_only", "nope"], h_deposit_pct: "150", h_stories: "2", h_scope_qty: "x" })[n] ?? null;
+  const n = normalizeHearing(get, "roof");
+  assert.deepEqual(n.answers, { roof_squares: 26, pitch: "medium", stories: "2", pressure: ["today_only"] });
+  assert.deepEqual(n.ignored, ["layers", "deposit_pct"]);
+  assert.ok(questionsFor("roof").some((q) => q.id === "roof_squares") && !questionsFor("windows").some((q) => q.id === "roof_squares"));
+  // every option value and id is a plain token; every flag source exists
+  for (const q of [...questionsFor("roof"), ...questionsFor("hvac"), ...questionsFor("other")]) { assert.match(q.id, /^[a-z_]+$/); for (const o of q.options || []) assert.match(o[0], /^[a-z0-9_]+$/); }
+}
+// geometry, crew hours
+assert.deepEqual(roofSquaresFrom({ roof_squares: 26 }), { squares: 26, basis: "roof area given by the homeowner" });
+assert.equal(roofSquaresFrom({ roof_sqft: 2650 }).squares, 26.5);
+assert.equal(roofSquaresFrom({ footprint_sqft: 1600, pitch: "medium" }).squares, Math.round(1600 * PITCH_FACTOR.medium / 100 * 10) / 10);
+assert.equal(roofSquaresFrom({ footprint_sqft: 1600, pitch: "not_sure" }), null, "no pitch, no estimate");
+assert.equal(Math.round(PITCH_FACTOR.medium * 1000) / 1000, Math.round(Math.sqrt(1 + 0.25) * 1000) / 1000, "6/12 slope factor");
+assert.deepEqual(crewHoursFrom({ crew_told: "yes", crew_workers: 3, crew_days: 2.5 }).hours, 60);
+assert.equal(crewHoursFrom({ crew_told: "no", crew_workers: 3, crew_days: 2 }), null);
+// warning signs depend on the state
+{
+  const tx = flagsFor({ contact_origin: "after_storm", pressure: ["waive_deductible", "no_license_proof"], insurance_claim: "yes", deposit_pct: 60, year_built: "pre_1978" }, { state: "TX" }, "roof");
+  assert.deepEqual(tx.map((f) => f.id), ["cooling_off", "license_tx", "deductible_tx", "adjuster_tx", "deposit_large"]);
+  const ca = flagsFor({ pressure: ["no_license_proof"], deposit_pct: 20, year_built: "pre_1978" }, { state: "CA" }, "exterior_paint");
+  assert.deepEqual(ca.map((f) => f.id), ["license_ca", "deposit_ca", "lead_rrp"]);
+  const md = flagsFor({ deposit_pct: 40 }, { state: "MD" }, "roof");
+  assert.deepEqual(md.map((f) => f.id), ["deposit_md"]);
+  assert.deepEqual(flagsFor({ deposit_pct: 40 }, { state: "MD" }, "roof").map((f) => f.source), ["md-busreg-8-617"]);
+  assert.deepEqual(flagsFor({}, { state: "TX" }, "roof"), []);
+  for (const f of [...tx, ...ca, ...md]) assert.ok(SOURCES[f.source], "flag source listed: " + f.source);
+}
+// follow-up: only gaps the homeowner can close, at most three, never for the detailed estimate
+{
+  const ex = { lines: [{ item: "Shingles", kind: "material", material: { type: "asphalt_shingles", squares: null } }, { item: "Labor", kind: "labor", labor: {} }, { item: "Permit", kind: "permit" }] };
+  assert.deepEqual(followUpQuestions(ex, {}, "roof", "quote_check").map((q) => q.id), ["roof_area", "crew", "inside_city"]);
+  assert.deepEqual(followUpQuestions(ex, { roof_squares: 20, crew_told: "yes", crew_workers: 2, crew_days: 2, inside_city: "no" }, "roof", "quote_check"), []);
+  assert.deepEqual(followUpQuestions(ex, {}, "roof", "detailed_estimate"), []);
+  const ex2 = { lines: [{ item: "Shingles", kind: "material", material: { type: "asphalt_shingles", squares: 26, weight_lb_per_square: null } }] };
+  assert.deepEqual(followUpQuestions(ex2, {}, "roof", "quote_check").map((q) => q.id), ["shingle_weight"]);
+}
+assert.deepEqual(hearingSummary({ pressure: ["today_only"], stories: "2", roof_squares: 26 }, "roof").map((r) => r.value), ["26 squares", "2", "Said the price is good only today or this week"]);
+// the page carries the same questions as the worker
+{
+  const cands = ["../../../us/index.html", "../../../site/us/index.html"].map((r) => new URL(r, import.meta.url).pathname).filter((p) => existsSync(p));
+  if (cands.length) {
+    const html = readFileSync(cands[0], "utf8");
+    const m = html.match(/<script id="hq" type="application\/json">([\s\S]*?)<\/script>/);
+    assert.ok(m, "hearing JSON present in the page"); console.log("page sync checked:", cands[0]);
+    assert.deepEqual(JSON.parse(m[1]), JSON.parse(JSON.stringify(pageDefinition())), "page questions match hearing.js (run tools/build_hearing_json.mjs)");
+  }
+}
 console.log("units ok");

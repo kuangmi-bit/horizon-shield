@@ -12,26 +12,35 @@
 //   GET  /review/<order>/<sha16>         signed review page for TOshi (no customer data, no links)
 //   POST /review/<order>/<sha16>/open    shows the draft links
 //   POST /review/<order>/<sha16>/approve sends the documents to the customer
+//   GET  /answer/<order>                 signed follow-up form for the customer (3 days)
+//   POST /answer/<order>                 saves the answers and queues a new draft
 //   /admin/...                           Bearer US_ADMIN_TOKEN
 // Cron "* * * * *": draft one paid order per run. Cron "0 * * * *": sweep (deletions, late alerts).
 // LINE messages to TOshi carry the order id, plan, price and status only, never customer details.
+//
+// The hearing (hearing.js): the order form asks job-specific questions; the answers feed the
+// references (roof area, crew hours, permit rule) and the warning signs. After the AI reads the
+// quote, a gap that only the homeowner can close becomes a short follow-up email with a signed
+// answer link; the draft waits up to FOLLOWUP_WAIT and then proceeds with what the quote states.
 
 import { resolveZip, placeLabel } from "./geo.js";
 import { stripMetadata } from "./exif.js";
 import { extract, gates } from "./extract.js";
-import { buildInput, buildReport } from "./pipeline.js";
+import { buildInput, buildReport, tradeOf } from "./pipeline.js";
 import { renderQuoteCheck, renderDetailedEstimate, renderQuestionsLetter, esc } from "./templates.js";
 import { htmlToPdf } from "./pdf.js";
 import { priceFor, PLAN_NAMES, checkoutUrl, verifyIpn, checkIpnAgainstOrder } from "./paypal.js";
-import { sendEmail, lineToshi, emailReceived, emailDelivered } from "./notify.js";
+import { sendEmail, lineToshi, emailReceived, emailDelivered, emailQuestions } from "./notify.js";
 import { signPath, verifyPath, ctEqual } from "./sign.js";
 import { TRADES, tradeKey } from "./trades.js";
 import { wagesFor, LOADING_BY_STATE } from "./refs.js";
 import { sourceTitles, sourceUrls } from "./sources.js";
 import { FONTS } from "./fonts.js";
 import { ENGINE_VERSION } from "./engine.js";
+import { normalizeHearing, hearingText, followUpQuestions, followUpFieldIds, HEARING_VERSION } from "./hearing.js";
 
 const DAY = 86400000;
+const FOLLOWUP_WAIT = 8 * 3600000;     // how long a draft waits for follow-up answers
 const MAX_FILE = 5 * 1024 * 1024;      // per file: the AI reader's limit per image
 const MAX_TOTAL = 12 * 1024 * 1024;    // per order: keeps the AI request and memory well inside limits
 const MAX_FILES = 5;                   // pages of one quote, or photos of one job
@@ -108,6 +117,10 @@ export async function handleIntake(request, env) {
   }
   if (plan === "quote_check" && !kept.length && text.trim().length < 20) return json({ ok: false, error: "Upload the quote or paste its lines." }, 400, h);
   if (plan === "detailed_estimate" && description.trim().length < 40) return json({ ok: false, error: "Describe the job and your measurements in a few sentences." }, 400, h);
+  // The hearing: the job the homeowner chose and the answers to the questions for it.
+  const tradeChoice = String(form.get("trade") || "");
+  const trade = Object.prototype.hasOwnProperty.call(TRADES, tradeChoice) ? tradeChoice : "";
+  const hearing = normalizeHearing((name) => { const all = form.getAll(name); return all.length > 1 ? all.map(String) : (all.length ? String(all[0]) : null); }, trade || "other");
   const id = newOrderId();
   const now = Date.now();
   const stored = [];
@@ -121,6 +134,8 @@ export async function handleIntake(request, env) {
     id, plan, plan_name: PLAN_NAMES[plan], price: priceFor(plan), currency: "USD",
     email, name: String(form.get("name") || "").slice(0, 120), contractor: String(form.get("contractor") || "").slice(0, 160),
     zip: geo.zip, geo, text, description, files: stored, status: "awaiting_payment", created_at: new Date(now).toISOString(),
+    trade: trade || null,
+    hearing: { version: HEARING_VERSION, answers: hearing.answers, ignored: hearing.ignored, answered_at: new Date(now).toISOString() },
   };
   await putOrder(env, order);
   return json({ ok: true, order_id: id, price: order.price, currency: "USD", checkout_url: checkoutUrl(order, env) }, 200, h);
@@ -210,23 +225,49 @@ export async function generateDraft(env, orderId, deps = {}) {
   const order = await getOrder(env, orderId);
   if (!order) throw new Error("order not found");
   const pdf = deps.htmlToPdf || htmlToPdf;
+  const fetchImpl = deps.fetchImpl || fetch;
   try {
     order.status = "drafting";
     order.drafting_since = new Date().toISOString();
     order.draft_attempts = (order.draft_attempts || 0) + 1;
     await putOrder(env, order);
-    let extracted = order.extracted_override || null;
+    // The AI reads the quote once per order; a redraft (new answers, a fixed extraction) reuses it.
+    let extracted = order.extracted_override || order.extracted_cache || null;
     let g;
     if (!extracted) {
       const files = await loadFiles(env, order);
-      const r = await (deps.extract || extract)(env, { mode: order.plan, files, text: order.plan === "detailed_estimate" ? order.description : order.text });
+      const answers = (order.hearing && order.hearing.answers) || {};
+      const hint = hearingText(answers, order.trade || "other");
+      const own = order.plan === "detailed_estimate" ? order.description : order.text;
+      const r = await (deps.extract || extract)(env, { mode: order.plan, files, text: [own, hint].filter(Boolean).join("\n\n") });
       extracted = r.extracted;
       g = r.gates;
+      order.extracted_cache = extracted;
     } else {
       g = gates(extracted, order.plan);
     }
     if (!g.pass) throw new Error(`extraction gates failed: ${g.notes.join("; ")}`);
+    // Follow-up: a gap only the homeowner can close. Asked once per order; the draft waits FOLLOWUP_WAIT.
+    if (!order.followup && !deps.skipFollowup) {
+      const tk = tradeOf(order, extracted);
+      const fu = followUpQuestions(extracted, (order.hearing && order.hearing.answers) || {}, tk, order.plan);
+      if (fu.length) {
+        const link = await signPath(env.LINK_SECRET, `/answer/${order.id}`, 3 * DAY);
+        const m = emailQuestions(order, fu, `${env.PUBLIC_WORKER_URL}${link}`, Math.round(FOLLOWUP_WAIT / 3600000));
+        const sent = await sendEmail(env, order.email, m.subject, m.html, fetchImpl);
+        order.followup = { asked_at: new Date().toISOString(), deadline: new Date(Date.now() + FOLLOWUP_WAIT).toISOString(), questions: fu.map((q) => ({ id: q.id, text: q.text, fields: q.fields })), email_sent: !!sent };
+        if (sent) {
+          order.status = "awaiting_answers";
+          order.draft_attempts -= 1;   // asking is not an attempt
+          await putOrder(env, order);
+          await lineToshi(env, `【US】お客様に聞き返し中 ${order.plan_name} / ${order.id}: ${fu.map((q) => q.id).join(", ")}。${Math.round(FOLLOWUP_WAIT / 3600000)} 時間待って、返事が無ければそのまま下書きを作る。`);
+          return order;
+        }
+        // The email could not be sent: proceed with what the quote states, and say so in the notes.
+      }
+    }
     const { input, notes } = await buildInput(env, order, extracted, order.geo);
+    if (order.followup && !order.followup.answered_at) notes.push(`asked the homeowner about ${order.followup.questions.map((q) => q.id).join(", ")}; no answer ${order.followup.email_sent ? "yet" : "(email not sent)"}`);
     const built = await buildReport(input);
     const meta = { fonts: FONTS, order_id: order.id, date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" }),
       report_sha256: built.sha256, engine: built.engine, source_titles: sourceTitles(input.sources),
@@ -267,8 +308,12 @@ export async function draftPending(env, now = Date.now()) {
   const cands = [];
   for (const k of page.keys) {
     const m = k.metadata || {};
-    if (m.status === "paid") cands.push({ id: k.name.slice(6), paid: m.paid_at || "" });
-    else if (m.status === "drafting" || m.status === "draft_failed") {
+    if (m.status === "paid" || m.status === "answered") cands.push({ id: k.name.slice(6), paid: m.paid_at || "" });
+    else if (m.status === "awaiting_answers") {
+      // Answers arrived (status goes back to "paid" in handleAnswer) or the wait is over.
+      const o = await getOrder(env, k.name.slice(6));
+      if (o && o.followup && o.followup.deadline && now >= new Date(o.followup.deadline).getTime()) cands.push({ id: o.id, paid: o.paid_at || "" });
+    } else if (m.status === "drafting" || m.status === "draft_failed") {
       const o = await getOrder(env, k.name.slice(6));
       if (!o || (o.draft_attempts || 0) >= 3) continue;
       const since = o.drafting_since ? new Date(o.drafting_since).getTime() : 0;
@@ -312,11 +357,66 @@ function reviewPage(order, base, qs, docLinks) {
   return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(order.id)}</title>
 <body style="font:16px/1.6 -apple-system,Helvetica,sans-serif;max-width:640px;margin:24px auto;padding:0 16px;color:#0a0a0a">
 <h1 style="font-size:20px">${esc(order.plan_name)} / ${esc(order.id)}</h1>
-<p>状態: ${esc(order.status)} / $${esc(order.price)} / ${esc((order.geo && order.geo.state) || "")} ${esc(order.zip || "")}<br>宛先: ${esc(maskEmail(order.email))}<br>下書きの指紋: ${esc(sha16(order) || "")}</p>
+<p>状態: ${esc(order.status)} / $${esc(order.price)} / ${esc((order.geo && order.geo.state) || "")} ${esc(order.zip || "")}<br>宛先: ${esc(maskEmail(order.email))}<br>下書きの指紋: ${esc(sha16(order) || "")}<br>ヒアリング: ${esc(String(Object.keys((order.hearing && order.hearing.answers) || {}).length))} 問に回答${order.followup ? ` / 聞き返し ${esc(order.followup.questions.map((q) => q.id).join(", "))}: ${order.followup.answered_at ? "返答あり" : "返答待ち(" + esc(order.followup.deadline || "") + " まで)"}` : ""}</p>
 <h2 style="font-size:16px">下書き</h2>${items}
 <h2 style="font-size:16px">注意</h2><ul>${notes}</ul>
 ${approve}
 <p style="color:#737373;font-size:13px">直すときは管理の口で extraction を直して作り直す(DEPLOY_TOshi.md の 7)。作り直すと指紋が変わり、このリンクは使えなくなる。</p></body>`;
+}
+
+// ---------------------------------------------------------------- follow-up answers (customer)
+
+const ANSWER_CSS = "font:16px/1.6 -apple-system,Helvetica,Arial,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;color:#0a0a0a";
+
+function answerField(f, current) {
+  const name = `h_${f.id}`;
+  const label = `<label style="display:block;margin:12px 0 4px;font-size:14px;color:#525252">${esc(f.label)}${f.unit ? ` (${esc(f.unit)})` : ""}</label>`;
+  if (f.type === "select") return label + `<select name="${esc(name)}" style="font:inherit;min-height:44px;width:100%;border:1px solid #a3a3a3;padding:8px"><option value="">Choose</option>${f.options.map((o) => `<option value="${esc(o[0])}"${current === o[0] ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select>`;
+  return label + `<input name="${esc(name)}" type="number" inputmode="decimal"${f.min != null ? ` min="${f.min}"` : ""}${f.max != null ? ` max="${f.max}"` : ""} step="${f.step || "any"}" value="${current != null ? esc(current) : ""}" style="font:inherit;min-height:44px;width:100%;border:1px solid #a3a3a3;padding:8px">`;
+}
+
+function answerPage(order, qs, state) {
+  const answers = (order.hearing && order.hearing.answers) || {};
+  let body;
+  if (state === "saved") body = `<p>Thank you. Your answers are in, and the report is being updated with them. You will get an email when it is ready.</p>`;
+  else if (state === "closed") body = `<p>This order's report has already been sent. If you would like it updated with new information, reply to the email you received and we will take care of it.</p>`;
+  else {
+    const blocks = order.followup.questions.map((q) => `<div style="border-top:1px solid #d4d4d4;padding:14px 0"><p style="margin:0 0 4px">${esc(q.text)}</p>${q.fields.map((f) => answerField(f, answers[f.id])).join("")}</div>`).join("");
+    body = `<p>These answers change a number in your report. Leave blank anything you do not know.</p><form method="post" action="/answer/${esc(order.id)}?${esc(qs)}">${blocks}<button style="margin-top:18px;font:inherit;font-size:16px;padding:12px 20px;background:#0a0a0a;color:#fff;border:0">Send answers</button></form>`;
+  }
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Your answers, order ${esc(order.id)}</title>
+<body style="${ANSWER_CSS}"><div style="border-bottom:2px solid #0a0a0a;padding:0 0 8px;font-weight:600">HORIZON SHIELD <span style="font-size:11px;color:#737373">US</span></div>
+<h1 style="font-size:20px;margin:18px 0 8px">${esc(order.plan_name)}, order ${esc(order.id)}</h1>${body}
+<p style="color:#737373;font-size:12px;margin-top:28px">The HORIZONs Co., Ltd. Price benchmarking information only. Reply to our email with any question.</p></body></html>`;
+}
+
+async function handleAnswer(request, env, order, qs) {
+  if (!order.followup) return html(answerPage(order, qs, "closed"), 409);
+  if (["delivered", "delivering", "refunded"].includes(order.status)) return html(answerPage(order, qs, "closed"), 409);
+  if (request.method === "GET") return html(answerPage(order, qs, "form"));
+  let form;
+  try { form = await request.formData(); } catch { return html("<p>Please send the form.</p>", 400); }
+  const allowed = followUpFieldIds(order.followup.questions);
+  const get = (name) => { const id = name.slice(2); if (!allowed.has(id)) return null; const v = form.get(name); return v == null ? null : String(v); };
+  const tk = order.trade || "roof";
+  const n = normalizeHearing(get, tk);
+  // A follow-up field may belong to a trade other than the order's; accept it by its own definition.
+  for (const q of order.followup.questions) for (const f of q.fields) {
+    if (n.answers[f.id] != null) continue;
+    const raw = form.get(`h_${f.id}`);
+    if (raw == null || raw === "") continue;
+    if (f.type === "number") { const v = Number(String(raw).replace(/[,\s]/g, "")); if (Number.isFinite(v) && (f.min == null || v >= f.min) && (f.max == null || v <= f.max)) n.answers[f.id] = v; }
+    else if (f.type === "select" && f.options.some((o) => o[0] === String(raw))) n.answers[f.id] = String(raw);
+  }
+  order.hearing = order.hearing || { version: HEARING_VERSION, answers: {} };
+  order.hearing.answers = { ...(order.hearing.answers || {}), ...n.answers };
+  order.hearing.answered_at = new Date().toISOString();
+  order.followup.answered_at = order.hearing.answered_at;
+  order.followup.answered_fields = Object.keys(n.answers);
+  if (["awaiting_answers", "draft_ready", "draft_failed"].includes(order.status)) { order.status = "answered"; order.draft_attempts = 0; }
+  await putOrder(env, order);
+  await lineToshi(env, `【US】お客様から返答 ${order.plan_name} / ${order.id}: ${Object.keys(n.answers).join(", ") || "空の返答"}。下書きを作り直す。`);
+  return html(answerPage(order, qs, "saved"));
 }
 
 // ---------------------------------------------------------------- sweep (hourly, own cron)
@@ -362,7 +462,7 @@ export async function sweep(env, now = Date.now()) {
       let changed = false;
       if (op && now - op > UPLOAD_TTL && !o.scrubbed_at) {
         // the customer's own content leaves the record with the uploads
-        for (const key of ["text", "description", "extracted", "extracted_override", "name", "contractor"]) delete o[key];
+        for (const key of ["text", "description", "extracted", "extracted_override", "extracted_cache", "name", "contractor", "hearing", "followup"]) delete o[key];
         for (const f of o.files || []) await env.US_FILES.delete(f.key);
         o.files = [];
         o.scrubbed_at = new Date(now).toISOString();
@@ -434,6 +534,15 @@ async function route(request, env, ctx) {
     return html(reviewPage(order, base, qs, docLinks));
   }
 
+  m = p.match(/^\/answer\/(US-\d{8}-[A-Z2-9]{6})$/);
+  if (m && (request.method === "GET" || request.method === "POST")) {
+    const qs = `exp=${encodeURIComponent(url.searchParams.get("exp") || "")}&sig=${encodeURIComponent(url.searchParams.get("sig") || "")}`;
+    if (!(await verifyPath(env.LINK_SECRET, p, url.searchParams.get("exp"), url.searchParams.get("sig")))) return html("<p style=\"font:16px sans-serif;margin:24px\">This link has expired. Reply to our email and we will send a new one.</p>", 403);
+    const order = await getOrder(env, m[1]);
+    if (!order) return html("<p>Not found</p>", 404);
+    return await handleAnswer(request, env, order, qs);
+  }
+
   if (p.startsWith("/admin/")) {
     if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
     if (p === "/admin/orders" && request.method === "GET") {
@@ -457,7 +566,21 @@ async function route(request, env, ctx) {
       await putOrder(env, order);
       return json({ ok: true, notes: g.notes });
     }
-    if (action === "/draft" && request.method === "POST") return json({ ok: true, order: await generateDraft(env, order.id) });
+    if (action === "/hearing" && request.method === "PUT") {
+      // Body: {"answers": {...}} in the page's field ids (without the h_ prefix). Merged, validated.
+      const body = await request.json().catch(() => ({}));
+      const src = (body && body.answers) || {};
+      const n = normalizeHearing((name) => { const v = src[name.slice(2)]; return v == null ? null : (Array.isArray(v) ? v.map(String) : String(v)); }, order.trade || "other");
+      order.hearing = order.hearing || { version: HEARING_VERSION, answers: {} };
+      order.hearing.answers = { ...(order.hearing.answers || {}), ...n.answers };
+      order.hearing.answered_at = new Date().toISOString();
+      if (order.followup && !order.followup.answered_at) order.followup.answered_at = order.hearing.answered_at;
+      order.draft_attempts = 0;
+      await putOrder(env, order);
+      return json({ ok: true, answers: order.hearing.answers, ignored: n.ignored });
+    }
+    // POST /draft asks the homeowner first when the quote leaves a gap; /draft?ask=0 drafts right away.
+    if (action === "/draft" && request.method === "POST") return json({ ok: true, order: await generateDraft(env, order.id, { skipFollowup: url.searchParams.get("ask") === "0" }) });
     if (action === "/approve" && request.method === "POST") {
       if (order.status !== "draft_ready") return json({ error: `status ${order.status}` }, 409);
       order.status = "delivering"; await putOrder(env, order);
