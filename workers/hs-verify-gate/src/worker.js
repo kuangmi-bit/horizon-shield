@@ -2733,7 +2733,7 @@ function sealSvg(opts) {
 // 経路で使えるようにするためのものだけだ。判定そのものには一切影響しない。
 // 4行が verified で、その4行が全部こちらのものである、という事実も変わらない。
 
-function openapiDoc(origin) {
+function openapiDocBase(origin) {
   const ok = { description: "OK" };
   const g = (summary, description) => ({ get: { summary, description, responses: { "200": ok } } });
   return {
@@ -2833,6 +2833,234 @@ function openapiDoc(origin) {
       }
     }
   };
+}
+
+// 2026-09-27. /openapi.json を、読む側がエージェントでも一読で動ける記述にする。
+// 外部の agent-readiness 監査 (38/100) が拾った穴: operationId も例も無い、冪等性・副作用・取り消し方が書いてない、
+// 認証が要らん事すら機械に読めん、匿名で登録できる口 (POST /watch) と型の付いた通知 (webhook) が記述に無い。
+// 経路も判定も status も条件も 1 バイトも動かさん。変わるのはこの文書の本文だけ。card も触らんので再署名は要らん、
+// CONFIG.version も上げん。足した口 (/is-verified, /record/{record_sha256}, /watch, /a2a, /keys/*, did, jwks) は
+// 前から配っとった物で、記述から漏れとっただけ。例は 2026-09-27 に本番から取った応答の抜粋で、そうと書く。
+// 守りは test/openapi_agent_ready.test.mjs: 全操作に operationId と三つの x- 欄、宣言した口が全部実在、例が本物の形。
+const OA_CAPTURED = "Abbreviated live response captured from gate.horizonshield.dev on 2026-09-27 (gate 0.4.15, commit 9475e33415c3). Values move with every measurement; the shape does not.";
+const OA_EP_Q = { name: "endpoint", in: "query", required: true, description: "The https URL of an MCP endpoint, exactly as it appears on the register.", schema: { type: "string", format: "uri" }, example: "https://mcp.horizonshield.dev/mcp" };
+const OA_READ = {
+  "x-side-effects": [],
+  "x-idempotent": true,
+  "x-reversibility": { kind: "not_applicable", reason: "Reads only. Nothing is written that an agent would need to undo." }
+};
+const OA_REC_SHA = "8c78153b24677fe667158322f1703b2d93c36a353e1d31da619f92585d1ca244";
+const OA_EXAMPLES = {
+  "/health": { ok: true, gate_version: "0.4.15", gate_commit: "9475e33415c3" },
+  "/register/lookup": {
+    endpoint: "https://mcp.horizonshield.dev/mcp",
+    status: "pending",
+    status_meaning: "Measured, not currently passing every condition. Often only because determinism is unmeasured without the owner's consent, which is not a failure. Read the record.",
+    last_measured: { at: "2026-09-26T18:00:18.646Z", status: "pending", record_sha256: OA_REC_SHA, record_url: "https://gate.horizonshield.dev/record/" + OA_REC_SHA, coordinate: { derived: true, window_id: "w2960" } },
+    measurements: 52,
+    establishes: ["..."],
+    does_not_establish: ["..."]
+  },
+  "/is-verified": {
+    endpoint: "https://mcp.horizonshield.dev/mcp",
+    on_register: true,
+    state: "pending",
+    verified: null,
+    measured_at: "2026-09-26T18:00:18.646Z",
+    record_sha256: OA_REC_SHA,
+    record_url: "https://gate.horizonshield.dev/record/" + OA_REC_SHA,
+    gate_commit: "9475e33415c3"
+  }
+};
+// [method, operationId, tag, media type of the 200 body, extra fields]
+const OA_OPS = {
+  "/register": ["get", "listRegister", "register", "application/json"],
+  "/verified.json": ["get", "listVerified", "register", "application/json"],
+  "/history": ["get", "getHistory", "register", "application/json", { parameters: [OA_EP_Q] }],
+  "/changes": ["get", "listChanges", "events", "application/json"],
+  "/feed.xml": ["get", "getChangesFeed", "events", "application/atom+xml"],
+  "/sitemap.xml": ["get", "getSitemap", "discovery", "application/xml"],
+  "/e/{host}{path}": ["get", "getEndpointPage", "register", "text/html", { parameters: [
+    { name: "host", in: "path", required: true, description: "Host of the measured endpoint, without https://.", schema: { type: "string" }, example: "mcp.horizonshield.dev" },
+    { name: "path", in: "path", required: true, description: "Path of the measured endpoint, starting with a slash.", schema: { type: "string" }, example: "/mcp" }
+  ] }],
+  "/badge": ["get", "getBadge", "embed", "image/svg+xml", { parameters: [OA_EP_Q] }],
+  "/embed": ["get", "getEmbed", "embed", "text/plain", { parameters: [OA_EP_Q, { name: "format", in: "query", required: false, description: "json returns the JSON-LD alone.", schema: { type: "string", enum: ["json"] } }] }],
+  "/badge/seal": ["get", "getSeal", "embed", "image/svg+xml", { parameters: [OA_EP_Q, { name: "download", in: "query", required: false, description: "1 returns the image as a file.", schema: { type: "string", enum: ["1"] } }] }],
+  "/spec": ["get", "getSpec", "specification", "application/json", { "x-side-effects": ["increments an anonymous aggregate counter (spec_hits); no answer depends on it"] }],
+  "/ext/conduct/v1": ["get", "getConductExtension", "specification", "application/json"],
+  "/ext/legal-entity/v1": ["get", "getLegalEntityExtension", "specification", "application/json"],
+  "/self": ["get", "getSelfMeasurement", "register", "application/json"],
+  "/health": ["get", "getHealth", "operations", "application/json"],
+  "/mould": ["get", "listMouldRecords", "specification", "application/json"],
+  "/sweep/last": ["get", "getLastSweep", "operations", "application/json"],
+  "/nenrin/window": ["get", "getCoordinateWindow", "operations", "application/json"],
+  "/register/lookup": ["get", "lookupEndpoint", "register", "application/json", { parameters: [OA_EP_Q] }],
+  "/watchlist": ["get", "listWatchlist", "register", "application/json"],
+  "/.well-known/agent-card.json": ["get", "getAgentCard", "discovery", "application/json"],
+  "/.well-known/mcp-register.json": ["get", "getRegisterSummary", "discovery", "application/json"]
+};
+const OA_ADDED = {
+  "/is-verified": { get: { summary: "Is this endpoint verified right now", description: "verified is true only for a full pass of the latest scheduled measurement and null in every other case, never false. record_url returns the exact bytes that record_sha256 hashes.", parameters: [OA_EP_Q] } },
+  "/record/{record_sha256}": { get: { summary: "The exact bytes of one verdict", description: "The body is the verdict with record_sha256 and recompute_note removed, exactly as hashed, so SHA-256 of the body equals the path. Immutable: cached for a year, because those bytes never change.", parameters: [{ name: "record_sha256", in: "path", required: true, description: "64 lower case hex characters.", schema: { type: "string", pattern: "^[0-9a-f]{64}$" }, example: OA_REC_SHA }] } },
+  "/keys/operator.json": { get: { summary: "The operator's Ed25519 authorization key", description: "Verifies TSUGI authorizations (nenrin-authorization-v1). 404 when not configured, never an empty 200. The private key is not in this Worker." } },
+  "/keys/agreement.json": { get: { summary: "The agreement record signing key", description: "a2a-agreement-v1.1 records carry their key inside the signed bytes; this URL only answers whether the key is the one this domain serves." } },
+  "/keys/witness.json": { get: { summary: "The witness key this gate signs observations with", description: "Separate from the operator key and the card key." } },
+  "/.well-known/did.json": { get: { summary: "DID document for did:web:gate.horizonshield.dev", description: "Binds the card signing key (and the operator key when present) to this domain without any registry." } },
+  "/.well-known/jwks.json": { get: { summary: "JWKS for the agent card signature", description: "The key that verifies the A2A section 8.4 signature on /.well-known/agent-card.json." } },
+  "/watch": {
+    get: { summary: "Is this endpoint on the schedule", description: "Reports registered true or false. Rows fixed in the gate's own source report false here and are still measured.", parameters: [OA_EP_Q] },
+    post: {
+      summary: "Put an endpoint on the measurement schedule, without an account",
+      description: "Anyone may add any https endpoint. No human approves it, and no human needs to. The row records requested_by (operator or anonymous) and what the origin's " + CONSENT_WELL_KNOWN_PATH + " said at that moment. The owner of the origin can decline at any time with listing: decline in that file; the row then stays and says declined, and no verdict is produced. The verdict is identical for every tier.",
+      requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["endpoint"], properties: {
+        endpoint: { type: "string", format: "uri", description: "https URL of the MCP endpoint." },
+        webhook: { type: ["string", "null"], format: "uri", description: "Optional https URL that receives the conformance_change event (see webhooks). null clears it." }
+      } }, example: { endpoint: "https://example.com/mcp" } } } },
+      responses: {
+        "200": { description: "Row written or already present.", content: { "application/json": { schema: { type: "object" } } } },
+        "400": { $ref: "#/components/responses/Error" },
+        "429": { description: "The register holds " + REGISTRY_MAX + " rows and this endpoint is not one of them. Nothing was written.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        "503": { $ref: "#/components/responses/Error" }
+      },
+      "x-side-effects": ["writes one row to the register (or updates only its webhook when the row exists)", "reads " + CONSENT_WELL_KNOWN_PATH + " on the named origin once"],
+      "x-idempotent": true,
+      "x-reversibility": { kind: "owner_or_operator", reason: "The owner of the origin stops measurement by publishing listing: decline; the operator removes a row with a stated reason that is published on /watchlist. Measurements already taken are records and are never deleted." }
+    }
+  },
+  "/a2a": { post: { summary: "The same register over A2A", description: "JSON-RPC, A2A 1.0 (SendMessage) and 0.3 (message/send). Also answers nenrin-witness-request-v1 with a signed observation.", requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } } } }
+};
+const OA_WRITE_SEMANTICS = {
+  "/recompute": ["recomputeHash", "tools", [], true, { kind: "not_applicable", reason: "Contacts nothing and stores nothing. A pure function of the request body." }],
+  "/verify-event": ["verifyNostrEvent", "tools", [], true, { kind: "not_applicable", reason: "Contacts nothing and stores nothing. A pure function of the request body." }],
+  "/check": ["checkEndpoint", "tools", [
+    "sends HTTP requests to the named endpoint and its origin (the requests a scheduled measurement would send)",
+    "calls one tool on that server only when its owner has recorded consent in " + CONSENT_WELL_KNOWN_PATH + ", or the caller sets allow_tool_call for a server it controls",
+    "increments anonymous aggregate usage counters",
+    "does not write a verdict to the register; only the scheduled sweep writes records"
+  ], false, { kind: "not_applicable", reason: "Nothing on this gate needs undoing. The requests already sent to the named server cannot be unsent, so run it only against servers you mean to measure." }],
+  "/mcp": ["callMcp", "tools", ["tools/call check_conformance has the side effects of POST /check; every other method reads only"], false, { kind: "not_applicable", reason: "Same as the underlying operation." }],
+  "/a2a": ["callA2a", "tools", ["a witness_request makes this gate measure the named public surfaces once and sign what it saw"], false, { kind: "not_applicable", reason: "Same as the underlying operation." }]
+};
+const OA_ADDED_IDS = {
+  "/is-verified": ["isVerified", "register", "application/json"],
+  "/record/{record_sha256}": ["getRecordBytes", "register", "application/json"],
+  "/keys/operator.json": ["getOperatorKey", "keys", "application/json"],
+  "/keys/agreement.json": ["getAgreementKey", "keys", "application/json"],
+  "/keys/witness.json": ["getWitnessKey", "keys", "application/json"],
+  "/.well-known/did.json": ["getDidDocument", "keys", "application/json"],
+  "/.well-known/jwks.json": ["getJwks", "keys", "application/json"],
+  "/watch": ["getWatch", "register", "application/json"]
+};
+
+function openapiDoc(origin) {
+  const doc = openapiDocBase(origin);
+  const P = doc.paths;
+  for (const [p, ops] of Object.entries(OA_ADDED)) P[p] = Object.assign(P[p] || {}, ops);
+  const jsonOk = (type, p) => {
+    const c = {};
+    c[type] = type === "application/json" ? { schema: { type: "object" } } : { schema: { type: "string" } };
+    if (OA_EXAMPLES[p]) c[type].examples = { live_2026_09_27: { summary: OA_CAPTURED, value: OA_EXAMPLES[p] } };
+    return { description: "OK", content: c };
+  };
+  const readOp = (p, method, id, tag, type, extra) => {
+    const op = P[p] && P[p][method];
+    if (!op) return;
+    op.operationId = id;
+    op.tags = [tag];
+    op.responses = Object.assign({}, op.responses, { "200": jsonOk(type, p) });
+    if (op.parameters === undefined && extra && extra.parameters) op.parameters = extra.parameters;
+    if ((op.parameters || []).some((x) => x.name === "endpoint")) op.responses["400"] = { $ref: "#/components/responses/Error" };
+    if (p === "/e/{host}{path}" || p === "/record/{record_sha256}" || p.startsWith("/keys/")) op.responses["404"] = { $ref: "#/components/responses/Error" };
+    Object.assign(op, OA_READ, extra ? Object.fromEntries(Object.entries(extra).filter(([k]) => k !== "parameters")) : {});
+  };
+  for (const [p, [m, id, tag, type, extra]] of Object.entries(OA_OPS)) readOp(p, m, id, tag, type, extra);
+  for (const [p, [id, tag, type]] of Object.entries(OA_ADDED_IDS)) readOp(p, "get", id, tag, type);
+  if (P["/watch"] && P["/watch"].post) { P["/watch"].post.operationId = "watchEndpoint"; P["/watch"].post.tags = ["register"]; }
+  for (const [p, [id, tag, effects, idem, rev]] of Object.entries(OA_WRITE_SEMANTICS)) {
+    const op = P[p] && P[p].post;
+    if (!op) continue;
+    op.operationId = id;
+    op.tags = [tag];
+    op.responses = Object.assign({}, op.responses, {
+      "200": { description: "OK", content: { "application/json": { schema: { type: "object" } } } },
+      "400": { $ref: "#/components/responses/Error" }
+    });
+    if (p === "/check") op.responses["500"] = { $ref: "#/components/responses/Error" };
+    op["x-side-effects"] = effects;
+    op["x-idempotent"] = idem;
+    op["x-reversibility"] = rev;
+  }
+  if (P["/check"] && P["/check"].post) {
+    const b = P["/check"].post.requestBody.content["application/json"];
+    b.example = { endpoint: "https://example.com/mcp" };
+    P["/check"].get = Object.assign({ summary: "How to call POST /check", description: "Returns usage text. Measures nothing.", operationId: "checkUsage", tags: ["tools"], responses: { "200": jsonOk("application/json", "/check") } }, OA_READ);
+  }
+  if (P["/recompute"] && P["/recompute"].post) P["/recompute"].post.requestBody.content["application/json"].example = { object: { b: 1, a: "x" } };
+  doc.security = [];
+  doc.tags = [
+    { name: "register", description: "Rows, verdicts and the exact bytes each verdict hashes." },
+    { name: "events", description: "What changed, for polling or subscribing." },
+    { name: "tools", description: "Operations that compute an answer from what you send." },
+    { name: "embed", description: "Badges and envelopes for other people's pages." },
+    { name: "specification", description: "The conditions and extensions, stated in full." },
+    { name: "keys", description: "Public keys and the DID document. No private key lives in this Worker." },
+    { name: "discovery", description: "Cards and maps for crawlers and agents." },
+    { name: "operations", description: "Liveness, deployed commit, and the time coordinate of the schedule." }
+  ];
+  doc.components = {
+    securitySchemes: {
+      operator: { type: "apiKey", in: "header", name: "x-sweep-token", description: "Operator only. Required by no operation in this document; declared so that its absence from every operation is a statement, not an omission." }
+    },
+    schemas: {
+      Error: { type: "object", required: ["error"], properties: {
+        error: { type: "string", description: "A stable reason code, for example endpoint_required, invalid_url, https_required, endpoint_host_rejected, invalid_json, registry_full, storage_unavailable, check_failed, not_found." },
+        note: { type: "string" }, hint: { type: "string" }, reason: { type: "string" }, message: { type: "string" }
+      } }
+    },
+    responses: {
+      Error: { description: "The request was refused or could not be answered. The body names why; an error is never dressed as an answer (for example storage_unavailable is not 'not verified').", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+    }
+  };
+  doc.webhooks = {
+    conformance_change: { post: {
+      summary: "A condition flipped on a watched endpoint",
+      description: "Sent after a scheduled measurement to the webhook given on POST /watch, only when a condition flipped. No retry.",
+      requestBody: { content: { "application/json": { schema: { type: "object", required: ["event", "endpoint", "at", "status"], properties: {
+        event: { const: "conformance_change" }, endpoint: { type: "string", format: "uri" }, at: { type: "string", format: "date-time" },
+        status: { type: "string", description: "The verdict status as defined by /spec, for example verified or pending." }, reachable: { type: ["boolean", "null"] },
+        conditions_changed: { type: "array" }, surface_changed: { type: ["object", "null"] }, history: { type: "string" }, note: { type: "string" }
+      } } } } },
+      responses: { "2XX": { description: "Any 2xx is recorded as delivered." } }
+    } },
+    measured: { post: {
+      summary: "Every scheduled measurement, sent to the owner's notify URL",
+      description: "Sent only when " + CONSENT_WELL_KNOWN_PATH + " on the endpoint's origin names a notify URL (conduct-v1.1 section 11.5). At most once per hour per endpoint, never from POST /check, never to an IP literal or a local name, no retry.",
+      requestBody: { content: { "application/json": { schema: { type: "object", required: ["event", "endpoint", "at", "status"], properties: {
+        event: { const: "measured" }, endpoint: { type: "string", format: "uri" }, at: { type: "string", format: "date-time" }, status: { type: "string" },
+        reachable: { type: ["boolean", "null"] }, record_sha256: { type: ["string", "null"], pattern: "^[0-9a-f]{64}$" }, changed: { type: "boolean" },
+        conditions_changed: { type: "array" }, surface_changed: { type: ["object", "null"] },
+        establishes: { type: ["array", "null"], items: { type: "string" } }, does_not_establish: { type: ["array", "null"], items: { type: "string" } },
+        history: { type: "string", format: "uri" }, lookup: { type: "string", format: "uri" }, note: { type: "string" }
+      } } } } },
+      responses: { "2XX": { description: "The status is written to notify_status on the sweep record." } }
+    } }
+  };
+  doc["x-agent-guidance"] = {
+    authentication: "None. Every operation in this document is anonymous: security is an empty list. There is no protected resource, so there is no OAuth protected resource metadata (RFC 9728) and no delegated identity to present. Routes that take x-sweep-token (POST /sweep, POST /mould, DELETE /watch, POST /register/quarantine, GET /nenrin/probe, and tier paid on POST /watch) are operator only; they are declared as components.securitySchemes.operator, the same scheme the agent card declares, and no operation in this document requires it.",
+    registration: "Not needed to read, check or recompute anything. To be measured on a schedule, POST /watch; no human approves it.",
+    start_here: ["GET /register/lookup?endpoint=... before connecting to an MCP server", "GET /record/{record_sha256} to hold the exact bytes of a verdict", "POST /recompute to reproduce a hash without trusting this gate"],
+    idempotency: "Every GET is safe and idempotent. POST /recompute and POST /verify-event are pure functions. POST /watch is idempotent on endpoint. POST /check is not idempotent, because it sends requests to a third party each time; prefer /register/lookup when a recent measurement will do.",
+    dry_run: "No flag, because no operation here changes state an agent would need to preview except POST /watch, and its preview is GET /watch?endpoint= together with GET /register/lookup?endpoint=. POST /check without allow_tool_call is already the non-invasive form: no tool on the named server is called.",
+    rate_limits: "No per-caller quota is enforced by this gate. POST /watch refuses with 429 once the register holds " + REGISTRY_MAX + " rows. Please do not poll: /register/lookup is cacheable for 24 hours, /record/{record_sha256} forever, and most other responses for 60 seconds. Scheduled measurement runs at 18:00 UTC.",
+    consent: "Measurement of determinism calls a tool on someone else's server, so it happens only with the owner's consent in " + CONSENT_WELL_KNOWN_PATH + " on the origin. The same file lets an owner decline listing and name a notify URL.",
+    measurement_user_agent: KNOWN_UA_LIMITATION,
+    commerce: "Nothing is purchasable through this API and no agentic commerce endpoint is offered. A paid tier changes cadence and alerts only, is arranged with the operator by contact, and never changes a verdict.",
+    errors: "Errors are JSON with an error code (components.schemas.Error). A missing measurement is never reported as a failure, and missing storage is never reported as not verified.",
+    events: "Poll GET /changes or subscribe to /feed.xml, or receive the typed webhooks listed under webhooks.",
+    what_this_does_not_establish: "A verdict measures conduct and disclosure on stated conditions. It does not say a server's answers are correct, that it is safe, or that the business behind it is competent."
+  };
+  return doc;
 }
 
 function sitemapXml(origin, rows) {
