@@ -107,9 +107,24 @@ Shield は再検証の証人を自分で選ばん。公開の池 (witness_pool.j
 
 日次の証人は `ops/run_drift_witness_daily.sh` (launchd `ops/com.horizonshield.driftwitness.plist`、毎日 09:00)。deploy_gate.sh が撒いた commit を `~/.config/hs/last_gate_commit.txt` に残し、証人はそれを --expect-commit に、前回の走りを --baseline にする。drift が有れば ALERT file と macOS の通知。記録は drift_runs/ (git には入れん)。
 
+## 支配の多様性 (v2.3、2026-09-27)
+
+鍵が違っても、同じ会社・同じサーバー・同じ支配者なら独立した証人やない。籤は運営者の選り好みを消すが、池が Sybil で埋まっとったら負ける。`witness_diversity.mjs` がこれを数える。
+
+- 事実: `witness_diversity_collect.mjs` が池の各項の公開 DNS (A、AAAA、登録ドメインの NS) と、IP ごとの AS 番号 (Team Cymru の origin.asn.cymru.com) を、Cloudflare と Google の 2 つの DoH に同じ問いを投げて取る。食い違ったら両方残す。書くのは事実と時刻と取り方だけ (`witness_facts.json`)。
+- 強い信号 (同じ支配の疑い、1 つの塊にまとめる): 同じ登録ドメイン、同じ IP /24、同じ鍵、同じ独自ネームサーバー。推移的に繋ぐ。
+- 弱い信号 (数えるが塊にはせん): 同じ ASN、同じ大手 DNS 事業者、同じホスティング基盤 (workers.dev など)。大手 CDN を使うだけで重なるので、強いに数えたら正直な証人に濡れ衣を着せる。
+- `diversityReport` は塊の数、各 distinct の数、共有された信号と所属、findings (shared_control_suspected、shared_infrastructure、facts_missing、single_control_cluster) を返す。点は付けん。事実の無い項は「別人」と数えず facts_missing を出す。
+- `drawDiverse` (籤 0.2.0、rule one_per_control_cluster): draw() と同じ seed で最後まで並べ、その順に歩いて、既に引いた項と同じ塊の項を飛ばす。飛ばした項と理由を記録する。全部の項が別の塊なら draw() の頭 k 人と完全に同じ (互換、試験で確認)。
+- 証さんこと: 別の塊でも同じ人が支配しとる可能性 (本気の Sybil は業者を変える。この計器は Sybil を高く付かせるだけ)、DNS の答えの真偽、証人の観測の正しさ。
+
+回し方 (Mac、network が要る): `node witness_diversity_collect.mjs` で witness_facts.json と witness_diversity_report.json を書く。試験は `node witness_diversity_test.mjs` (偽 fetch、32 本)。
+
+答えが無かった事と答えが空やった事は別物として扱う。どの resolver も答えん型は `unanswered` に書き (collect 0.1.1)、A と AAAA と NS の全部が unanswered の事実は「事実無し」と数えて `facts_missing` を出す。空の答えとして数えると、網が塞がった所で集めた池が「強い信号が何も被っとらん = 全員別人」に見える。2026-09-27 に DoH が塞がった網で実際に集めて見つけた。試験 37 本。
+
 ## まだ無い物 (v2.2)
 
-- 池の中身。道具は在る (witness_pool_build)。条件を満たす card がまだ無い。うち自身も、扉の A2A 面が witness_request に答えるまでは他所の池に入れん (consent の witness_policy.reciprocal は答えられるようになってから true にする。先に宣言せん)。
+- 池の中身。道具は在る (witness_pool_build)。池に入った後の支配の多様性は witness_diversity が数える (v2.3)。条件を満たす card がまだ無い。うち自身も、扉の A2A 面が witness_request に答えるまでは他所の池に入れん (consent の witness_policy.reciprocal は答えられるようになってから true にする。先に宣言せん)。
 - 証人を Worker の cron に (公式 SDK の card 検証を Worker の中でやる必要が有る)。今は Mac の launchd。
 - 台帳 (hs-ledger) への intake と JIDEC への anchor。記録の型はそのために witness intake と同じ規律にしてある。
 - beacon の予備 (drand)。今は mempool.space と blockstream.info。

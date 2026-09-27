@@ -1,3 +1,4 @@
+// RUN_ALL: suite
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { evaluate, VOLATILE } from "./external_attestation_watch.mjs";
