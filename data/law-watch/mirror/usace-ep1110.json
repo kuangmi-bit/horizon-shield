@@ -1,0 +1,11 @@
+{
+ "source_id": "usace-ep1110",
+ "url": "https://www.nww.usace.army.mil/missions/cost-engineering/ep1110-1-8/",
+ "fetched_at": "2026-09-27T05:29:42Z",
+ "status": 403,
+ "anchors": [],
+ "link_filter": "/Portals/28/.*\\.pdf|contentdm\\.oclc\\.org/utils/getfile",
+ "runner": "github-actions run 36297345981",
+ "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36 hs-law-watch-mirror/0.1 (+https://shield.the-horizons-innovation.com)",
+ "note": "worker の parseLinks が読む <a> の原文だけ(link_filter に当たる物)。本文は写していない。status が 200 でないときは anchors は空で、worker は鏡を使わない。"
+}
