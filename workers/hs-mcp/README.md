@@ -40,7 +40,7 @@ Works with any MCP client: **Claude  |  ChatGPT  |  Gemini  |  Perplexity  |  Cu
 | `get_estimate_reading_guide` | Universal principles for judging any estimate (overhead ratio, lump-sum, tactics) |
 | `get_fair_price_sources` | Sources, update date, and regional multipliers behind the data |
 | `suggest_ehn` | Suggest an EHN (anonymous-estimate) entry |
-| `get_jccdb_dataset_info` | JCCDB open dataset (95,403 items, CC BY 4.0)  -  metadata & citation |
+| `get_jccdb_dataset_info` | JCCDB open dataset (v5.0: 425,765 records = 95,403 items + 330,362 observations, CC BY 4.0)  -  metadata & citation |
 | `verify_integrity_claim` | Third-party verification of an issued signed claim (fail-closed) |
 | `create_ap2_fairness_attestation` | FairPriceAttestation shaped to attach to a Google AP2 Cart Mandate (optional quoted_price adds within/above/below) |
 | `get_agent_card` | A2A (Agent2Agent) agent card for agent interop |
@@ -52,7 +52,7 @@ language-agnostic and work for estimates anywhere.
 ### Construction cost data: Japan (JCCDB) and both countries (7)
 | Tool | What it does |
 |---|---|
-| `search_jccdb_items` | Search the 95,403 JCCDB line items by name, with evidence URLs |
+| `search_jccdb_items` | Search the JCCDB item catalogue (95,403 line items) by name, with evidence URLs |
 | `get_jccdb_observations` | Region, date and price status of an item in Japanese and U.S. public documents (licence and source on every row) |
 | `get_jccdb_labor_rate` | MLIT public-works design labor rates by prefecture and trade |
 | `compare_jccdb_regions` | Latest value per region for an item and spec (min, median, max) |

@@ -1947,7 +1947,7 @@ export const TOOLS = [
   {
     name: "jccdb_search_items",
     annotations: { title: "JCCDB 品目検索", readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-    description: "日本の建設費オープンデータ JCCDB(95,403品目)の品目を名前で探す。生コン・異形棒鋼・ヒューム管など資材・製品・労務の品目が公的資料に実在するかと、その証拠URLを返す。観測(日本と米国)の件数も layer ごとに返す。地域や価格は jccdb_observations。/ Search the 95,403 line items of JCCDB (Japan) by name; returns whether the item exists in a public document and its evidence URL, with observation counts for Japan and the U.S.",
+    description: "日本の建設費オープンデータ JCCDB(v5.0 は計425,765件)の品目の目録(95,403)を名前で探す。生コン・異形棒鋼・ヒューム管など資材・製品・労務の品目が公的資料に実在するかと、その証拠URLを返す。観測(日本と米国)の件数も layer ごとに返す。地域や価格は jccdb_observations。/ Search the item catalogue of JCCDB (Japan; 95,403 line items of the 425,765 records in v5.0) by name; returns whether the item exists in a public document and its evidence URL, with observation counts for Japan and the U.S.",
     inputSchema: { type: "object", properties: { query: { type: "string", description: "品目名(日本語が最もよく当たる。例: 生コンクリート 21-8-25)" }, category: { type: "string" }, limit: { type: "integer", minimum: 1, maximum: 50 } }, required: ["query"], additionalProperties: false },
   },
   {
