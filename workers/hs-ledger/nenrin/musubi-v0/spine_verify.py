@@ -233,6 +233,22 @@ def spine_verify(contract, executions=(), revocations=(), acks=(), view=None,
         cor_stage,
     ]
 
+    # 2026-09-28. A layer that was not used is not a layer that passed. Before this, a contract that pins no terms,
+    # states no independence quorum and carries no measurements read "spine intact" with nothing in the report
+    # saying that its agreement was byte agreement only, that nobody resolved the actors to organizations, and that
+    # nobody measured anything. An outside review read the mechanisms as missing because the reports never said
+    # they were unused. Same fault as the gate's /a2a on 2026-09-27: silence about an absence reads as presence.
+    # The spine verdict does not move; the report now names what it did not look at, and why.
+    unexercised = []
+    if terms_stage["status"] == "none":
+        unexercised.append(("terms", "what the agreed bytes mean: the contract pins no task.terms_sha256 (terms v0), so this is agreement on bytes only, and a deliverable written in free text means whatever each party reads into it"))
+    elif terms_stage["status"] == "pinned_not_supplied":
+        unexercised.append(("terms", "what the agreed bytes mean: the contract pins terms " + str(pin) + " but the terms bytes were not supplied, so they were not checked"))
+    if ind_stage["status"] == "none":
+        unexercised.append(("independence", "that the actors are different organizations: no signed actor declarations were supplied and the contract states no independence quorum, so every actor is known only by its key"))
+    if cor_stage["status"] == "none":
+        unexercised.append(("corroboration", "that anything was measured as done by anyone, let alone by an entity independent of the parties: no measurements were supplied"))
+
     spine = "intact" if not holes else "broken"
     settlement_verdict = settlement["verdict"] if settlement else None
     return {
@@ -247,6 +263,7 @@ def spine_verify(contract, executions=(), revocations=(), acks=(), view=None,
         "corroboration_verdict": cor_stage["verdict"],
         "chain": chain,
         "holes": sorted(holes, key=canonical),
+        "unexercised": [k for k, _t in unexercised],
         "settlement": settlement["settlement"] if settlement else None,
         "establishes": [
             "that contract_sha256 recomputes from the contract bytes, and every linked record names it",
@@ -258,7 +275,7 @@ def spine_verify(contract, executions=(), revocations=(), acks=(), view=None,
             "that a linked record is true or authentic beyond what its own layer establishes",
             "that this decides fault; it proves which terms each record claims and whether the claim recomputes",
             "that a corroborated item is true in the world; only that the counted legal entities measured it within tolerance inside the block window",
-        ],
+        ] + [t for _k, t in unexercised],
     }
 
 
@@ -469,6 +486,7 @@ def _selftest():
     assert [s["stage"] for s in out["chain"][9:]] == ["terms", "independence", "corroboration"]
     assert out["chain"][10]["vector"]["distinct_legal_entities"] == 3
     assert out["chain"][11]["items"][0]["counts"]["corroborating_entities"] == 2
+    assert out["unexercised"] == [] and not any("pins no task.terms_sha256" in x for x in out["does_not_establish"]), out["unexercised"]
     n += 1; print("[11] WHY -> AGREED -> DID -> MEASURED: terms accepted, independence met (3 entities), within_grant, corroborated by 2 independent entities; spine intact")
 
     # [12] each new stage breaks in its own way: edited terms fail the pin (hole); one owner behind every key fails the
@@ -499,9 +517,18 @@ def _selftest():
     assert out["spine"] == "broken" and any(h["reason"] == "measurements_without_terms_or_view" for h in out["holes"])
     out = spine_verify(cA)                                                              # the old thread: new stages stay none
     assert [s["status"] for s in out["chain"][9:]] == ["none", "none", "none"] and out["spine"] == "intact"
+    # 2026-09-28: a layer that was not used is named as unused, in the report's own does_not_establish; the spine
+    # verdict does not move. Before this, the bare contract read "intact" with no word about meaning or organizations.
+    assert out["unexercised"] == ["terms", "independence", "corroboration"], out["unexercised"]
+    dne = " ".join(out["does_not_establish"])
+    assert "agreement on bytes only" in dne and "known only by its key" in dne and "no measurements were supplied" in dne
+    out = spine_verify(cT)                                                              # terms pinned, bytes not handed in
+    assert out["chain"][9]["status"] == "pinned_not_supplied" and "terms" in out["unexercised"] and "independence" not in out["unexercised"]
+    assert any("were not supplied, so they were not checked" in x for x in out["does_not_establish"])
     n += 1; print("[12] edited terms: hole terms_refused; one owner behind three keys: hole independence_quorum_not_met; "
                   "measurements edited after signing: not_corroborated, no hole; two independent entities measuring 0: contradicted, no hole; "
-                  "measurements with no view: hole; a contract without the new inputs: all three stages none")
+                  "measurements with no view: hole; a contract without the new inputs: all three stages none, "
+                  "and named as unexercised in does_not_establish (pinned terms not handed in: named too)")
 
     # [13] determinism with the new inputs: shuffled declarations and measurements give identical spine bytes
     ch, walkT, exeT, msT = full_thread(cT, TERMS, [(k1, p1), (k2, p2)])
