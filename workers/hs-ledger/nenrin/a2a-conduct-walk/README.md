@@ -73,7 +73,7 @@ Do not walk an agent whose owner has asked not to be measured (the register hono
 
 ## 6. Files
 
-`a2a_conduct_walk.py` the client; `conduct_witness_mcp.py` the MCP server; `walk_selftest.py` (22 vectors, offline) and `witness_mcp_selftest.py` (14 checks, a real subprocess against a fake agent on localhost); `pyproject.toml` (console scripts `a2a-conduct-walk` and `conduct-witness-mcp`). License: Apache-2.0 (the specification's `LICENSE`).
+`a2a_conduct_walk.py` the client; `conduct_witness_mcp.py` the MCP server; `walk_selftest.py` (76 vectors, offline); `walk_reference_servers.py` (the real client against the four reference Workers started locally, both wires, no network; added with conduct-v1.4 because mocks that agree with the client and server tests that agree with the server never met) and `witness_mcp_selftest.py` (14 checks, a real subprocess against a fake agent on localhost); `pyproject.toml` (console scripts `a2a-conduct-walk` and `conduct-witness-mcp`). License: Apache-2.0 (the specification's `LICENSE`).
 
 ---
 

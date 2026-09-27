@@ -29,11 +29,28 @@ What it asserts (each one pinned by sha256 of the bytes it turned on):
     extension_echoed            (a2a mode only) the response header A2A-Extensions carries the URI, or
                                 X-A2A-Extensions when the walk used the 0.3 wire (that is the spelling
                                 a 0.3 client sends and reads: the official SDKs' compatibility paths)
+    metadata_echoed             (a2a mode only) the returned Message or Task carries the section 3 metadata
+                                keys: .../endpoint is an entry of the card's measured_endpoints, and
+                                .../conduct_record and .../witness_intake equal the card's params
+    endpoint_bound              (a2a mode only) the URL node 3 was sent to is the URL the response says
+                                served it: .../served_by, or .../endpoint when served_by is absent
 
 What it does not do: it does not judge quality, it does not read the conduct record for you,
 and a PASS is not a verdict about the agent. It is one observation, filed where anyone can
 read it and count it. Canonical bytes: keys sorted at every level, separators , and : with no
 spaces, non-ASCII unescaped. sha256 of those bytes is the record's identity.
+
+conduct-v1.4 (2026-09-28, section 14 of CONDUCT_EXT_v1.md). Found by a walk from outside this project,
+against this project's own gate (sha256 eea3be5b...cbd2b4, issue 27). The gate answers A2A at /a2a and is
+measured at /mcp, and it wrote /mcp into .../endpoint on every response, so a request served by /a2a was
+told that /mcp served it. This client passed that 5 of 5, because it read only the response header and
+never the metadata section 3 has required since v1. Two assertions now read it.
+    metadata_echoed   the three section 3 keys are there, under the canonical identifier, with the card's
+                      values; .../endpoint is an entry of measured_endpoints.
+    endpoint_bound    the URL this walk POSTed to equals .../served_by (new in v1.4: where the request
+                      arrived), or .../endpoint when served_by is absent. A served_by naming another URL
+                      is false even when .../endpoint matches: one step stricter than what issue 27 was
+                      told, and section 14.4 says so. No metadata at all costs metadata_echoed only.
 
 conduct-v1.3 draft (2026-09-11, ops/conduct_v1_3_paid_endpoint_20260911.md). Two changes, both found
 by walking a real agent that charges for calls, and both invisible to 47 green vectors because every
@@ -104,6 +121,11 @@ TIMEOUT = 20
 # Cloudflare fronts many agents and refuses Python's default User-Agent with 403 before the
 # origin sees the request. A named client passes; so does curl. Both are offered below.
 USER_AGENT = "a2a-conduct-walk/1 (+" + EXT_URI + ")"
+# conduct-v1.4 (section 14). The section 3 metadata keys, always under the canonical identifier (12.4).
+META_ENDPOINT = EXT_URI + "/endpoint"
+META_RECORD = EXT_URI + "/conduct_record"
+META_INTAKE = EXT_URI + "/witness_intake"
+META_SERVED_BY = EXT_URI + "/served_by"
 
 
 def canonical(obj):
@@ -365,6 +387,53 @@ def result_shape_ok(j, mode, wire):
     return ("message" in r or "task" in r) and "kind" not in r
 
 
+def returned_metadata(j, wire):
+    """conduct-v1.4. (metadata or None, where) of the Message or Task the n3 result carries.
+    On a Task, the Task's own metadata is read first, then status.message's; the record says which."""
+    r = j.get("result") if isinstance(j, dict) else None
+    if not isinstance(r, dict):
+        return None, None
+    if wire == "0.3":
+        kind, obj = r.get("kind"), r
+    elif isinstance(r.get("message"), dict):
+        kind, obj = "message", r["message"]
+    elif isinstance(r.get("task"), dict):
+        kind, obj = "task", r["task"]
+    else:
+        kind, obj = None, None
+    if kind not in ("message", "task") or not isinstance(obj, dict):
+        return None, None
+    has = lambda md: isinstance(md, dict) and any(isinstance(k, str) and k.startswith(EXT_URI + "/") for k in md)
+    md = obj.get("metadata")
+    if has(md):
+        return md, kind + ".metadata"
+    if kind == "task":
+        st = obj.get("status")
+        sm = st.get("message") if isinstance(st, dict) else None
+        md2 = sm.get("metadata") if isinstance(sm, dict) else None
+        if has(md2):
+            return md2, "task.status.message.metadata"
+    return (md if isinstance(md, dict) else None), kind + ".metadata"
+
+
+def url_norm(u):
+    """conduct-v1.4 section 14.4. https://host[:port]/path, host lower case, port only when not 443,
+    query and fragment dropped, path exact ("" becomes "/"). None for anything that is not an https URL."""
+    if not isinstance(u, str):
+        return None
+    try:
+        s = urllib.parse.urlsplit(u)
+        port = s.port
+    except ValueError:
+        return None
+    if s.scheme.lower() != "https" or not s.hostname:
+        return None
+    host = s.hostname.lower()
+    if ":" in host:
+        host = "[" + host + "]"
+    return "https://" + host + (":" + str(port) if port and port != 443 else "") + (s.path or "/")
+
+
 def origin_only(u):
     """https://host[:port] of a URL; the part that names a service and not a tool."""
     try:
@@ -534,6 +603,7 @@ def walk(origin, endpoint, mode, witness_name, vantage, fetch=http_fetch, walked
     n3 = None
     answered = False
     echoed = None
+    j = None
     if target:
         body = rpc_body(mode, wire=wire)
         hdrs = {"Content-Type": "application/json", "Accept": "application/json", EXT_HEADER[wire]: EXT_URI}
@@ -611,6 +681,67 @@ def walk(origin, endpoint, mode, witness_name, vantage, fetch=http_fetch, walked
         assertions.append(A("extension_echoed: response header " + EXT_HEADER[wire] + " contains " + EXT_URI, bool(echoed), [3] if n3 else [2], str((n3["response"].get("a2a_extensions"), n3["response"].get("x_a2a_extensions")) if n3 else None)))
     else:
         assertions.append(A("extension_echoed", None, [3] if n3 else [2], "not applicable", note="not applicable: node 3 was an MCP initialize, not an A2A message; the echo is only required on A2A requests"))
+
+    # conduct-v1.4 (2026-09-28, section 14). Section 3 has required three metadata keys on every
+    # activated A2A response since v1, and until today no client read them: extension_echoed looks at
+    # the header only. That is how a gate telling /a2a callers that /mcp served them passed 5 of 5.
+    # Claims name no URL, so hash-only records leak nothing here; the values go into observed_sha256.
+    md, md_where = (returned_metadata(j, wire) if (mode == "a2a" and answered) else (None, None))
+    md_na = None
+    if mode != "a2a":
+        md_na = "not applicable: node 3 was an MCP initialize, not an A2A message; section 3 metadata is only required on A2A responses"
+    elif payment_required:
+        md_na = "not applicable: the endpoint required payment (http 402) and returned no message to read"
+    elif not answered:
+        md_na = "not applicable: node 3 returned no A2A result of the wire's shape; that is measured_endpoint_answered's finding"
+    elif ext is None:
+        md_na = "not applicable: the card does not declare the extension, so nothing obliges the echo; that is conduct_ext_declared's finding"
+    md_problems = []
+    if md_na is None:
+        if not isinstance(md, dict):
+            md_problems.append("the returned " + (md_where or "result") + " carries no metadata object")
+        else:
+            if not isinstance(md.get(META_ENDPOINT), str):
+                md_problems.append(".../endpoint absent")
+            elif md.get(META_ENDPOINT) not in measured:
+                md_problems.append(".../endpoint is not an entry of the card's measured_endpoints")
+            if md.get(META_RECORD) != params.get("conduct_record"):
+                md_problems.append(".../conduct_record " + ("absent" if META_RECORD not in md else "differs from params.conduct_record"))
+            if md.get(META_INTAKE) != params.get("witness_intake"):
+                md_problems.append(".../witness_intake " + ("absent" if META_INTAKE not in md else "differs from params.witness_intake"))
+    md_seen = {k[len(EXT_URI):]: md.get(k) for k in (META_ENDPOINT, META_RECORD, META_INTAKE, META_SERVED_BY) if k in md} if isinstance(md, dict) else None
+    assertions.append(A("metadata_echoed: the returned Message or Task metadata carries the section 3 keys under the canonical "
+                        "identifier, .../endpoint is an entry of measured_endpoints, and .../conduct_record and "
+                        ".../witness_intake equal the card's params",
+                        None if md_na else (not md_problems),
+                        [1, 3] if n3 else [2],
+                        canonical({"where": md_where, "keys": md_seen}),
+                        note=md_na or (("read from " + md_where + "; " if md_where else "") + "; ".join(md_problems) if md_problems else "read from " + str(md_where))))
+
+    ep_v = md.get(META_ENDPOINT) if isinstance(md, dict) else None
+    sb_v = md.get(META_SERVED_BY) if isinstance(md, dict) else None
+    has_sb = isinstance(md, dict) and META_SERVED_BY in md
+    bound_na = md_na
+    if bound_na is None and not (isinstance(md, dict) and (META_ENDPOINT in md or has_sb)):
+        bound_na = "not applicable: the returned metadata names no endpoint and no served_by, so there is nothing to bind; that is metadata_echoed's finding"
+    t_norm = url_norm(target)
+    if bound_na is None:
+        cmp_v = sb_v if has_sb else ep_v
+        bound = t_norm is not None and url_norm(cmp_v) == t_norm
+        if has_sb:
+            bound_note = ("bound by .../served_by" if bound else
+                          ".../served_by names a URL other than the one node 3 was sent to; a response that says "
+                          "another URL served it is false whatever .../endpoint says (section 14.4)")
+        else:
+            bound_note = ("bound by .../endpoint (no .../served_by)" if bound else
+                          ".../endpoint names a URL other than the one node 3 was sent to and no .../served_by says "
+                          "where the request arrived; the response claims a URL that did not serve it served it")
+    assertions.append(A("endpoint_bound: the URL node 3 was sent to equals .../served_by in the returned metadata, "
+                        "or .../endpoint when served_by is absent (section 14)",
+                        None if bound_na else bound,
+                        [3] if n3 else [2],
+                        canonical({"walked": t_norm, "served_by": url_norm(sb_v) if has_sb else None, "endpoint": url_norm(ep_v)}),
+                        note=bound_na or bound_note))
 
     applicable = [a for a in assertions if a["result"] is not None]
     n_pass = sum(1 for a in applicable if a["result"] is True)

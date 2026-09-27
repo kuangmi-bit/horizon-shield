@@ -603,15 +603,23 @@ function a2aSendMessageResult(result, wire) {
   if (result.kind === "message") return { message: a2aMessage10(result) };
   return result;
 }
-function conductMetadata() {
+// conduct-v1.4 (仕様 14 節, 2026-09-28)。/endpoint は「記録が当たる測定対象」(measured_endpoints の 1 本)、
+// /served_by は「この要求が実際に届いた URL」。扉の /a2a が /mcp と名乗っとったのを外の証人が見つけた(同じ定数の型がここにもあった)。
+// served_by は要求から取る。定数は 1 か所で配られとる間しか正しくない。query と fragment は入れん。
+function servedByOf(request) {
+  const u = new URL(request.url);
+  return u.origin + u.pathname;
+}
+function conductMetadata(servedBy) {
   const m = {};
   m[CONDUCT_EXT_URI + "/endpoint"] = CONDUCT_MEASURED_ENDPOINT;
   m[CONDUCT_EXT_URI + "/conduct_record"] = CONDUCT_RECORD_URL;
   m[CONDUCT_EXT_URI + "/witness_intake"] = CONDUCT_WITNESS_INTAKE;
+  if (typeof servedBy === "string" && servedBy) m[CONDUCT_EXT_URI + "/served_by"] = servedBy;
   return m;
 }
-function a2aAttachConduct(result) {
-  result.metadata = Object.assign({}, result.metadata || {}, conductMetadata());
+function a2aAttachConduct(result, servedBy) {
+  result.metadata = Object.assign({}, result.metadata || {}, conductMetadata(servedBy));
   const ex = Array.isArray(result.extensions) ? result.extensions.slice() : [];
   if (!ex.includes(CONDUCT_EXT_URI)) ex.push(CONDUCT_EXT_URI);
   result.extensions = ex;
@@ -650,7 +658,7 @@ async function handleA2A(req, env, cors) {
       return send({ error: { code: -32000, message: String((e && e.message) || e) } });
     }
   }
-  if (activated.length) result = a2aAttachConduct(result);  // 0.4.3: どっちの綴りでも中身は同じ
+  if (activated.length) result = a2aAttachConduct(result, servedByOf(req));  // 0.4.3: どっちの綴りでも中身は同じ
   return send({ result: a2aSendMessageResult(result, wire) });
 }
 

@@ -27,7 +27,10 @@ chk("1.0: task.status.state is TASK_STATE_COMPLETED and status.message.role is R
 chk("1.0: artifact parts carry no kind; text and data parts present", t && t.artifacts[0].parts.every((p) => p.kind === undefined) && t.artifacts[0].parts.some((p) => typeof p.text === "string") && t.artifacts[0].parts.some((p) => p.data && p.data.claim_sha256));
 chk("1.0: a 1.0 request part without kind was read (a red flag matched)", t && t.artifacts[0].parts.find((p) => p.data).data.red_flags.length >= 1);
 chk("1.0: echo header carries only the implemented URI; expose header names it", r.ext === EXT && r.extLegacy === null && /A2A-Extensions/.test(r.expose), r.ext + " / " + r.extLegacy + " / " + r.expose);
-chk("1.0: metadata on the task has exactly the 3 conduct keys", t && t.metadata && Object.keys(t.metadata).length === 3 && t.metadata[EXT + "/endpoint"] === O + "/mcp");
+chk("1.0: metadata on the task has exactly the 4 conduct keys (v1.4 added served_by)", t && t.metadata && Object.keys(t.metadata).length === 4 && t.metadata[EXT + "/endpoint"] === O + "/mcp");
+// conduct-v1.4. KIRA answers A2A at its measured endpoint, so the two keys name the same URL here. served_by comes
+// from the request, so it is whichever of / and /mcp was called.
+chk("1.0: served_by is the URL that was called", t && t.metadata && typeof t.metadata[EXT + "/served_by"] === "string" && t.metadata[EXT + "/served_by"] === O + "/", JSON.stringify(t && t.metadata));
 chk("1.0: status.message.extensions lists the URI", t && Array.isArray(t.status.message.extensions) && t.status.message.extensions.includes(EXT));
 
 // 0.3 wire, X- only

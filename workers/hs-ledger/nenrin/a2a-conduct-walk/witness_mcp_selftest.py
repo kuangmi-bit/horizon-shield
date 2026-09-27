@@ -5,8 +5,8 @@ localhost. No outside network. Exit 1 on any miss.
     python3 witness_mcp_selftest.py
 
 Checks: initialize, tools/list (one tool, required fields), tools/call witness_walk against an honest fake agent
-(PASS 5/5, submitted to the fake intake, sha256 equals sha256 of the returned canonical bytes), submit false sends
-nothing, a dishonest agent (no echo) is FAIL 4/5 and still filed (a FAIL is a record, not an error), bad input is
+(PASS 7/7, submitted to the fake intake, sha256 equals sha256 of the returned canonical bytes), submit false sends
+nothing, a dishonest agent (no echo) is FAIL 6/7 and still filed (a FAIL is a record, not an error), bad input is
 isError, unknown method is -32601, notifications get no reply.
 """
 import hashlib
@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXT = "https://gate.horizonshield.dev/ext/conduct/v1"
-STATE = {"echo": True, "intake_hits": []}
+STATE = {"echo": True, "intake_hits": [], "meta": "honest"}
 
 
 class Agent(BaseHTTPRequestHandler):
@@ -55,7 +55,16 @@ class Agent(BaseHTTPRequestHandler):
         if self.path == "/a2a":
             mid = body.get("id")
             hdr = {"A2A-Extensions": EXT} if STATE["echo"] else {}
-            msg = {"messageId": "m", "role": "ROLE_AGENT", "parts": [{"text": "hi"}], "metadata": {EXT + "/endpoint": "x"}, "extensions": [EXT]}
+            # conduct-v1.4. This fixture wrote .../endpoint = "x" and nothing else, and the client passed it 5/5,
+            # because until section 14 no client read the metadata. It now answers as section 3 requires; the
+            # old answer is kept as STATE["meta"] = "x" so the walk is seen to fail it.
+            base = "https://127.0.0.1:%d" % self.server.server_port
+            if STATE["meta"] == "x":
+                md = {EXT + "/endpoint": "x"}
+            else:
+                md = {EXT + "/endpoint": base + "/a2a", EXT + "/conduct_record": "https://gate.horizonshield.dev/history?endpoint=x",
+                      EXT + "/witness_intake": base + "/witness", EXT + "/served_by": base + "/a2a"}
+            msg = {"messageId": "m", "role": "ROLE_AGENT", "parts": [{"text": "hi"}], "metadata": md, "extensions": [EXT]}
             return self._send(200, {"jsonrpc": "2.0", "id": mid, "result": {"message": msg}}, hdr)
         if self.path == "/witness":
             STATE["intake_hits"].append(body)
@@ -115,7 +124,7 @@ def main():
         rec = json.loads(sc["record_canonical"])
         return rec, sc["record_canonical"], sc["sha256"], sc.get("submitted")
     rec, rc, sha, sub = run({"witness_name": "Selftest Witness", "vantage": "localhost"})
-    t("honest fake agent: PASS 5/5", rec["verdict"]["outcome"] == "PASS" and rec["verdict"]["n_pass"] == 5 and rec["verdict"]["n_total"] == 5, json.dumps(rec["verdict"]))
+    t("honest fake agent: PASS 7/7", rec["verdict"]["outcome"] == "PASS" and rec["verdict"]["n_pass"] == 7 and rec["verdict"]["n_total"] == 7, json.dumps(rec["verdict"]))
     t("submitted: the intake received the same canonical bytes and answered with the same sha256, and the tool's sha256 is sha256 of those bytes", sub and sub["ok"] and sub["response"].get("sha256") == sha and STATE["intake_hits"][-1]["record_canonical"] == rc and hashlib.sha256(rc.encode("utf-8")).hexdigest() == sha, json.dumps(sub)[:160])
     t("the record carries the witness name and vantage and the 1.0 wire", rec["witness"] == {"name": "Selftest Witness", "vantage": "localhost"} and rec["conduct_ext"]["wire"] == "1.0")
     hits = len(STATE["intake_hits"])
@@ -125,8 +134,13 @@ def main():
     t("the tool's first content block is a one-line human summary with the sha256", out_text.startswith("witness walk ") and "sha256 " in out_text and "not submitted" in out_text, out_text[:120])
     STATE["echo"] = False
     rec3, rc3, sha3, sub3 = run({"witness_name": "Selftest Witness", "vantage": "localhost"})
-    t("dishonest agent (declares, does not echo): FAIL 4/5, and it is still filed (a FAIL is a record, not an error)", rec3["verdict"]["outcome"] == "FAIL" and rec3["verdict"]["n_pass"] == 4 and sub3 and sub3["ok"], json.dumps(rec3["verdict"]))
+    t("dishonest agent (declares, does not echo): FAIL 6/7, and it is still filed (a FAIL is a record, not an error)", rec3["verdict"]["outcome"] == "FAIL" and rec3["verdict"]["n_pass"] == 6 and sub3 and sub3["ok"], json.dumps(rec3["verdict"]))
     STATE["echo"] = True
+    STATE["meta"] = "x"
+    rec4, _rc4, _sha4, _sub4 = run({"witness_name": "Meta", "vantage": "localhost", "submit": False})
+    r4 = {a["claim"].split(":")[0]: a["result"] for a in rec4["assertions"]}
+    t("conduct-v1.4: the old fixture's metadata (.../endpoint = x, nothing else) is now a FAIL on metadata_echoed", rec4["verdict"]["outcome"] == "FAIL" and r4.get("metadata_echoed") is False and r4.get("endpoint_bound") is False, json.dumps(r4))
+    STATE["meta"] = "honest"
     rec4, rc4, sha4, sub4 = run({"witness_name": "Selftest Witness", "vantage": "localhost", "wire": "0.3"})
     t("0.3 wire walk records wire 0.3 and still passes against an agent that echoes both spellings? no: this fake echoes only A2A-Extensions, so the 0.3 walk must FAIL the echo assertion (a 0.3 client reads only X-A2A-Extensions)", rec4["conduct_ext"]["wire"] == "0.3" and rec4["verdict"]["outcome"] == "FAIL", json.dumps(rec4["verdict"]))
 

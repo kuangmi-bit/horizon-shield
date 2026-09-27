@@ -28,13 +28,26 @@ chk("1.0: result is {message} (no kind), role ROLE_AGENT", r.s === 200 && r.j.re
 chk("1.0: parts have no kind; a text part and a data part", r.j.result.message.parts.every((p) => p.kind === undefined) && r.j.result.message.parts.some((p) => typeof p.text === "string") && r.j.result.message.parts.some((p) => p.data && typeof p.data === "object"));
 chk("1.0: the data part is the is-verified reading (absent, verified null, never false)", (() => { const d = r.j.result.message.parts.find((p) => p.data).data; return d.endpoint === "https://srv.redteam.invalid/mcp" && d.state === "absent" && d.verified === null && d.on_register === false; })(), JSON.stringify(r.j.result.message.parts.find((p) => p.data).data).slice(0, 200));
 chk("1.0: echo header carries only the implemented URI", r.ext === EXT && r.extLegacy === null, r.ext + " / " + r.extLegacy);
-chk("1.0: metadata has exactly the 3 conduct keys", r.j.result.message.metadata && Object.keys(r.j.result.message.metadata).length === 3 && r.j.result.message.metadata[EXT + "/endpoint"] === O + "/mcp", JSON.stringify(r.j.result.message.metadata));
+chk("1.0: metadata has exactly the 4 conduct keys (v1.4 added served_by)", r.j.result.message.metadata && Object.keys(r.j.result.message.metadata).length === 4 && r.j.result.message.metadata[EXT + "/endpoint"] === O + "/mcp", JSON.stringify(r.j.result.message.metadata));
+// 0.4.16 / conduct-v1.4. The finding from outside: /a2a answered, /endpoint said /mcp. /endpoint keeps naming the
+// measured endpoint whose record applies; /served_by names where the request arrived, and it comes from the request.
+chk("1.0: served_by names /a2a, the URL that served, and never /mcp", r.j.result.message.metadata[EXT + "/served_by"] === O + "/a2a", JSON.stringify(r.j.result.message.metadata));
 chk("1.0: Message.extensions lists the URI", Array.isArray(r.j.result.message.extensions) && r.j.result.message.extensions.includes(EXT));
 
 // 0.3 wire, X-A2A-Extensions only
 r = await post("/a2a", { jsonrpc: "2.0", id: 2, method: "message/send", params: { message: { messageId: "m2", role: "user", kind: "message", parts: [{ kind: "text", text: "https://srv.redteam.invalid/mcp" }] } } }, { "x-a2a-extensions": EXT });
 chk("0.3: result keeps kind: message, role agent, parts with kind", r.j.result && r.j.result.kind === "message" && r.j.result.role === "agent" && r.j.result.parts.every((p) => typeof p.kind === "string"), JSON.stringify(r.j).slice(0, 200));
 chk("0.3: X-A2A-Extensions alone activates; echo comes back in both spellings", r.ext === EXT && r.extLegacy === EXT && r.j.result.metadata && r.j.result.extensions.includes(EXT), r.ext + " / " + r.extLegacy);
+chk("0.3: served_by is the same fact on the other wire", r.j.result.metadata[EXT + "/served_by"] === O + "/a2a", JSON.stringify(r.j.result.metadata));
+{
+  // served_by is taken from the request, not written as a constant: a query string does not enter it, and
+  // the same code reached at another host says that host.
+  const alt = "https://gate-alt.redteam.invalid";
+  const ra = await worker.fetch(new Request(alt + "/a2a?probe=1", { method: "POST", headers: { "content-type": "application/json", "a2a-extensions": EXT }, body: JSON.stringify({ jsonrpc: "2.0", id: 21, method: "SendMessage", params: { message: { messageId: "m21", role: "ROLE_USER", parts: [{ text: "hello" }] } } }) }), ENV, CTX);
+  const ja = await ra.json();
+  const md = ja.result && ja.result.message && ja.result.message.metadata;
+  chk("served_by comes from the request: other host named, query dropped", md && md[EXT + "/served_by"] === alt + "/a2a" && md[EXT + "/endpoint"] === alt + "/mcp", JSON.stringify(md));
+}
 
 // no activation
 r = await post("/a2a", { jsonrpc: "2.0", id: 3, method: "SendMessage", params: { message: { messageId: "m3", role: "ROLE_USER", parts: [{ text: "https://srv.redteam.invalid/mcp" }] } } });

@@ -29,6 +29,9 @@ except Exception:
 EXT = W.EXT_URI
 ORIGIN = "https://agent.selftest.invalid"
 EP = ORIGIN + "/mcp"
+A2A_URL = ORIGIN + "/a2a"
+REC = "https://gate.horizonshield.dev/history?endpoint=x"
+INTAKE = "https://ledger.horizonshield.dev/witness"
 COMP = {"paid_by": "buyer", "referral_fee": False, "listing_fee": False, "success_fee_pct": 0, "disclosure_url": "https://example.invalid/d"}
 
 
@@ -37,7 +40,7 @@ def card(comp=COMP, ext=True, top=None, required=False, measured=None, extra=Non
     if ext:
         c["capabilities"]["extensions"] = [{"uri": uri or EXT, "description": "conduct", "required": required, "params": {
             "compensation": comp, "measured_endpoints": measured if measured is not None else [EP],
-            "conduct_record": "https://gate.horizonshield.dev/history?endpoint=x", "witness_intake": "https://ledger.horizonshield.dev/witness"}}]
+            "conduct_record": REC, "witness_intake": INTAKE}}]
     if top is not None:
         c["compensation"] = top
     if sigs is not None:
@@ -59,7 +62,19 @@ def card_sig(kid="sel-2026-09", alg="ES256", jku=ORIGIN + "/.well-known/jwks.jso
     return [{"protected": b64u(hdr), "signature": "not-checked-by-this-client"}]
 
 
-def mock(cards, ep_status=200, ep_result=True, echo=True, submit_status=200, echo_spelling="mirror", answer_shape="wire"):
+def honest_meta(url, **over):
+    """conduct-v1.4. What an honest server writes: section 3's three keys plus served_by = where the request arrived."""
+    m = {EXT + "/endpoint": EP, EXT + "/conduct_record": REC, EXT + "/witness_intake": INTAKE, EXT + "/served_by": url}
+    for k, v in over.items():
+        if v is None:
+            m.pop(EXT + "/" + k, None)
+        else:
+            m[EXT + "/" + k] = v
+    return m
+
+
+def mock(cards, ep_status=200, ep_result=True, echo=True, submit_status=200, echo_spelling="mirror", answer_shape="wire",
+         meta="honest", serve_at=(EP,), task=None):
     """cards: list of card objects returned in order for successive GETs (last one repeats).
 
     echo_spelling: "mirror" (honest: A2A-Extensions always, plus X-A2A-Extensions when the request used it),
@@ -68,6 +83,11 @@ def mock(cards, ep_status=200, ep_result=True, echo=True, submit_status=200, ech
     answer_shape:  "wire" (honest: 1.0 shape to SendMessage, 0.3 shape to message/send),
                    "0.3" (always the kind-shaped result, even to SendMessage: what our own servers did before 2026-09-06),
                    "1.0" (always the wrapped result, even to message/send).
+    meta:          conduct-v1.4. "honest" (honest_meta at the URL hit), None (no metadata), or a function url -> dict.
+                   Attached only to an activated A2A message, as the real servers do.
+    serve_at:      the URLs that answer POST (default only the measured endpoint EP).
+    task:          None (answer with a Message), "task" (a Task carrying metadata), "status" (a Task whose
+                   status.message carries it).
     """
     state = {"i": 0, "posts": []}
 
@@ -76,7 +96,7 @@ def mock(cards, ep_status=200, ep_result=True, echo=True, submit_status=200, ech
             c = cards[min(state["i"], len(cards) - 1)]
             state["i"] += 1
             return 200, {"content-type": "application/json"}, json.dumps(c, ensure_ascii=False).encode("utf-8")
-        if method == "POST" and url == EP:
+        if method == "POST" and url in serve_at:
             state["posts"].append((headers, body))
             h = {"content-type": "application/json"}
             hdrs = {str(k).lower(): v for k, v in (headers or {}).items()}
@@ -96,9 +116,25 @@ def mock(cards, ep_status=200, ep_result=True, echo=True, submit_status=200, ech
                 j = {"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "no"}}
             elif method_name in ("SendMessage", "message/send"):
                 shape = answer_shape if answer_shape in ("0.3", "1.0") else ("1.0" if method_name == "SendMessage" else "0.3")
-                msg03 = {"kind": "message", "role": "agent", "messageId": "m", "parts": [{"kind": "text", "text": "ok"}]}
-                msg10 = {"message": {"role": "ROLE_AGENT", "messageId": "m", "parts": [{"text": "ok"}]}}
-                j = {"jsonrpc": "2.0", "id": 1, "result": msg10 if shape == "1.0" else msg03}
+                md = (honest_meta(url) if meta == "honest" else meta(url) if callable(meta) else None) if asked else None
+                if task:
+                    t03 = {"kind": "task", "id": "t", "contextId": "c", "status": {"state": "completed"}}
+                    t10 = {"id": "t", "contextId": "c", "status": {"state": "TASK_STATE_COMPLETED"}}
+                    for t, sm in ((t03, {"kind": "message", "role": "agent", "messageId": "m", "parts": [{"kind": "text", "text": "ok"}]}),
+                                  (t10, {"role": "ROLE_AGENT", "messageId": "m", "parts": [{"text": "ok"}]})):
+                        if md is not None and task == "task":
+                            t["metadata"] = md
+                        if md is not None and task == "status":
+                            sm["metadata"] = md
+                            t["status"]["message"] = sm
+                    j = {"jsonrpc": "2.0", "id": 1, "result": {"task": t10} if shape == "1.0" else t03}
+                else:
+                    msg03 = {"kind": "message", "role": "agent", "messageId": "m", "parts": [{"kind": "text", "text": "ok"}]}
+                    msg10 = {"message": {"role": "ROLE_AGENT", "messageId": "m", "parts": [{"text": "ok"}]}}
+                    if md is not None:
+                        msg03["metadata"] = md
+                        msg10["message"]["metadata"] = md
+                    j = {"jsonrpc": "2.0", "id": 1, "result": msg10 if shape == "1.0" else msg03}
             else:
                 j = {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": "2025-06-18", "serverInfo": {"name": "mock"}}}
             return 200, h, json.dumps(j).encode("utf-8")
@@ -175,8 +211,8 @@ def vec(name, kind, fetch, mode, expect_ok, expect_results, endpoint=None, wire=
     V.append((name, kind, fetch, mode, expect_ok, expect_results, endpoint, wire))
 
 
-vec("honest_mcp", "control", mock([card()]), "mcp", True, {"card_bytes_stable": True, "conduct_ext_declared": True, "compensation_well_formed": True, "measured_endpoint_answered": True, "extension_echoed": None})
-vec("honest_a2a", "control", mock([card()]), "a2a", True, {"extension_echoed": True})
+vec("honest_mcp", "control", mock([card()]), "mcp", True, {"card_bytes_stable": True, "conduct_ext_declared": True, "compensation_well_formed": True, "measured_endpoint_answered": True, "extension_echoed": None, "metadata_echoed": None, "endpoint_bound": None})
+vec("honest_a2a", "control", mock([card()]), "a2a", True, {"extension_echoed": True, "metadata_echoed": True, "endpoint_bound": True})
 vec("honest_a2a_top_level_copy_equal", "control", mock([card(top=dict(COMP))]), "a2a", True, {"compensation_well_formed": True})
 vec("card_changes_between_fetches", "attack", mock([card(), card(extra={"description": "mock v2"})]), "mcp", False, {"card_bytes_stable": False})
 # conduct-v1.3 (2026-09-11): this vector used to expect compensation_well_formed False, and that
@@ -224,6 +260,39 @@ vec("402_does_not_hide_a_missing_extension", "attack", mock([card(ext=False, top
     {"conduct_ext_declared": False, "measured_endpoint_answered": None, "payment_required_as_declared": True}, endpoint=EP)
 vec("500_is_still_a_failure_not_a_payment", "attack", mock([card(extra={"x402": True})], ep_status=500), "mcp", False,
     {"measured_endpoint_answered": False, "payment_required_as_declared": None})
+# conduct-v1.4 (2026-09-28, section 14). Found by a walk from outside, against our own gate: /a2a answered
+# with .../endpoint = /mcp, and this client passed it 5 of 5 because no vector above ever carried metadata,
+# and the client never read it. Every vector above now carries honest metadata unless it says otherwise.
+vec("v14_honest_metadata_bound_wire10", "control", mock([card()]), "a2a", True, {"metadata_echoed": True, "endpoint_bound": True})
+vec("v14_honest_metadata_bound_wire03", "control", mock([card()]), "a2a", True, {"metadata_echoed": True, "endpoint_bound": True}, wire="0.3")
+vec("v14_honest_task_carries_metadata", "control", mock([card()], task="task"), "a2a", True, {"measured_endpoint_answered": True, "metadata_echoed": True, "endpoint_bound": True})
+vec("v14_honest_task_status_message_carries_it", "control", mock([card()], task="status"), "a2a", True, {"metadata_echoed": True, "endpoint_bound": True}, wire="0.3")
+# the fault as found: A2A served at a URL that is not measured, .../endpoint naming the measured one, no served_by
+vec("v14_found_a2a_not_measured_no_served_by", "attack", mock([card()], serve_at=(A2A_URL,), meta=lambda u: honest_meta(u, served_by=None)), "a2a", False,
+    {"metadata_echoed": True, "endpoint_bound": False}, endpoint=A2A_URL)
+vec("v14_fixed_a2a_not_measured_with_served_by", "control", mock([card()], serve_at=(A2A_URL,)), "a2a", True,
+    {"metadata_echoed": True, "endpoint_bound": True}, endpoint=A2A_URL)
+vec("v14_pre_v14_agent_at_measured_endpoint_without_served_by", "control", mock([card()], meta=lambda u: honest_meta(u, served_by=None)), "a2a", True,
+    {"metadata_echoed": True, "endpoint_bound": True})
+vec("v14_served_by_names_another_url", "attack", mock([card()], meta=lambda u: honest_meta(u, served_by=A2A_URL)), "a2a", False,
+    {"metadata_echoed": True, "endpoint_bound": False})
+vec("v14_host_case_and_port_443_are_the_same_url", "control", mock([card()], meta=lambda u: honest_meta(u, served_by="https://AGENT.Selftest.invalid:443/mcp")), "a2a", True,
+    {"endpoint_bound": True})
+vec("v14_trailing_slash_is_a_different_path", "attack", mock([card()], meta=lambda u: honest_meta(u, served_by=EP + "/")), "a2a", False,
+    {"endpoint_bound": False})
+vec("v14_metadata_missing_wire10", "attack", mock([card()], meta=None), "a2a", False, {"extension_echoed": True, "metadata_echoed": False, "endpoint_bound": None})
+vec("v14_metadata_missing_wire03", "attack", mock([card()], meta=None), "a2a", False, {"metadata_echoed": False, "endpoint_bound": None}, wire="0.3")
+vec("v14_keys_under_the_permanent_identifier", "attack",
+    mock([card()], meta=lambda u: {W.EXT_PERMANENT_ID + k[len(EXT):]: v for k, v in honest_meta(u).items()}), "a2a", False,
+    {"metadata_echoed": False, "endpoint_bound": None})
+vec("v14_endpoint_not_on_the_card", "attack", mock([card()], meta=lambda u: honest_meta(u, endpoint=ORIGIN + "/other")), "a2a", False,
+    {"metadata_echoed": False, "endpoint_bound": True})
+vec("v14_conduct_record_differs_from_the_card", "attack", mock([card()], meta=lambda u: honest_meta(u, conduct_record="https://elsewhere.invalid/history")), "a2a", False,
+    {"metadata_echoed": False, "endpoint_bound": True})
+vec("v14_402_in_a2a_mode_both_stand_aside", "control", mock([card(extra={"x402": True})], ep_status=402), "a2a", True,
+    {"measured_endpoint_answered": None, "payment_required_as_declared": True, "metadata_echoed": None, "endpoint_bound": None})
+vec("v14_no_extension_nothing_obliges_the_echo", "attack", mock([card(ext=False, top=dict(COMP))], meta=None), "a2a", False,
+    {"conduct_ext_declared": False, "metadata_echoed": None, "endpoint_bound": None}, endpoint=EP)
 
 
 def main():
@@ -334,7 +403,7 @@ def main():
         "urls=%s methods=%s reqhashes=%s claims=%s" % (leaks, meth, hashes, len(claims_leak)))
     v11("v11_hash_only_passes_intake_v11_rules", ledger_v11_reason(W.canonical(ho)) is None, str(ledger_v11_reason(W.canonical(ho))))
     v11("v11_hash_only_keeps_response_hashes_and_verdict",
-        all(nd["response"].get("body_sha256") for nd in ho["nodes"] if nd.get("kind") == "fetch") and ho["verdict"]["ok"] is True and ho["verdict"]["n_total"] == 5)
+        all(nd["response"].get("body_sha256") for nd in ho["nodes"] if nd.get("kind") == "fetch") and ho["verdict"]["ok"] is True and ho["verdict"]["n_total"] == 7)
     leaky = json.loads(W.canonical(ho)); leaky["nodes"][3]["request"]["url"] = EP
     v11("v11_hash_only_with_a_path_is_refused", ledger_v11_reason(W.canonical(leaky)) == "path_leaks_tool")
 
@@ -460,6 +529,12 @@ def main():
         v11("d03_the_spec_definition_of_measured_endpoint_answered_knows_402", "402" in d,
             "the spec still defines it by status 200 alone, so an endpoint that charges reads as "
             "non-conforming for charging" if "402" not in d else "the definition covers the paid case")
+        # conduct-v1.4. The client now reads a metadata key the v1.3 documents never named. Same fault
+        # class as 13.5, one field over: check that both documents name it.
+        m4 = re.search(r"metadata_keys: \[(.*?)\]", worker_text, re.S)
+        v11("d04_served_by_is_named_by_the_spec_and_by_the_gate",
+            "`.../served_by`" in spec_text and "/conduct/v1/served_by`" in spec_text and bool(m4) and "served_by" in m4.group(1),
+            "spec section 3/14 and the gate's metadata_keys both name served_by" if (m4 and "served_by" in m4.group(1)) else "the gate's metadata_keys does not name served_by")
 
     total = n
     print("\n=== %d / %d 合格 (a2a_conduct_walk.py) ===" % (total - len(bad), total))

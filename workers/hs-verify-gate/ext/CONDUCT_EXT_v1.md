@@ -63,6 +63,8 @@ A client activates the extension by sending the A2A service parameter `A2A-Exten
 | `https://gate.horizonshield.dev/ext/conduct/v1/conduct_record` | same value as `params.conduct_record` |
 | `https://gate.horizonshield.dev/ext/conduct/v1/witness_intake` | same value as `params.witness_intake` |
 
+**Revised by section 14 (v1.4, 2026-09-28): `.../endpoint` names the entry of `measured_endpoints` whose conduct record applies to this request, which is the URL that served it only when that URL is itself measured; a fourth key, `.../served_by`, names the URL that received the request. The table above is kept rather than edited away.**
+
 Nothing else. No timestamp (a time an issuer chooses is a coordinate the issuer controls), no score. An agent that declares the extension and does not echo on activation is non-conforming; a client SHOULD record that as a discrepancy (section 4, `verdict.ok = false`). An agent that does not declare the extension is free to ignore the header, as A2A allows.
 
 **Two spellings of the header, two versions of the wire.** A2A 0.3 named the service parameter `X-A2A-Extensions`; A2A 1.0 names it `A2A-Extensions`. The 0.3 compatibility paths of the official SDKs still emit the old spelling (`@a2a-js/sdk` 1.1.0 emits only `X-A2A-Extensions` on the 0.3 wire; `a2a-sdk` 1.1.x for Python emits both). An agent MUST read the URI from either header, MUST echo it under `A2A-Extensions`, and MUST also echo it under `X-A2A-Extensions` when the request carried that spelling (a 0.3 client reads only the spelling it sent). The wire version is decided by the method name (`SendMessage` is 1.0, `message/send` is 0.3) and, failing that, by the `A2A-Version` header; the response takes the shape of that wire (1.0: `{"task": ...}` or `{"message": ...}` with `TASK_STATE_*` and `ROLE_*` enum names and parts discriminated by member name; 0.3: a `Message` or `Task` with `kind`). The `metadata` keys above are the same on both wires. The agent SHOULD also list this URI in the `extensions` field of the returned `Message` (or of `status.message` on a `Task`), the field A2A provides for "extensions that contributed to this message". A card that carries the extension SHOULD publish `supportedInterfaces[]` with a `protocolVersion: "1.0"` entry first, and MAY keep the 0.3 `url` / `preferredTransport` / `protocolVersion` keys beside it for 0.3-only readers; both official SDKs read such a card as 1.0 and ignore the 0.3 keys.
@@ -75,7 +77,7 @@ Fields:
 
 - `schema`: `"jidec-path-v1"`. `purpose`: `"a2a-conduct-walk-v1: <measured endpoint>"`. `walked_at`: ISO-8601 UTC. `base`: the card origin (`https://host`). `witness`: `{ "name": "<who>", "vantage": "<network or tool the walk was taken from>" }`; `name` MAY be `anonymous`.
 - `nodes`: n0 `fetch` GET `<origin>/.well-known/agent-card.json`; n1 the same GET again; n2 `compute` "locate the extension by URI in n1 and validate `params`"; n3 `fetch` POST to the measured endpoint with header `A2A-Extensions: <this URI>` and a JSON-RPC body (MCP `initialize`, or A2A `SendMessage` / `message/send` when the endpoint is the A2A interface). Each `fetch` node records `request.url`, `request.method`, `response.status`, `response.body_sha256` over the exact bytes received. A walk MUST touch at least one `measured_endpoints` entry or the origin, or the ring builder will not count it for that endpoint.
-- `assertions` (each with `claim`, `op`, `result`, `evidence_nodes`): `card_bytes_stable` (n0 body sha equals n1 body sha), `conduct_ext_declared` (n1 carries this URI under `capabilities.extensions[]`), `compensation_well_formed` (section 2 shape), `measured_endpoint_answered` (n3 status 200 and a JSON-RPC `result` of the shape the wire version requires; recorded `result: null` with a note naming the status when n3 answered 402, because an endpoint that charges has answered and a walk never pays, see section 13), `payment_required_as_declared` (an endpoint answering 402 declares a paid model on its card, section 13), `extension_echoed` (the n3 response carries this URI under `A2A-Extensions`, or under `X-A2A-Extensions` when the walk sent that spelling; only asserted when n3 was an A2A message, otherwise recorded with `result: null` and `note: "not applicable"`). A walk in A2A mode records which wire it used (`conduct_ext.wire`, `"1.0"` or `"0.3"`); a 0.3 walk sends `message/send` with the header spelled `X-A2A-Extensions` only, which is what a 0.3 client does.
+- `assertions` (each with `claim`, `op`, `result`, `evidence_nodes`): `card_bytes_stable` (n0 body sha equals n1 body sha), `conduct_ext_declared` (n1 carries this URI under `capabilities.extensions[]`), `compensation_well_formed` (section 2 shape), `measured_endpoint_answered` (n3 status 200 and a JSON-RPC `result` of the shape the wire version requires; recorded `result: null` with a note naming the status when n3 answered 402, because an endpoint that charges has answered and a walk never pays, see section 13), `payment_required_as_declared` (an endpoint answering 402 declares a paid model on its card, section 13), `extension_echoed` (the n3 response carries this URI under `A2A-Extensions`, or under `X-A2A-Extensions` when the walk sent that spelling; only asserted when n3 was an A2A message, otherwise recorded with `result: null` and `note: "not applicable"`), and, from section 14, `metadata_echoed` (the returned metadata carries the section 3 keys, `.../endpoint` is on the card and the other two equal the card's params) and `endpoint_bound` (the URL n3 was sent to equals `.../served_by`, or `.../endpoint` when `.../served_by` is absent), both A2A mode only and both `null` with a note when n3 returned no A2A result or answered 402. A walk in A2A mode records which wire it used (`conduct_ext.wire`, `"1.0"` or `"0.3"`); a 0.3 walk sends `message/send` with the header spelled `X-A2A-Extensions` only, which is what a 0.3 client does.
 - `card_signature` (added 2026-09-10, informational, OPTIONAL): what the walked card's A2A section 8.4 signature block says, read without being checked: `present`, `count`, `alg`, `kid`, `jku`, `jku_same_host`, `protected_readable`, and `verified` with `verified_reason`. The reference client sets `verified` to `null` always, because verifying requires reproducing the card's canonical form and a canonicalizer that is one rule wrong would accuse an honest agent in an append only ledger. A client that has proved its canonical form against the same vectors as the measurer MAY set `verified` to a boolean; a client that has not MUST NOT. An unsigned card is not a finding: this extension does not require a signed card. Under `hash-only` and `commitment` the `jku` is dropped and `jku_same_host` is kept.
 - `verdict`: `{ "ok": <all applicable assertions true>, "outcome": "PASS" | "FAIL", "n_pass": <int>, "n_total": <int> }`. Both `ok` and `outcome` are carried because the ring builder (`make_ring.py`) reads `ok` while JIDEC_PATH_SPEC_v1 names `outcome`; a record carrying only one of them is read differently by the two.
 
@@ -335,3 +337,131 @@ charged matches any amount declared; the walk did not pay and says so. It does n
 a failure or make being free a pass. It changes no hash recipe, no canonical form, no ring
 column, and no condition on the register. It does not handle `401`: authentication required is a
 different fact from payment required and deserves its own reasoning rather than a widened branch.
+
+## 14. Revision v1.4 (2026-09-28): the URL that served is not always the endpoint that is measured
+
+**Status:** additive, same URI, and found by a walk taken from outside this project, against this
+project's own gate. Every fixture in `walk_selftest.py` answered A2A at its measured endpoint and
+returned no metadata at all, so 58 green vectors could not see either fault in this section. The
+walk that showed them is sha256 `eea3be5b34f46e4fb6c6eee89b9f5f1019e2b8b19c6106f2b660705550cbd2b4`
+(POST `https://gate.horizonshield.dev/a2a`, 2026-09-27T14:40:46Z), reported on issue 27 of the
+repository named in section 8. That record stays filed as it is; it is the observation that shows
+the gap.
+
+### 14.1 The fault, on both sides of the wire
+
+Section 3 defined `.../endpoint` as "the entry of `measured_endpoints` that served this request".
+That sentence can be true only when the URL that answers A2A is itself a measured endpoint. The
+gate answers A2A at `/a2a` and is measured at `/mcp`; so are the JIDEC agent (`/a2a` beside
+`/mcp`) and the ledger (`/a2a`, measured through the JIDEC MCP endpoint). For each of them no entry
+of `measured_endpoints` could truthfully name the URL that served, and each wrote its measured
+endpoint into every response. A request served by `/a2a` was answered with a claim that `/mcp`
+served it.
+
+The reference client did not notice, because it never read the metadata. `extension_echoed`
+checks the response header. Nothing checked the three keys that section 3 has required since v1,
+so five of five assertions passed over the mismatch. One fault in the servers, one in the client,
+and the second is why the first went unseen.
+
+### 14.2 Two facts, two keys
+
+| metadata key | value |
+|---|---|
+| `https://gate.horizonshield.dev/ext/conduct/v1/endpoint` | the entry of `measured_endpoints` whose conduct record applies to this request |
+| `https://gate.horizonshield.dev/ext/conduct/v1/served_by` | the URL at which this request was received: `https`, the host, a port only when it is not 443, and the path; no query, no fragment, no user information |
+
+`.../served_by` MUST be present when the URL that received the request is not an entry of
+`measured_endpoints`, and SHOULD be present always. It MUST name the URL the request actually
+arrived at, taken from the request, not a constant: a constant is right only while the code is
+served at exactly one URL. `.../endpoint` keeps its string and its place, and its definition is
+narrowed to the one fact it can always carry truthfully. For an agent whose A2A interface is itself
+a measured endpoint (for example `https://api.babyblueviper.com/a2a`, which is both), the two keys
+name the same URL and nothing about that agent changes.
+
+The rule "nothing else" in section 3 stands with this one addition. `.../served_by` is not a
+coordinate the issuer chooses: it names where the request arrived, which the caller already knows,
+and section 14.4 is the caller checking it.
+
+### 14.3 `metadata_echoed`: what section 3 required and no client checked
+
+Asserted in A2A mode when the card declares the extension and node 3 returned a result of the
+shape its wire requires. `true` when the metadata of the returned `Message` or `Task` (on a `Task`,
+the `Task`'s own `metadata`, or failing that the `metadata` of `status.message`; the record says
+which it read) carries `.../endpoint`, `.../conduct_record` and `.../witness_intake` under the
+canonical identifier (section 12.4), `.../endpoint` is an entry of the card's `measured_endpoints`,
+and the other two equal `params.conduct_record` and `params.witness_intake`, all compared as exact
+strings. `null` with a note when the walk was not an A2A message, when node 3 returned no result of
+the wire's shape (that is `measured_endpoint_answered`'s finding), when node 3 answered 402, or when
+the card does not declare the extension (that is `conduct_ext_declared`'s finding).
+
+### 14.4 `endpoint_bound`
+
+Asserted when `metadata_echoed` is applicable and the metadata carries `.../endpoint` or
+`.../served_by`. `true` when the URL node 3 was sent to equals `.../served_by`, or, when
+`.../served_by` is absent, equals `.../endpoint`.
+
+Comparison: each side is reduced to `https://`, the host in lower case, a port only when it is not
+443, and the path; the query and fragment of the walked URL are dropped; the path is compared
+exactly, so a trailing slash is a different path. Nothing else is normalised, and a value that is
+not an `https` URL is unequal to everything.
+
+A present `.../served_by` that names a different URL is `false` even when `.../endpoint` equals the
+walked URL. A response that says another URL served it has stated something false, and the other
+key does not repair that. This is one step stricter than the rule announced on issue 27, which
+accepted either key; the stricter rule is the one implemented, and this paragraph is where the
+difference is stated.
+
+When the returned metadata carries neither key, the assertion is `null` with a note naming
+`metadata_echoed`, so one missing echo costs one assertion and not two.
+
+### 14.5 Why this is additive rather than a new URI
+
+Section 7 requires a new URI for a breaking change to fields, keys, or the walk. No declaring agent
+that met section 3 as written has anything to change: an agent that answers A2A at a measured
+endpoint and echoes the three keys passes both new assertions without a byte moved. An agent that
+did not echo the keys, or whose `.../endpoint` named a URL that did not serve, was already
+non-conforming under section 3 in v1; the walk now says what the text always required. The one
+class of agent that could not conform to v1 at all, an A2A interface that is not itself measured,
+gains a way to conform rather than losing one. Records already filed keep their bytes, and the
+ledger's witness intake does not validate the assertion list (13.4). An honest walk in A2A mode now
+carries seven applicable assertions where it carried five.
+
+Three of the four reference servers this project runs would have failed `endpoint_bound` before
+this revision was deployed: the gate's `/a2a`, the ledger's `/a2a`, and the JIDEC agent's `/a2a`.
+They were wrong. The fourth, the KIRA MCP server, answers A2A at its measured endpoint and would
+have passed.
+
+### 14.6 Red team
+
+`walk_selftest.py` goes from 58 vectors to 76. The metadata cases: an honest agent on both wires; an honest
+agent that answers with a `Task`, with the metadata on the `Task` and on `status.message`; an agent from
+before this revision that answers at its measured endpoint without `.../served_by`, which passes; the fault as it was found (A2A at a URL that is not measured,
+`.../endpoint` naming the measured one, no `.../served_by`); the same agent after this revision; a
+`.../served_by` that names another URL while `.../endpoint` matches; a host written in upper case,
+which is the same URL; a trailing slash, which is not; metadata missing on each wire; metadata keys
+written under the permanent identifier instead of the canonical one (section 12.4); an
+`.../endpoint` that is not on the card; a `.../conduct_record` that differs from the card; a 402 in
+A2A mode, where both new assertions stand aside; a card without the extension, where nothing obliges
+the echo; and MCP mode, where both are not applicable. Every older A2A vector now carries honest
+metadata, so each of them exercises both assertions too. One
+more drift guard, `d04`, checks that this document and the gate's published JSON both name
+`.../served_by`, because a key the client reads and the documents do not name is the fault 13.5
+exists to catch, one field over.
+
+Mocks that agree with the client and server tests that agree with the server are how this fault
+survived: each side was checked against expectations written by the same hand as that side, and the
+two were never put together. `walk_reference_servers.py` puts them together. It starts the four
+reference Workers locally, keeps every URL the walk sees at its public origin, and runs the
+unchanged client on both wires. Against the code as it was before this revision it reproduces the
+finding offline: gate, ledger and JIDEC `endpoint_bound` false, KIRA true. Against the revised code
+all eight walks hold every applicable assertion.
+
+### 14.7 What this revision does not do
+
+It does not make `.../served_by` trustworthy. The agent writes it; the walk checks it against the
+one URL the walker knows without trusting anyone, the URL it sent the request to. It does not fetch
+`.../conduct_record` or say anything about what the record contains; that is a different walk. It
+does not follow redirects on the question: the walk compares the URL it sent, and if the transport
+was redirected, whatever `.../served_by` then names is recorded as observed. It changes no field in
+section 2, no entry of `measured_endpoints`, no hash recipe, no canonical form, no ring column, and
+no condition on the register.

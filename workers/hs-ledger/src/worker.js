@@ -176,17 +176,25 @@ function a2aSendMessageResult(result, wire) {
   if (result.kind === "message") return { message: a2aMessage10(result) };
   return result;
 }
-function conductMetadata() {
+// conduct-v1.4 (仕様 14 節, 2026-09-28)。/endpoint は「記録が当たる測定対象」(measured_endpoints の 1 本)、
+// /served_by は「この要求が実際に届いた URL」。扉の /a2a が /mcp と名乗っとったのを外の証人が見つけた(同じ定数の型がここにもあった)。
+// served_by は要求から取る。定数は 1 か所で配られとる間しか正しくない。query と fragment は入れん。
+function servedByOf(request) {
+  const u = new URL(request.url);
+  return u.origin + u.pathname;
+}
+function conductMetadata(servedBy) {
   const m = {};
   m[CONDUCT_EXT_URI + "/endpoint"] = CONDUCT_MEASURED_ENDPOINT;
   m[CONDUCT_EXT_URI + "/conduct_record"] = CONDUCT_RECORD_URL;
   m[CONDUCT_EXT_URI + "/witness_intake"] = CONDUCT_WITNESS_INTAKE;
+  if (typeof servedBy === "string" && servedBy) m[CONDUCT_EXT_URI + "/served_by"] = servedBy;
   return m;
 }
-// 拡張が有効な応答に指し先を付ける(仕様 3 節): metadata に 3 鍵、Message.extensions に URI。
-function a2aAttachConduct(result) {
+// 拡張が有効な応答に指し先を付ける(仕様 3 節): metadata に 3 鍵 (v1.4 から served_by を足して 4 鍵)、Message.extensions に URI。
+function a2aAttachConduct(result, servedBy) {
   if (!result || typeof result !== "object") return result;
-  result.metadata = Object.assign({}, result.metadata || {}, conductMetadata());
+  result.metadata = Object.assign({}, result.metadata || {}, conductMetadata(servedBy));
   const ex = Array.isArray(result.extensions) ? result.extensions.slice() : [];
   if (!ex.includes(CONDUCT_EXT_URI)) ex.push(CONDUCT_EXT_URI);
   result.extensions = ex;
@@ -1469,7 +1477,7 @@ async function handle(request, env) {
       try {
         const card = await citationCard(env, origin, text.match(/jidec:[a-z]*:?[0-9a-f]+|[0-9a-f]{64}|\d+/i)?.[0] || text);
         let result = { kind: "message", role: "agent", messageId: crypto.randomUUID(), parts: [{ kind: "text", text: card.trust_note }, { kind: "data", data: card }] };
-        if (a2aExt.length) result = a2aAttachConduct(result);  // 0.4.3: どっちの綴りでも中身は同じ
+        if (a2aExt.length) result = a2aAttachConduct(result, servedByOf(request));  // 0.4.3: どっちの綴りでも中身は同じ
         return json({ jsonrpc: "2.0", id: rid, result: a2aSendMessageResult(result, wire) }, 200, extHeaders);
       } catch (err) {
         return rpcErr(-32000, String((err && err.message) || err));

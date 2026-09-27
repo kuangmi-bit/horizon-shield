@@ -170,7 +170,10 @@ chk("1.0 message: role is ROLE_AGENT and parts carry no kind", axm && axm.role =
 chk("1.0 message: Message.extensions carries the activated URI", axm && Array.isArray(axm.extensions) && axm.extensions.includes(EXT), JSON.stringify(axm && axm.extensions));
 chk("activated ext is echoed in A2A-Extensions header, only the implemented one", r.ext === EXT, String(r.ext));
 chk("metadata carries endpoint / conduct_record / witness_intake under the ext URI", axm && axm.metadata && [EXT + "/endpoint", EXT + "/conduct_record", EXT + "/witness_intake"].every((k) => typeof axm.metadata[k] === "string" && axm.metadata[k].startsWith("https://")), JSON.stringify(axm && axm.metadata));
-chk("metadata carries nothing else (no timestamp, no score)", axm && axm.metadata && Object.keys(axm.metadata).length === 3);
+chk("metadata carries nothing else (no timestamp, no score): the 3 section 3 keys plus served_by (v1.4)", axm && axm.metadata && Object.keys(axm.metadata).length === 4);
+// conduct-v1.4. The ledger answers A2A at /a2a and its measured endpoint is the JIDEC MCP endpoint, so /endpoint
+// names that and /served_by names where the request arrived. Before v1.4 this response claimed the JIDEC MCP served it.
+chk("served_by names the ledger's /a2a, and /endpoint stays the measured endpoint", axm && axm.metadata && /\/a2a$/.test(axm.metadata[EXT + "/served_by"]) && axm.metadata[EXT + "/endpoint"] === "https://jidec.horizonshield.dev/mcp", JSON.stringify(axm && axm.metadata));
 // 0.3 の綴り X-A2A-Extensions だけで有効化(公式 SDK の 0.3 互換路の実測): 0.3 形で返り、echo は両綴り
 r = await go("/a2a", {
   method: "POST",
