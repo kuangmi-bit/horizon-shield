@@ -13,6 +13,9 @@
  *
  * URL は 2026-09-26 に取れたものだけを載せている(取れなかったものは載せない)。
  */
+// 鏡(mirror): 相手が Cloudflare からの取得を弾く頁だけ。GitHub Actions(.github/workflows/law-watch-mirror.yml、週 1 回)が
+// tools/mirror_fetch.py で <a> の並びを写して置く。worker は直接の取得が失敗したときだけ、新しい鏡(10 日以内)を同じ parser に通す。
+export const MIRROR_BASE = "https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/data/law-watch/mirror/";
 export const SOURCES = [
   // ---------------- 訪問看護(医療・介護) ----------------
   { id: "mhlw-shinryo-r8-tsuchi", domain: "nursing", kind: "list",
@@ -146,16 +149,16 @@ export const SOURCES = [
     title: "BLS QCEW 年平均(産業別)の zip", url: "https://www.bls.gov/cew/downloadable-data-files.htm", link_filter: "/cew/data/files/\\d{4}/csv/\\d{4}_annual_by_industry\\.zip$",
     why: "年の確報が出ると YYYY_annual_by_industry.zip が足される。台帳 bls-qcew-2025-annual の URL に当たる。" },
   { id: "usace-cwccis", domain: "construction", kind: "list", obs2_family: "usace-cwccis",
-    title: "USACE 土木工事費指数(CWCCIS)", url: "https://www.nww.usace.army.mil/missions/cost-engineering/cwccis-indices/", link_filter: "publibrary\\.sec\\.usace\\.army\\.mil/api/download|/Portals/28/.*\\.pdf",
+    title: "USACE 土木工事費指数(CWCCIS)", url: "https://www.nww.usace.army.mil/missions/cost-engineering/cwccis-indices/", link_filter: "publibrary\\.sec\\.usace\\.army\\.mil/api/download|/Portals/28/.*\\.pdf", mirror: MIRROR_BASE + "usace-cwccis.json",
     why: "3月末と9月末の半年ごとに表が替わる。台帳 usace-cwccis-2026-03 の URL(publibrary の download)に当たる。" },
   { id: "usace-ep1110", domain: "construction", kind: "list", obs2_family: "usace-ep1110",
-    title: "USACE 建設機械の時間単価(EP 1110-1-8)", url: "https://www.nww.usace.army.mil/missions/cost-engineering/ep1110-1-8/", link_filter: "/Portals/28/.*\\.pdf|contentdm\\.oclc\\.org/utils/getfile",
+    title: "USACE 建設機械の時間単価(EP 1110-1-8)", url: "https://www.nww.usace.army.mil/missions/cost-engineering/ep1110-1-8/", link_filter: "/Portals/28/.*\\.pdf|contentdm\\.oclc\\.org/utils/getfile", mirror: MIRROR_BASE + "usace-ep1110.json",
     why: "2年ごとに12地域の表が替わる。新しい版は Region 表のリンクが入れ替わる。" },
   { id: "hud-tdc", domain: "construction", kind: "list", obs2_family: "hud-tdc",
     title: "HUD 公営住宅の総開発費上限(TDC)", url: "https://www.hud.gov/helping-americans/public-indian-housing-capfund", link_filter: "TDC.*\\.pdf$",
     why: "年ごとに YYYY_Units_TDC_Limits.pdf が足される。台帳 hud-tdc-2024 の URL に当たる。" },
   { id: "fta-capital-cost", domain: "construction", kind: "list", obs2_family: "fta-capcost",
-    title: "FTA 資本費データベース", url: "https://www.transit.dot.gov/capital-cost-database", link_filter: "/files/docs/.*\\.(csv|accdb|xlsx)$",
+    title: "FTA 資本費データベース", url: "https://www.transit.dot.gov/capital-cost-database", link_filter: "/files/docs/.*\\.(csv|accdb|xlsx)$", mirror: MIRROR_BASE + "fta-capital-cost.json",
     why: "版が替わると CSV と accdb のファイル名が替わる。台帳 fta-capcost-2024-09 の URL に当たる。" },
   { id: "cbr-tokuchou-shizai", domain: "construction", kind: "list", obs2_family: "cbr-tokuchou-shizai",
     title: "中部地方整備局 特別調査(資材)の報告リスト", url: "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/R8_chousa_tanka.htm", link_filter: "\\.zip$",

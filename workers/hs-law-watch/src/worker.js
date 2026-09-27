@@ -128,6 +128,22 @@ async function fetchText(url, method) {
   } finally { clearTimeout(t); }
 }
 
+// 2026-09-27: 鏡(mirror)。相手が Cloudflare からの取得を弾く頁(USACE の .mil、FTA の transit.dot.gov は 403)は、
+// GitHub Actions(tools/mirror_fetch.py、週 1 回)が別の網から <a> の並びだけを写して data/law-watch/mirror/<id>.json に置く。
+// 直接の取得が失敗し、source に mirror があり、鏡が新しく(MIRROR_MAX_AGE_DAYS 以内)相手が 200 を返していたときだけ、鏡の <a> を同じ parseLinks に通す。
+// 鍵(key = URL + 文字)は直接の取得と同じになるので、直接の取得が戻っても偽の new_link は出ない。鏡が古い・失敗・別 id なら使わない(失敗のまま = instrument)。
+const MIRROR_MAX_AGE_DAYS = 10;
+async function fetchMirror(src, now) {
+  const r = await fetchText(src.mirror, "GET");
+  if (!r.ok) return { used: false, why: "mirror_http_" + r.status };
+  let m; try { m = JSON.parse(r.text); } catch { return { used: false, why: "mirror_not_json" }; }
+  if (!m || m.source_id !== src.id || m.url !== src.url) return { used: false, why: "mirror_id_mismatch" };
+  const age = (now.getTime() - Date.parse(m.fetched_at || 0)) / 86400000;
+  if (!(age >= 0 && age <= MIRROR_MAX_AGE_DAYS)) return { used: false, why: "mirror_stale" };
+  if (m.status !== 200 || !Array.isArray(m.anchors)) return { used: false, why: "mirror_upstream_" + m.status };
+  return { used: true, anchors: m.anchors.join("\n"), fetched_at: m.fetched_at, runner: m.runner || null };
+}
+
 function nextSteps(ev) {
   const base = [
     "1. url を開き、何が出たか(告示・通知・疑義解釈・事務連絡・審議会資料・パブコメ)を確かめる。",
@@ -152,9 +168,15 @@ async function checkSource(env, src, now) {
   const url = resolveUrl(src, now);
   const prev = await env.DB.prepare("SELECT * FROM snapshots WHERE source_id = ?").bind(src.id).first();
   const detected_at = now.toISOString();
-  const res = await fetchText(url, src.kind === "probe" ? "HEAD" : "GET");
+  let res = await fetchText(url, src.kind === "probe" ? "HEAD" : "GET");
   const events = [];
   const failStreak = (prev && prev.fail_streak) || 0;
+  let via = "direct", mirror_why = null;
+  if (!res.ok && src.mirror && src.kind === "list") {
+    const m = await fetchMirror(src, now);
+    if (m.used) { res = { ok: true, status: 200, text: m.anchors, ctype: "text/html", mirror: m }; via = "mirror"; }
+    else mirror_why = m.why;
+  }
 
   if (src.kind === "probe") {
     const key = url;
@@ -178,10 +200,10 @@ async function checkSource(env, src, now) {
       .bind(src.id, detected_at, res.status, 0, prev ? prev.hash : null, prev ? prev.items_json : "[]", streak, url).run();
     if (streak === FAIL_STREAK_ALERT) {
       events.push({ event_id: await sha256hex(`fail|${src.id}|${detected_at.slice(0, 10)}`), source_id: src.id, domain: src.domain, kind: "instrument",
-        detected_at, title: `${src.title} に ${streak} 回続けて届いていない(HTTP ${res.status}${res.error ? " " + res.error : ""})`, url,
+        detected_at, title: `${src.title} に ${streak} 回続けて届いていない(HTTP ${res.status}${res.error ? " " + res.error : ""}${mirror_why ? "、鏡も使えない: " + mirror_why : ""})`, url,
         impact: { items: [], triage: "instrument" }, note: "取りに行けていない。変わっていない、ではない。" });
     }
-    return { events, status: res.status, failed: true };
+    return { events, status: res.status, failed: true, mirror_why: mirror_why || undefined };
   }
 
   let items = [], hash, extra = {};
@@ -229,8 +251,8 @@ async function checkSource(env, src, now) {
     }
   }
   await env.DB.prepare("INSERT OR REPLACE INTO snapshots (source_id, fetched_at, http_status, ok, hash, items_json, fail_streak, url) VALUES (?,?,?,?,?,?,?,?)")
-    .bind(src.id, detected_at, res.status, 1, hash, JSON.stringify(items.map((i) => i.key)), 0, url).run();
-  return { events, status: res.status, count: items.length, baseline: !prev || !prev.hash, ...extra };
+    .bind(src.id, detected_at, res.status, 1, hash, JSON.stringify(items.map((i) => i.key)), 0, via === "mirror" ? src.mirror : url).run();
+  return { events, status: res.status, count: items.length, baseline: !prev || !prev.hash, via, mirror_fetched_at: res.mirror ? res.mirror.fetched_at : undefined, ...extra };
 }
 
 export async function runAll(env, now, only) {
@@ -241,7 +263,7 @@ export async function runAll(env, now, only) {
     try {
       const r = await checkSource(env, src, now);
       for (const ev of r.events) if (await putEvent(env, ev)) { fresh.push(ev); report.new_events++; }
-      report.sources[src.id] = { status: r.status, count: r.count, baseline: r.baseline, failed: !!r.failed, mismatch: !!r.mismatch, events: r.events.length };
+      report.sources[src.id] = { status: r.status, count: r.count, baseline: r.baseline, failed: !!r.failed, mismatch: !!r.mismatch, events: r.events.length, via: r.via || undefined, mirror_fetched_at: r.mirror_fetched_at, mirror_why: r.mirror_why };
     } catch (e) {
       report.sources[src.id] = { error: String(e && e.message || e).slice(0, 200) };
     }

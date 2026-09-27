@@ -47,3 +47,17 @@ GitHub の jhnrd に law-change ラベルを先に作っておく。
 - 告示は e-Gov 法令API に無い。官報の目次の題名に当たる語で拾っている。題名に訪問看護の語が無い告示(大きな一括改正)は、厚労省の改定頁の一覧側で拾う。
 - 法令等データベースは同じ URL で別の告示を返すことがある。そのときは『改正ではない』出来事(instrument)にして、基準線を壊さない。
 - 近畿地整の翌月単価表は、ファイル名が YYYY_MMtanka.pdf の形のままならという前提。形が変わると 404 のまま拾えない(その時は sources.js を直す)。
+
+## 6. 鏡(2026-09-27、v0.3): Cloudflare から取れない 3 頁
+- 初回(09-27 09:07 JST)から USACE の 2 頁(CWCCIS、EP 1110-1-8。.mil は Cloudflare からの取得を弾く)と FTA の資本費データベース(transit.dot.gov)が 403。
+  番人の container からも Mac の VM からも届かず、Anthropic の取得器は FTA には届き USACE には 403。相手の側の遮断で、UA を変えても直らない見立て。
+- 直し: GitHub Actions(.github/workflows/law-watch-mirror.yml、日曜 21:23 UTC = 月曜 06:23 JST に週 1 回、手でも回せる)が
+  workers/hs-law-watch/tools/mirror_fetch.py で 3 頁を取り、worker の parseLinks が読む <a> の原文だけ(link_filter に当たる物)を data/law-watch/mirror/<id>.json に書いて commit する。
+  worker は直接の取得が失敗したときだけ、鏡が新しく(10 日以内)相手が 200 を返していれば、鏡の <a> を同じ parser に通す(鍵は直接と同じ = 直接が戻っても偽の出来事は出ない)。
+  鏡が無い・古い・相手が 403 のときは今までどおり失敗(3 回で instrument。題名に鏡が使えなかった理由が付く)。/sources の last.url が鏡の URL なら鏡で読んだ回。
+- GitHub の網も .mil に弾かれる可能性はある。Action の Step summary に「usace-cwccis: HTTP 403」と出たら、その頁は鏡でも取れない = 人が半年に 1 度見る(CWCCIS は 3 月末と 9 月末)。
+- 手順(~/hs-core-private/ops-private/law_watch_mirror_20260927/toshi_steps_lawwatch.sh の W1〜W4)。芯だけ:
+       node test/harness.mjs                      # 65 pass / 0 fail
+       python3 tools/mirror_fetch.py --selftest   # selftest ok
+       npx wrangler deploy                        # D1 は変えない
+       (push のあと) GitHub の Actions で「law-watch mirror」を Run workflow。走ったら data/law-watch/mirror/ に 3 本の json

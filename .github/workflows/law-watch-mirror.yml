@@ -1,0 +1,41 @@
+name: law-watch mirror
+
+# hs-law-watch(Cloudflare Workers)から取れない頁(USACE の .mil 2 頁、FTA の資本費データベース)の <a> の並びを
+# GitHub Actions の網から写して data/law-watch/mirror/<id>.json に置く。worker は直接の取得が 403 のときだけ、10 日以内の鏡を読む。
+# 本文は写さない。相手が 200 を返さなければ status だけ記録し、前回の鏡は上書きしない。
+# 手で回す: Actions -> law-watch mirror -> Run workflow。
+# 一覧(id・url・link_filter)は workers/hs-law-watch/tools/mirror_fetch.py の MIRRORS と src/sources.js の mirror つきの行で同じ(harness が突き合わせる)。
+
+on:
+  schedule:
+    - cron: "23 21 * * 0"   # weekly, Sunday 21:23 UTC (Monday 06:23 JST); the worker's next cron is 09:07 JST
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: law-watch-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: fetch the three pages and keep only the anchors
+        run: |
+          python3 workers/hs-law-watch/tools/mirror_fetch.py --selftest
+          python3 workers/hs-law-watch/tools/mirror_fetch.py --out data/law-watch/mirror | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: record
+        run: |
+          git config user.name "hs-law-watch-mirror"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add data/law-watch/mirror/ || true
+          if git diff --cached --quiet; then
+            echo "変わったものはありません。" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "law-watch: mirror $(date -u +%Y-%m-%d) (anchors of pages that refuse Cloudflare fetches)"
+          git push

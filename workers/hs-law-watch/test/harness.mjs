@@ -171,5 +171,66 @@ ok(!SOURCES.some((s) => /sam\.gov|wbdg\.org/.test(s.url)), "SAM.gov and WBDG are
 const cewHtml = `<a href="/cew/data/files/2025/csv/2025_annual_by_industry.zip">2025 annual by industry</a><a href="/cew/data/files/2025/csv/2025_qtrly_by_industry.zip">q</a>`;
 ok(parseLinks(cewHtml, "https://data.bls.gov/cew/", S["bls-qcew-files"].link_filter).length === 1, "relative link resolved and filtered");
 
+// ---- 8. 鏡(2026-09-27): Cloudflare から取れない 3 頁を GitHub Actions の網から写した <a> で読む ----
+{
+  const mirrored = SOURCES.filter((s) => s.mirror);
+  ok(mirrored.length === 3 && mirrored.every((s) => s.kind === "list" && /^https:\/\/raw\.githubusercontent\.com\/ogasurfproject-jpg\/horizon-shield\/main\/data\/law-watch\/mirror\/[a-z0-9-]+\.json$/.test(s.mirror) && s.mirror.endsWith("/" + s.id + ".json")),
+    "mirror: exactly the 3 refused pages, list kind, mirror file named by id");
+  const py = fs.readFileSync(path.join(here, "../tools/mirror_fetch.py"), "utf8");
+  const pyRows = [...py.matchAll(/\{"id": "([^"]+)", "url": "([^"]+)", "link_filter": r"([^"]+)"\}/g)].map((m) => ({ id: m[1], url: m[2], link_filter: m[3] }));
+  ok(pyRows.length === mirrored.length && mirrored.every((s) => pyRows.some((r) => r.id === s.id && r.url === s.url && r.link_filter === s.link_filter)), "mirror: tools/mirror_fetch.py MIRRORS equals sources.js (id, url, link_filter)");
+  const envM = { DB: makeDb() };
+  const src = S["usace-cwccis"];
+  const anchors = ['<a href="/Portals/28/docs/cwccis/CWCCIS_Mar_2026.pdf">CWCCIS <b>March</b> 2026</a>', '<a href="https://publibrary.sec.usace.army.mil/api/download?id=9fce&filename=CWCCIS_Sep_2025.pdf">CWCCIS September 2025</a>'];
+  const mirrorDoc = (over) => JSON.stringify({ source_id: src.id, url: src.url, fetched_at: "2026-09-27T21:30:00Z", status: 200, anchors, runner: "github-actions run 1", ...over });
+  const dm1 = new Date("2026-09-28T00:07:00Z");
+  for (const k of Object.keys(WORLD)) delete WORLD[k];
+  WORLD[src.url] = { status: 403, body: "Access Denied" };
+  WORLD[src.mirror] = { body: mirrorDoc() };
+  const rm1 = await runAll(envM, dm1, [src.id]);
+  const snap1 = await envM.DB.prepare("SELECT * FROM snapshots WHERE source_id = ?").bind(src.id).first();
+  ok(rm1.sources[src.id].status === 200 && rm1.sources[src.id].via === "mirror" && rm1.sources[src.id].count === 2 && rm1.sources[src.id].baseline === true && !rm1.sources[src.id].failed && snap1.ok === 1 && snap1.url === src.mirror && snap1.fail_streak === 0,
+    "mirror: direct 403 + fresh mirror -> read via mirror, 2 links, baseline, snapshot url = mirror (" + JSON.stringify(rm1.sources[src.id]) + ")");
+  const direct = parseLinks(anchors.join("\n"), src.url, src.link_filter).map((i) => i.key).sort();
+  ok(JSON.stringify(JSON.parse(snap1.items_json).sort()) === JSON.stringify(direct), "mirror: keys identical to a direct parse of the same anchors");
+  // 翌日、直接の取得が戻る(同じ <a>)。偽の出来事は出ない
+  const dm2 = new Date("2026-09-29T00:07:00Z");
+  WORLD[src.url] = { body: "<html><body>" + anchors.join("") + '<a href="/other.html">x</a></body></html>' };
+  const rm2 = await runAll(envM, dm2, [src.id]);
+  const snap2 = await envM.DB.prepare("SELECT * FROM snapshots WHERE source_id = ?").bind(src.id).first();
+  ok(rm2.sources[src.id].via === "direct" && rm2.sources[src.id].events === 0 && rm2.new_events === 0 && snap2.url === src.url && snap2.hash === snap1.hash, "mirror: direct fetch back with the same anchors -> no false new_link, snapshot url back to the page");
+  // 直接が 403 に戻り、鏡に新しい <a> が増えている -> new_link 1 件
+  const dm3 = new Date("2026-09-30T00:07:00Z");
+  WORLD[src.url] = { status: 403, body: "Access Denied" };
+  WORLD[src.mirror] = { body: mirrorDoc({ fetched_at: "2026-09-29T21:30:00Z", anchors: [...anchors, '<a href="/Portals/28/docs/cwccis/CWCCIS_Sep_2026.pdf">CWCCIS September 2026</a>'] }) };
+  const rm3 = await runAll(envM, dm3, [src.id]);
+  const evM = (await envM.DB.prepare("SELECT * FROM events WHERE source_id = ? AND kind = 'new_link'").bind(src.id).all()).results;
+  ok(rm3.sources[src.id].via === "mirror" && rm3.sources[src.id].events === 1 && evM.length === 1 && /Sep_2026/.test(evM[0].url) && /September 2026/.test(evM[0].title), "mirror: a new anchor in the mirror becomes one new_link event");
+  // 使えない鏡: 古い / 相手が 403 / 別の id / JSON でない -> 失敗のまま(理由つき)、3 回で instrument
+  const bad = [
+    ["mirror_stale", mirrorDoc({ fetched_at: "2026-09-01T00:00:00Z" })],
+    ["mirror_upstream_403", mirrorDoc({ status: 403, anchors: [] })],
+    ["mirror_id_mismatch", mirrorDoc({ source_id: "usace-ep1110" })],
+    ["mirror_not_json", "<html>not json</html>"],
+  ];
+  let i = 0;
+  for (const [why, body] of bad) {
+    const d = new Date("2026-10-0" + (1 + i) + "T00:07:00Z"); i++;
+    WORLD[src.mirror] = { body };
+    const r = await runAll(envM, d, [src.id]);
+    ok(r.sources[src.id].failed === true && r.sources[src.id].status === 403 && r.sources[src.id].mirror_why === why, "mirror unusable (" + why + ") -> still failed, reason reported: " + JSON.stringify(r.sources[src.id]));
+  }
+  const inst = (await envM.DB.prepare("SELECT * FROM events WHERE source_id = ? AND kind = 'instrument'").bind(src.id).all()).results;
+  ok(inst.length === 1 && /鏡も使えない: mirror_id_mismatch/.test(inst[0].title), "mirror: after 3 straight failures the instrument event names the mirror reason");
+  // 鏡が 404(まだ Action が走っていない)-> 今までどおり失敗
+  delete WORLD[src.mirror];
+  const r404 = await runAll(envM, new Date("2026-10-06T00:07:00Z"), [src.id]);
+  ok(r404.sources[src.id].failed === true && r404.sources[src.id].mirror_why === "mirror_http_404", "mirror: mirror file absent -> failed as before (mirror_http_404)");
+  // 鏡の無い source は直接の 403 で今までどおり(mirror_why なし)
+  const src2 = S["hud-tdc"]; WORLD[src2.url] = { status: 403, body: "" };
+  const r2m = await runAll(envM, new Date("2026-10-06T00:07:00Z"), [src2.id]);
+  ok(r2m.sources[src2.id].failed === true && r2m.sources[src2.id].mirror_why === undefined && r2m.sources[src2.id].via === undefined, "no mirror configured -> unchanged failure path");
+}
+
 console.log(`hs-law-watch harness: ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);
