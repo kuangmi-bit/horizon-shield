@@ -61,3 +61,15 @@ GitHub の jhnrd に law-change ラベルを先に作っておく。
        python3 tools/mirror_fetch.py --selftest   # selftest ok
        npx wrangler deploy                        # D1 は変えない
        (push のあと) GitHub の Actions で「law-watch mirror」を Run workflow。走ったら data/law-watch/mirror/ に 3 本の json
+
+## 7. 鏡の結果(2026-09-27 15:00 JST): GitHub の網も 3 か所とも 403。鏡は手で入れる
+- Action「law-watch mirror」#1(手で回した、2026-09-27 05:29 UTC)の Step summary: usace-cwccis HTTP 403、usace-ep1110 HTTP 403、fta-capital-cost HTTP 403(<a> 0 本)。
+  bot は 403 の記録(status 403、anchors 空)を data/law-watch/mirror/ に commit した(c90a2d6e)。worker はこの鏡を使わない(status が 200 でない)。
+  つまり Cloudflare も GitHub Actions も、Anthropic の container も Mac の VM も弾かれる。届くのは人の browser(TOshi の Chrome)だけ。
+- 取れた道: 番人が TOshi の Chrome(Claude in Chrome)で 3 頁を開き、link_filter に当たる <a> の href・属性・中身を構造化して読み、
+  mirror_fetch.py と同じ形の JSON に組み直した(evidence と組み方は ~/hs-core-private/ops-private/law_watch_mirror_20260927/manual_20260927/)。
+  同日の読み: CWCCIS 6 本(最新は 31 March 2026、9 月の表はまだ)、EP 1110-1-8 168 本(2024 版のまま)、FTA 2 本(September 2024 のまま)。3 か所とも台帳から変わっていない。
+- 入れ方: ~/hs-core-private/ops-private/law_watch_mirror_20260927/toshi_steps_mirror_manual.sh <日付> M1(pull、写し、検査、commit、push)-> cron の後に M2(/sources の last.url が鏡の URL、fail_streak 0)。
+- 限界: 鏡は fetched_at から 10 日で古くなり、worker は使わなくなる(古い鏡で「変わっていない」と言わないため)。週 1 の Action は 403 のまま回り続けるが、200 の鏡を 403 で上書きはしない。
+  だからこの 3 か所は「人が見たいときに Chrome で読ませて入れる」計器。半年ごと(CWCCIS は 3 月末・9 月末の表)、月次の IMDB 更新の日(6 日)に一緒に読むのが現実的。
+  安い試し(未検証): mirror_fetch.py の UA を純粋な browser の文字列にして Accept-Language を足す。.mil の遮断は IP と TLS 指紋で見ている見立てなので、直る見込みは低い。

@@ -1,11 +1,18 @@
 {
  "source_id": "usace-cwccis",
  "url": "https://www.nww.usace.army.mil/missions/cost-engineering/cwccis-indices/",
- "fetched_at": "2026-09-27T05:29:40Z",
- "status": 403,
- "anchors": [],
+ "fetched_at": "2026-09-27T05:48:05Z",
+ "status": 200,
+ "anchors": [
+  "<a href=\"https://publibrary.sec.usace.army.mil/api/download?id=9fcedc82-37ec-4b3c-e8de-1b9dfc89ebec&amp;filename=CWCCIS_Mar_2026-Combined%20Tables.pdf&amp;token=&amp;preview=true\">31 March 2026</a>",
+  "<a href=\"https://publibrary.sec.usace.army.mil/api/download?id=9b4d96f7-7d6f-4cd3-dd78-09c24a1533ce&amp;filename=CAP%20Example%20TPCS%2031Mar-2026.xlsx&amp;token=&amp;preview=true\">CAP Spreadsheet</a>",
+  "<a href=\"https://publibrary.sec.usace.army.mil/api/download?id=103d7da5-b29f-4ae1-b6c4-d6e65e320cfd&amp;filename=Non-CAP%20Example%20TPCS%2031Mar-2026.xlsx&amp;token=&amp;preview=true\">Non-CAP Spreadsheet&nbsp;</a>",
+  "<a href=\"https://publibrary.sec.usace.army.mil/api/download?id=15b4b314-eeed-4bd2-8eb4-66417d7be7ef&amp;filename=CWCCIS_Tables_SEP-2025.pdf&amp;token=&amp;preview=true\">30 September 2025</a>",
+  "<a href=\"/Portals/28/31%20March%202025.pdf\">31 March 2025</a>",
+  "<a href=\"/Portals/28/30%20September%202024.pdf\">30 September 2024</a>"
+ ],
  "link_filter": "publibrary\\.sec\\.usace\\.army\\.mil/api/download|/Portals/28/.*\\.pdf",
- "runner": "github-actions run 36297345981",
- "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36 hs-law-watch-mirror/0.1 (+https://shield.the-horizons-innovation.com)",
- "note": "worker の parseLinks が読む <a> の原文だけ(link_filter に当たる物)。本文は写していない。status が 200 でないときは anchors は空で、worker は鏡を使わない。"
+ "runner": "manual: Claude in Chrome (TOshi の Chrome、番人が頁を開いて <a> を読んだ) 2026-09-27",
+ "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+ "note": "worker の parseLinks が読む <a> の原文だけ(link_filter に当たる物)。本文は写していない。status が 200 でないときは anchors は空で、worker は鏡を使わない。 この回は GitHub Actions の網(law-watch mirror #1、2026-09-27)も 3 か所とも HTTP 403 だったため、TOshi の Chrome で頁を開き、<a> の href・属性・中身を構造化して取り出し、<a href=... [target=...]>中身</a> の形に組み直した(href の & は &amp; に、中身は innerHTML のまま)。文字が空の <a> は mirror_fetch と同じく捨てた。"
 }
