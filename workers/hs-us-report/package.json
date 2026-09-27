@@ -1,0 +1,17 @@
+{
+  "name": "hs-us-report",
+  "private": true,
+  "type": "module",
+  "description": "HORIZON SHIELD US: intake, PayPal, AI reading, public-data references, English PDF documents, review and delivery.",
+  "scripts": {
+    "test": "node test/engine.test.mjs && node test/units.test.mjs && node test/flow.test.mjs",
+    "fonts": "node tools/build_fonts.mjs",
+    "check": "npx wrangler deploy --dry-run --outdir dist"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "1.4.0"
+  },
+  "devDependencies": {
+    "wrangler": "4.141.0"
+  }
+}

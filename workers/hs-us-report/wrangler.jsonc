@@ -1,0 +1,36 @@
+{
+  // hs-us-report: HORIZON SHIELD の米国の窓口(受付・PayPal・AI の読み取り・公的データの参照・英語の PDF・確認・送付)。
+  // 日本の hs-pdf-gen には触らない。手順は DEPLOY_TOshi.md。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hs-us-report",
+  "main": "src/index.js",
+  "account_id": "c15ff64aba400e541853dec1fbe5e76a",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "keep_vars": true,
+
+  // 毎分: 入金済みの注文を 1 件ずつ下書き。毎時 0 分: 29 日を過ぎたアップロード、7 日払われない注文、1 年を過ぎた報告の削除と、納期の警告。
+  "triggers": { "crons": ["* * * * *", "0 * * * *"] },
+
+  "vars": {
+    "SITE_URL": "https://shield.the-horizons-innovation.com",
+    "PUBLIC_WORKER_URL": "https://hs-us-report.oga-surf-project.workers.dev",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-6"
+  },
+
+  // DEPLOY_TOshi.md の 2 で作って、出てきた id をここに書く
+  "kv_namespaces": [
+    { "binding": "US_ORDERS", "id": "2dd297e739974d40a9016d5c6b93556f" }
+  ],
+  "r2_buckets": [
+    { "binding": "US_FILES", "bucket_name": "hs-us-files" }
+  ],
+  "browser": { "binding": "BROWSER" },
+  "services": [
+    { "binding": "JCCDB", "service": "hs-jccdb-obs" }
+  ]
+  // secret(値はここに書かない、7 つ): PAYPAL_BUSINESS(受け取り口座の主のメール。無いと受付は開かない) / ANTHROPIC_API_KEY / RESEND_API_KEY / LINE_CHANNEL_TOKEN / LINE_USER_ID / LINK_SECRET / US_ADMIN_TOKEN
+}
