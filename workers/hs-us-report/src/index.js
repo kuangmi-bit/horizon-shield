@@ -41,7 +41,7 @@ import { normalizeHearing, hearingText, followUpQuestions, followUpFieldIds, HEA
 
 const DAY = 86400000;
 const FOLLOWUP_WAIT = 8 * 3600000;     // how long a draft waits for follow-up answers
-const MAX_FILE = 5 * 1024 * 1024;      // per file: the AI reader's limit per image
+const MAX_FILE = 5_000_000;            // per file: the AI reader's limit per image is 5 MB (decimal), so stay under it
 const MAX_TOTAL = 12 * 1024 * 1024;    // per order: keeps the AI request and memory well inside limits
 const MAX_FILES = 5;                   // pages of one quote, or photos of one job
 const EMAIL_RE = /^[^\s@<>"']{1,64}@[^\s@<>"']{1,190}\.[a-z]{2,}$/i;
@@ -49,6 +49,8 @@ const ORDER_RE = /^US-\d{8}-[A-Z2-9]{6}$/;
 const UPLOAD_TTL = 29 * DAY;           // the promise is "within 30 days"
 const REPORT_TTL = 365 * DAY;
 const UNPAID_TTL = 7 * DAY;
+// Paid orders in these states past 20 hours are late for the one business day promise.
+const LATE_STATES = ["paid", "drafting", "draft_ready", "draft_failed", "awaiting_answers", "answered"];
 
 const json = (obj, status = 200, headers = {}) => new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers } });
 const html = (body, status = 200) => new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-robots-tag": "noindex" } });
@@ -277,6 +279,7 @@ export async function generateDraft(env, orderId, deps = {}) {
       ? [["detailed-estimate.pdf", "Detailed Estimate (PDF)", renderDetailedEstimate(built.report, meta)]]
       : [["quote-check-report.pdf", "Quote Check Report (PDF)", renderQuoteCheck(built.report, meta)], ["questions-letter.pdf", "Letter with questions for your contractor (PDF)", renderQuestionsLetter(built.report, meta)]];
     const pdfs = await pdf(env, docs.map((d) => d[2]));   // one browser for the whole draft
+    if (pdfs.fallback) notes.push("PDF rendered without request interception (strict mode failed once); check the documents");
     const dir = `reports/${order.id}/${built.sha256.slice(0, 16)}`;
     const stored = [];
     for (let i = 0; i < docs.length; i++) {
@@ -446,7 +449,7 @@ export async function sweep(env, now = Date.now()) {
       const paid = m.paid_at ? new Date(m.paid_at).getTime() : 0;
       const needs = !m.created_at || (m.status === "awaiting_payment" && now - created > UNPAID_TTL)
         || (paid && now - paid > UPLOAD_TTL) || (created && now - created > REPORT_TTL)
-        || (["paid", "drafting", "draft_ready", "draft_failed"].includes(m.status) && paid && now - paid > 20 * 3600000);
+        || (LATE_STATES.includes(m.status) && paid && now - paid > 20 * 3600000);
       if (!needs) continue;
       const o = await getOrder(env, k.name.slice(6));
       if (!o) continue;
@@ -473,7 +476,7 @@ export async function sweep(env, now = Date.now()) {
         o.reduced_at = new Date(now).toISOString();
         changed = true; out.reduced++;
       }
-      if (["paid", "drafting", "draft_ready", "draft_failed"].includes(o.status) && op && now - op > 20 * 3600000 && !o.late_alerted) {
+      if (LATE_STATES.includes(o.status) && op && now - op > 20 * 3600000 && !o.late_alerted) {
         o.late_alerted = true;
         changed = true; out.late_alerts++;
         await lineToshi(env, `【US】納期が近い: ${o.id} は入金から 20 時間。状態 ${o.status}。遅れると全額返金の対象。`);

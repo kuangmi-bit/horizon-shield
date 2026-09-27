@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { stripMetadata, sniff } from "../src/exif.js";
 import { signPath, verifyPath, ctEqual } from "../src/sign.js";
 import { priceFor, checkIpnAgainstOrder, checkoutUrl } from "../src/paypal.js";
-import { gates } from "../src/extract.js";
+import { gates, parseExtraction } from "../src/extract.js";
 import { resolveZip } from "../src/geo.js";
 import { tradeKey } from "../src/trades.js";
 import { esc } from "../src/templates.js";
@@ -125,4 +125,10 @@ assert.deepEqual(hearingSummary({ pressure: ["today_only"], stories: "2", roof_s
     assert.deepEqual(JSON.parse(m[1]), JSON.parse(JSON.stringify(pageDefinition())), "page questions match hearing.js (run tools/build_hearing_json.mjs)");
   }
 }
+
+// the AI reply may wrap the JSON in a sentence or a code fence; the JSON still comes out
+assert.deepEqual(parseExtraction('Here is the JSON:\n```json\n{"lines":[{"item":"a"}]}\n```\nDone.'), { lines: [{ item: "a" }] });
+assert.deepEqual(parseExtraction('{"a":{"b":1}} trailing'), { a: { b: 1 } });
+assert.throws(() => parseExtraction("no json here"), /not valid JSON/);
+assert.throws(() => parseExtraction("{broken"), /not valid JSON/);
 console.log("units ok");

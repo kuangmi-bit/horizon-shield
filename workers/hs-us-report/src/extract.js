@@ -43,12 +43,25 @@ export async function extract(env, { mode, files, text }, fetchImpl = fetch) {
     headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: env.ANTHROPIC_MODEL || "claude-sonnet-4-6", max_tokens: 8000, messages: [{ role: "user", content }] }),
   });
-  if (!res.ok) throw new Error(`extraction API ${res.status}`);
+  if (!res.ok) {
+    // The status alone does not say why (401 key, 404 model, 413 size, 429 rate, 529 overloaded): keep the API's own reason, briefly.
+    let detail = "";
+    try { const e = await res.json(); detail = (e.error && (e.error.type + ": " + e.error.message)) || ""; } catch { /* no body */ }
+    throw new Error(`extraction API ${res.status}${detail ? " " + detail.slice(0, 160) : ""}`);
+  }
   const data = await res.json();
-  const txt = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").replace(/```json|```/g, "").trim();
-  let ex;
-  try { ex = JSON.parse(txt); } catch { throw new Error("extraction was not valid JSON"); }
+  const txt = (data.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
+  const ex = parseExtraction(txt);
   return { extracted: ex, gates: gates(ex, mode) };
+}
+
+// The model is told to return JSON only, but a stray sentence or a code fence around it must not
+// fail the order: take the outermost {...} of the reply.
+export function parseExtraction(txt) {
+  const s = String(txt || "").replace(/```json|```/g, "").trim();
+  const a = s.indexOf("{"), b = s.lastIndexOf("}");
+  if (a < 0 || b <= a) throw new Error("extraction was not valid JSON");
+  try { return JSON.parse(s.slice(a, b + 1)); } catch { throw new Error("extraction was not valid JSON"); }
 }
 
 export function gates(ex, mode) {
