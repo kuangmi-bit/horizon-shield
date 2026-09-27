@@ -1,3 +1,23 @@
+# hs-jccdb-obs v0.4.2(2026-09-27、v0.4.1 の上に足すだけ。計算の式は変えない)
+
+- きっかけ: 2026-09-27 の検証(~/hs-core-private/ops-private/jccdb_us_kake_20260926/US_KAKE_AUDIT_20260927.md)。式に誤りは無かったが、
+  陸揚げ原価に MPF・HMF が無い、関税が年初来の平均だけ、商社(輸入商社)の段が無い、「掛け率」の語が 3 つの違う量に使われている、の 4 点を直す。
+- jccdb_us_price_chain が足し表 trade_chain_ext(schema/0005_chain_ext.sql)を hs10 で結び、各行に landed.fees_upper(MPF 0.3464%、HMF 0.125% の上限、法定の率と出典)、
+  landed.latest_month(直近月の陸揚げ・実効関税率)、wholesale.two_tier_upper(卸 2 段の上限)、cost_share(原価率 3 つ)、cross_check_bea2007.nearest を足す。
+  返答に definitions(契約の掛け率 = 価格 ÷ 定価、chain の cost_share = 原価 ÷ 売値、国内の掛け率 = 相場 ÷ 原価、施工込み ÷ 陸揚げは未提供)を付ける。
+- 0005 は 0004 の表に触らない(trade_chain はそのまま)。0005 を流していない D1 でも v0.4.2 は ext_loaded:false で v0.4.1 と同じ答えを返す(落ちない)。
+- 足し表の元は ~/hs-core-private/ops-private/jccdb_us_kake_20260926/build_chain_ext.py(chain と derived の imports から。MPF の率と上下限は Federal Register 2025-07-23 CBP Dec. 25-10、HMF は 26 U.S.C. 4461)。
+- 手順は ~/hs-core-private/ops-private/jccdb_us_kake_20260926/toshi_steps_kake3.sh の段 N1〜N5。芯だけ:
+       python3 build_chain_ext.py 202607 --imports ~/horizon-shield/data/jccdb-obs-v2/raw/us/kake_20260926/derived   (ops-private で)
+       python3 tools/make_d1_sql_chain_ext.py --src ~/hs-core-private/ops-private/jccdb_us_kake_20260926 --ym 202607 --out sql_us_chain_ext
+       PROD_SQL=0 node test/harness.mjs   (番人の作業場: 283 pass / 0 fail)
+       npx wrangler d1 execute hs-jccdb-obs-us --remote --file=schema/0005_chain_ext.sql
+       npx wrangler d1 execute hs-jccdb-obs-us --remote --file=sql_us_chain_ext/001.sql
+       npx wrangler deploy
+- 戻し方: `npx wrangler rollback`(v0.4.1 は trade_chain_ext を読まないので、表が残っていても無害)。表を捨てるなら 0005 の DROP 文だけ。
+
+---
+
 # hs-jccdb-obs v0.4.1(2026-09-26 夜、v0.4 の上に足すだけ)
 
 - jccdb_us_margin に margin_index(BLS の卸・小売のマージン物価指数、月ごと。最新月・前年同月比・3 か月前比)を足した。粗利率そのものではなく、粗利の単価の値動き。

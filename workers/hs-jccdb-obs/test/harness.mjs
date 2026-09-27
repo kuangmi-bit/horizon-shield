@@ -1,4 +1,4 @@
-// hs-jccdb-obs v0.4.1 の検査(v0.4.1: マージン物価指数・建設資材の物価指数・州 3 つの上乗せ率の幅の検査を足した。v0.3 の検査に、公開と内部の分け方と非公開の層の検査を足した)。
+// hs-jccdb-obs v0.4.2 の検査(v0.4.2: 足し表 trade_chain_ext と definitions の検査を足した。v0.4.1: マージン物価指数・建設資材の物価指数・州 3 つの上乗せ率の幅の検査を足した。v0.3 の検査に、公開と内部の分け方と非公開の層の検査を足した)。
 // v0.4: 米国の値は内部(URL の host が jccdb-obs.internal = hs-mcp の service binding)だけで返すので、v0.3 までの検査は内部の host で叩く。
 // hs-jccdb-obs v0.3 の検査。D1 の代わりに node:sqlite に同じ SQL を流し、worker の関数をそのまま叩く。
 //
@@ -810,6 +810,41 @@ let kakeNote = "非公開の層の入力なし(省略)";
     const mo = (await call("jccdb_us_margin", { naics: "4233" })).structuredContent, co = (await call("jccdb_us_price_chain", { hs: "2523290000" })).structuredContent;
     ok(!mo.error && mo.margin_index === null && mo.rows.length > 0 && !co.error && co.materials_price_index === null && co.rows.length === 1, "v0.4.1 on a D1 loaded with the v0.4 schema (no margin_ppi): answers without the index, not an error");
     dbu.exec("ALTER TABLE margin_ppi_hidden RENAME TO margin_ppi");
+    // ---- v0.4.2: 足し表 trade_chain_ext(MPF・HMF の上限、直近月、卸 2 段の上限、原価率、BEA との照合)と definitions
+    const b0 = (await call("jccdb_us_price_chain", { hs: "2523290000" })).structuredContent;
+    ok(b0.ext_loaded === false && b0.ext_version === null && b0.rows.length === 1 && b0.rows[0].landed.fees_upper === null && b0.rows[0].wholesale.two_tier_upper === null && b0.rows[0].cost_share === null
+      && b0.definitions && Object.keys(b0.definitions).length === 4 && b0.rows[0].wholesale.cost_share === b0.rows[0].wholesale.kake_landed_share,
+      "v0.4.2 before 0005: ext_loaded false, v0.4.1 answer kept, definitions present, cost_share = kake_landed_share");
+    const xout = path.join(tmp, "sql_us_chain_ext");
+    const xb = spawnSync("python3", [path.join(root, "tools/make_d1_sql_chain_ext.py"), "--src", KSRC, "--ym", "202607", "--out", xout], { encoding: "utf8" });
+    ok(xb.status === 0, "v0.4.2 chain_ext build exit 0: " + xb.stderr.slice(-500));
+    const xm = manifestOf(xout);
+    ok(xm.apply_order[0] === "schema/0005_chain_ext.sql" && Object.entries(xm.files).every(([f, h]) => crypto.createHash("sha256").update(fs.readFileSync(path.join(xout, f))).digest("hex") === h), "v0.4.2 chain_ext manifest: 0005 first, file sha256 match");
+    dbu.exec(fs.readFileSync(path.join(root, "schema/0005_chain_ext.sql"), "utf8"));
+    for (const rel of xm.apply_order.slice(1)) dbu.exec(fs.readFileSync(path.join(xout, path.basename(rel)), "utf8"));
+    const nx = dbu.prepare("SELECT COUNT(*) AS n FROM trade_chain_ext").get().n;
+    ok(nx === xm.built.rows.trade_chain_ext && nx === rows.trade_chain && dbu.prepare("SELECT v FROM kake_meta WHERE k='built_kake'").get() && dbu.prepare("SELECT v FROM kake_meta WHERE k='built_chain_ext'").get(), "v0.4.2 chain_ext loaded 1:1 with trade_chain (" + nx + "), built_kake untouched");
+    const b1 = (await call("jccdb_us_price_chain", { hs: "2523290000" })).structuredContent, r1 = b1.rows[0];
+    const xr = dbu.prepare("SELECT * FROM trade_chain_ext WHERE hs10='2523290000'").get();
+    ok(b1.ext_loaded === true && b1.ext_version.rows.trade_chain_ext === nx && b1.ext_version.constants.mpf_rate === 0.003464 && b1.ext_version.constants.hmf_rate === 0.00125, "v0.4.2 chain: ext_loaded with data version and statutory constants");
+    const f = r1.landed.fees_upper;
+    ok(f && f.mpf_upper_usd === Math.round(xr.customs_value_ytd_usd * 0.003464) && f.hmf_upper_usd === Math.round(xr.customs_value_ytd_usd * 0.00125) && f.landed_incl_fees_upper_usd === r1.landed.landed_duty_paid_ytd_usd + f.mpf_upper_usd + f.hmf_upper_usd
+      && f.fees_share_upper > 0 && f.fees_share_upper < 0.005 && f.unit_landed_incl_fees_upper_usd > r1.landed.unit_landed_usd && f.mpf_min_usd_per_entry === 33.58 && f.mpf_max_usd_per_entry === 651.5 && /federalregister\.gov/.test(f.sources.mpf) && /4461/.test(f.sources.hmf),
+      "v0.4.2 chain cement: MPF/HMF upper bounds recomputed from customs value (" + f.mpf_upper_usd + " + " + f.hmf_upper_usd + ", share " + f.fees_share_upper + ")");
+    ok(r1.landed.latest_month && r1.landed.latest_month.month === "2026-07" && r1.landed.latest_month.unit_landed_usd === xr.unit_landed_mo && r1.landed.latest_month.duty_rate_eff === xr.duty_rate_eff_mo, "v0.4.2 chain cement: latest month 2026-07 (" + r1.landed.latest_month.unit_landed_usd + ", duty " + r1.landed.latest_month.duty_rate_eff + ")");
+    const two = r1.wholesale.two_tier_upper;
+    ok(two && near(two.multiplier_on_landed, 1 / Math.pow(1 - r1.wholesale.gross_margin, 2)) && near(two.unit_usd, r1.landed.unit_landed_usd * two.multiplier_on_landed) && near(two.cost_share, Math.pow(1 - r1.wholesale.gross_margin, 2)) && two.unit_usd > r1.wholesale.unit_usd,
+      "v0.4.2 chain cement: two-tier wholesale upper = 1/(1-gm)^2 (" + r1.wholesale.unit_usd + " -> " + two.unit_usd + ")");
+    ok(r1.cost_share && near(r1.cost_share.one_tier_wholesale, 1 - r1.wholesale.gross_margin) && near(r1.cost_share.via_retail, 1 / r1.retail.via_wholesale.multiplier_on_landed) && r1.wholesale.cost_share === r1.wholesale.kake_landed_share
+      && r1.cross_check_bea2007 && ["one_tier_wholesale", "two_tier_wholesale", "via_retail"].includes(r1.cross_check_bea2007.nearest) && r1.cross_check_bea2007.nearest_abs_diff >= 0 && r1.formula_ext && r1.caveat_ext,
+      "v0.4.2 chain cement: cost_share three ways, BEA nearest = " + r1.cross_check_bea2007.nearest);
+    const rb2 = (await call("jccdb_us_price_chain", { hs: "7214200000" })).structuredContent.rows[0];
+    ok(rb2.cost_share && rb2.cost_share.via_retail === null && rb2.landed.latest_month.duty_rate_eff > 0.45 && rb2.landed.latest_month.duty_rate_eff !== rb2.landed.duty_rate_eff, "v0.4.2 chain rebar: no retail cost share, latest-month duty differs from YTD (" + rb2.landed.latest_month.duty_rate_eff + " vs " + rb2.landed.duty_rate_eff + ")");
+    const ini2 = await rpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
+    ok(ini2.result && ini2.result.serverInfo && ini2.result.serverInfo.version === "0.4.2", "v0.4.2 serverInfo version 0.4.2");
+    const hx = (await call("jccdb_coverage", { country: "US" })).structuredContent;
+    ok(hx.us_private_layer.chain_ext_loaded === true && hx.us_private_layer.rows.trade_chain_ext === nx && hx.us_private_layer.rows.trade_chain === rows.trade_chain, "v0.4.2 coverage: private layer reports chain_ext rows");
+    rows.trade_chain_ext = nx;
     kakeNote = `非公開の層 ${Object.entries(rows).map(([k, v]) => k + " " + v).join("、")}`;
   }
 }
