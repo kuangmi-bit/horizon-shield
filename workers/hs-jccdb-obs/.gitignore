@@ -6,3 +6,5 @@ sql_us/
 sql_us_kake/
 # v0.4.2 の足し表(MPF・HMF の上限、直近月、卸 2 段、原価率、BEA との照合)の SQL。入力も出力もリポに入れない。
 sql_us_chain_ext/
+# v0.4.3 の施工込み ÷ 陸揚げ(州 DOT の入札単価 × HS、重さの換算、PPI の時点調整)の SQL。入力も出力もリポに入れない。
+sql_us_installed/

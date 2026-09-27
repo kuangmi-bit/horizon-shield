@@ -1,6 +1,13 @@
 /**
  * hs-jccdb-obs v0.3 : JCCDB の品目(v4, 95,403行)と観測層 v2(日本と米国、同じ列)を、AI からも人からも引ける口。
  *
+ * v0.4.3 の変更(2026-09-27 午後):
+ *   ・jccdb_us_price_chain に施工込みの段 installed(schema/0006_installed.sql、tools/make_d1_sql_installed.py)を hs10 で結ぶ:
+ *     州 DOT(NJDOT 2023、USCCDB の bid_item 層)の材料そのものに近い入札項目 38 本を HS に対応させ、重さで単位をそろえた
+ *     施工込みの入札単価 ÷ 材料の陸揚げ原価(installed_over_landed)。TOshi の国内の掛け率(相場 ÷ 原価)の米国版。桁を見る物で判定の閾値ではない。
+ *     表が無ければ installed_loaded:false で v0.4.2 と同じ答え。計算の式は変えていない。
+ *   ・/health と jccdb_coverage の us_private_layer に chain_ext と installed の件数を出す。
+ *
  * v0.4.2 の変更(2026-09-27):
  *   ・jccdb_us_price_chain に足し表 trade_chain_ext(schema/0005_chain_ext.sql、tools/make_d1_sql_chain_ext.py)を hs10 で結ぶ:
  *     MPF・HMF の上限(法定の率)、直近月の陸揚げと実効関税率、卸 2 段の上限(輸入商社 + 地域の卸)、原価率(cost_share)、BEA 2007 との照合。
@@ -47,7 +54,7 @@
  */
 
 const PROTOCOL_VERSION = "2025-11-25";
-const SERVER = { name: "hs-jccdb-obs", version: "0.4.2" };
+const SERVER = { name: "hs-jccdb-obs", version: "0.4.3" };
 
 // v0.4: 米国の値を返すのは内部の呼び出し(hs-mcp の service binding。URL の host が INTERNAL_HOST)だけ。
 // 公開の URL の host は workers.dev か独自のドメインで、外から host を jccdb-obs.internal にして届かせることはできない。
@@ -1616,13 +1623,13 @@ export const KAKE_NOTE = {
   kake: "契約書の率は上限(業者はもっと安くしてよい)。掛け率 = 1 - 値引き率。定価(list)の基準は行ごとに違い(メーカーの最新の価格表、業者の目録、店頭価格)、基準の違う行どうしは比べない。/ Contract rates are ceilings (vendors may go lower). kake_ratio = 1 - discount. The list basis differs by row (manufacturer price list, vendor catalog, shelf price); do not compare rows with different bases.",
   margin: "粗利率は業種の平均(Census の年次調査)。個々の会社や品目の仕入れ値ではない。kake_cost_ratio = 1 - 粗利率 は、売値のうち仕入れ原価が占める割合。/ Gross margins are industry averages from Census annual surveys, not any firm's or item's cost. kake_cost_ratio = 1 - gross margin is the share of cost of goods in sales.",
   import: "陸揚げ原価 = CIF + 計算上の関税(Census IMDB)。関税は 232 条などの追加関税を含む。国内の運賃と通関業者の手数料は入っていない(公的な単価が無い)。MPF と HMF は法定の率で上限を jccdb_us_price_chain の landed.fees_upper に出す。単価 = 陸揚げ原価 / 数量。/ Landed cost = CIF + calculated duty (Census IMDB), including Section 232 and other additional duties; excludes inland freight and brokerage. MPF and HMF upper bounds (statutory rates) are in jccdb_us_price_chain landed.fees_upper.",
-  chain: "各段の価格は、陸揚げ原価に業種の平均の粗利率と、州の交通局の元請の上乗せ率(Caltrans CTSS 9-1.04C の材料 15%)を掛けた推計(computed:true)。小売は直接輸入と卸経由の二つで幅を示す。ここの cost_share(旧 kake_landed_share)は原価率(陸揚げ原価 ÷ 売値)で、契約の掛け率(価格 ÷ 定価、jccdb_us_kake)とも国内の掛け率(相場 ÷ 原価)とも違う。元請の段は材料の上乗せまでで、施工込みの値ではない。見積の良し悪しを判定する値ではない。/ Stage prices are estimates (computed:true): landed cost times industry-average gross margins and a state DOT contractor materials markup (Caltrans 15%). Retail is a range (direct import vs via wholesale). cost_share (formerly kake_landed_share) is landed cost over the stage price, not a list-price discount ratio. The contractor stage is a materials markup, not an installed price. Not a test of whether a quote is fair.",
+  chain: "各段の価格は、陸揚げ原価に業種の平均の粗利率と、州の交通局の元請の上乗せ率(Caltrans CTSS 9-1.04C の材料 15%)を掛けた推計(computed:true)。小売は直接輸入と卸経由の二つで幅を示す。ここの cost_share(旧 kake_landed_share)は原価率(陸揚げ原価 ÷ 売値)で、契約の掛け率(価格 ÷ 定価、jccdb_us_kake)とも国内の掛け率(相場 ÷ 原価)とも違う。元請の段は材料の上乗せまでで、施工込みの値ではない。施工込みは installed(州 DOT の入札単価との対応がある品目だけ)に出す。見積の良し悪しを判定する値ではない。/ Stage prices are estimates (computed:true): landed cost times industry-average gross margins and a state DOT contractor materials markup (Caltrans 15%). Retail is a range (direct import vs via wholesale). cost_share (formerly kake_landed_share) is landed cost over the stage price, not a list-price discount ratio. The contractor stage is a materials markup, not an installed price; installed prices appear under installed for items with a matching state DOT bid item. Not a test of whether a quote is fair.",
 };
 export const RATIO_DEFINITIONS = {
   contract_kake_ratio: "価格 ÷ 定価(1 - 値引き率)。jccdb_us_kake。国内の仕切り掛け率と同じ向き(1 以下)。/ price over list price (1 - discount), jccdb_us_kake; same direction as a Japanese shikiri kakeritsu (<= 1).",
   chain_cost_share: "陸揚げ原価 ÷ 各段の売値(原価率、1 以下)。jccdb_us_price_chain の cost_share。定価は出てこない。/ landed cost over the stage price (cost share, <= 1) in jccdb_us_price_chain; no list price involved.",
   chain_multiplier_on_landed: "各段の売値 ÷ 陸揚げ原価(1 以上)。国内の検算ゲートの掛け率(相場 ÷ 原価)と同じ向きだが、施工込みの相場ではなく材料の段の価格。/ stage price over landed cost (>= 1); same direction as the domestic gate ratio (market price over cost) but for material stages, not installed prices.",
-  installed_over_landed: "施工込みの単価 ÷ 陸揚げ原価。この版では出していない(州 DOT の入札単価との対応表を作ってから)。/ installed unit price over landed cost: not served in this version.",
+  installed_over_landed: "施工込みの入札単価 ÷ 材料の陸揚げ原価(1 以上)。jccdb_us_price_chain の installed。州 DOT(NJDOT 2023)の材料そのものに近い入札項目を HS に対応させ、重さで単位をそろえた。労務・機械・経費・利益・加工を含む倍率で、国内の検算ゲートの掛け率(相場 ÷ 原価)と同じ向き。桁を見る物で、国内の閾値(1.2〜6、3 以上)は持ち込まない。/ installed bid unit price over the landed cost of the material (>= 1), in jccdb_us_price_chain installed; state DOT (NJDOT 2023) bid items mapped to HS by material weight. Same direction as the domestic gate ratio; an order-of-magnitude reading, not a threshold.",
 };
 // v0.4.2: trade_chain_ext(0005)を hs10 で引く。表が無ければ null(誤りにしない)。
 async function chainExt(db, hs10s) {
@@ -1634,6 +1641,43 @@ async function chainExt(db, hs10s) {
     try { const m = await db.prepare("SELECT v FROM kake_meta WHERE k='built_chain_ext'").first(); built = m ? JSON.parse(m.v) : null; } catch (e) { built = null; }
     return { loaded: true, by, built };
   } catch (e) { if (/no such table/i.test(String(e && e.message))) return { loaded: false, by: {}, built: null }; throw e; }
+}
+// v0.4.3: trade_installed(0006)を hs10 で引く(結び表 trade_installed_hs)。表が無ければ loaded:false(誤りにしない)。
+async function installedFor(db, hs10s) {
+  if (!hs10s.length) return { loaded: true, by: {}, built: null };
+  try {
+    const rs = (await db.prepare("SELECT h.hs10 AS join_hs10, t.* FROM trade_installed_hs h JOIN trade_installed t ON t.rid = h.rid WHERE h.hs10 IN (" + hs10s.map(() => "?").join(",") + ") ORDER BY t.bid_item, t.scope, t.area, t.bid_basis").bind(...hs10s).all()).results;
+    const by = {}; for (const r of rs) (by[r.join_hs10] = by[r.join_hs10] || []).push(r);
+    let built = null;
+    try { const m = await db.prepare("SELECT v FROM kake_meta WHERE k='built_installed'").first(); built = m ? JSON.parse(m.v) : null; } catch (e) { built = null; }
+    return { loaded: true, by, built };
+  } catch (e) { if (/no such table/i.test(String(e && e.message))) return { loaded: false, by: {}, built: null }; throw e; }
+}
+const INSTALLED_READING = "施工込みの入札単価 ÷ 材料の陸揚げ原価。労務・機械・経費・利益・(絶縁や塗装などの加工)を含む倍率。桁を見る物で、見積の良し悪しの閾値ではない。representative は品目の代表値(州全体の 12 か月の加重平均。無い品目は地区 N/C/S の金額 ÷ 数量の合算)、range_across_regions は地区ごとの加重平均の幅、ppi_adj は入札の単価を材料の PPI で陸揚げの時点に寄せた粗い推計。low_sample は入札の件数が 2 以下。/ Installed bid unit price over the landed cost of the material: includes labor, equipment, overhead, profit and fabrication. An order-of-magnitude reading, not a threshold. representative is the item's statewide 12-month weighted average (or the regional dollars over quantity); range_across_regions spans the regional weighted averages; ppi_adj shifts the bid to the landed-cost period with the material PPI (rough); low_sample marks 2 or fewer awards.";
+function installedBlock(rows) {
+  if (!rows || !rows.length) return null;
+  const byItem = {}; for (const r of rows) (byItem[r.bid_item] = byItem[r.bid_item] || []).push(r);
+  const items = Object.keys(byItem).sort().map((name) => {
+    const rs = byItem[name]; const rep = rs.find((r) => r.representative === 1) || rs[0];
+    const reg = rs.filter((r) => r.scope === "region_12mo" && r.bid_basis === "bid_weighted_avg");
+    const ratios = reg.map((r) => r.installed_over_landed).sort((a, b) => a - b);
+    return { bid_item: name, bid_spec: rep.bid_spec, bid_unit: rep.bid_unit, hs10_set: rep.hs10_set.split("+"),
+      representative: { scope: rep.scope, area: rep.area, basis: rep.bid_basis, period: rep.bid_period, bid_price_usd: rep.bid_price_usd, awarded_qty: rep.awarded_qty, awarded_dollars_usd: rep.awarded_dollars_usd, n_occurrences: rep.n_occurrences,
+        computed_from: rep.computed_from || undefined, low_sample: rep.n_occurrences != null && rep.n_occurrences <= 2 },
+      material: { lb_per_bid_unit: rep.material_lb_per_bid_unit, landed_usd_per_kg: rep.landed_usd_per_kg, landed_period: rep.landed_period, landed_usd_per_bid_unit: rep.material_landed_usd_per_bid_unit, contractor_stage_usd_per_bid_unit: rep.material_contractor_usd_per_bid_unit,
+        conversion_confidence: rep.conversion_confidence, conversion_basis: rep.conversion_basis },
+      installed_over_landed: rep.installed_over_landed, installed_over_contractor_stage: rep.installed_over_contractor_stage,
+      range_across_regions: ratios.length ? { min: ratios[0], max: ratios[ratios.length - 1], regions: reg.map((r) => ({ area: r.area, installed_over_landed: r.installed_over_landed, n_occurrences: r.n_occurrences })) } : null,
+      ppi_adj: rep.ppi_factor == null ? null : { series_id: rep.ppi_series, series_title: rep.ppi_series_title, bid_period_avg: rep.ppi_bid_period_avg, landed_period_avg: rep.ppi_landed_period_avg, factor: rep.ppi_factor,
+        bid_price_landed_period_est_usd: rep.bid_price_landed_period_est, installed_over_landed_ppi_adj: rep.installed_over_landed_ppi_adj, computed: true },
+      rows_available: rs.length, computed: true, sources: { bid: rep.bid_evidence_url, bid_page: rep.bid_source_page, bid_license: rep.bid_license, import: rep.src_chain_import, import_sha256: rep.src_chain_import_sha256, ppi: rep.src_ppi } };
+  });
+  const reps = items.map((i) => i.installed_over_landed).sort((a, b) => a - b);
+  const med = (a) => (a.length ? (a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2) : null);
+  const adj = items.map((i) => (i.ppi_adj ? i.ppi_adj.installed_over_landed_ppi_adj : null)).filter((x) => x != null).sort((a, b) => a - b);
+  return { bid_source: "NJDOT weighted average bid prices, 2nd quarter 2023 (USCCDB bid_item layer, source njdot-wavg-2023-q2)", n_items: items.length,
+    summary: { installed_over_landed: { min: reps[0], median: med(reps), max: reps[reps.length - 1] }, installed_over_landed_ppi_adj_median: med(adj) }, items,
+    computed: true, formula: rows[0].formula, caveat: rows[0].caveat, reading: INSTALLED_READING };
 }
 const KAKE_BASES = ["MSRP Discount", "Over MSRP", "Catalog Off", "Discount off List Price", "Discount off shelf price", "Discount off shelf price (range)", "Cost Plus", "N/A", "See below"];
 
@@ -1837,13 +1881,14 @@ async function usPriceChain(ctx, a) {
   if (hs) { where.push("hs10 LIKE ?"); binds.push(hs + "%"); }
   else for (const w of likeWords(a.query)) { where.push("norm LIKE ? ESCAPE '\\'"); binds.push(w); }
   if (!bool(a.include_thin)) where.push("thin_trade = 0");
-  let n, rows, mk, matIdx = null, ext = { loaded: false, by: {}, built: null };
+  let n, rows, mk, matIdx = null, ext = { loaded: false, by: {}, built: null }, inst = { loaded: false, by: {}, built: null };
   try {
     n = (await k.db.prepare("SELECT COUNT(*) AS n FROM trade_chain WHERE " + where.join(" AND ")).bind(...binds).first()).n;
     rows = (await k.db.prepare("SELECT * FROM trade_chain WHERE " + where.join(" AND ") + " ORDER BY landed_duty_paid_ytd_usd DESC LIMIT ?").bind(...binds, lim).all()).results;
     mk = (await k.db.prepare("SELECT * FROM markup_dot ORDER BY verified DESC, agency, component").all()).results;
     matIdx = await ppiSummary(k.db, "series_id = ?", ["WPUSI012011"], false);
     ext = await chainExt(k.db, rows.map((r) => r.hs10));
+    inst = await installedFor(k.db, rows.map((r) => r.hs10));
   } catch (e) { return readFail(e, "US"); }
   const stage = (u, m) => (m == null ? null : { unit_usd: u, multiplier_on_landed: m, cost_share: m ? Math.round((1 / m) * 1e6) / 1e6 : null, kake_landed_share: m ? Math.round((1 / m) * 1e6) / 1e6 : null });
   const extOf = (r) => {
@@ -1881,6 +1926,7 @@ async function usPriceChain(ctx, a) {
         by_agency: byAgency(r), range: matMk.length ? { markup: [matMk[0].markup, matMk[matMk.length - 1].markup], unit_usd: r.unit_wholesale == null ? null : [r8(r.unit_wholesale * (1 + matMk[0].markup)), r8(r.unit_wholesale * (1 + matMk[matMk.length - 1].markup))] } : null,
         range_reading: "州の交通局の force account(追加工事の精算)の材料の上乗せ率を、原本で読んだ州ごとに当てた幅。民間の工事の相場の上乗せ率ではない。/ Range across state DOT force-account materials markups read in the originals; not a private-market markup." },
       cost_share: x.cs,
+      installed: installedBlock(inst.by[r.hs10]),
       cross_check_bea2007: r.bea2007_construction_producer_to_purchaser != null ? { commodity: r.bea2007_commodity, match: r.bea2007_match, construction_producer_to_purchaser: r.bea2007_construction_producer_to_purchaser,
         nearest: x.bea ? x.bea.nearest : undefined, nearest_abs_diff: x.bea ? x.bea.abs_diff : undefined,
         reading: "2007 年の建設業の購入で、購入者価格のうち生産者価格が占める割合(運賃のマージンも含む)。照合用で、計算には使っていない。nearest は cost_share の 3 つのうち一番近い物。" } : null,
@@ -1890,6 +1936,7 @@ async function usPriceChain(ctx, a) {
         gm_retail: r.src_gm_retail || undefined, markup: r.src_markup, trade_map_sha256: r.src_trade_map_sha256 },
     }; }),
     ext_loaded: ext.loaded, ext_version: ext.built ? { built_at: ext.built.built_at, ym: ext.built.ym, rows: ext.built.rows, inputs_sha256: ext.built.inputs_sha256, constants: ext.built.constants } : null,
+    installed_loaded: inst.loaded, installed_version: inst.built ? { built_at: inst.built.built_at, bid_source: inst.built.bid_source, rows: inst.built.rows, inputs_sha256: inst.built.inputs_sha256, by_confidence_representative: inst.built.by_confidence_representative } : null,
     definitions: RATIO_DEFINITIONS,
     markups: mk.map((m) => ({ ...m, rid: undefined, verified: m.verified === 1 })),
     materials_price_index: matIdx && matIdx[0] ? { ...matIdx[0], reading: "BLS の建設資材の特殊指数(生産者価格)。陸揚げ原価は年初来の平均なので、その後の値動きはこの指数で見る。/ BLS construction materials special index; landed costs are year-to-date averages." } : null,
@@ -1974,8 +2021,10 @@ async function coverage(ctx, a) {
   if (targets.includes("US") && R.ok.includes("US")) {
     const kp = await kakePart(ctx);
     let extRows = null;
+    let instRows = null;
     if (!kp.fail) { try { const m = await kp.db.prepare("SELECT v FROM kake_meta WHERE k='built_chain_ext'").first(); extRows = m ? JSON.parse(m.v).rows : null; } catch (e) { extRows = null; } }
-    out.us_private_layer = kp.fail ? { loaded: false, code: kp.fail.code } : { loaded: true, built_at: kp.built.built_at, ym: kp.built.ym, rows: { ...kp.built.rows, ...(extRows || {}) }, chain_ext_loaded: !!extRows,
+    if (!kp.fail) { try { const m = await kp.db.prepare("SELECT v FROM kake_meta WHERE k='built_installed'").first(); instRows = m ? JSON.parse(m.v).rows : null; } catch (e) { instRows = null; } }
+    out.us_private_layer = kp.fail ? { loaded: false, code: kp.fail.code } : { loaded: true, built_at: kp.built.built_at, ym: kp.built.ym, rows: { ...kp.built.rows, ...(extRows || {}), ...(instRows ? { trade_installed: instRows.trade_installed, trade_installed_items: instRows.items } : {}) }, chain_ext_loaded: !!extRows, installed_loaded: !!instRows,
       values_served_via: HS_MCP, reading: "掛け率・粗利率・輸入原価・各段の価格の非公開の層。件数だけをここに出し、値は hs-mcp の道具で返す。/ Private layer (contract discounts, margins, landed import cost, stage prices): counts here, values via hs-mcp." };
   }
   if (!bool(a.detail) && !a.source_id) {
@@ -2135,7 +2184,7 @@ export const TOOLS = [
   {
     name: "jccdb_us_price_chain",
     annotations: { title: "米国の陸揚げ原価から各段の価格(内部)", readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-    description: "輸入の陸揚げ原価から、卸・小売(直接輸入と卸経由の幅)・元請の各段の価格と原価率(cost_share)を計算して返す(computed:true、式と出典と sha256 つき)。v0.4.2: MPF・HMF の上限、直近月の陸揚げと実効関税率、卸 2 段の上限、BEA との照合、掛け率の 3 つの定義(definitions)。粗利率は業種の平均(AIES 2024)、元請の上乗せは Caltrans CTSS 9-1.04C の材料 15%。見積の良し悪しを判定する値ではない。/ Stage prices from landed import cost: wholesale, retail (range) and contractor, with formulas, sources and hashes (computed:true). Industry-average margins; not a test of whether a quote is fair.",
+    description: "輸入の陸揚げ原価から、卸・小売(直接輸入と卸経由の幅)・元請の各段の価格と原価率(cost_share)を計算して返す(computed:true、式と出典と sha256 つき)。v0.4.2: MPF・HMF の上限、直近月の陸揚げと実効関税率、卸 2 段の上限、BEA との照合、掛け率の定義(definitions)。v0.4.3: 州 DOT(NJDOT)の入札単価との対応がある品目に installed(施工込みの入札単価 ÷ 材料の陸揚げ原価、換算の根拠と確度つき)。粗利率は業種の平均(AIES 2024)、元請の上乗せは Caltrans CTSS 9-1.04C の材料 15%。見積の良し悪しを判定する値ではない。/ Stage prices from landed import cost: wholesale, retail (range) and contractor, with formulas, sources and hashes (computed:true). Industry-average margins; not a test of whether a quote is fair.",
     inputSchema: { type: "object", properties: {
       hs: { type: "string", description: "HS の頭 2〜10 桁" }, query: { type: "string", description: "英語の品名(例 plywood, pvc pipe, ceramic tiles)" },
       include_thin: { type: "boolean", description: "取引の薄い品目(陸揚げ原価 1 万ドル未満か数量 10 未満)も入れる" }, limit: { type: "integer", minimum: 1, maximum: 50 },
@@ -2229,7 +2278,10 @@ async function health(env, deep) {
   out.built_v2 = { JP: jp.built || null, US: us.built || null };
   if (dbu) {
     const kp = await kakePart({ env, parts: {}, restrictUS: false });
-    out.us_private_layer = kp.fail ? { loaded: false, code: kp.fail.code } : { loaded: true, built_at: kp.built.built_at, ym: kp.built.ym, rows: kp.built.rows };
+    let extRows = null, instRows = null;
+    if (!kp.fail) { try { const m = await kp.db.prepare("SELECT v FROM kake_meta WHERE k='built_chain_ext'").first(); extRows = m ? JSON.parse(m.v).rows : null; } catch (e) { extRows = null; } }
+    if (!kp.fail) { try { const m = await kp.db.prepare("SELECT v FROM kake_meta WHERE k='built_installed'").first(); instRows = m ? JSON.parse(m.v).rows : null; } catch (e) { instRows = null; } }
+    out.us_private_layer = kp.fail ? { loaded: false, code: kp.fail.code } : { loaded: true, built_at: kp.built.built_at, ym: kp.built.ym, rows: { ...kp.built.rows, ...(extRows || {}), ...(instRows ? { trade_installed: instRows.trade_installed, trade_installed_items: instRows.items } : {}) }, chain_ext_loaded: !!extRows, installed_loaded: !!instRows };
   }
   if (!jp.complete || !us.complete) out.obs2_error = [jp, us].filter((x) => x.error).map((x) => x.error).join(" / ") || null;
   out.ok = out.items > 0 && out.obs2_complete === true;

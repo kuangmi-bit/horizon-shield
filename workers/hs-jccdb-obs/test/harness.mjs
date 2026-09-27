@@ -726,11 +726,13 @@ const rpcPub = async (b, e) => (await worker.fetch(new Request(PUB + "/mcp", { m
 let kakeNote = "非公開の層の入力なし(省略)";
 {
   const home = os.homedir();
-  const KSRC = [process.env.KAKE_SRC, path.join(home, "hs-core-private/ops-private/jccdb_us_kake_20260926"), "/home/claude/work/kake"].filter(Boolean).find((p) => fs.existsSync(path.join(p, "chain_us_hs10_202607.csv")));
-  const KIMP = [process.env.KAKE_IMPORTS, path.join(home, "horizon-shield/data/jccdb-obs-v2/raw/us/kake_20260926/derived"), "/home/claude/work/kake/derived"].filter(Boolean).find((p) => fs.existsSync(path.join(p, "imports_us_hs10_cty_202607.csv")));
+  // 月(KAKE_YM、既定 202607)。月次の更新(IMDB の新しい月)では KAKE_YM=202608 のように渡す。表の中の月の値は固定せず、入力から読む。
+  const KYM = process.env.KAKE_YM || "202607";
+  const KSRC = [process.env.KAKE_SRC, path.join(home, "hs-core-private/ops-private/jccdb_us_kake_20260926"), "/home/claude/work/kake"].filter(Boolean).find((p) => fs.existsSync(path.join(p, "chain_us_hs10_" + KYM + ".csv")));
+  const KIMP = [process.env.KAKE_IMPORTS, path.join(home, "horizon-shield/data/jccdb-obs-v2/raw/us/kake_20260926/derived"), "/home/claude/work/kake/derived"].filter(Boolean).find((p) => fs.existsSync(path.join(p, "imports_us_hs10_cty_" + KYM + ".csv")));
   if (KSRC && KIMP && process.env.KAKE !== "0") {
     const kout = path.join(tmp, "sql_us_kake");
-    const kb = spawnSync("python3", [path.join(root, "tools/make_d1_sql_kake.py"), "--src", KSRC, "--imports", KIMP, "--ym", "202607", "--out", kout], { encoding: "utf8" });
+    const kb = spawnSync("python3", [path.join(root, "tools/make_d1_sql_kake.py"), "--src", KSRC, "--imports", KIMP, "--ym", KYM, "--out", kout], { encoding: "utf8" });
     ok(kb.status === 0, "v0.4 kake build exit 0: " + kb.stderr.slice(-500));
     const km = manifestOf(kout);
     ok(km.apply_order[0] === "schema/0004_kake_us.sql" && Object.entries(km.files).every(([f, h]) => crypto.createHash("sha256").update(fs.readFileSync(path.join(kout, f))).digest("hex") === h), "v0.4 kake manifest: schema first, file sha256 match");
@@ -816,7 +818,7 @@ let kakeNote = "非公開の層の入力なし(省略)";
       && b0.definitions && Object.keys(b0.definitions).length === 4 && b0.rows[0].wholesale.cost_share === b0.rows[0].wholesale.kake_landed_share,
       "v0.4.2 before 0005: ext_loaded false, v0.4.1 answer kept, definitions present, cost_share = kake_landed_share");
     const xout = path.join(tmp, "sql_us_chain_ext");
-    const xb = spawnSync("python3", [path.join(root, "tools/make_d1_sql_chain_ext.py"), "--src", KSRC, "--ym", "202607", "--out", xout], { encoding: "utf8" });
+    const xb = spawnSync("python3", [path.join(root, "tools/make_d1_sql_chain_ext.py"), "--src", KSRC, "--ym", KYM, "--out", xout], { encoding: "utf8" });
     ok(xb.status === 0, "v0.4.2 chain_ext build exit 0: " + xb.stderr.slice(-500));
     const xm = manifestOf(xout);
     ok(xm.apply_order[0] === "schema/0005_chain_ext.sql" && Object.entries(xm.files).every(([f, h]) => crypto.createHash("sha256").update(fs.readFileSync(path.join(xout, f))).digest("hex") === h), "v0.4.2 chain_ext manifest: 0005 first, file sha256 match");
@@ -831,7 +833,7 @@ let kakeNote = "非公開の層の入力なし(省略)";
     ok(f && f.mpf_upper_usd === Math.round(xr.customs_value_ytd_usd * 0.003464) && f.hmf_upper_usd === Math.round(xr.customs_value_ytd_usd * 0.00125) && f.landed_incl_fees_upper_usd === r1.landed.landed_duty_paid_ytd_usd + f.mpf_upper_usd + f.hmf_upper_usd
       && f.fees_share_upper > 0 && f.fees_share_upper < 0.005 && f.unit_landed_incl_fees_upper_usd > r1.landed.unit_landed_usd && f.mpf_min_usd_per_entry === 33.58 && f.mpf_max_usd_per_entry === 651.5 && /federalregister\.gov/.test(f.sources.mpf) && /4461/.test(f.sources.hmf),
       "v0.4.2 chain cement: MPF/HMF upper bounds recomputed from customs value (" + f.mpf_upper_usd + " + " + f.hmf_upper_usd + ", share " + f.fees_share_upper + ")");
-    ok(r1.landed.latest_month && r1.landed.latest_month.month === "2026-07" && r1.landed.latest_month.unit_landed_usd === xr.unit_landed_mo && r1.landed.latest_month.duty_rate_eff === xr.duty_rate_eff_mo, "v0.4.2 chain cement: latest month 2026-07 (" + r1.landed.latest_month.unit_landed_usd + ", duty " + r1.landed.latest_month.duty_rate_eff + ")");
+    ok(r1.landed.latest_month && r1.landed.latest_month.month === xr.month && r1.landed.latest_month.month === KYM.slice(0, 4) + "-" + KYM.slice(4) && r1.landed.latest_month.unit_landed_usd === xr.unit_landed_mo && r1.landed.latest_month.duty_rate_eff === xr.duty_rate_eff_mo, "v0.4.2 chain cement: latest month " + xr.month + " (" + r1.landed.latest_month.unit_landed_usd + ", duty " + r1.landed.latest_month.duty_rate_eff + ")");
     const two = r1.wholesale.two_tier_upper;
     ok(two && near(two.multiplier_on_landed, 1 / Math.pow(1 - r1.wholesale.gross_margin, 2)) && near(two.unit_usd, r1.landed.unit_landed_usd * two.multiplier_on_landed) && near(two.cost_share, Math.pow(1 - r1.wholesale.gross_margin, 2)) && two.unit_usd > r1.wholesale.unit_usd,
       "v0.4.2 chain cement: two-tier wholesale upper = 1/(1-gm)^2 (" + r1.wholesale.unit_usd + " -> " + two.unit_usd + ")");
@@ -841,10 +843,61 @@ let kakeNote = "非公開の層の入力なし(省略)";
     const rb2 = (await call("jccdb_us_price_chain", { hs: "7214200000" })).structuredContent.rows[0];
     ok(rb2.cost_share && rb2.cost_share.via_retail === null && rb2.landed.latest_month.duty_rate_eff > 0.45 && rb2.landed.latest_month.duty_rate_eff !== rb2.landed.duty_rate_eff, "v0.4.2 chain rebar: no retail cost share, latest-month duty differs from YTD (" + rb2.landed.latest_month.duty_rate_eff + " vs " + rb2.landed.duty_rate_eff + ")");
     const ini2 = await rpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
-    ok(ini2.result && ini2.result.serverInfo && ini2.result.serverInfo.version === "0.4.2", "v0.4.2 serverInfo version 0.4.2");
+    ok(ini2.result && ini2.result.serverInfo && /^0\.4\.[2-9]$/.test(ini2.result.serverInfo.version), "v0.4.2 serverInfo version 0.4.2 or later (" + ini2.result.serverInfo.version + ")");
     const hx = (await call("jccdb_coverage", { country: "US" })).structuredContent;
     ok(hx.us_private_layer.chain_ext_loaded === true && hx.us_private_layer.rows.trade_chain_ext === nx && hx.us_private_layer.rows.trade_chain === rows.trade_chain, "v0.4.2 coverage: private layer reports chain_ext rows");
     rows.trade_chain_ext = nx;
+    // ---- v0.4.3: 施工込みの段 installed(trade_installed、NJDOT 2023 の入札単価 × HS の対応、重さの換算、PPI の時点調整)と /health の件数
+    const ins0 = (await call("jccdb_us_price_chain", { hs: "7214200000" })).structuredContent;
+    ok(ins0.installed_loaded === false && ins0.installed_version === null && ins0.rows[0].installed === null && ins0.ext_loaded === true && /jccdb_us_price_chain の installed/.test(ins0.definitions.installed_over_landed) && !/not served in this version/.test(ins0.definitions.installed_over_landed),
+      "v0.4.3 before 0006: installed_loaded false, installed null, v0.4.2 answer kept, definition updated");
+    const ini3 = await rpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
+    ok(ini3.result && ini3.result.serverInfo && ini3.result.serverInfo.version === "0.4.3", "v0.4.3 serverInfo version 0.4.3");
+    const hh0 = await get("/health");
+    ok(hh0.us_private_layer.chain_ext_loaded === true && hh0.us_private_layer.rows.trade_chain_ext === nx && hh0.us_private_layer.installed_loaded === false && hh0.us_private_layer.rows.trade_installed === undefined, "v0.4.3 health: chain_ext count shown, installed not yet");
+    const iout = path.join(tmp, "sql_us_installed");
+    const OBSUS = path.join(OBS2, "observations/us");
+    const insB = spawnSync("python3", [path.join(root, "tools/make_d1_sql_installed.py"), "--src", KSRC, "--obs", OBSUS, "--ym", KYM, "--out", iout], { encoding: "utf8" });
+    ok(insB.status === 0, "v0.4.3 installed build exit 0: " + insB.stderr.slice(-600));
+    const insm = manifestOf(iout);
+    ok(insm.apply_order[0] === "schema/0006_installed.sql" && Object.entries(insm.files).every(([f, h]) => crypto.createHash("sha256").update(fs.readFileSync(path.join(iout, f))).digest("hex") === h), "v0.4.3 installed manifest: 0006 first, file sha256 match");
+    dbu.exec(fs.readFileSync(path.join(root, "schema/0006_installed.sql"), "utf8"));
+    for (const rel of insm.apply_order.slice(1)) dbu.exec(fs.readFileSync(path.join(iout, path.basename(rel)), "utf8"));
+    const insN = dbu.prepare("SELECT COUNT(*) AS n FROM trade_installed").get().n, insNh = dbu.prepare("SELECT COUNT(*) AS n FROM trade_installed_hs").get().n;
+    const nrep = dbu.prepare("SELECT COUNT(*) AS n FROM trade_installed WHERE representative = 1").get().n, nitems = dbu.prepare("SELECT COUNT(DISTINCT bid_item) AS n FROM trade_installed").get().n;
+    ok(insN === insm.built.rows.trade_installed && insNh === insm.built.rows.trade_installed_hs && nrep === nitems && nitems === insm.built.rows.items && nitems >= 30
+      && dbu.prepare("SELECT v FROM kake_meta WHERE k='built_kake'").get() && dbu.prepare("SELECT v FROM kake_meta WHERE k='built_chain_ext'").get() && dbu.prepare("SELECT v FROM kake_meta WHERE k='built_installed'").get(),
+      "v0.4.3 installed loaded (" + insN + " rows, " + nitems + " items, one representative each), built_kake and built_chain_ext untouched");
+    const ins1 = (await call("jccdb_us_price_chain", { hs: "7214200000" })).structuredContent, insR = ins1.rows[0].installed;
+    ok(ins1.installed_loaded === true && ins1.installed_version.rows.trade_installed === insN && ins1.installed_version.bid_source === "njdot-wavg-2023-q2" && ins1.ext_loaded === true, "v0.4.3 chain rebar: installed_loaded with data version");
+    const rebarItems = insR ? insR.items.map((x) => x.bid_item) : [];
+    ok(insR && insR.n_items >= 2 && rebarItems.includes("REINFORCEMENT STEEL") && rebarItems.includes("REINFORCEMENT STEEL, EPOXY-COATED") && insR.summary.installed_over_landed.min > 1 && insR.summary.installed_over_landed.median >= insR.summary.installed_over_landed.min && insR.summary.installed_over_landed.max >= insR.summary.installed_over_landed.median,
+      "v0.4.3 chain rebar: installed has both rebar items, ratios above 1 (" + JSON.stringify(insR ? insR.summary.installed_over_landed : null) + ")");
+    const insEp = insR.items.find((x) => x.bid_item === "REINFORCEMENT STEEL, EPOXY-COATED");
+    const epRow = dbu.prepare("SELECT * FROM trade_installed WHERE bid_item = ? AND representative = 1").get("REINFORCEMENT STEEL, EPOXY-COATED");
+    ok(insEp && insEp.bid_unit === "LB" && insEp.material.lb_per_bid_unit === 1 && insEp.material.conversion_confidence === "high" && insEp.representative.scope === epRow.scope && insEp.representative.bid_price_usd === epRow.bid_price_usd
+      && insEp.installed_over_landed === Math.round((epRow.bid_price_usd / epRow.material_landed_usd_per_bid_unit) * 100) / 100 && near(insEp.material.landed_usd_per_bid_unit, ins1.rows[0].landed.unit_landed_usd * 0.45359237, 1e-6)
+      && insEp.range_across_regions && insEp.range_across_regions.min <= insEp.range_across_regions.max && insEp.range_across_regions.regions.length >= 2 && insEp.sources.bid && /dot\.nj\.gov/.test(insEp.sources.bid) && /^[0-9a-f]{64}$/.test(insEp.sources.import_sha256),
+      "v0.4.3 chain rebar epoxy: representative " + (insEp && insEp.representative.scope) + " x" + (insEp && insEp.installed_over_landed) + " recomputed from bid and landed, regional range, sources");
+    ok(insEp.ppi_adj && insEp.ppi_adj.series_id === "WPU101704" && near(insEp.ppi_adj.factor, insEp.ppi_adj.landed_period_avg / insEp.ppi_adj.bid_period_avg, 1e-6) && near(insEp.ppi_adj.bid_price_landed_period_est_usd, insEp.representative.bid_price_usd * insEp.ppi_adj.factor, 1e-6)
+      && insEp.ppi_adj.installed_over_landed_ppi_adj === Math.round((insEp.ppi_adj.bid_price_landed_period_est_usd / insEp.material.landed_usd_per_bid_unit) * 100) / 100,
+      "v0.4.3 chain rebar epoxy: PPI adjustment (WPU101704 factor " + (insEp.ppi_adj && insEp.ppi_adj.factor) + ") recomputed");
+    const insC = (await call("jccdb_us_price_chain", { hs: "2523290000" })).structuredContent;
+    ok(insC.installed_loaded === true && insC.rows[0].installed === null && insC.rows[0].landed.fees_upper && insC.rows[0].cost_share, "v0.4.3 chain cement: no NJDOT material item maps, installed null, v0.4.2 fields intact");
+    const icu = (await call("jccdb_us_price_chain", { hs: "7408190030" })).structuredContent, insCu = icu.rows[0].installed;
+    ok(insCu && insCu.items.every((x) => x.hs10_set.length === 2 && x.hs10_set.includes("7408190030") && x.hs10_set.includes("7408190060") && x.material.conversion_confidence === "medium" && x.ppi_adj && x.ppi_adj.series_id === "WPU10260314") && insCu.items.some((x) => /GROUND WIRE, NO. 8 AWG/.test(x.bid_item)) && insCu.items.some((x) => x.representative.low_sample === true),
+      "v0.4.3 chain copper wire (small): items joined over two HS codes, copper PPI, low_sample flagged (" + (insCu ? insCu.n_items : 0) + " items)");
+    const idi = (await call("jccdb_us_price_chain", { hs: "7303000090" })).structuredContent, insDi = idi.rows[0].installed;
+    ok(insDi && insDi.items.every((x) => x.material.conversion_confidence === "low" && /DUCTILE IRON/.test(x.bid_item)) && insDi.items.length >= 5 && insDi.items.every((x) => x.installed_over_landed > 1 && x.installed_over_landed < 100), "v0.4.3 chain ductile iron pipe: " + (insDi ? insDi.items.length : 0) + " sizes, low confidence, ratios in range");
+    const ihx = (await call("jccdb_coverage", { country: "US" })).structuredContent;
+    ok(ihx.us_private_layer.installed_loaded === true && ihx.us_private_layer.rows.trade_installed === insN && ihx.us_private_layer.rows.trade_installed_items === nitems && ihx.us_private_layer.rows.trade_chain_ext === nx, "v0.4.3 coverage: private layer reports installed rows and items");
+    const hh1 = await get("/health");
+    ok(hh1.us_private_layer.installed_loaded === true && hh1.us_private_layer.rows.trade_installed === insN && hh1.us_private_layer.chain_ext_loaded === true && hh1.us_private_layer.rows.trade_chain_ext === nx && hh1.us_private_layer.rows.trade_chain === rows.trade_chain, "v0.4.3 health: chain_ext and installed counts");
+    dbu.exec("ALTER TABLE trade_installed RENAME TO trade_installed_hidden");
+    const insH = (await call("jccdb_us_price_chain", { hs: "7214200000" })).structuredContent;
+    ok(!insH.error && insH.installed_loaded === false && insH.rows[0].installed === null && insH.ext_loaded === true && insH.rows.length === 1, "v0.4.3 on a D1 without trade_installed: v0.4.2 answer, not an error");
+    dbu.exec("ALTER TABLE trade_installed_hidden RENAME TO trade_installed");
+    rows.trade_installed = insN;
     kakeNote = `非公開の層 ${Object.entries(rows).map(([k, v]) => k + " " + v).join("、")}`;
   }
 }

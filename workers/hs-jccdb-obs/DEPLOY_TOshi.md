@@ -1,3 +1,27 @@
+# hs-jccdb-obs v0.4.3(2026-09-27 午後、v0.4.2 の上に足すだけ。計算の式は変えない)
+
+- きっかけ: US_KAKE_AUDIT_20260927.md の違い 1(米国の chain は元請の材料上乗せで止まり、施主が払う施工込みの段が無い)。TOshi の国内の掛け率(相場 ÷ 原価)の米国版。
+- jccdb_us_price_chain が trade_installed(schema/0006_installed.sql)を hs10 で結び(結び表 trade_installed_hs)、州 DOT(NJDOT 2023、USCCDB の bid_item 層)の
+  材料そのものに近い入札項目 38 本(鉄筋 2、H 形鋼の杭 1、銅線 13、PVC 管・電線管 4、鋼製電線管 9、ダクタイル鋳鉄管 9)を HS 13 本に対応させ、重さで単位をそろえた
+  施工込みの入札単価 ÷ 材料の陸揚げ原価(installed_over_landed)を、対応がある品目の行の installed に出す。品目ごとの代表値(州全体の 12 か月の加重平均。
+  無い品目は地区 N/C/S の金額 ÷ 数量の合算)、地区の幅、PPI(材料ごとの BLS 系列)で入札を陸揚げの時点に寄せた粗い推計、換算の根拠と確度(high/medium/low)、入札の件数(2 以下は low_sample)。
+  桁を見る物で、国内の閾値(1.2〜6、3 以上)は持ち込まない。definitions.installed_over_landed を「出す」に直した。
+- /health と jccdb_coverage の us_private_layer に chain_ext と installed の件数(kake_meta の built_chain_ext・built_installed)を出す(v0.4.2 では coverage だけだった)。
+- 0006 は 0004・0005 の表に触らない。0006 を流していない D1 でも v0.4.3 は installed_loaded:false で v0.4.2 と同じ答えを返す(落ちない)。
+- 表の元は ~/hs-core-private/ops-private/jccdb_us_kake_20260926/build_installed_ratio.py(公開の観測層の bid_item_njdot_2023q2.csv と index_bls_ppi.csv、非公開の chain から)。
+  対応表と重さの換算は同じファイルの MAP(銅線は AWG の直径 × 銅の密度、PVC とダクタイル鋳鉄は外径と肉厚の幾何、RMC は ANSI C80.1 の呼びの重さ、鉄筋と H 形鋼は名目)。
+- 手順は ~/hs-core-private/ops-private/jccdb_us_kake_20260926/toshi_steps_kake4.sh の段 P1〜P5。芯だけ:
+       python3 build_installed_ratio.py --obs ~/horizon-shield/data/jccdb-obs-v2/observations/us --ym 202607   (ops-private で)
+       python3 tools/make_d1_sql_installed.py --src ~/hs-core-private/ops-private/jccdb_us_kake_20260926 --obs ~/horizon-shield/data/jccdb-obs-v2/observations/us --ym 202607 --out sql_us_installed
+       PROD_SQL=0 node test/harness.mjs   (番人の作業場: 299 pass / 0 fail)
+       npx wrangler d1 execute hs-jccdb-obs-us --remote --file=schema/0006_installed.sql
+       npx wrangler d1 execute hs-jccdb-obs-us --remote --file=sql_us_installed/001.sql
+       npx wrangler deploy
+- 本番の確認は /health(version 0.4.3、us_private_layer.installed_loaded true、rows.trade_installed 219)と、hs-mcp の get_us_price_chain hs=7214200000 の rows[0].installed。
+- 戻し方: `npx wrangler rollback`(v0.4.2 は trade_installed を読まないので、表が残っていても無害)。表を捨てるなら 0006 の DROP 文だけ。
+
+---
+
 # hs-jccdb-obs v0.4.2(2026-09-27、v0.4.1 の上に足すだけ。計算の式は変えない)
 
 - きっかけ: 2026-09-27 の検証(~/hs-core-private/ops-private/jccdb_us_kake_20260926/US_KAKE_AUDIT_20260927.md)。式に誤りは無かったが、

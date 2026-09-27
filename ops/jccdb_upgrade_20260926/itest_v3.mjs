@@ -82,7 +82,8 @@ const mkUS = (withKake) => {
   return u;
 };
 const kout = path.join(WORK, "sql_us_kake");
-const kb = py(path.join(OBSW, "tools/make_d1_sql_kake.py"), "--src", KSRC, "--imports", KIMP, "--ym", "202607", "--out", kout);
+const KYM = process.env.KAKE_YM || "202607";   // 月次の更新では KAKE_YM=202608 のように渡す
+const kb = py(path.join(OBSW, "tools/make_d1_sql_kake.py"), "--src", KSRC, "--imports", KIMP, "--ym", KYM, "--out", kout);
 ok(kb.status === 0, "kake build: " + kb.stderr.slice(-400));
 const mkD1 = (sq) => ({ prepare(sql) { let args = []; const st = { bind: (...a) => { args = a; return st; }, first: async () => sq.prepare(sql).get(...args) ?? null, all: async () => ({ results: sq.prepare(sql).all(...args) }) }; return st; } });
 const envObs = { DB: mkD1(db), DB_US: mkD1(mkUS(true)) };
