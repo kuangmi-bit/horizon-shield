@@ -122,6 +122,8 @@ Shield は再検証の証人を自分で選ばん。公開の池 (witness_pool.j
 
 答えが無かった事と答えが空やった事は別物として扱う。どの resolver も答えん型は `unanswered` に書き (collect 0.1.1)、A と AAAA と NS の全部が unanswered の事実は「事実無し」と数えて `facts_missing` を出す。空の答えとして数えると、網が塞がった所で集めた池が「強い信号が何も被っとらん = 全員別人」に見える。2026-09-27 に DoH が塞がった網で実際に集めて見つけた。試験 37 本。
 
+組織の多様性(同日): 証人が agent card の署名の中に legal-entity-v1 で宣言した法人番号(registry:scheme:id)を強い信号に足した。別のドメイン・別の IP・別の業者でも、同じ法人番号を宣言した 2 人は 1 つの塊に入り、籤は 2 人目を引かん。宣言せん項は `legal_entity_undeclared` として数えて出す(無宣言は別組織の証明にならん)。宣言は証人自身の言葉で登録簿の答えやない、Sybil は宣言を省けば逃げられる、誰が証人に金を払うか(経済的な利害)はここでは観測せん、の 3 つを does_not_establish に書く。collect 0.2.0 が card から宣言を読む。試験 47。
+
 ## まだ無い物 (v2.2)
 
 - 池の中身。道具は在る (witness_pool_build)。池に入った後の支配の多様性は witness_diversity が数える (v2.3)。条件を満たす card がまだ無い。うち自身も、扉の A2A 面が witness_request に答えるまでは他所の池に入れん (consent の witness_policy.reciprocal は答えられるようになってから true にする。先に宣言せん)。

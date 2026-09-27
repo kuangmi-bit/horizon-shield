@@ -12,9 +12,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { normalizePool } from "./witness_draw.mjs";
-import { registrableDomain, diversityReport } from "./witness_diversity.mjs";
+import { registrableDomain, diversityReport, LEGAL_ENTITY_EXT_URI, legalEntityKey } from "./witness_diversity.mjs";
 
-export const COLLECT_VERSION = "0.1.1";
+export const COLLECT_VERSION = "0.2.0";
 export const DOH = [
   { name: "cloudflare", url: (n, t) => "https://cloudflare-dns.com/dns-query?name=" + encodeURIComponent(n) + "&type=" + t },
   { name: "google", url: (n, t) => "https://dns.google/resolve?name=" + encodeURIComponent(n) + "&type=" + t },
@@ -54,7 +54,22 @@ function expandV6(ip) {
   return [...head, ...Array(parts.length === 2 ? fill : 0).fill("0"), ...tail].map((h) => h.padStart(4, "0")).join(":");
 }
 
-export async function collectFact(signedDomain, { fetchImpl = globalThis.fetch, now = () => new Date().toISOString() } = {}) {
+// 0.2.0: 証人の agent card から legal-entity-v1 の宣言 (registry / scheme / id) を読む。署名の検証はここではせん
+// (宣言を写すだけ、記録に source を残す)。card が取れん・宣言が無いは null と理由。
+export async function collectLegalEntity(cardUrl, fetchImpl) {
+  try {
+    const r = await fetchImpl(cardUrl, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return { legal_entity: null, legal_entity_source: "card_http_" + r.status };
+    const card = await r.json();
+    const exts = (card && card.capabilities && Array.isArray(card.capabilities.extensions)) ? card.capabilities.extensions : [];
+    const ext = exts.find((x) => x && x.uri === LEGAL_ENTITY_EXT_URI);
+    const p = ext && ext.params;
+    if (!legalEntityKey(p)) return { legal_entity: null, legal_entity_source: "not_declared" };
+    return { legal_entity: { registry: p.registry, scheme: p.scheme, id: p.id }, legal_entity_source: cardUrl };
+  } catch (e) { return { legal_entity: null, legal_entity_source: "card_unreachable" }; }
+}
+
+export async function collectFact(signedDomain, { fetchImpl = globalThis.fetch, now = () => new Date().toISOString(), cardUrl = null } = {}) {
   const host = signedDomain.toLowerCase();
   const a = await ask(fetchImpl, host, "A");
   const aaaa = await ask(fetchImpl, host, "AAAA");
@@ -66,13 +81,14 @@ export async function collectFact(signedDomain, { fetchImpl = globalThis.fetch, 
     const t = await ask(fetchImpl, q, "TXT");
     for (const line of t.union) { const as = line.split("|")[0].trim().split(/\s+/)[0]; if (/^\d+$/.test(as)) asns.add(as); }
   }
+  const le = await collectLegalEntity(cardUrl || ("https://" + host + "/.well-known/agent-card.json"), fetchImpl);
   const disagreements = [["A", a], ["AAAA", aaaa], ["NS", ns]].filter(([, r]) => !r.agree).map(([t, r]) => ({ type: t, answers: r.answers }));
   // どの resolver も答えんかった型。空の答え (answered で union が []) とは別物として残す。witness_diversity.mjs の
   // factAnswered が、A と AAAA と NS の全部が unanswered の事実を「事実無し」と数える。
   const unanswered = [["A", a], ["AAAA", aaaa], ["NS", ns]].filter(([, r]) => !r.answered).map(([t]) => t);
   return {
     observed_at: now(), method: "doh:" + DOH.map((d) => d.name).join("+") + " cymru-origin-asn collect/" + COLLECT_VERSION,
-    ips: ips.sort(), asns: [...asns].sort(), ns: ns.union, ...(unanswered.length ? { unanswered } : {}), ...(disagreements.length ? { resolver_disagreements: disagreements } : {}),
+    ips: ips.sort(), asns: [...asns].sort(), ns: ns.union, ...(unanswered.length ? { unanswered } : {}), legal_entity: le.legal_entity, legal_entity_source: le.legal_entity_source, ...(disagreements.length ? { resolver_disagreements: disagreements } : {}),
   };
 }
 
@@ -84,7 +100,7 @@ async function main(argv) {
   const rep = arg("--report", path.join(HERE, "witness_diversity_report.json"));
   const pool = JSON.parse(readFileSync(poolPath, "utf8"));
   const facts = {};
-  for (const e of normalizePool(pool)) { facts[e.signed_domain.toLowerCase()] = await collectFact(e.signed_domain); process.stdout.write("  " + e.signed_domain + "  ips " + facts[e.signed_domain.toLowerCase()].ips.length + "  asns " + facts[e.signed_domain.toLowerCase()].asns.join(",") + "\n"); }
+  for (const e of normalizePool(pool)) { facts[e.signed_domain.toLowerCase()] = await collectFact(e.signed_domain, { cardUrl: e.a2a_url ? new URL(e.a2a_url).origin + "/.well-known/agent-card.json" : null }); process.stdout.write("  " + e.signed_domain + "  ips " + facts[e.signed_domain.toLowerCase()].ips.length + "  asns " + facts[e.signed_domain.toLowerCase()].asns.join(",") + "\n"); }
   writeFileSync(out, JSON.stringify({ schema: "nenrin-witness-facts-v0", collected_by: "witness_diversity_collect.mjs " + COLLECT_VERSION, facts }, null, 2) + "\n");
   const report = await diversityReport(pool, facts);
   writeFileSync(rep, JSON.stringify(report, null, 2) + "\n");

@@ -31,6 +31,10 @@
 node workers/hs-ledger/nenrin/evidence-v0/mirror_records.mjs --out workers/hs-ledger/nenrin/evidence-v0/records
 ```
 
+毎日 18:41 UTC に GitHub Actions(`.github/workflows/evidence-mirror.yml`)が同じ物を回す。新しい判定が写った日だけ commit し、その後 Software Heritage に repo の保存を頼む(頼みが通らんでも job は落とさん、結果は summary に残す)。扉が毎晩 18:00 UTC に書く判定が、その 41 分後には扉の外に 2 つ目、Software Heritage の取り込みで 3 つ目の置き場を持つ。
+
+2026-09-27 の Software Heritage への初回申し込み: mcp-conduct-register と mcp-conduct-action は保存完了、horizon-shield は受付済み(request 2508034)。
+
 冪等。既に在って hash が合うファイルは取り直さん。壊れた手元の写しは検証済みのバイトで置き換える。hash が合わんバイトは書かずに `hash_mismatch` と記録し、exit 2 で止まる。
 鍵も token も要らん。
 

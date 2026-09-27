@@ -56,7 +56,7 @@ t("missing facts are reported (facts_missing), not counted as proof of independe
 // ---- 3. 点を付けん ----
 const flat = JSON.stringify(rep);
 t("report carries no score, rank, trust or rating key", !/"(score|rank|rating|trust_level|trust_score|grade)"/.test(flat));
-t("report says what it does not establish (different people, DNS truth, witness truth, no score)", rep.does_not_establish.length === 4 && rep.does_not_establish.some((s) => /determined operator/.test(s)));
+t("report says what it does not establish (different people, DNS truth, legal entity truth, economic interest, witness truth, no score)", rep.does_not_establish.length === 6 && rep.does_not_establish.some((s) => /determined operator/.test(s)));
 t("report is deterministic (same inputs, same bytes)", JSON.stringify(await diversityReport(sybilPool, facts)) === flat);
 t("fact order does not change facts_sha256", (await diversityReport(sybilPool, Object.fromEntries(Object.entries(facts).reverse()))).facts_sha256 === rep.facts_sha256);
 
@@ -119,6 +119,32 @@ t("report: a partially answered fact still counts, and its shared IP still clust
 const repA = await diversityReport(twoPool, { "a.example.org": f3, "b.example.net": f3 });
 const repB = await diversityReport(twoPool, { "a.example.org": { ...f3, unanswered: undefined }, "b.example.net": { ...f3, unanswered: undefined } });
 t("report: unanswered is inside facts_sha256 (a reader can tell 'blocked' from 'empty')", repA.facts_sha256 !== repB.facts_sha256);
+
+// ---- 7. 組織の多様性: legal-entity-v1 の宣言 (2026-09-27) ----
+const LE_A = { registry: "JP", scheme: "houjin-bango", id: "7021001075279" };
+const fA = (ip, le) => ({ observed_at: "2026-09-27T10:00:00Z", method: "test", ips: [ip], asns: ["64500"], ns: ["kate.ns.cloudflare.com"], ...(le ? { legal_entity: le } : {}) });
+const orgPool = { entries: [E("w1.alpha.org", 11), E("w2.beta.net", 12), E("w3.gamma.io", 13)] };
+const repOrg = await diversityReport(orgPool, { "w1.alpha.org": fA("198.51.100.1", LE_A), "w2.beta.net": fA("203.0.113.9", { ...LE_A, registry: "jp", scheme: "HOUJIN-BANGO" }), "w3.gamma.io": fA("192.0.2.77", { registry: "GLEIF", scheme: "lei", id: "5493001KJTIIGC8Y1R12" }) });
+t("legal entity: different domains, IPs and hosts but the same declared entity form one control cluster", repOrg.control_clusters === "2" && repOrg.strong_shared.some((g) => g.kind === "legal_entity" && g.members.length === 2), repOrg.control_clusters + " " + JSON.stringify(repOrg.strong_shared));
+t("legal entity: registry and scheme compare case-insensitively, the id exactly", repOrg.distinct.legal_entities === "2");
+t("legal entity: all declared, so no legal_entity_undeclared finding", !repOrg.findings.includes("legal_entity_undeclared") && repOrg.entries_declaring_legal_entity === "3");
+const repNoLe = await diversityReport(orgPool, { "w1.alpha.org": fA("198.51.100.1", LE_A), "w2.beta.net": fA("203.0.113.9"), "w3.gamma.io": fA("192.0.2.77") });
+t("legal entity: undeclared entries are counted and named as a finding, never as proof of a different organization", repNoLe.findings.includes("legal_entity_undeclared") && repNoLe.entries_declaring_legal_entity === "1" && repNoLe.control_clusters === "3");
+t("legal entity: does_not_establish says the declaration is not the register's answer and economic interest is not observed", repOrg.does_not_establish.some((x) => /only the register can answer/.test(x)) && repOrg.does_not_establish.some((x) => /economic interests/.test(x)));
+const repLeDead = await diversityReport({ entries: [E("x.one.org", 21), E("y.two.org", 22)] }, { "x.one.org": { ...f3, legal_entity: LE_A }, "y.two.org": { ...f3, legal_entity: LE_A } });
+t("legal entity: a shared declaration still clusters when DNS went unanswered (the declaration is not a DNS fact)", repLeDead.control_clusters === "1" && repLeDead.findings.includes("facts_missing"));
+const drawOrg = await drawDiverse({ pool: orgPool, facts: { "w1.alpha.org": fA("198.51.100.1", LE_A), "w2.beta.net": fA("203.0.113.9", LE_A), "w3.gamma.io": fA("192.0.2.77") }, beaconHash: BEACON, subjectSha256: SUBJECT, k: 3 });
+t("drawDiverse never draws two witnesses that declared the same legal entity", drawOrg.drawn.filter((h) => h === "w1.alpha.org" || h === "w2.beta.net").length === 1, JSON.stringify(drawOrg.drawn));
+const cardFetch = (card, status = 200) => async (url) => {
+  if (url.includes("agent-card.json")) return { ok: status === 200, status, json: async () => card };
+  return { ok: true, json: async () => ({ Answer: [] }) };
+};
+const fLe = await collectFact("w.example.com", { fetchImpl: cardFetch({ capabilities: { extensions: [{ uri: "https://gate.horizonshield.dev/ext/legal-entity/v1", params: { ...LE_A, name: "X" } }] } }) });
+t("collect: reads the legal-entity-v1 declaration from the agent card and records where it came from", fLe.legal_entity && fLe.legal_entity.id === LE_A.id && /agent-card\.json$/.test(fLe.legal_entity_source));
+const fNoLe = await collectFact("w.example.com", { fetchImpl: cardFetch({ capabilities: { extensions: [] } }) });
+t("collect: a card without the declaration is recorded as not_declared", fNoLe.legal_entity === null && fNoLe.legal_entity_source === "not_declared");
+const f404 = await collectFact("w.example.com", { fetchImpl: cardFetch({}, 404) });
+t("collect: a card that does not answer is recorded with its status, not as an absent declaration", f404.legal_entity === null && f404.legal_entity_source === "card_http_404");
 
 console.log(results.join("\n"));
 console.log("\nwitness_diversity: " + pass + " passed, " + fail + " failed");

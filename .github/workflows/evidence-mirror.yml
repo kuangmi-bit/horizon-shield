@@ -1,0 +1,63 @@
+name: evidence mirror
+
+# 扉の判定バイト (GET /record/<sha>) を、扉の外 (この公開 repo) に毎日写し、Software Heritage に保存を頼む。
+# なぜ: 判定の hash は台帳にも履歴にも載るが、hash が指すバイトの置き場は Cloudflare KV 一か所やった (2026-09-27)。
+# 写すのは SHA-256 が名前と一致したバイトだけ。一致せんバイトは書かず、この job を赤にする。
+# 新しい判定が無い日は commit せん (MIRROR_MANIFEST.json の取得時刻だけが変わる日は捨てる)。
+# 手で回す: Actions -> evidence mirror -> Run workflow。
+# 本体と試験: workers/hs-ledger/nenrin/evidence-v0/ (mirror_records.mjs、mirror_records.test.mjs)。
+
+on:
+  schedule:
+    - cron: "41 18 * * *"   # daily 18:41 UTC, after the gate's 18:00 UTC sweep has written new records
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: evidence-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: test the mirror (fake gate, no network)
+        run: node workers/hs-ledger/nenrin/evidence-v0/mirror_records.test.mjs
+      - name: mirror verdict bytes whose hash matches their name
+        run: |
+          node workers/hs-ledger/nenrin/evidence-v0/mirror_records.mjs --out workers/hs-ledger/nenrin/evidence-v0/records | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: record (only when a new verdict was mirrored)
+        run: |
+          git config user.name "hs-evidence-mirror"
+          git config user.email "contact@the-horizons-innovation.com"
+          D=workers/hs-ledger/nenrin/evidence-v0/records
+          git add "$D"
+          NEW=$(git diff --cached --name-only -- "$D" | grep -v 'MIRROR_MANIFEST.json$' || true)
+          if [ -z "$NEW" ]; then
+            git reset -q
+            git checkout -- "$D/MIRROR_MANIFEST.json" 2>/dev/null || true
+            echo "新しい判定はありません。commit しません。" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "COMMITTED=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "$NEW" | sed 's/^/  /' | tee -a "$GITHUB_STEP_SUMMARY"
+          git commit -m "evidence-v0: mirror $(date -u +%Y-%m-%d) ($(echo "$NEW" | wc -l | tr -d ' ') new verdict records, hash-checked)"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && break
+            sleep 5
+          done
+          echo "COMMITTED=1" >> "$GITHUB_ENV"
+      - name: ask Software Heritage to save the repository (does not fail the job)
+        if: env.COMMITTED == '1'
+        run: |
+          set +e
+          R=$(curl -sS -m 30 -X POST "https://archive.softwareheritage.org/api/1/origin/save/git/url/https://github.com/${GITHUB_REPOSITORY}/")
+          echo "Software Heritage: $(echo "$R" | head -c 400)" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 0

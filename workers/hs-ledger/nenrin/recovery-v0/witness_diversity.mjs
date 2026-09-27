@@ -9,7 +9,8 @@
 //   1. 池の各項について、誰でも取れる公開の事実 (登録ドメイン、IP、ASN、ネームサーバー、鍵) を束ねる。
 //      事実は pool builder がその時刻に見た DNS の答え。取った時刻と取り方を記録に残す。
 //   2. 事実から「同じ支配の疑い」を数える。強い信号と弱い信号を分ける:
-//        強い: 同じ登録ドメイン (a.example.com と b.example.com)、同じ IP、同じ鍵、同じ独自ネームサーバー
+//        強い: 同じ登録ドメイン (a.example.com と b.example.com)、同じ IP、同じ鍵、同じ独自ネームサーバー、
+//              同じ法人番号 (legal-entity-v1 で agent card の署名の中に宣言された registry:scheme:id、2026-09-27 追加)
 //        弱い: 同じ ASN、同じホスティング基盤 (workers.dev、github.io など)、同じ DNS 事業者
 //      弱い信号は大手の CDN や DNS を使うだけで重なる。弱いを強いに数えたら、正直な証人に濡れ衣を着せる。
 //   3. 籤の変種 drawDiverse: 同じ乱数 (seed) で同じ順番を作り、強い信号を共有する項は 2 人目から飛ばす。
@@ -26,6 +27,16 @@ import { normalizePool, POOL_SCHEMA } from "./witness_draw.mjs";
 
 export const DIVERSITY_SCHEMA = "nenrin-witness-diversity-v0";
 export const DIVERSE_DRAW_VERSION = "0.2.0";
+// 組織の多様性 (2026-09-27、外部の批判「key diversity ではなく organization diversity を」への手当)。
+// 法人番号は証人自身の宣言 (legal-entity-v1、card の署名の中) で、登録簿の答えやない。同じ番号を宣言した 2 項は
+// 同じ組織として 1 つの塊に入れる。宣言せん項は数えて findings に出す (無宣言は別組織の証明にならん)。
+export const LEGAL_ENTITY_EXT_URI = "https://gate.horizonshield.dev/ext/legal-entity/v1";
+export function legalEntityKey(le) {
+  if (!le || typeof le !== "object") return null;
+  const parts = ["registry", "scheme", "id"].map((k) => (typeof le[k] === "string" ? le[k].trim() : ""));
+  if (parts.some((x) => !x)) return null;
+  return parts[0].toUpperCase() + ":" + parts[1].toLowerCase() + ":" + parts[2];
+}
 const enc = new TextEncoder();
 const HEX64 = /^[0-9a-f]{64}$/;
 
@@ -104,6 +115,8 @@ function signalsFor(entry, fact) {
   const strong = [["registrable_domain", registrable], ["public_key", entry.public_key_ed25519_b64]];
   const weak = [];
   if (platform) weak.push(["platform", platform]);
+  const le = legalEntityKey(fact && fact.legal_entity);
+  if (le) strong.push(["legal_entity", le]);
   const f = factAnswered(fact) ? fact : null;
   if (f) {
     for (const ip of [...new Set((f.ips || []).map(String))].sort()) strong.push(["ip_prefix", ipPrefix(ip)]);
@@ -114,7 +127,7 @@ function signalsFor(entry, fact) {
       else strong.push(["custom_nameserver", o.operator]);
     }
   }
-  return { host, registrable, platform, strong: dedupe(strong), weak: dedupe(weak), facts_present: !!f };
+  return { host, registrable, platform, strong: dedupe(strong), weak: dedupe(weak), facts_present: !!f, legal_entity: le };
 }
 function dedupe(pairs) {
   const seen = new Set(); const out = [];
@@ -157,6 +170,7 @@ export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolS
   for (const s of sigs) { const c = clusterOf.get(s.host); if (!clusters.has(c)) clusters.set(c, []); clusters.get(c).push(s.host); }
   const distinct = (fn) => new Set(sigs.flatMap(fn)).size;
   const withFacts = sigs.filter((s) => s.facts_present).length;
+  const withLegal = sigs.filter((s) => s.legal_entity).length;
   const pool_sha256 = givenPoolSha || await sha(canonicalUtf8({ schema: POOL_SCHEMA, entries: entries.map((e) => ({ signed_domain: e.signed_domain, key_url: e.key_url, public_key_ed25519_b64: e.public_key_ed25519_b64 })) }));
   const facts_sha256 = await sha(canonicalUtf8(normalizeFacts(facts, entries)));
   const strong_shared = groupShared(sigs, "strong");
@@ -167,11 +181,13 @@ export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolS
     pool_size: String(sigs.length),
     entries_with_facts: String(withFacts),
     control_clusters: String(clusters.size),
+    entries_declaring_legal_entity: String(withLegal),
     distinct: {
       registrable_domains: String(distinct((s) => [s.registrable])),
       public_keys: String(distinct((s) => s.strong.filter(([k]) => k === "public_key").map(([, v]) => v))),
       ip_prefixes: String(distinct((s) => s.strong.filter(([k]) => k === "ip_prefix").map(([, v]) => v))),
       asns: String(distinct((s) => s.weak.filter(([k]) => k === "asn").map(([, v]) => v))),
+      legal_entities: String(distinct((s) => (s.legal_entity ? [s.legal_entity] : []))),
       dns_operators: String(distinct((s) => [...s.weak.filter(([k]) => k === "dns_provider"), ...s.strong.filter(([k]) => k === "custom_nameserver")].map(([, v]) => v))),
     },
     clusters: [...clusters.entries()].map(([id, members]) => ({ id, members: members.slice().sort() })).sort((a, b) => (a.id < b.id ? -1 : 1)),
@@ -180,15 +196,18 @@ export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolS
       ...(strong_shared.length ? ["shared_control_suspected"] : []),
       ...(weak_shared.length ? ["shared_infrastructure"] : []),
       ...(withFacts < sigs.length ? ["facts_missing"] : []),
+      ...(withLegal < sigs.length ? ["legal_entity_undeclared"] : []),
       ...(clusters.size < 2 ? ["single_control_cluster"] : []),
     ],
     establishes: [
-      "the pool has " + sigs.length + " entries that fall into " + clusters.size + " control clusters, where two entries share a cluster when they share a registrable domain, a public key, an IP prefix or a custom nameserver",
+      "the pool has " + sigs.length + " entries that fall into " + clusters.size + " control clusters, where two entries share a cluster when they share a registrable domain, a public key, an IP prefix, a custom nameserver or a declared legal entity identifier",
       "every count is recomputable from pool_sha256 and facts_sha256 with this file",
     ],
     does_not_establish: [
       "that entries in different clusters are controlled by different people; a determined operator can use different registrars, hosts and networks, and this instrument only makes that more expensive",
       "that the DNS answers in the facts are true or current; they are what the pool builder observed at observed_at",
+      "that a declared legal entity identifier is true, registered or complete; it is the witness's own declaration under legal-entity-v1, a Sybil can omit it or declare different entities, and only the register can answer",
+      "that different organizations have different economic interests; who pays each witness is not observed here",
       "that any witness observes correctly",
       "any score, rank or trust level; the report counts and never scores",
     ],
@@ -207,6 +226,7 @@ function normalizeFacts(facts, entries) {
       asns: [...new Set((f.asns || []).map(String))].sort(),
       ns: [...new Set((f.ns || []).map((n) => String(n).toLowerCase().replace(/\.$/, "")))].sort(),
       ...(Array.isArray(f.unanswered) && f.unanswered.length ? { unanswered: [...new Set(f.unanswered.map(String))].sort() } : {}),
+      ...(legalEntityKey(f.legal_entity) ? { legal_entity: legalEntityKey(f.legal_entity) } : {}),
     };
   }
   return { schema: "nenrin-witness-facts-v0", facts: out };
