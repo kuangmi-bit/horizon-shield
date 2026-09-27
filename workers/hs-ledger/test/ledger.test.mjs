@@ -62,7 +62,7 @@ const hj = JSON.parse(r.t);
 // 2026-09-14: 本数(=== 13)は route を足すたびに手で書き換える魔法数字やった(9 -> 12 -> 13)。
 // 監視側と同じアンチパターン。名前の集合で見る。route を足したら、ここに名前を書き足さんと落ちる。
 const EXPECTED_ROUTES = [
-  "/ledger", "/ledger/{n}", "/ledger/{n}/ots", "/verify/{n}", "/reference/{sha}",
+  "/ledger", "/ledger/head", "/ledger/export.jsonl", "/ledger/{n}", "/ledger/{n}/ots", "/verify/{n}", "/reference/{sha}",
   "/paths", "/paths/{sha}", "/paths/{sha}/replay", "/paths/query",
   "/witness", "/witness/pending", "/witness/{sha}",
   "/resume?endpoint={url}",

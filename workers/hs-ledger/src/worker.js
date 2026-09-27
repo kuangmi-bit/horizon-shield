@@ -7,6 +7,7 @@
 // --- NENRIN Resume v1 (2026-09-13). Read-only assembly of anchored witness-walk records for one endpoint.
 // The core is shared with python (workers/hs-ledger/nenrin/resume-v1, byte-match 21/21); the worker only
 // injects its own Web Crypto hasher. No node imports in the core, so this bundles as is.
+import { walkChain, exportRow, headRecord, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE } from "./chain_v1.mjs";
 import { assembleResume as assembleResumeV1, Reject as ResumeReject } from "../nenrin/resume-v1/resume_v1.mjs";
 import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1/trust_signal_v1.mjs";
 import { handleTaskWitness, handleTaskTrustSignal, anchorTaskWitnessPool, handleTaskEvidence } from "../nenrin/task-delegation-bind-v0/task_ledger_v0.mjs";
@@ -1389,7 +1390,7 @@ async function handle(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     if (p === "/" || p === "/health")
-      return json({ ok: true, service: "hs-ledger", ledger: "JIDEC", anchor: "Bitcoin via OpenTimestamps", claim_schema: "jidec-claim-v1", path_schema: "jidec-path-v1", spec: "SPEC_HASH_INDEPENDENCE_v1.md (entry #2); JIDEC_PATH_SPEC_v1.md (entry #5)", routes: ["/ledger", "/ledger/{n}", "/ledger/{n}/ots", "/verify/{n}", "/reference/{sha}", "/paths", "/paths/{sha}", "/paths/{sha}/replay", "/paths/query", "/witness", "/witness/pending", "/witness/{sha}", "/resume?endpoint={url}", "/trust-signal?endpoint={url}", "/agreement", "/agreement/pending", "/agreement/{canonical_sha256}"], discovery: { api_catalog: "/.well-known/api-catalog", agent_card: "/.well-known/agent-card.json", jwks: "/.well-known/jwks.json", security_txt: "/.well-known/security.txt", llms_txt: "/llms.txt", a2a: "/a2a", cite: "/cite/{citation}", precedence: "/precedence/{citation}", mcp: MCP_ORIGIN + "/mcp" }, transparency: TRANSPARENCY, privacy: PRIVACY });
+      return json({ ok: true, service: "hs-ledger", ledger: "JIDEC", anchor: "Bitcoin via OpenTimestamps", claim_schema: "jidec-claim-v1", path_schema: "jidec-path-v1", spec: "SPEC_HASH_INDEPENDENCE_v1.md (entry #2); JIDEC_PATH_SPEC_v1.md (entry #5)", routes: ["/ledger", "/ledger/head", "/ledger/export.jsonl", "/ledger/{n}", "/ledger/{n}/ots", "/verify/{n}", "/reference/{sha}", "/paths", "/paths/{sha}", "/paths/{sha}/replay", "/paths/query", "/witness", "/witness/pending", "/witness/{sha}", "/resume?endpoint={url}", "/trust-signal?endpoint={url}", "/agreement", "/agreement/pending", "/agreement/{canonical_sha256}"], discovery: { api_catalog: "/.well-known/api-catalog", agent_card: "/.well-known/agent-card.json", jwks: "/.well-known/jwks.json", security_txt: "/.well-known/security.txt", llms_txt: "/llms.txt", a2a: "/a2a", cite: "/cite/{citation}", precedence: "/precedence/{citation}", mcp: MCP_ORIGIN + "/mcp" }, transparency: TRANSPARENCY, privacy: PRIVACY });
 
     /* ---------------------- 看板 routes (additive, read-only) ---------------------- */
 
@@ -1653,6 +1654,25 @@ async function handle(request, env) {
     if (agrM && request.method === "GET") {
       const out = await handleAgreementGet(agrM[1], { store: agreementStore(env), origin });
       return json(out.body, out.status, out.headers);
+    }
+
+    // jidec-chain-v1 (2026-09-28): the predecessor binding and the head. Derived from fields every entry already
+    // carries; nothing stored is rewritten. See src/chain_v1.mjs for why and for the recipe.
+    if (p === "/ledger/head" && request.method === "GET") {
+      const seq = Number((await env.LEDGER.get("seq")) || 0);
+      const w = await walkChain((n) => getEntry(env, n), seq);
+      if (!w.ok) return json({ schema: "jidec-head-v1", chain: CHAIN_SCHEMA, error: "chain_broken", broken_at: w.broken_at, last_linked: w.n, head_before_break: w.head }, 409, { "cache-control": "no-store" });
+      return json(Object.assign(headRecord(w.n, w.head), { recipe: CHAIN_RECIPE, fields: CHAIN_FIELDS, export: origin + "/ledger/export.jsonl",
+        anchored_in: "the head as it stood is written into each daily nenrin-witness-batch-v1 entry (ledger_head), whose claim_sha256 is stamped to Bitcoin; compare a head you hold with the one a stamped batch carries",
+        does_not_establish: ["that every submission the ledger received was appended; the chain covers what was appended", "that the head served now equals a head you did not obtain independently; hold one, or read one from a stamped batch"] }), 200, { "cache-control": "no-store" });
+    }
+    if (p === "/ledger/export.jsonl" && request.method === "GET") {
+      const seq = Number((await env.LEDGER.get("seq")) || 0);
+      const lines = [];
+      const w = await walkChain((n) => getEntry(env, n), seq, async (e, prev, h) => { lines.push(JSON.stringify(exportRow(e, prev, h))); });
+      if (!w.ok) lines.push(JSON.stringify({ schema: "jidec-chain-broken-v1", broken_at: w.broken_at, last_linked: w.n }));
+      else lines.push(JSON.stringify(headRecord(w.n, w.head)));
+      return new Response(lines.join("\n") + "\n", { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", ...CORS } });
     }
 
     if (p === "/ledger" && request.method === "GET") {
@@ -2077,7 +2097,7 @@ async function handle(request, env) {
       return new Response(receiptHtml(e, origin, env), { headers: { "content-type": "text/html; charset=utf-8", ...CORS, ...FRESH } });
     }
 
-    return json({ error: "not found", routes: ["/ledger", "/ledger/{n}", "/ledger/{n}/ots"] }, 404);
+    return json({ error: "not found", routes: ["/ledger", "/ledger/head", "/ledger/export.jsonl", "/ledger/{n}", "/ledger/{n}/ots"] }, 404);
 }
 
 // 2026-09-05. 証人プールの束ね。08-18 に 2 件入って 09-05 まで 18 日間 pending のままやった。
@@ -2094,10 +2114,15 @@ async function anchorWitnessPool(env, origin, trigger) {
     if (raw) items.push(JSON.parse(raw));
   }
   items.sort((a, b2) => (a.sha < b2.sha ? -1 : 1));
+  // jidec-chain-v1 (2026-09-28): the batch carries the ledger head as it stands before the batch is appended,
+  // so the head is inside bytes that get stamped to Bitcoin. A broken chain is written as such, not hidden.
+  const seqNow = Number((await env.LEDGER.get("seq")) || 0);
+  const w = await walkChain((n) => getEntry(env, n), seqNow);
   const batch = {
     schema: "nenrin-witness-batch-v1",
     anchored_at: new Date().toISOString(),
     count: items.length,
+    ledger_head: w.ok ? { chain: CHAIN_SCHEMA, n: w.n, entry_sha256: w.head } : { chain: CHAIN_SCHEMA, broken_at: w.broken_at, last_linked: w.n },
     records: items.map((s) => {
       const rec = { sha: s.sha, purpose: s.purpose, witness_name: s.witness_name, vantage: s.vantage, signed: s.signed };
       // v1.1 fields ride the batch only when the stored record carries them, so a batch of v1 records
