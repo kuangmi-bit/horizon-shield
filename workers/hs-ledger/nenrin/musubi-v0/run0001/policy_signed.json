@@ -1,0 +1,75 @@
+{
+ "decider": {
+  "domain": "horizonshield.dev",
+  "key_url": "https://gate.horizonshield.dev/keys/agreement.json"
+ },
+ "default": "decline",
+ "nonce": "e882e013c240a8e5e10f88568b0b1be1",
+ "policy_id": "hs-furui-0001",
+ "purpose": "decide whether HORIZON SHIELD signs a second MUSUBI witness contract offered by api.babyblueviper.com",
+ "rules": [
+  {
+   "op": "eq",
+   "ref": {
+    "as": "proposed_term",
+    "name": "offer.scope"
+   },
+   "value": "witness_walk"
+  },
+  {
+   "op": "eq",
+   "ref": {
+    "as": "proposed_term",
+    "name": "offer.payment_jpy"
+   },
+   "value": 0
+  },
+  {
+   "op": "le",
+   "ref": {
+    "as": "proposed_term",
+    "name": "offer.max_hops"
+   },
+   "value": 1
+  },
+  {
+   "op": "eq",
+   "ref": {
+    "as": "proposed_term",
+    "name": "offer.data_access"
+   },
+   "value": "public_endpoint"
+  },
+  {
+   "op": "le",
+   "ref": {
+    "as": "proposed_term",
+    "name": "offer.expiry_height"
+   },
+   "value": 990000
+  },
+  {
+   "domain": "api.babyblueviper.com",
+   "op": "signed_by",
+   "ref": {
+    "as": "attributable_statement",
+    "name": "counterparty.identity"
+   }
+  },
+  {
+   "op": "present",
+   "ref": {
+    "as": "fact",
+    "name": "prior.contract"
+   }
+  }
+ ],
+ "schema": "a2a-sieve-policy-v0",
+ "signatures": [
+  {
+   "alg": "ed25519",
+   "domain": "horizonshield.dev",
+   "sig": "eikOhbGI8rpujduIhD8N/3xc/km0pkvB5LaSBXnf57h4OitB8KLbdDgTTjEjODX3MeTNJucwc54LChg948ZBCg=="
+  }
+ ]
+}

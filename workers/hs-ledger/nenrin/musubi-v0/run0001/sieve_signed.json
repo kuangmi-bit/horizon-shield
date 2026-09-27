@@ -1,0 +1,110 @@
+{
+ "decider": {
+  "domain": "horizonshield.dev",
+  "key_url": "https://gate.horizonshield.dev/keys/agreement.json"
+ },
+ "decision": {
+  "action": "sign",
+  "grounds": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ "does_not_establish": [
+  "that the decider's internal reasoning used only these grounds",
+  "that the content of an admitted signed statement is true",
+  "that the hidden instruction detector missed nothing"
+ ],
+ "establishes": [
+  "every unit of the offer was classified and the decision cites only admitted grounds"
+ ],
+ "inputs": [
+  {
+   "as": "fact",
+   "class": "admitted",
+   "code": "ledger_matches",
+   "i": 0,
+   "name": "prior.contract",
+   "ref": "offer:/evidence/0",
+   "value": 968526
+  },
+  {
+   "as": "attributable_statement",
+   "class": "admitted",
+   "code": "signature_on_own_domain",
+   "i": 1,
+   "name": "counterparty.identity",
+   "ref": "offer:/evidence/1",
+   "value": "witness"
+  },
+  {
+   "as": "proposed_term",
+   "class": "admitted",
+   "code": "proposed_term",
+   "i": 2,
+   "name": "offer.data_access",
+   "ref": "offer:/terms/data_access",
+   "value": "public_endpoint"
+  },
+  {
+   "as": "proposed_term",
+   "class": "admitted",
+   "code": "proposed_term",
+   "i": 3,
+   "name": "offer.expiry_height",
+   "ref": "offer:/terms/expiry_height",
+   "value": 980000
+  },
+  {
+   "as": "proposed_term",
+   "class": "admitted",
+   "code": "proposed_term",
+   "i": 4,
+   "name": "offer.max_hops",
+   "ref": "offer:/terms/max_hops",
+   "value": 1
+  },
+  {
+   "as": "proposed_term",
+   "class": "admitted",
+   "code": "proposed_term",
+   "i": 5,
+   "name": "offer.payment_jpy",
+   "ref": "offer:/terms/payment_jpy",
+   "value": 0
+  },
+  {
+   "as": "proposed_term",
+   "class": "admitted",
+   "code": "proposed_term",
+   "i": 6,
+   "name": "offer.scope",
+   "ref": "offer:/terms/scope",
+   "value": "witness_walk"
+  }
+ ],
+ "policy_ref": {
+  "policy_sha256": "c92bf8868a5793e86a93c3351bed00eed7f853eff54437dbcc2e4242576b75c3"
+ },
+ "rules": {
+  "classifier": "a2a-sieve-v0",
+  "hidden_instruction_detector_sha256": "84f11d0782823501a590602c838a6178be586349d2f0c67983ed74fb61c18100"
+ },
+ "schema": "a2a-sieve-v0",
+ "sieve_id": "hs-sieve-0001",
+ "signatures": [
+  {
+   "alg": "ed25519",
+   "domain": "horizonshield.dev",
+   "sig": "Akq1aX1mvTwAYl7Yt8YDP8oKD3L+3Gve/N0i0sFDqr329vo2Dpk4O+djLNcr3D9JnMDjJUEgt5ESWI1/mQexAQ=="
+  }
+ ],
+ "subject": {
+  "offer_sha256": "42bfa20d8e498740d16c15e1facaac7c6f0b1a7b1cb1f0c7d157ee4785ea1f57"
+ }
+}
