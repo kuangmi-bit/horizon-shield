@@ -1,0 +1,38 @@
+{
+  "schema": "nenrin-witness-diversity-v0",
+  "pool_sha256": "11d4d2fb95917d915f317ef5e8750308c08978c10a228a0a7159b551b2aeb364",
+  "facts_sha256": "f6a52cbb2f1ebe1b344fb28405febed0d762be553cf6092127ba0570233cebfd",
+  "pool_size": "1",
+  "entries_with_facts": "1",
+  "control_clusters": "1",
+  "distinct": {
+    "registrable_domains": "1",
+    "public_keys": "1",
+    "ip_prefixes": "1",
+    "asns": "1",
+    "dns_operators": "1"
+  },
+  "clusters": [
+    {
+      "id": "api.babyblueviper.com",
+      "members": [
+        "api.babyblueviper.com"
+      ]
+    }
+  ],
+  "strong_shared": [],
+  "weak_shared": [],
+  "findings": [
+    "single_control_cluster"
+  ],
+  "establishes": [
+    "the pool has 1 entries that fall into 1 control clusters, where two entries share a cluster when they share a registrable domain, a public key, an IP prefix or a custom nameserver",
+    "every count is recomputable from pool_sha256 and facts_sha256 with this file"
+  ],
+  "does_not_establish": [
+    "that entries in different clusters are controlled by different people; a determined operator can use different registrars, hosts and networks, and this instrument only makes that more expensive",
+    "that the DNS answers in the facts are true or current; they are what the pool builder observed at observed_at",
+    "that any witness observes correctly",
+    "any score, rank or trust level; the report counts and never scores"
+  ]
+}

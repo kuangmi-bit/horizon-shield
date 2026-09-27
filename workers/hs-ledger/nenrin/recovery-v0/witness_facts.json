@@ -1,0 +1,20 @@
+{
+  "schema": "nenrin-witness-facts-v0",
+  "collected_by": "witness_diversity_collect.mjs 0.1.1",
+  "facts": {
+    "api.babyblueviper.com": {
+      "observed_at": "2026-09-27T11:18:04.036Z",
+      "method": "doh:cloudflare+google cymru-origin-asn collect/0.1.1",
+      "ips": [
+        "5.78.69.36"
+      ],
+      "asns": [
+        "212317"
+      ],
+      "ns": [
+        "ns33.domaincontrol.com",
+        "ns34.domaincontrol.com"
+      ]
+    }
+  }
+}
