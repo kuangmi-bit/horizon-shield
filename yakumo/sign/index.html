@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Yakumo 記録の署名</title>
+<meta name="description" content="Yakumo の加盟店が、自分の端末の中の鍵で、会社の宣言と測定値に署名するためのページ。鍵は端末の外に出ません。">
+<meta name="author" content="The HORIZ音s株式会社">
+<link rel="canonical" href="https://shield.the-horizons-innovation.com/yakumo/sign/">
+<style>
+  :root{
+    --bg:#FAFAFB;--fg:#0B0C10;--dim:#5A5F6B;--faint:#8A909C;--line:#DADCE2;--field:#FFFFFF;
+    --accent:#3D3DF5;--ok:#0F7B4B;--bad:#B3261E;color-scheme:light;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){--bg:#0A0B0E;--fg:#ECEEF3;--dim:#A0A6B2;--faint:#6B7280;--line:#23262E;--field:#101218;
+      --accent:#7C7CFF;--ok:#3CCB8A;--bad:#FF6B5E;color-scheme:dark;}
+  }
+  :root[data-theme="dark"]{--bg:#0A0B0E;--fg:#ECEEF3;--dim:#A0A6B2;--faint:#6B7280;--line:#23262E;--field:#101218;
+      --accent:#7C7CFF;--ok:#3CCB8A;--bad:#FF6B5E;color-scheme:dark;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:28px 72px}
+  .mark{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  h1{font-size:24px;line-height:1.35;margin:6px 0 8px;font-weight:700;text-wrap:balance}
+  p{margin:0 0 10px}
+  .lead{color:var(--dim);font-size:14px;max-width:62ch}
+  section{border-top:1px solid var(--line);padding-block:22px 6px;margin-top:22px}
+  .step{display:flex;gap:12px;align-items:baseline}
+  .step .n{font-family:var(--mono);font-size:12px;color:var(--accent);min-width:2.2em}
+  h2{font-size:17px;margin:0 0 6px;font-weight:700}
+  label{display:block;font-size:13px;font-weight:700;margin:14px 0 4px}
+  label .hint{font-weight:400;color:var(--faint);margin-left:6px}
+  input,select,textarea{width:100%;background:var(--field);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:10px 11px;font:inherit;font-size:15px}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  input.mono,textarea.mono{font-family:var(--mono);font-size:13px}
+  textarea{min-height:120px;resize:vertical}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  button{background:transparent;color:var(--fg);border:1px solid var(--fg);border-radius:0;padding:9px 14px;font:inherit;font-size:14px;cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .status{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:10px;word-break:break-all}
+  .status .dot{display:inline-block;width:7px;height:7px;margin-right:7px;background:var(--faint);vertical-align:middle}
+  .status.ok .dot{background:var(--ok)} .status.bad{color:var(--bad)} .status.bad .dot{background:var(--bad)}
+  .note{font-size:13px;color:var(--dim);border-left:2px solid var(--accent);padding-left:10px;margin:12px 0}
+  .confirm{border:1px solid var(--bad);padding:10px 12px;margin-top:10px;font-size:13px}
+  footer{border-top:1px solid var(--line);margin-top:34px;padding-top:14px;font-size:12px;color:var(--faint)}
+  code{font-family:var(--mono);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mark">Yakumo / MUSUBI record signer</div>
+  <h1>記録の署名</h1>
+  <p class="lead">工事の数量を「誰が、いつ、どう測ったか」を記録に残すためのページです。鍵はこの端末のブラウザの中で作られ、この端末の外には出ません。当社にも届きません。署名した結果(文字の並び)だけを当社に送っていただきます。</p>
+  <div id="unsupported" class="note" hidden>このブラウザは署名に使う方式(Ed25519)に対応していません。最新の Safari(iPhone は iOS 17 以降)か Chrome でお開きください。</div>
+
+  <section>
+    <div class="step"><span class="n">01</span><div style="flex:1">
+      <h2>鍵</h2>
+      <p class="lead">最初に一度だけ作ります。作ったら「控えを保存」で控えのファイルを保存し、なくさない場所に置いてください。控えがあれば、別の端末でも同じ鍵を使えます。</p>
+      <div class="row">
+        <button id="btnNew" class="primary">鍵を作る</button>
+        <button id="btnBackup" disabled>控えを保存</button>
+        <label style="margin:0;display:inline-block"><span class="sr" hidden>控えを読み込む</span>
+          <input id="fileKey" type="file" accept=".pem,.txt" style="display:none">
+          <button id="btnLoad" type="button">控えを読み込む</button></label>
+        <button id="btnForget" disabled>この端末から消す</button>
+      </div>
+      <div id="forgetConfirm" class="confirm" hidden>この端末から鍵を消します。控えのファイルが無いと、同じ鍵は二度と作れません。<div class="row"><button id="btnForgetYes">消す</button><button id="btnForgetNo">やめる</button></div></div>
+      <div id="keyStatus" class="status"><span class="dot"></span>鍵はまだありません</div>
+    </div></div>
+  </section>
+
+  <section>
+    <div class="step"><span class="n">02</span><div style="flex:1">
+      <h2>公開鍵のファイル</h2>
+      <p class="lead">公開鍵は「この署名はこの会社のもの」と確かめるための、見せてよい方の鍵です。できれば御社のサイトの <code>/.well-known/nenrin-key.json</code> に置いてください。置けない場合は、このファイルを当社に送っていただければ Yakumo の店舗ページに置きます(記録にも、鍵が当社のドメインにあることがそのまま出ます)。</p>
+      <textarea id="keyJson" class="mono" readonly placeholder="鍵を作るとここに出ます"></textarea>
+      <div class="row"><button id="btnKeyJson" disabled>key.json を保存</button><button id="btnKeyCopy" disabled>写す</button></div>
+    </div></div>
+  </section>
+
+  <section>
+    <div class="step"><span class="n">03</span><div style="flex:1">
+      <h2>会社の宣言</h2>
+      <p class="lead">「この鍵は、この法人番号の会社が責任を持つ」という宣言です。会社ごとに一度だけ署名します。法人番号は国税庁の法人番号公表サイトで確かめられる 13 桁の番号です。</p>
+      <label for="coName">会社名</label><input id="coName" autocomplete="organization">
+      <label for="coNo">法人番号 <span class="hint">13 桁の数字</span></label><input id="coNo" class="mono" inputmode="numeric" maxlength="13">
+      <label for="coDomain">御社のサイトのドメイン <span class="hint">例 reform-sn.com(https:// は付けません)</span></label><input id="coDomain" class="mono" autocapitalize="off">
+      <label for="coKeyUrl">公開鍵を置いた場所 <span class="hint">https:// から</span></label><input id="coKeyUrl" class="mono" autocapitalize="off">
+      <div class="row"><button id="btnDecl" class="primary" disabled>宣言に署名する</button></div>
+      <div id="declStatus" class="status"></div>
+      <textarea id="declOut" class="mono" readonly placeholder="署名するとここに出ます"></textarea>
+      <div class="row"><button id="btnDeclCopy" disabled>写す</button><button id="btnDeclSave" disabled>保存</button></div>
+    </div></div>
+  </section>
+
+  <section>
+    <div class="step"><span class="n">04</span><div style="flex:1">
+      <h2>測定の記録</h2>
+      <p class="lead">測った値に署名します。契約と条件の番号、品目は、当社からお送りするリンクで自動で入ります。測る直前か直後に「目印を取る」を押すと、その時点の Bitcoin の最新ブロックが入り、測った時刻の手前の目印になります。</p>
+      <label for="mContract">契約の番号</label><input id="mContract" class="mono" autocapitalize="off">
+      <label for="mTerms">条件の番号</label><input id="mTerms" class="mono" autocapitalize="off">
+      <label for="mItem">品目 <span class="hint" id="mItemLabel"></span></label><input id="mItem" class="mono" autocapitalize="off">
+      <label for="mMethod">測り方</label><select id="mMethod"></select>
+      <label for="mValue">測った値 <span class="hint" id="mUnit"></span></label><input id="mValue" class="mono" inputmode="decimal" placeholder="例 187.4">
+      <label for="mFile">根拠のファイル <span class="hint">任意。写真や図面。ファイルは送られず、指紋(sha256)だけが記録に入ります</span></label><input id="mFile" type="file">
+      <label>時刻の目印</label>
+      <div class="row" style="margin-top:0"><button id="btnBeacon">目印を取る</button></div>
+      <div id="beaconStatus" class="status"></div>
+      <div class="row"><button id="btnMeas" class="primary" disabled>測定に署名する</button></div>
+      <div id="measStatus" class="status"></div>
+      <textarea id="measOut" class="mono" readonly placeholder="署名するとここに出ます"></textarea>
+      <div class="row"><button id="btnMeasCopy" disabled>写す</button><button id="btnMeasSave" disabled>保存</button></div>
+      <p class="note">署名した文字の並びを、そのまま当社(LINE)に送ってください。一文字でも変わると署名が合わなくなり、記録として扱えません。</p>
+    </div></div>
+  </section>
+
+  <footer>
+    このページは The HORIZ音s株式会社 が公開しています。処理の中身は <code>signer_core.js</code> にあり、GitHub の ogasurfproject-jpg/horizon-shield の <code>yakumo/sign/</code> で誰でも読めます。署名の形式は MUSUBI の a2a-actor-declaration-v0 と a2a-measurement-v0 です。
+  </footer>
+</div>
+
+<script type="module">
+import * as S from "./signer_core.js";
+const $ = (id) => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+let priv = null, pub = null, beacon = null, evidenceSha = null;
+
+function status(el, text, kind) { el.className = "status" + (kind ? " " + kind : ""); el.innerHTML = '<span class="dot"></span>'; el.appendChild(document.createTextNode(text)); }
+function save(name, text) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/octet-stream" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+async function copy(text, btn) { try { await navigator.clipboard.writeText(text); btn.textContent = "写しました"; } catch { btn.textContent = "長押しで選んで写してください"; } setTimeout(() => (btn.textContent = "写す"), 2500); }
+
+// key storage: IndexedDB holds the CryptoKey itself; if the browser refuses, the key lives only while the page is open
+const DB = "yakumo-signer", ST = "keys";
+function idb() { return new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(ST); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function putKey(k) { try { const db = await idb(); await new Promise((res, rej) => { const t = db.transaction(ST, "readwrite"); t.objectStore(ST).put(k, "main"); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch { return false; } }
+async function getKey() { try { const db = await idb(); return await new Promise((res) => { const t = db.transaction(ST, "readonly"); const r = t.objectStore(ST).get("main"); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); }); } catch { return null; } }
+async function delKey() { try { const db = await idb(); await new Promise((res) => { const t = db.transaction(ST, "readwrite"); t.objectStore(ST).delete("main"); t.oncomplete = res; t.onerror = res; }); } catch {} }
+
+async function useKey(k, how) {
+  priv = k; pub = await S.publicB64Of(k);
+  const kept = await putKey(k);
+  const fp = (await S.sha256Hex(pub)).slice(0, 16);
+  status($("keyStatus"), how + "  公開鍵の指紋 " + fp + (kept ? "  この端末に保管しました" : "  この端末に保管できませんでした。控えを必ず保存してください"), "ok");
+  $("keyJson").value = S.keyFile(pub);
+  for (const id of ["btnBackup", "btnForget", "btnKeyJson", "btnKeyCopy", "btnDecl", "btnMeas"]) $(id).disabled = false;
+}
+
+if (!(await S.supported())) { $("unsupported").hidden = false; for (const b of document.querySelectorAll("button")) b.disabled = true; }
+else { const k = await getKey(); if (k) await useKey(k, "この端末の鍵を使います。"); }
+
+$("btnNew").onclick = async () => { if (priv) { status($("keyStatus"), "鍵はもうあります。作り直す場合は、先に「この端末から消す」を押してください", "bad"); return; } const k = await S.newKey(); await useKey(k.privateKey, "鍵を作りました。"); };
+$("btnBackup").onclick = async () => save("yakumo_signing_key_" + (await S.sha256Hex(pub)).slice(0, 8) + ".pem", await S.exportPem(priv));
+$("btnLoad").onclick = () => $("fileKey").click();
+$("fileKey").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { await useKey(await S.importPem(await f.text()), "控えから鍵を読み込みました。"); } catch { status($("keyStatus"), "このファイルは鍵の控えとして読めませんでした", "bad"); } };
+$("btnForget").onclick = () => { $("forgetConfirm").hidden = false; };
+$("btnForgetNo").onclick = () => { $("forgetConfirm").hidden = true; };
+$("btnForgetYes").onclick = async () => { await delKey(); priv = null; pub = null; $("forgetConfirm").hidden = true; $("keyJson").value = ""; for (const id of ["btnBackup", "btnForget", "btnKeyJson", "btnKeyCopy", "btnDecl", "btnMeas"]) $(id).disabled = true; status($("keyStatus"), "この端末から鍵を消しました"); };
+$("btnKeyJson").onclick = () => save("nenrin-key.json", S.keyFile(pub));
+$("btnKeyCopy").onclick = () => copy(S.keyFile(pub), $("btnKeyCopy"));
+
+$("coDomain").oninput = () => { const d = $("coDomain").value.trim().toLowerCase(); if (d && !$("coKeyUrl").dataset.touched) $("coKeyUrl").value = "https://" + d + "/.well-known/nenrin-key.json"; };
+$("coKeyUrl").oninput = () => { $("coKeyUrl").dataset.touched = "1"; };
+$("btnDecl").onclick = async () => {
+  const args = { publicB64: pub, domain: $("coDomain").value.trim(), keyUrl: $("coKeyUrl").value.trim(), houjinBango: $("coNo").value.trim(), companyName: $("coName").value.trim(), declaredAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z") };
+  const p = S.declarationProblem(args); if (p) { status($("declStatus"), p, "bad"); return; }
+  const d = await S.signDeclaration(S.buildDeclaration(args), priv);
+  $("declOut").value = S.canonical(d); status($("declStatus"), "署名しました。下の文字の並びを当社に送ってください", "ok");
+  $("btnDeclCopy").disabled = false; $("btnDeclSave").disabled = false;
+};
+$("btnDeclCopy").onclick = () => copy($("declOut").value, $("btnDeclCopy"));
+$("btnDeclSave").onclick = () => save("declaration.json", $("declOut").value);
+
+// prefill from the link HS sends: ?contract=&terms=&item=&label=&unit=&methods=a,b
+$("mContract").value = q.get("contract") || ""; $("mTerms").value = q.get("terms") || ""; $("mItem").value = q.get("item") || "";
+$("mItemLabel").textContent = q.get("label") || ""; $("mUnit").textContent = q.get("unit") ? "単位 " + q.get("unit") : "";
+const METHOD_JA = { on_site_tape_measure_v0: "現場で実測", elevation_drawing_takeoff_v0: "図面(展開図)から拾う" };
+for (const m of (q.get("methods") || "on_site_tape_measure_v0,elevation_drawing_takeoff_v0").split(",").filter(Boolean)) { const o = document.createElement("option"); o.value = m; o.textContent = (METHOD_JA[m] || m) + "  (" + m + ")"; $("mMethod").appendChild(o); }
+$("mFile").onchange = async (e) => { const f = e.target.files[0]; evidenceSha = f ? await S.sha256Hex(new Uint8Array(await f.arrayBuffer())) : null; };
+$("btnBeacon").onclick = async () => {
+  status($("beaconStatus"), "取得しています");
+  try {
+    const h = Number((await (await fetch("https://mempool.space/api/blocks/tip/height")).text()).trim());
+    const x = (await (await fetch("https://mempool.space/api/blocks/tip/hash")).text()).trim();
+    if (!Number.isSafeInteger(h) || !/^[0-9a-f]{64}$/.test(x)) throw new Error("bad");
+    beacon = { kind: "bitcoin_block", height: h, hash: x };
+    status($("beaconStatus"), "ブロック " + h + "  " + x.slice(0, 16) + "…  (mempool.space から)", "ok");
+  } catch { beacon = null; status($("beaconStatus"), "取得できませんでした。電波の良い所でもう一度押してください", "bad"); }
+};
+$("btnMeas").onclick = async () => {
+  const args = { contractSha: $("mContract").value.trim(), termsSha: $("mTerms").value.trim(), itemId: $("mItem").value.trim(), measured: S.parseQuantity($("mValue").value), method: $("mMethod").value, publicB64: pub, beacon, evidenceSha };
+  const p = S.measurementProblem(args); if (p) { status($("measStatus"), p, "bad"); return; }
+  const m = await S.signMeasurement(S.buildMeasurement(args), priv);
+  $("measOut").value = S.canonical(m); status($("measStatus"), "署名しました。下の文字の並びを当社に送ってください", "ok");
+  $("btnMeasCopy").disabled = false; $("btnMeasSave").disabled = false;
+};
+$("btnMeasCopy").onclick = () => copy($("measOut").value, $("btnMeasCopy"));
+$("btnMeasSave").onclick = () => save("measurement.json", $("measOut").value);
+</script>
+</body>
+</html>
