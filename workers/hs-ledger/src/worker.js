@@ -13,6 +13,7 @@ import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1
 import { handleTaskWitness, handleTaskTrustSignal, anchorTaskWitnessPool, handleTaskEvidence } from "../nenrin/task-delegation-bind-v0/task_ledger_v0.mjs";
 // record-privacy-v1 (2026-09-28): the measured party's own reply, shown beside the measurement. See nenrin/response-v0.
 import { handleResponse, responsesAbout, responsesForHost } from "../nenrin/response-v0/response_v0.mjs";
+import { handleTracePin, anchorTracePinPool } from "../nenrin/trace-pin-v0/trace_pin_v0.mjs";
 // Agreement intake v0 (2026-09-16). Records that two agents both signed the same bytes.
 // The verifier (nenrin/agreement-v0/agreement_verify.mjs) is offline and untouched; this only
 // wires it to the world. Boundary ops/AGREEMENT_INTAKE_v0_BOUNDARY.md, decisions
@@ -1516,6 +1517,7 @@ async function handle(request, env) {
     { const _tts = await handleTaskTrustSignal(p, request, url, env); if (_tts) return _tts; }
     { const _te = await handleTaskEvidence(p, request, url, env); if (_te) return _te; }
     { const _rs = await handleResponse(p, request, url, env, responseDeps(env), origin); if (_rs) return _rs; }
+    { const _tp = await handleTracePin(p, request, url, env, origin); if (_tp) return _tp; }
 
     if (p === "/witness" && request.method === "GET") {
       const d = witnessSelfDescription(origin);
@@ -2239,6 +2241,12 @@ export default {
       console.log("agreement batch:", JSON.stringify(ra.body));
     } catch (e) {
       console.log("agreement batch failed:", String(e && e.message || e));
+    }
+    try {
+      const rp = await anchorTracePinPool(env, "https://ledger.horizonshield.dev", "schedule");
+      console.log("trace pin batch:", JSON.stringify(rp.body));
+    } catch (e) {
+      console.log("trace pin batch failed:", String(e && e.message || e));
     }
   },
 };

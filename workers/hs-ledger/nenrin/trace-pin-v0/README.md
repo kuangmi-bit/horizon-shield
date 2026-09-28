@@ -1,0 +1,45 @@
+# nenrin-trace-pin-v0
+
+Pin a TRACE Trust Record to the NENRIN ledger by the sha256 of its RFC 8785 form.
+
+TRACE ([agentrust-io/trace-spec](https://github.com/agentrust-io/trace-spec), v0.2, hosted as a Series of LF Projects) answers what ran, where and under which policy. A record is signed with Ed25519 by the key in `cnf.jwk`, over the RFC 8785 form of the record without its `signature` member. Its time is `iat`, which the issuer writes, and spec section 3.2.2 has verifiers reject a record older than 24 hours by default.
+
+So a record that proves something today cannot be checked by a conformant verifier next month, and nothing in it bounds `iat` from outside. This module adds that half. It checks the signature at intake, keeps the exact bytes, and anchors their sha in a daily batch that is stamped to Bitcoin.
+
+## Routes (hs-ledger)
+
+| | |
+|---|---|
+| `GET /evidence/trace` | rules, caps, what a pin establishes and what it does not |
+| `POST /evidence/trace` | body `{"record": <signed TRACE record>}`; 201 pending, 200 dedup, 422 refused with `reason_code` |
+| `GET /evidence/trace/{sha}` | status, thumbprint, anchor, the parsed record |
+| `GET /evidence/trace/{sha}?format=raw` | the pinned bytes; `sha256(body) == sha` |
+| `GET /evidence/trace/pending` | the pool waiting for the 00:30 UTC batch |
+
+## Checked at intake
+
+1. `eat_profile` is `tag:agentrust-io.com,2026:trace-v0.2`. The v0.1 identifier is refused, as TRACE v0.2 requires.
+2. The ten members the v0.2 schema requires are present. The full schema is not validated here.
+3. `signature` is canonical unpadded base64url of 64 bytes. `cnf.jwk` is OKP / Ed25519. The signature verifies.
+4. `iat` is no more than 300 seconds after the ledger's clock. A postdated record is refused, because the anchor would otherwise seem to confirm a time the issuer chose.
+5. Every value has one RFC 8785 form in every language. Lone surrogates and non-finite numbers are refused. So are integers outside the safe range, which is stricter than Python's `rfc8785` on a float like `1e21` on purpose.
+
+Old records are accepted, since keeping them checkable is the point. The answer carries `fresh_at_intake`.
+
+## What a pin does not establish
+
+- Any claim inside the record (model, measurement, policy, data class, tools).
+- That the key belongs to the subject. The key is the one the record carries, so compare `key_thumbprint` (RFC 7638) with a key you trust.
+- Revocation status, whether the transparency receipt resolves, the true issue time, or who submitted it.
+
+## Not read in v0
+
+Enveloped signatures (JWS, COSE, cMCP RuntimeClaim), non-Ed25519 confirmation keys, revocation bundles and SCITT receipts. Each is refused or ignored by name, never guessed.
+
+## Tests
+
+- `node nenrin/trace-pin-v0/trace_pin_v0.test.mjs`: 40 checks. They run against records made by TRACE's own library (`agentrust-trace` 0.11.0 on PyPI, `fixtures/gen_fixtures.py`). The pinned sha must equal Python's RFC 8785 bytes, the thumbprint must equal `jwk_thumbprint`, and RFC 8785 vectors must be byte identical. The attack checks cover tampered claims, signature spellings, profile, time, size, depth and number range.
+- `node test/trace_pin.test.mjs`: the real worker end to end, from intake through the scheduled batch to the anchored view and the chain head.
+- 8 deliberate mutants each fail at least one of the two.
+
+To regenerate the fixtures, use Python 3.11 or later with `pip install agentrust-trace==0.11.0` and run `python gen_fixtures.py` in `fixtures/`. The key is derived from a fixed public phrase and is a test key only.

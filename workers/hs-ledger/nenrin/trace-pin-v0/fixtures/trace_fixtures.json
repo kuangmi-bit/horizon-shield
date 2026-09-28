@@ -1,0 +1,182 @@
+{
+ "_about": {
+  "generator": "agentrust-trace 0.11.0 (PyPI), sign_record / verify_record / jwk_thumbprint / rfc8785",
+  "iat": 1790640000,
+  "key": "Ed25519 from sha256 of a fixed public test phrase; test key only, derives nothing real"
+ },
+ "_jcs_stricter_here": [
+  {
+   "python_rfc8785": "[1e+21]",
+   "value": [
+    1e+21
+   ],
+   "why": "Python holds 1e21 as a float; after JSON.parse a JS reader holds an integer past the safe range and cannot tell the two apart, so this ledger refuses it (unsafe_integer) instead of guessing"
+  }
+ ],
+ "_jcs_vectors": [
+  {
+   "jcs_utf8_hex": "7b225a223a7b2279223a22e280a85c7530303166227d2c2261223a5b312c322e352c302c31652d372c3132333435363738393031323334352c747275652c6e756c6c5d2c2262223a312c22c3a9223a2278222c22f09f9880223a312c22efbfbf223a327d",
+   "value": {
+    "Z": {
+     "y": " \u001f"
+    },
+    "a": [
+     1,
+     2.5,
+     -0.0,
+     1e-07,
+     123456789012345,
+     true,
+     null
+    ],
+    "b": 1,
+    "é": "x",
+    "￿": 2,
+    "😀": 1
+   }
+  },
+  {
+   "jcs_utf8_hex": "5b302e312c312c3130302c332e31343135392c2d312e35652d31302c35652d3332345d",
+   "value": [
+    0.1,
+    1.0,
+    100,
+    3.14159,
+    -1.5e-10,
+    5e-324
+   ]
+  },
+  {
+   "jcs_utf8_hex": "22706c61696e205c22715c22205c5c5c5c202f207f22",
+   "value": "plain \"q\" \\\\ / "
+  }
+ ],
+ "nonascii": {
+  "body_jcs_sha256": "87fd638d23c7a0253eb11dfdc038a99389024de15500c1bae080af79051ace26",
+  "jcs_sha256": "a7fbc86c0ae9f779ac5a946b0970627e20115994c61752e77966e0a46e574fdd",
+  "python_verify_record_at_iat_plus_60": true,
+  "record": {
+   "appraisal": {
+    "status": "affirming",
+    "verifier": "https://verifier.example/appraise"
+   },
+   "build_provenance": {
+    "digest": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+    "slsa_level": 2
+   },
+   "cnf": {
+    "jwk": {
+     "crv": "Ed25519",
+     "kty": "OKP",
+     "x": "q3T2O3VtoP6y2UGTWeoCcN0E6VqAaeZuom0Ki9jCN30"
+    }
+   },
+   "data_class": "社外秘",
+   "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+   "iat": 1790640000,
+   "model": {
+    "model_id": "見積りé-1 😀 tab\t quote\" slash/ ctl\u0001",
+    "provider": "例"
+   },
+   "policy": {
+    "bundle_hash": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "enforcement_mode": "enforce"
+   },
+   "runtime": {
+    "measurement": "sha256:abababababababababababababababababababababababababababababababab",
+    "platform": "intel-tdx"
+   },
+   "signature": "WNbypEu8nT4L3D22fr6RVaM8zA6jZYRhkHYU5UqqqPuganqeeUkmFHLh0YL8r4rTusrvS4RS-O05ZABPBugJAw",
+   "subject": "spiffe://example.org/agent/estimator",
+   "transparency": "https://registry.example/claim/trace-2026-09-29-0001"
+  },
+  "schema_errors": [],
+  "thumbprint": "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ"
+ },
+ "v01_profile": {
+  "body_jcs_sha256": "7ec4f1ac7b9e9cc32566f80d28ee1ec441fd84a1553d2327dcca50f695e6e050",
+  "jcs_sha256": "89f258dc916049cbc2940c8593d3db056e127c3ef644b678721e78e8d166e7bc",
+  "python_verify_record_at_iat_plus_60": "REFUSED: record carries the superseded v0.1 profile 'tag:agentrust.io,2026:trace-v0.1'. spec/trace-v0.2.md, under 'Changes from v0.1': the cutover is cutover, not coexis",
+  "record": {
+   "appraisal": {
+    "status": "affirming",
+    "verifier": "https://verifier.example/appraise"
+   },
+   "build_provenance": {
+    "digest": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+    "slsa_level": 2
+   },
+   "cnf": {
+    "jwk": {
+     "crv": "Ed25519",
+     "kty": "OKP",
+     "x": "q3T2O3VtoP6y2UGTWeoCcN0E6VqAaeZuom0Ki9jCN30"
+    }
+   },
+   "data_class": "internal",
+   "eat_profile": "tag:agentrust.io,2026:trace-v0.1",
+   "iat": 1790640000,
+   "model": {
+    "model_id": "estimator-1",
+    "provider": "example"
+   },
+   "policy": {
+    "bundle_hash": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "enforcement_mode": "enforce"
+   },
+   "runtime": {
+    "measurement": "sha256:abababababababababababababababababababababababababababababababab",
+    "platform": "intel-tdx"
+   },
+   "signature": "Qq1zNRhDB2MjmV1eE8vz7m-lR4lhrrQ6KtMw0Asqbd_rYQklUopHkeHmgbBK8t3hWYLaU5s4lhGl_b7Pfzr9AQ",
+   "subject": "spiffe://example.org/agent/estimator",
+   "transparency": "https://registry.example/claim/trace-2026-09-29-0001"
+  },
+  "schema_errors": [
+   "'tag:agentrust-io.com,2026:trace-v0.2' was expected"
+  ],
+  "thumbprint": "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ"
+ },
+ "valid": {
+  "body_jcs_sha256": "0a69d7b5d72a807054a80ec0e827fedec5214698ab8fe1ee386439bc9f356be4",
+  "jcs_sha256": "c44de5ac69363d629a165830ed6224b375bd883cca63d81c5f9f624310e6b8ed",
+  "python_verify_record_at_iat_plus_60": true,
+  "record": {
+   "appraisal": {
+    "status": "affirming",
+    "verifier": "https://verifier.example/appraise"
+   },
+   "build_provenance": {
+    "digest": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+    "slsa_level": 2
+   },
+   "cnf": {
+    "jwk": {
+     "crv": "Ed25519",
+     "kty": "OKP",
+     "x": "q3T2O3VtoP6y2UGTWeoCcN0E6VqAaeZuom0Ki9jCN30"
+    }
+   },
+   "data_class": "internal",
+   "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+   "iat": 1790640000,
+   "model": {
+    "model_id": "estimator-1",
+    "provider": "example"
+   },
+   "policy": {
+    "bundle_hash": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "enforcement_mode": "enforce"
+   },
+   "runtime": {
+    "measurement": "sha256:abababababababababababababababababababababababababababababababab",
+    "platform": "intel-tdx"
+   },
+   "signature": "3QYy5_qyuSXrjLY99YsCW74vS8V1OinFJpMKN3Gbslr9VzrckpHqIDRL9C3z3P-mhJ50J1kxmYKQay8R9i1tAA",
+   "subject": "spiffe://example.org/agent/estimator",
+   "transparency": "https://registry.example/claim/trace-2026-09-29-0001"
+  },
+  "schema_errors": [],
+  "thumbprint": "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ"
+ }
+}
