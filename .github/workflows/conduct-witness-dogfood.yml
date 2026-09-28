@@ -13,10 +13,10 @@ jobs:
           origins: |
             https://mcp.horizonshield.dev a2a
             https://gate.horizonshield.dev mcp
-          walker_sha256: 6ae878f136a881795d601e88abc0bf4460525f8b225ad24091e82487fc3532af
+          walker_sha256: 07c7ba26c34595fddbdc77be27db5a76d2ea4db928388c269cd19286f6817864
           bind_task: "true"
-          task_bind_sha256: 9597f0861414cf8e7bdb7dfc9c3e0b36ced71b1616a3ad0d5bc91c13ba929da6
-          producer_sha256: 8dbffa5c60375569021774c5bd74d5ca198506b93dd9452271e1402ef496992e
+          task_bind_sha256: b0777582dff8e15edf2ec30e3b22181835a7ebfaebaa5ba2d7709bd4de41d771
+          producer_sha256: 2ea6385ffc613545b858dab8acacb2bdcba99eebc6f785c0ba5c134cd58b9d86
           # Signed task emission activates when the HS_WITNESS_KEY secret (an Ed25519 PEM) exists and its
           # public key JSON is served at key_url, the same way gate.horizonshield.dev/keys/agreement.json is.
           # Empty secret means an unsigned walk and skipped binding, never a failure. Serve the pubkey before
