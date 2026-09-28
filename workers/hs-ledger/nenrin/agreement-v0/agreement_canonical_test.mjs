@@ -38,13 +38,14 @@
 //
 // Run: node agreement_canonical_test.mjs
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { inflateSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
   canonicalAscii, canonicalUtf8, strUtf8, cmpCodePoints, str, num,
-  parseCanonical, parseStrict, parseLoose, parseNative, parseScan, HAS_JSON_SOURCE,
+  parseCanonical, parseStrict, parseLoose, parseNative, parseScan, HAS_JSON_SOURCE, READER_MAX_DEPTH,
 } from "./agreement_canonical.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -156,13 +157,43 @@ t("JSON.parse も後勝ち、つまり緩い口と一致する",
 t("parseCanonical は厳しい方を指しとる",
   parseCanonical === parseStrict);
 
-// 深すぎる入れ子。python は読む側が倒れて too_deep と書く。こちらは倒れる前に
-// 同じ名前で断る。verify は 32 段で断るから、この蓋が判定を決めることは無い。
+// 深すぎる入れ子。2026-09-28 から両方の読み手が同じ蓋 READER_MAX_DEPTH (512) を持ち、読む前に文字列の外の
+// 括弧を数えて断る。それまでは「宿主の stack が尽きたら too_deep」で揃えとったが、CPython 3.14.7 (macOS) は
+// 10 万段を最後まで読んで bad_json と書き、こちらは too_deep と書いた。同じ入力に二つの名前。
+// verify は 32 段で断るから、この蓋が記録の判定を決めることは無い。
 t("宿主の stack が尽きる深さは too_deep、python の読み手と同じ名前",
   code(() => parseStrict("[".repeat(400000) + "]".repeat(400000))) === "too_deep",
   code(() => parseStrict("[".repeat(400000) + "]".repeat(400000))));
-t("python が読める深さ (993 段を実測) はこちらも読める",
-  Array.isArray(parseStrict("[".repeat(993) + "]".repeat(993))));
+t("蓋の深さ (READER_MAX_DEPTH 512 段) までは読める",
+  READER_MAX_DEPTH === 512 && Array.isArray(parseStrict("[".repeat(512) + "]".repeat(512))));
+t("513 段は too_deep、宿主に依らん",
+  code(() => parseStrict("[".repeat(513) + "]".repeat(513))) === "too_deep");
+t("途中が壊れた深い入力も too_deep (数えるのは読む前)",
+  code(() => parseStrict("[1 x" + "[".repeat(600))) === "too_deep");
+t("文字列の中の括弧は数えん",
+  Array.isArray(parseStrict('["' + "[".repeat(1000) + '\\"' + "{".repeat(1000) + '"]')));
+{
+  // 同じ入力を python の読み手 (agreement_verify.parse_strict) に通して、同じ名前か。宿主の python の版に依らんことが要点。
+  const cases = ["[".repeat(512) + "]".repeat(512), "[".repeat(513) + "]".repeat(513), "[1 x" + "[".repeat(600),
+                 '["' + "[".repeat(1000) + '\\"' + "{".repeat(1000) + '"]', "[".repeat(100000) + "]".repeat(100000)];
+  const js = cases.map((s) => { try { parseStrict(s); return "ok"; } catch (e) { return e.code || "threw"; } });
+  const py = spawnSync("python3", ["-c", [
+    "import sys, json; sys.path.insert(0, '.')",
+    "import agreement_verify as V",
+    "out = []",
+    "for s in json.load(sys.stdin):",
+    "    try:",
+    "        V.parse_strict(s); out.append('ok')",
+    "    except RecursionError:",
+    "        out.append('too_deep')",
+    "    except ValueError as e:",
+    "        out.append('duplicate_json_key' if 'duplicate key' in str(e) else 'bad_json')",
+    "print(json.dumps([sys.version.split()[0], out]))"].join("\n")], { input: JSON.stringify(cases), encoding: "utf8", cwd: HERE });
+  let pyOut = null;
+  try { pyOut = JSON.parse(py.stdout); } catch (_e) { pyOut = null; }
+  t("深さの 5 例で JS と python の読み手が同じ名前 (python " + (pyOut ? pyOut[0] : "?") + ")",
+    pyOut && JSON.stringify(pyOut[1]) === JSON.stringify(js), JSON.stringify(js) + " vs " + (pyOut ? JSON.stringify(pyOut[1]) : py.stderr.slice(0, 200)));
+}
 t("壊れた JSON は bad_json",
   code(() => parseStrict("{")) === "bad_json" && code(() => parseStrict("01")) === "bad_json");
 t("the two parsers agree on a hand written awkward case",

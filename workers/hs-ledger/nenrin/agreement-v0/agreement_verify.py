@@ -133,9 +133,50 @@ def _no_duplicate_keys(pairs):
     return dict(pairs)
 
 
+# Reader ceiling (2026-09-28). Until today neither reader set a depth limit: both relied on the host running
+# out of stack and reported that as too_deep. CPython 3.14 changed how deep json.loads can go (it depends on
+# the thread's stack, not on the recursion limit), and on macOS 3.14.7 it read 100,000 levels of "[" to the
+# end, so this reader answered bad_json where the JS reader answered too_deep. Same input, two names. The fix
+# is a number both readers state and count the same way BEFORE parsing: nesting outside strings. Brackets,
+# quotes and backslashes are ASCII, so a Python str and a JS string count identically. 512 is far above
+# verify's own MAX_DEPTH (32), above the deepest input in any recorded table (100 in readback, 41 in the
+# fixture), and below what any supported host can parse, so no recorded outcome changes and no host decides.
+READER_MAX_DEPTH = 512
+
+
+class TooDeep(RecursionError):
+    """Raised by parse_strict for text nested past READER_MAX_DEPTH. A RecursionError, so every caller that
+    already turned a host stack overflow into too_deep keeps doing exactly that."""
+
+
+def text_depth(text):
+    """Deepest [ or { nesting outside strings, counted on the raw text before any parsing."""
+    depth = deepest = 0
+    in_str = esc = False
+    for ch in text:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+        elif ch == "[" or ch == "{":
+            depth += 1
+            if depth > deepest:
+                deepest = depth
+        elif ch == "]" or ch == "}":
+            depth -= 1
+    return deepest
+
+
 def parse_strict(text):
     """json.loads keeps the LAST of two identical keys and says nothing. A record carrying
     "amount" twice would then canonicalize to a number the person who read it never saw."""
+    if text_depth(text) > READER_MAX_DEPTH:
+        raise TooDeep("the JSON is nested past what a reader can parse")
     return json.loads(text, object_pairs_hook=_no_duplicate_keys)
 
 

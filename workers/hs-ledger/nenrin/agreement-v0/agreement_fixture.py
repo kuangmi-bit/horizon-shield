@@ -67,7 +67,7 @@ def canonical(obj):
     layer's canonical form is what gets signed, and it leaves non-ASCII as itself.
     This file is transport. Escaping everything to ASCII means a lone surrogate,
     which is legal JSON text and illegal UTF-8, can still travel to another
-    language as \ud800 and arrive as the same string.
+    language as \\ud800 and arrive as the same string.
 
     The first version of this file used ensure_ascii=False and threw away 187
     vectors as "not carryable", every one of them a lone surrogate case. The lone

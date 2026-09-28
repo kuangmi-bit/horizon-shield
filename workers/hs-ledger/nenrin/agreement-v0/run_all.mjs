@@ -41,7 +41,10 @@ import path from "node:path";
 const SELF_PATH = fileURLToPath(import.meta.url);
 const HERE = path.dirname(SELF_PATH);
 const SELF = path.basename(SELF_PATH);
-const TIMEOUT_MS = Number(process.env.AGREEMENT_SUITE_TIMEOUT_MS || 300000);
+// 2026-09-28: 300s から 900s に。agreement_mutation.py は敵 (1 回 約 3 秒) を 77 回回すので、測ると 209s (python
+// 3.11) と 236s (3.14.7、同じ箱)、TOshi の Mac の 3.14.7 では 300s を超えて timed out になった。中身は合格しとる
+// のに制限で落ちる。制限は固まった suite を見つけるための物で、遅い suite を落とす物やない。900s でも固まりは捕まる。
+const TIMEOUT_MS = Number(process.env.AGREEMENT_SUITE_TIMEOUT_MS || 900000);
 const MARK = /^\s*(?:#|\/\/)\s*RUN_ALL:\s*(\S+)(.*)$/;
 
 const files = readdirSync(HERE)

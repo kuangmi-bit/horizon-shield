@@ -34,6 +34,9 @@ const TABLES = [
   "agreement_vectors_v1.json",
   "agreement_float_repr_v1.json",
   "agreement_readback_v1.json",
+  // 2026-09-28: the suite now hands five deep inputs to the python reader (agreement_verify.parse_strict) and
+  // requires the same names. It is linked, not copied or mutated: only the JS reader is the target here.
+  "agreement_verify.py",
 ];
 
 export const MUTANTS = [
@@ -69,7 +72,14 @@ export const MUTANTS = [
   ["NaN を断る", 'if (c === 0x4e) return word("NaN", NaN);', "", "caught"],
   ["Infinity を断る", 'if (c === 0x49) return word("Infinity", Infinity);', "", "caught"],
   ["-Infinity を数として読もうとする", 'if (c === 0x2d && text.charCodeAt(i + 1) === 0x49) return word("-Infinity", -Infinity);', "", "caught"],
-  ["stack 切れを too_deep と呼ばん", 'throw new CanonicalError("too_deep", "the JSON is nested past what a reader can parse");', 'throw new CanonicalError("bad_json", "deep");', "caught"],
+  // 2026-09-28: the reader ceiling added a second identical throw, so this anchor carries its indentation (6
+  // spaces, inside the RangeError catch) to stay unique, and the ceiling gets two mutants of its own.
+  ["stack 切れを too_deep と呼ばん (等価、2026-09-28 から)", '      throw new CanonicalError("too_deep", "the JSON is nested past what a reader can parse");', '      throw new CanonicalError("bad_json", "deep");', "equivalent"],
+  // なぜ等価になったか: 読む前に数える蓋 (512 段) が先に効くので、深さで stack が尽きる入力はもうこの
+  // catch まで来ん。512 段の再帰で尽きる宿主は無い。catch は安全網として残すが、試験から見て届かん道に
+  // 期待を掛けたら嘘になる。捕まえると書いたまま生き残らせる方が悪い。変異器がそれを言うた。
+  ["読み手の蓋を 1 段ずらす", "textDepth(text) > READER_MAX_DEPTH)", "textDepth(text) > READER_MAX_DEPTH + 1)", "caught"],
+  ["深さを数える時に文字列の中のエスケープを見ん", "      else if (c === 0x5c) esc = true;\n", "", "caught"],
   ["末尾の余り検査を外す", '  if (i !== n) err("bad_json", "末尾に余りがある");', "", "caught"],
   ["先頭の 0 を通す", "    if (c === 0x30) i++;", "    if (c === 0x30) { i++; while (isDigit(text.charCodeAt(i))) i++; }", "caught"],
   ["生の制御文字を文字列に通す", '    if (c < 0x20) err("bad_json", "生の制御文字");', "", "caught"],
@@ -164,7 +174,7 @@ if (wrong.length) {
   process.exit(1);
 }
 console.log("=== " + MUTANTS.length + " / " + MUTANTS.length + " 合格 (canonical の mutation) ===");
-console.log("緑やから正しいんやない。壊したら赤くなるから正しい。等価と書いた 1 本だけは、なぜ等価かをこの file に書いてある。");
+console.log("緑やから正しいんやない。壊したら赤くなるから正しい。等価と書いた " + MUTANTS.filter((m) => m[3] === "equivalent").length + " 本は、どれもなぜ等価かをこの file に書いてある。");
 process.exit(0);
 
 }
