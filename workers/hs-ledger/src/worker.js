@@ -11,6 +11,8 @@ import { walkChain, exportRow, headRecord, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELD
 import { assembleResume as assembleResumeV1, Reject as ResumeReject } from "../nenrin/resume-v1/resume_v1.mjs";
 import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1/trust_signal_v1.mjs";
 import { handleTaskWitness, handleTaskTrustSignal, anchorTaskWitnessPool, handleTaskEvidence } from "../nenrin/task-delegation-bind-v0/task_ledger_v0.mjs";
+// record-privacy-v1 (2026-09-28): the measured party's own reply, shown beside the measurement. See nenrin/response-v0.
+import { handleResponse, responsesAbout, responsesForHost } from "../nenrin/response-v0/response_v0.mjs";
 // Agreement intake v0 (2026-09-16). Records that two agents both signed the same bytes.
 // The verifier (nenrin/agreement-v0/agreement_verify.mjs) is offline and untouched; this only
 // wires it to the world. Boundary ops/AGREEMENT_INTAKE_v0_BOUNDARY.md, decisions
@@ -350,6 +352,22 @@ async function agreementRateLimit(env, request) {
   } catch (_e) {
     return { ok: true }; // a spam counter must never take down the intake
   }
+}
+
+// nenrin-response-v0 dependencies: the subject's key from its own domain (same fetch and cache as witness keys),
+// and a gate verdict's exact bytes through the service binding (a Worker cannot fetch its own zone over HTTP).
+function responseDeps(env) {
+  return {
+    now: () => Date.now(),
+    fetchKey: (u) => witnessFetchDomainKey(env, u),
+    fetchGateRecord: async (s) => {
+      if (!env.GATE || typeof env.GATE.fetch !== "function") return { ok: false, status: 0, why: "gate binding missing" };
+      try {
+        const r = await env.GATE.fetch(new Request("https://gate.horizonshield.dev/record/" + s, { headers: { accept: "application/json" } }));
+        return { ok: r.ok, status: r.status, text: await r.text() };
+      } catch (e) { return { ok: false, status: 0, why: String((e && e.message) || e) }; }
+    },
+  };
 }
 
 async function witnessVerifySig(recordCanonical, sigB64, pubB64) {
@@ -1375,6 +1393,12 @@ function resumeMarkdown(r, origin) {
   if (!r.not_counted.length) L.push("none");
   for (const x of r.not_counted) L.push("- entry " + x.n + "  " + x.ots_status + "  " + x.why + "  " + x.url);
   L.push("");
+  L.push("## the subject's replies (its own words, signed with a key on its domain; they change no count above)");
+  L.push("");
+  const reps = Array.isArray(r.subject_responses) ? r.subject_responses : [];
+  if (!reps.length) L.push("none");
+  for (const x of reps) L.push("- " + x.responded_at + "  " + x.url);
+  L.push("");
   L.push("## recompute");
   L.push("");
   L.push(r.recompute.how);
@@ -1491,6 +1515,7 @@ async function handle(request, env) {
     { const _tw = await handleTaskWitness(p, request, url, env); if (_tw) return _tw; }
     { const _tts = await handleTaskTrustSignal(p, request, url, env); if (_tts) return _tts; }
     { const _te = await handleTaskEvidence(p, request, url, env); if (_te) return _te; }
+    { const _rs = await handleResponse(p, request, url, env, responseDeps(env), origin); if (_rs) return _rs; }
 
     if (p === "/witness" && request.method === "GET") {
       const d = witnessSelfDescription(origin);
@@ -1602,9 +1627,10 @@ async function handle(request, env) {
       const raw = (await env.LEDGER.get(`wit:pending:${sha}`)) || null;
       const anch = (await env.LEDGER.get(`wit:anchored:${sha}`)) || null;
       if (!raw && !anch) return json({ error: "not found", sha }, 404);
-      if (raw) { const s = JSON.parse(raw); return json({ status: "pending", ...s }); }
+      const responses = await responsesAbout(env, sha, origin);   // record-privacy-v1: the measured party's reply, if any
+      if (raw) { const s = JSON.parse(raw); return json({ status: "pending", ...s, responses }); }
       const a = JSON.parse(anch);
-      return json({ status: "anchored", sha, ledger_entry: a.n, url: `${origin}/ledger/${a.n}`, record: a.stored || null });
+      return json({ status: "anchored", sha, ledger_entry: a.n, url: `${origin}/ledger/${a.n}`, record: a.stored || null, responses });
     }
 
     if (p === "/witness/anchor" && request.method === "POST") {
@@ -1912,9 +1938,12 @@ async function handle(request, env) {
             note: "an anchored record failed authentication; the resume is fail-closed and names the reason instead of assembling around it" }, 422);
         throw err;
       }
+      // record-privacy-v1: the subject's replies travel with its résumé, outside the résumé bytes (resume_sha256 is unchanged)
+      const subject_responses = await responsesForHost(env, epUrl.hostname, origin);
       const envelope = {
         ...resume,
         evaluated_at,
+        subject_responses,
         not_counted,
         scan: { seq, entries_read: ns.length, ceiling: 400, out_of_scope },
         recompute: {
@@ -1926,6 +1955,7 @@ async function handle(request, env) {
       if (p === "/trust-signal") {
         const _selfZone = (() => { try { return /(^|\.)horizonshield\.dev$/.test(new URL(epOrigin).hostname); } catch { return false; } })();
         const _ts = resumeToTrustSignal(envelope, { as_of: evaluated_at, issuer: "https://gate.horizonshield.dev", issuer_is_party: _selfZone });
+        _ts.subject_responses = { count: subject_responses.length, url: `${origin}/response?subject=${encodeURIComponent(epOrigin)}`, note: "the measured party's own statements; they change no count here" };
         if (url.searchParams.get("format") === "a2a") return json(toA2ATrustSignal(_ts, { gate: "https://gate.horizonshield.dev" }));
         return json(_ts);
       }

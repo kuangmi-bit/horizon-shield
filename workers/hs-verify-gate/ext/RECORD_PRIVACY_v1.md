@@ -42,13 +42,13 @@ listed.
 
 | Record | Class | Default | Status |
 |---|---|---|---|
-| Gate verdicts, register, `/record/{sha}` | P | public | complies; responses beside the measurement are not shown yet (open) |
+| Gate verdicts, register, `/record/{sha}` | P | public | complies. The measured party can now answer a verdict (nenrin-response-v0, `POST https://ledger.horizonshield.dev/response`, signed with a key on its own domain) and the ledger lists the answer at `/response?about=<record_sha256>`; the gate's own pages do not link it yet (open, needs a gate release) |
 | Witness walks (`a2a-conduct-walk`) | P | public; the walker may choose `hash-only` or `commitment` | complies |
 | Agreement records (`POST /agreement`, a2a-agreement-v1/v1.1) | B | published only with `"publication": "public"` in the signed bytes | **complies** at ledger.horizonshield.dev since its intake 0.2.0 and at agreement.horizonshield.dev since its intake 0.3.0 (both 2026-09-28). Correction: this row first said it complied when only the first of the two doors did; the second door kept and served records without the check until 0.3.0 |
 | MUSUBI contracts (`grant.privacy`) | B | the signed `grant.privacy` value governs; only `public_record` may be published in full | **complies since musubi 0.2.0 (2026-09-28)**: any other value, or none, is refused with `contract_not_public_record` and nothing is kept; its executions are then refused as `contract_not_filed`. The first two contracts are `public_record` by both parties |
 | Refused submissions (agreements, contracts, executions) | B | not kept, not served; the report goes back to the submitter only | **complies since 2026-09-28** at both doors; records kept as refused before that answer `410 withheld` |
 | Task-bound observations (`/witness/task`) | B when the task is between private parties | commitment unless each party is a public surface (an https origin) or signed consent | **complies since hs-ledger task face 2026-09-28**: without it only the evidence_id and receipt time are kept and anchored; the reference walker's task binding carries the requester's consent. Observations filed before stay as filed |
-| Résumé and trust-signal adverse counts | A | counts over class P endpoints, `erasable: false` | counts comply; a link to the subject's response is not shown yet (open) |
+| Résumé and trust-signal adverse counts | A | counts over class P endpoints, `erasable: false` | **complies since 2026-09-28**: `/resume` carries `subject_responses` beside the counts (outside the résumé bytes, so `resume_sha256` does not move), `/trust-signal` carries their count and link, and `GET /witness/<sha>` shows the replies to that walk. A reply changes no count and is not judged |
 | Yakumo directory | I | businesses that applied; customers masked | complies (checked 2026-09-28: two verified, one pending with no name shown) |
 
 "Open" rows are stated so that nobody reads this table as more than it is.
