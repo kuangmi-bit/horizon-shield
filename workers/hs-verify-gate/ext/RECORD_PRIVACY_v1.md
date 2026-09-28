@@ -44,8 +44,9 @@ listed.
 |---|---|---|---|
 | Gate verdicts, register, `/record/{sha}` | P | public | complies; responses beside the measurement are not shown yet (open) |
 | Witness walks (`a2a-conduct-walk`) | P | public; the walker may choose `hash-only` or `commitment` | complies |
-| Agreement records (`POST /agreement`, a2a-agreement-v1/v1.1) | B | published only with `"publication": "public"` in the signed bytes | **complies since intake 0.2.0 (2026-09-28)**; before that, one party could publish a record both had signed |
-| MUSUBI contracts (`grant.privacy`) | B | the signed `grant.privacy` value governs; only `public_record` may be published in full | the first two contracts are `public_record` by both parties; no layer enforces the field yet (open) |
+| Agreement records (`POST /agreement`, a2a-agreement-v1/v1.1) | B | published only with `"publication": "public"` in the signed bytes | **complies** at ledger.horizonshield.dev since its intake 0.2.0 and at agreement.horizonshield.dev since its intake 0.3.0 (both 2026-09-28). Correction: this row first said it complied when only the first of the two doors did; the second door kept and served records without the check until 0.3.0 |
+| MUSUBI contracts (`grant.privacy`) | B | the signed `grant.privacy` value governs; only `public_record` may be published in full | **complies since musubi 0.2.0 (2026-09-28)**: any other value, or none, is refused with `contract_not_public_record` and nothing is kept; its executions are then refused as `contract_not_filed`. The first two contracts are `public_record` by both parties |
+| Refused submissions (agreements, contracts, executions) | B | not kept, not served; the report goes back to the submitter only | **complies since 2026-09-28** at both doors; records kept as refused before that answer `410 withheld` |
 | Task-bound observations (`/witness/task`) | B when the task is between private parties | commitment unless both parties consent | not enforced yet (open); the intake accepts task observations as filed |
 | Résumé and trust-signal adverse counts | A | counts over class P endpoints, `erasable: false` | counts comply; a link to the subject's response is not shown yet (open) |
 | Yakumo directory | I | businesses that applied; customers masked | complies (checked 2026-09-28: two verified, one pending with no name shown) |
