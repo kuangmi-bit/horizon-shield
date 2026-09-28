@@ -39,7 +39,7 @@ import { answerWitnessRequest, measureWitnessSurfaces, loadWitnessKeyFromEnv, ex
 
 // 仕様確定までの暫定値。名称や閾値はここだけ直せば全体に効く。
 const CONFIG = {
-  version: "0.4.19",  // 2026-09-29. 0.4.19: 表面の指紋に extras を足す (extras_covers = annotations, _meta, outputSchema, title の閉じた一覧、extras_manifest_hash、道具ごとの extras_hashes)。0.4.18 までの tool_hashes と manifest_hash は name / description / inputSchema しか覆わんので、destructiveHint を黙って外した版も outputSchema の差し替えも見えんかった (Arthur Teboul, DokuTrak, 2026-09-28)。既存の欄は 1 バイトも変えん (過去の記録の指紋と今の指紋を比べられるまま)。差分は surface_change.extras_changed に書く。extras を持たん前回との比較では extras を比べん (配った直後に全道具が変わったと誤報せん)。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。2026-09-28. 0.4.18: 鍵の履歴 key-history-v1 を /.well-known/key-history.json で配る(4 本の公開鍵: card hs-2026-09、agreement、witness、operator。いつからか、今の状態、盗まれた疑いの時刻)。失効した鍵の署名は、盗まれ得た時刻より前にそのバイトが在ったと運営者の外の時計(Bitcoin 錨など)で示せる時だけ運営者に帰属する。JWKS は履歴の active と retired の card 鍵から作る(revoked は配らん)、今は 1 本なので配信バイトは不変。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。仕様 ext/KEY_HISTORY_v1.md。0.4.17: MCP tool preflight_agent (相手の A2A agent を任せる前に 1 回で確かめる: card、誰が払うか、登録簿の読み、証人の出し先)。0.4.16: /a2a の応答が「/mcp が応えた」と書いとった(仕様 3 節の /endpoint を定数で埋めとった)。外からの歩き 1 本で発覚。conduct-v1.4 (仕様 14 節) で /served_by を足し、/endpoint は「記録が当たる測定対象」に意味を絞る。下の 0.4.16 の段を見よ。 2026-09-20. 0.4.14: 扉を TSUGI v2 籤の被証人側にする。/a2a が witness_request (nenrin-witness-request-v1) を受けたら、相手の公開 9 表面を自分の vantage で測り、Ed25519 で署名した nenrin-witness-observation-v1 を返す (src/witness.js、Node 参照 recovery-v0/witness_reply.mjs と byte 一致を test/witness_parity.test.mjs が守る)。署名鍵は運営者鍵とも card 鍵とも別の証人鍵 (env.WITNESS_PRIVKEY_B64、公開鍵は /keys/witness.json と env.WITNESS_PUBKEY_B64)。self_witness と非公開 target は断る、鍵未設定は witness_not_configured で正直に断る。card の conduct params に witness_policy.reciprocal と witness_reply の宣言を足す (池入りの条件、宣言と実装の差は残さん)。判定規則も status も条件も動かさん。card 本体が変わるので再署名要。0.4.13: card に Security declaration を足す(securitySchemes.operator = x-sweep-token の apiKeySecurityScheme、securityRequirements [{}] = 匿名で呼べる)。/a2a も /mcp も無認証のまま、動きは 1 バイトも変わらん。同時に、相手の card を読む写し(cardProject)が securitySchemes / securityRequirements を公式 SDK と同じ bytes に写すようになった(map、oneof、StringList、scopes)。0.4.12 までは持っとるだけで「検証できん」と言うとった。今「検証できん」と言うのは公式 SDK 自身が投げる形(null の要素)だけ。写しの粗も揃えた(String()/Boolean() の型変換、camel と snake の両置きは camel が勝つ)。canon_equiv.test.mjs に全部固定。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.12: card に did:web:gate.horizonshield.dev の identity を足す。/.well-known/did.json で DID document を配り(card 署名鍵 kid hs-2026-09 と、在れば運営者鍵を registry 非依存でドメインに縛る。両方この扉が既に配る公開鍵、秘密鍵は Worker に無い)、card の conduct params に identity {kind:did, ref} で参照を足す(仕様 11.5 が params の identity を許す)。Agenstry の identity 3/10「no registry identifier」への手当。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.11: card を 1.0 主体に。root protocolVersion を 0.3.0 から 1.0 に上げ(0.3 は supportedInterfaces に残す)、provider に url(shield.the-horizons-innovation.com)を足す。判定規則も status も条件も 1 つも動かさん。A2A を喋る動きも 1 バイト変わらん。外部 discovery が root の 0.3.0 を pre-1.0 と読んで減点し、provider が名前だけで url 無しやったのへの手当。card の本体が変わるので再署名要(incident 2 と同じ規律)。0.4.10: TSUGI の隔離の口 POST /register/quarantine (運営のみ、提案 hash 必須、解除も記録)。隔離中の行は掃引で測らん、lookup と /register は quarantined と言う。判定規則も status の意味も条件も動かさん: 隔離は停止であって所見やない。0.4.9: /keys/operator.json の説明文を柱の新名 TSUGI に (旧称 Proof-of-Recovery)。判定規則も status も条件も 1 つも動かさん。0.4.8: 運営者の許可鍵を配る口 /keys/operator.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。Proof-of-Recovery の Policy Gate (nenrin-authorization-v1) は運営者の Ed25519 鍵で署名される。読む側は recovery_verify の strict モードにこの公開鍵を渡し、署名の無い / 信用してない鍵 / 期限切れの許可の後に実行された修復を弾く。agreement.json / witness.json と同じ規律: 未設定なら 404 で「無い」と言う、空を 200 で返さん。秘密鍵はこの Worker に無い、署名は手元 (recovery-v0/authorize.mjs)。発端は 2026-09-19 の Agenstry の指摘から回った最初の回復一周 (recovery_fixture_20260920.json)。あの許可はチャットの「approved」で鍵で署名しとらんかった。v1 の検証器はそれを authorization_unsigned と言う。以後は鍵で閉じ、その鍵をここで配る。 2026-09-11. 0.4.7: conduct-v1.3 を配る。判定規則も status も条件も 1 つも動かさん。この扉は歩く側やないから、動きは 1 バイトも変わっとらん。変わるんは「配っとる仕様の本文」と「公開しとる assertion の一覧」の 2 つだけや。中身は 2 点。(1) 402 Payment Required は答えであって沈黙やない。v1 の 4 節は measured_endpoint_answered を「status 200」だけで定義しとったから、自分の card の宣言どおりに金を要求した endpoint が、壊れた endpoint と同じ 1 つの結果に落ちとった。設計上の判断と故障が、記録の上で区別が付かん。歩きは絶対に払たらあかん(払た witness は歩いた相手と金銭関係を持つ = この層が開示させる当のもの)ので、402 は n/a にして、新しい主張 payment_required_as_declared が起きた事を書く。宣言せずに課金しとったら FAIL や。この行が無かったら「全部 402 で返せば二度と測られん」が成立する。(2) compensation_well_formed が拡張の話をやめる。今までは拡張が無いだけで「宣言が壊れとる」と書き、証拠として capabilities.extensions の文を貼っとった。違う 2 つの問いに 1 つの答えを出しとった。どっちの穴も fixture では永遠に出ん。手元の偽 agent が全部 無料で全部 宣言済みやったからで、実在の agent(api.babyblueviper.com)を 1 枚歩いて初めて出た。新 spec sha 25f3e3efaf2e3cf208537d1d1fb4dd4559c90b8c379e679b4fd1eec9faa086a1。仕様・扉の一覧・歩きの実装の 3 箇所がこの一覧を持っとるのに、一致を見張る物が 1 つも無かった。walk_selftest の d01/d02/d03 がそれや。d03 は名前やのうて定義を突き合わせる。今回の本体は定義のズレやったから、名前だけ見る見張りは緑のまま通り抜けとった。 0.4.6: 合意記録の署名鍵を配る口 /keys/agreement.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。a2a-agreement-v1.1 の記録は鍵を署名バイトの中に持つから、検証にこの URL は要らん。効くのは「その鍵はその当事者が自分のドメインで配っとる鍵か」という帰属の主張だけや。鍵が未設定なら 404 で「無い」と言う。空の値を 200 で返したら、読む側は「鍵が違う」と判断してまう。「無い」と「空」は違う。秘密鍵はこの Worker に無い。署名は手元でやる。 2026-09-10. 0.4.5: 帰属の行に「鍵が相手のドメインの下にあること」を要求する。0.4.4 は署名が verify しさえすれば「運営者に帰属する」と書いとった。jku が他所のホストでも書いとった。それは嘘や。この行の存在理由は「TLS は取った瞬間しか押さえん、署名が効くのは持ち出した時と時間が経った時」やのに、鍵が第三者のサーバにあったら、その第三者が鍵を消せば帰属は消えるし、運営者はいつでも否認できる。転送に耐える著者性という肝心の性質が立っとらん。さらに悪いのは、自ドメインの署名が verify せんかった card でも、他所の署名が 1 本 verify すれば帰属しとった(実測で確認)。同じ日に合意記録層では key_url が自分のドメインの下に無ければ拒否しとる。片方で拒否して片方で帰属させとった。直しは 3 状態: 自ドメインの鍵で verify = 帰属、自ドメインの署名が false = 帰属せん(理由を書く)、他所の鍵でだけ verify = 帰属せん(鍵の場所を名指しして書く)。判定も status も条件も 1 つも動かさん。動くのは「この記録が何を証明するか」だけ。この穴は test/attributability.test.mjs の 1 本を control(正しい振る舞い)として固定してしもとった。attack に直した。0.4.4: 署名の有無を establishes / does_not_establish に効かせる。合否は動かさん(条件も赤も増えん)。動かすのは「この記録が何を証明するか」。無署名の card = その宣言は持ち出せん = 登録簿の行は相手の言葉やなく この扉の観測に帰属するだけで、相手はいつでも否認できる。うちの看板は「信用が要らん」やのに、無署名の相手の行は読む側が うちを信用するしかない状態やった。その差を記録に書いてなかったのは相手の穴やなく うちの穴。署名が verify したら宣言は運営者に帰属する = この扉が消えても意味が残る。0.4.3: 拡張の永続識別子(w3id.org)を読む側で認める。perma-id/w3id.org#6653 が merge され https://w3id.org/horizonshield/conduct/v1 が 302 で扉の URI に解決するようになった。A2A 本家の拡張ガイダンスが perma-id を推しとるので、それに従って書かれた card を黙って「宣言無し」に落とすわけにいかん。識別子は 1 本のまま(v1 は今までの文字列)、綴りは閉じた 2 本の一覧で完全一致、どっちで宣言されたかは判定のバイトに必ず書く。check の最中に redirect は叩かん。判定規則の変更はこれ 1 点(読む場所が 1 つ増える。求める形は 5 鍵のまま)。0.4.2: 判定に number_safety を入れる(判定自身のバイトの中の数値が全部 RFC 7493 の安全域の整数か。条件07 が測る相手の表面に課しとる規則を、扉自身の出力に課す。Federico Blanco Sanchez-Llanos が 2026-09-09 に payments 側から公開した同じ型: 精度はパースの時点で失われるので散文では間に合わん)。欄は数値を 1 つも持たんので、足しても答えは変わらん。hash の手順は不変。0.4.1: 掃引の判定は hash 対象のバイトそのものを KV に保存し、GET /record/<record_sha256> でそのまま配る(SEP-1913 で vaaraio が /is-verified の投影を 1024 通り直列化しても再現できんかった件。公開しとった sha のバイトは掃引では保存しとらんかった。recompute_url は /history を指しとった)。判定規則と hash の手順は不変。0.4.0 (conduct-v1.1): 判定と /self に establishes / does_not_establish を入れて hash に含める(Federico の 2026-09-07 の指摘: 「正しさは判定しとらん」の断りが落とせて conformance は通っとった)。塩の commitment を掃引ごとに台帳の witness intake へ commitment 型記録で錨打ち(窓ごとに 1 回、/nenrin/window に commitment_filed)。GET /register/lookup(verified/pending/declined/unknown + 先月の輪の数 + 証明せん物、24h cache)。well-known の notify / identity / witness_policy を読む(掃引後に notify へ POST、1 時間 1 回、/check からは飛ばさん)。判定規則は 0.3.0 のまま。0.3.5 (2026-09-06): 時刻座標の本番と設計のズレを直す(履歴に coordinate_derivation を残す、次の窓の salt を先に作り beacon は salt より後の block に限る、基準高さは quorum 番目の tip - 6 で hash の一致だけを要求、窓ごとに規則を固定、GET /nenrin/window で commitment を公開。判定規則は 0.3.0 のまま)。0.3.4: 相手の card の A2A 署名(§8.4)を読んで detail に書く(判定不変)。扉自身の card も署名可(署名は Mac で作る、鍵は Worker に無い)。0.3.2: A2A Conduct Extension v1(条件3 を capabilities.extensions[].params.compensation からも読む、両方あれば一致必須、/ext/conduct/v1 で仕様を配る)。0.3.3: 扉自身が A2A を喋る(/a2a に SendMessage と message/send、両綴りの拡張ヘッダ、1.0 と 0.3 の両線)。判定規則は 0.3.0 のまま。
+  version: "0.4.20",  // 2026-09-29. 0.4.20: /usage に requesters を足す(頼んだ側の軸)。external_checks は測る相手が自ゾーンの外かで数えとって、うちが外のサーバーを測った回も「外の誰かが使った」に入っとった。MCP の tools/call は網の数しか無く、道具ごとの回数が無かった。新しい計数 usage:req:<日> は face|道具|頼んだ側の種類|相手の種類 の回数だけ(種類は閉じた一覧、IP も UA の文字列も書かん)。x-hs-requester: operator の名乗りは認証せん(偽っても外の数が減る向きにしか動かん)。見出しは outside_measurements_of_external_endpoints。うちの定期の呼び出しは known_own_schedules に書く。既存の欄は 1 つも変えん。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。2026-09-29. 0.4.19: 表面の指紋に extras を足す (extras_covers = annotations, _meta, outputSchema, title の閉じた一覧、extras_manifest_hash、道具ごとの extras_hashes)。0.4.18 までの tool_hashes と manifest_hash は name / description / inputSchema しか覆わんので、destructiveHint を黙って外した版も outputSchema の差し替えも見えんかった (Arthur Teboul, DokuTrak, 2026-09-28)。既存の欄は 1 バイトも変えん (過去の記録の指紋と今の指紋を比べられるまま)。差分は surface_change.extras_changed に書く。extras を持たん前回との比較では extras を比べん (配った直後に全道具が変わったと誤報せん)。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。2026-09-28. 0.4.18: 鍵の履歴 key-history-v1 を /.well-known/key-history.json で配る(4 本の公開鍵: card hs-2026-09、agreement、witness、operator。いつからか、今の状態、盗まれた疑いの時刻)。失効した鍵の署名は、盗まれ得た時刻より前にそのバイトが在ったと運営者の外の時計(Bitcoin 錨など)で示せる時だけ運営者に帰属する。JWKS は履歴の active と retired の card 鍵から作る(revoked は配らん)、今は 1 本なので配信バイトは不変。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。仕様 ext/KEY_HISTORY_v1.md。0.4.17: MCP tool preflight_agent (相手の A2A agent を任せる前に 1 回で確かめる: card、誰が払うか、登録簿の読み、証人の出し先)。0.4.16: /a2a の応答が「/mcp が応えた」と書いとった(仕様 3 節の /endpoint を定数で埋めとった)。外からの歩き 1 本で発覚。conduct-v1.4 (仕様 14 節) で /served_by を足し、/endpoint は「記録が当たる測定対象」に意味を絞る。下の 0.4.16 の段を見よ。 2026-09-20. 0.4.14: 扉を TSUGI v2 籤の被証人側にする。/a2a が witness_request (nenrin-witness-request-v1) を受けたら、相手の公開 9 表面を自分の vantage で測り、Ed25519 で署名した nenrin-witness-observation-v1 を返す (src/witness.js、Node 参照 recovery-v0/witness_reply.mjs と byte 一致を test/witness_parity.test.mjs が守る)。署名鍵は運営者鍵とも card 鍵とも別の証人鍵 (env.WITNESS_PRIVKEY_B64、公開鍵は /keys/witness.json と env.WITNESS_PUBKEY_B64)。self_witness と非公開 target は断る、鍵未設定は witness_not_configured で正直に断る。card の conduct params に witness_policy.reciprocal と witness_reply の宣言を足す (池入りの条件、宣言と実装の差は残さん)。判定規則も status も条件も動かさん。card 本体が変わるので再署名要。0.4.13: card に Security declaration を足す(securitySchemes.operator = x-sweep-token の apiKeySecurityScheme、securityRequirements [{}] = 匿名で呼べる)。/a2a も /mcp も無認証のまま、動きは 1 バイトも変わらん。同時に、相手の card を読む写し(cardProject)が securitySchemes / securityRequirements を公式 SDK と同じ bytes に写すようになった(map、oneof、StringList、scopes)。0.4.12 までは持っとるだけで「検証できん」と言うとった。今「検証できん」と言うのは公式 SDK 自身が投げる形(null の要素)だけ。写しの粗も揃えた(String()/Boolean() の型変換、camel と snake の両置きは camel が勝つ)。canon_equiv.test.mjs に全部固定。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.12: card に did:web:gate.horizonshield.dev の identity を足す。/.well-known/did.json で DID document を配り(card 署名鍵 kid hs-2026-09 と、在れば運営者鍵を registry 非依存でドメインに縛る。両方この扉が既に配る公開鍵、秘密鍵は Worker に無い)、card の conduct params に identity {kind:did, ref} で参照を足す(仕様 11.5 が params の identity を許す)。Agenstry の identity 3/10「no registry identifier」への手当。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.11: card を 1.0 主体に。root protocolVersion を 0.3.0 から 1.0 に上げ(0.3 は supportedInterfaces に残す)、provider に url(shield.the-horizons-innovation.com)を足す。判定規則も status も条件も 1 つも動かさん。A2A を喋る動きも 1 バイト変わらん。外部 discovery が root の 0.3.0 を pre-1.0 と読んで減点し、provider が名前だけで url 無しやったのへの手当。card の本体が変わるので再署名要(incident 2 と同じ規律)。0.4.10: TSUGI の隔離の口 POST /register/quarantine (運営のみ、提案 hash 必須、解除も記録)。隔離中の行は掃引で測らん、lookup と /register は quarantined と言う。判定規則も status の意味も条件も動かさん: 隔離は停止であって所見やない。0.4.9: /keys/operator.json の説明文を柱の新名 TSUGI に (旧称 Proof-of-Recovery)。判定規則も status も条件も 1 つも動かさん。0.4.8: 運営者の許可鍵を配る口 /keys/operator.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。Proof-of-Recovery の Policy Gate (nenrin-authorization-v1) は運営者の Ed25519 鍵で署名される。読む側は recovery_verify の strict モードにこの公開鍵を渡し、署名の無い / 信用してない鍵 / 期限切れの許可の後に実行された修復を弾く。agreement.json / witness.json と同じ規律: 未設定なら 404 で「無い」と言う、空を 200 で返さん。秘密鍵はこの Worker に無い、署名は手元 (recovery-v0/authorize.mjs)。発端は 2026-09-19 の Agenstry の指摘から回った最初の回復一周 (recovery_fixture_20260920.json)。あの許可はチャットの「approved」で鍵で署名しとらんかった。v1 の検証器はそれを authorization_unsigned と言う。以後は鍵で閉じ、その鍵をここで配る。 2026-09-11. 0.4.7: conduct-v1.3 を配る。判定規則も status も条件も 1 つも動かさん。この扉は歩く側やないから、動きは 1 バイトも変わっとらん。変わるんは「配っとる仕様の本文」と「公開しとる assertion の一覧」の 2 つだけや。中身は 2 点。(1) 402 Payment Required は答えであって沈黙やない。v1 の 4 節は measured_endpoint_answered を「status 200」だけで定義しとったから、自分の card の宣言どおりに金を要求した endpoint が、壊れた endpoint と同じ 1 つの結果に落ちとった。設計上の判断と故障が、記録の上で区別が付かん。歩きは絶対に払たらあかん(払た witness は歩いた相手と金銭関係を持つ = この層が開示させる当のもの)ので、402 は n/a にして、新しい主張 payment_required_as_declared が起きた事を書く。宣言せずに課金しとったら FAIL や。この行が無かったら「全部 402 で返せば二度と測られん」が成立する。(2) compensation_well_formed が拡張の話をやめる。今までは拡張が無いだけで「宣言が壊れとる」と書き、証拠として capabilities.extensions の文を貼っとった。違う 2 つの問いに 1 つの答えを出しとった。どっちの穴も fixture では永遠に出ん。手元の偽 agent が全部 無料で全部 宣言済みやったからで、実在の agent(api.babyblueviper.com)を 1 枚歩いて初めて出た。新 spec sha 25f3e3efaf2e3cf208537d1d1fb4dd4559c90b8c379e679b4fd1eec9faa086a1。仕様・扉の一覧・歩きの実装の 3 箇所がこの一覧を持っとるのに、一致を見張る物が 1 つも無かった。walk_selftest の d01/d02/d03 がそれや。d03 は名前やのうて定義を突き合わせる。今回の本体は定義のズレやったから、名前だけ見る見張りは緑のまま通り抜けとった。 0.4.6: 合意記録の署名鍵を配る口 /keys/agreement.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。a2a-agreement-v1.1 の記録は鍵を署名バイトの中に持つから、検証にこの URL は要らん。効くのは「その鍵はその当事者が自分のドメインで配っとる鍵か」という帰属の主張だけや。鍵が未設定なら 404 で「無い」と言う。空の値を 200 で返したら、読む側は「鍵が違う」と判断してまう。「無い」と「空」は違う。秘密鍵はこの Worker に無い。署名は手元でやる。 2026-09-10. 0.4.5: 帰属の行に「鍵が相手のドメインの下にあること」を要求する。0.4.4 は署名が verify しさえすれば「運営者に帰属する」と書いとった。jku が他所のホストでも書いとった。それは嘘や。この行の存在理由は「TLS は取った瞬間しか押さえん、署名が効くのは持ち出した時と時間が経った時」やのに、鍵が第三者のサーバにあったら、その第三者が鍵を消せば帰属は消えるし、運営者はいつでも否認できる。転送に耐える著者性という肝心の性質が立っとらん。さらに悪いのは、自ドメインの署名が verify せんかった card でも、他所の署名が 1 本 verify すれば帰属しとった(実測で確認)。同じ日に合意記録層では key_url が自分のドメインの下に無ければ拒否しとる。片方で拒否して片方で帰属させとった。直しは 3 状態: 自ドメインの鍵で verify = 帰属、自ドメインの署名が false = 帰属せん(理由を書く)、他所の鍵でだけ verify = 帰属せん(鍵の場所を名指しして書く)。判定も status も条件も 1 つも動かさん。動くのは「この記録が何を証明するか」だけ。この穴は test/attributability.test.mjs の 1 本を control(正しい振る舞い)として固定してしもとった。attack に直した。0.4.4: 署名の有無を establishes / does_not_establish に効かせる。合否は動かさん(条件も赤も増えん)。動かすのは「この記録が何を証明するか」。無署名の card = その宣言は持ち出せん = 登録簿の行は相手の言葉やなく この扉の観測に帰属するだけで、相手はいつでも否認できる。うちの看板は「信用が要らん」やのに、無署名の相手の行は読む側が うちを信用するしかない状態やった。その差を記録に書いてなかったのは相手の穴やなく うちの穴。署名が verify したら宣言は運営者に帰属する = この扉が消えても意味が残る。0.4.3: 拡張の永続識別子(w3id.org)を読む側で認める。perma-id/w3id.org#6653 が merge され https://w3id.org/horizonshield/conduct/v1 が 302 で扉の URI に解決するようになった。A2A 本家の拡張ガイダンスが perma-id を推しとるので、それに従って書かれた card を黙って「宣言無し」に落とすわけにいかん。識別子は 1 本のまま(v1 は今までの文字列)、綴りは閉じた 2 本の一覧で完全一致、どっちで宣言されたかは判定のバイトに必ず書く。check の最中に redirect は叩かん。判定規則の変更はこれ 1 点(読む場所が 1 つ増える。求める形は 5 鍵のまま)。0.4.2: 判定に number_safety を入れる(判定自身のバイトの中の数値が全部 RFC 7493 の安全域の整数か。条件07 が測る相手の表面に課しとる規則を、扉自身の出力に課す。Federico Blanco Sanchez-Llanos が 2026-09-09 に payments 側から公開した同じ型: 精度はパースの時点で失われるので散文では間に合わん)。欄は数値を 1 つも持たんので、足しても答えは変わらん。hash の手順は不変。0.4.1: 掃引の判定は hash 対象のバイトそのものを KV に保存し、GET /record/<record_sha256> でそのまま配る(SEP-1913 で vaaraio が /is-verified の投影を 1024 通り直列化しても再現できんかった件。公開しとった sha のバイトは掃引では保存しとらんかった。recompute_url は /history を指しとった)。判定規則と hash の手順は不変。0.4.0 (conduct-v1.1): 判定と /self に establishes / does_not_establish を入れて hash に含める(Federico の 2026-09-07 の指摘: 「正しさは判定しとらん」の断りが落とせて conformance は通っとった)。塩の commitment を掃引ごとに台帳の witness intake へ commitment 型記録で錨打ち(窓ごとに 1 回、/nenrin/window に commitment_filed)。GET /register/lookup(verified/pending/declined/unknown + 先月の輪の数 + 証明せん物、24h cache)。well-known の notify / identity / witness_policy を読む(掃引後に notify へ POST、1 時間 1 回、/check からは飛ばさん)。判定規則は 0.3.0 のまま。0.3.5 (2026-09-06): 時刻座標の本番と設計のズレを直す(履歴に coordinate_derivation を残す、次の窓の salt を先に作り beacon は salt より後の block に限る、基準高さは quorum 番目の tip - 6 で hash の一致だけを要求、窓ごとに規則を固定、GET /nenrin/window で commitment を公開。判定規則は 0.3.0 のまま)。0.3.4: 相手の card の A2A 署名(§8.4)を読んで detail に書く(判定不変)。扉自身の card も署名可(署名は Mac で作る、鍵は Worker に無い)。0.3.2: A2A Conduct Extension v1(条件3 を capabilities.extensions[].params.compensation からも読む、両方あれば一致必須、/ext/conduct/v1 で仕様を配る)。0.3.3: 扉自身が A2A を喋る(/a2a に SendMessage と message/send、両綴りの拡張ヘッダ、1.0 と 0.3 の両線)。判定規則は 0.3.0 のまま。
   tier_pass: "verified",        // 通過時の称号(暫定)
   tier_fail: "pending",         // 未通過(不合格とは呼ばない)
   tier_held: "held",            // 到達できず測れなかった。不適合とは別の状態
@@ -212,10 +212,10 @@ const CARD_SIGNATURE = {
   "jku": "https://gate.horizonshield.dev/.well-known/jwks.json",
   "alg": "ES256",
   "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJocy0yMDI2LTA5Iiwiamt1IjoiaHR0cHM6Ly9nYXRlLmhvcml6b25zaGllbGQuZGV2Ly53ZWxsLWtub3duL2p3a3MuanNvbiJ9",
-  "signature": "7HFvWqfkzpWLf9AgSwYfiavVqJ7qnFpXt7seRibyLx9wdfz_dlCBRrW83TrfCwf2iLYvb5hMuKusQag57kjHKg",
+  "signature": "PUMhZ7gYpLhuQARiVqbNrCwzOn7CEQxkmLvzkz5so87sZIscApMdFu8rHfETZHOFhWpsTECq8Aq2SJuy_duY2w",
   "plain": {
     "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJocy0yMDI2LTA5Iiwiamt1IjoiaHR0cHM6Ly9nYXRlLmhvcml6b25zaGllbGQuZGV2Ly53ZWxsLWtub3duL2p3a3MuanNvbiJ9",
-    "signature": "3FrC-EaL4ITHB8PEUWK2H0Ml_OMaVBllN7rrkiY3740BTXvMiLqNupEnE2V04JRz_ymbxn9XhITxW8vxzGR18Q"
+    "signature": "CgmLoZvgbKudOsXmzFNpUZgZ-BMwsOdB6jE_8SzGU3NG-G0ylT8mF85xgVIYIuQLH9ONjKYumfe8kfkz_j3oHA"
   },
   "jwk": {
     "kty": "EC",
@@ -226,8 +226,8 @@ const CARD_SIGNATURE = {
     "alg": "ES256",
     "use": "sig"
   },
-  "canonical_sha256": "fffd4d0b16be6a5ac3f6071f686c27e7e4c179e205a7fc48ebac5e251f0cc174",
-  "jcs_sha256": "874be232b85b2996f706736435ac297e45da14a5b7e7a2092ad7508d85843b64"
+  "canonical_sha256": "093ed47a1c1d9f559dd4f616d46cf35661c9d166de09372d1495db15b8090b20",
+  "jcs_sha256": "c577d9bbd59c868dd3ad09ea56d97d9ed5990e3ffb356f9716eae6359f95dfac"
 };
 /* @@CARD_SIGNATURE_END */
 // GCP twin は別ドメインで動くので、entrypoint が globalThis.CARD_ORIGIN_OVERRIDE を先に立てて上書きできる。
@@ -628,6 +628,117 @@ function bumpUsage(env, ctx, field, host) {
   else run();
 }
 
+// 0.4.20 (2026-09-29). 上の external_checks は「測った相手が自ゾーンの外か」で数えとった。誰が頼んだかは
+// 見とらん。うちが外のサーバーを測れば(公開レジストリの私的な監査など)、それが「外の誰かが使った」に数えられる。
+// MCP の tools/call は網の数しか無く、どの道具が何回呼ばれたかも無かった。数える軸を 1 本足す: 頼んだ側。
+//
+// 頼んだ側の種類は閉じた一覧で、保存するのは種類の名前だけ(User-Agent そのものも IP も書かん):
+//   operator_declared  x-hs-requester: operator を名乗った要求。認証はせん。偽って名乗る者が出ても
+//                      外の数が減る向きにしか動かん(外の利用を盛る向きには動かん)ので、それで足りる。
+//   no_client_ip       cf-connecting-ip が無い(service binding、手元の試験)。外の人ではない。
+//   ua_claude          User-Agent に Claude か Anthropic を含む。Claude のコネクタから来た可能性が高いが、
+//                      Claude を使う誰なのか(うちの監視か、他人か)は分からん。
+//   ua_openai          User-Agent に OpenAI か ChatGPT を含む。同上。
+//   other              それ以外。うちの GitHub runner の週次の歩きもここに入る(walker は sha で固定、
+//                      外の人も同じ walker を使うので UA では分けられん)。known_own_schedules に書いて引けるようにする。
+// 測る相手の種類: own(自ゾーン)、external(外)、none(相手の URL が無い要求)。
+const USAGE_REQ_SINCE = "2026-09-28";  // UTC の日。配った日(JST 9/29 早朝 = UTC 9/28)から数える
+const REQ_CLASSES = ["operator_declared", "no_client_ip", "ua_claude", "ua_openai", "other"];
+const REQ_NOT_OUTSIDE = ["operator_declared", "no_client_ip"];
+const KNOWN_OWN_SCHEDULES = [
+  { what: "conduct-witness-dogfood.yml (GitHub runner): walks this gate over MCP", when: "Mondays 04:23 UTC", lands_in: "mcp, class other" },
+  { what: "mcp-conduct.yml (GitHub runner, mcp-conduct-action): POST /check on our own endpoints", when: "Mondays 03:30 UTC", lands_in: "check, class other, target own" },
+  { what: "health monitor (a scheduled Claude task): get_conditions through the Claude connector", when: "daily around 23:00 and 11:00 UTC", lands_in: "mcp get_conditions, class ua_claude if the connector names itself" },
+];
+function requesterClass(request) {
+  try {
+    const h = request && request.headers;
+    if (!h) return "no_client_ip";
+    if (String(h.get("x-hs-requester") || "").trim().toLowerCase() === "operator") return "operator_declared";
+    if (!h.get("cf-connecting-ip")) return "no_client_ip";
+    const ua = String(h.get("user-agent") || "");
+    if (/claude|anthropic/i.test(ua)) return "ua_claude";
+    if (/openai|chatgpt/i.test(ua)) return "ua_openai";
+    return "other";
+  } catch (_e) { return "other"; }
+}
+function targetClass(u) {
+  if (typeof u !== "string" || !/^https:\/\//i.test(u)) return "none";
+  try { new URL(u); } catch (_e) { return "none"; }
+  return isOwnZone(u) ? "own" : "external";
+}
+function reqUsageKey(day) { return "usage:req:" + (day || new Date().toISOString().slice(0, 10)); }
+function bumpRequests(env, ctx, face, tool, cls, target) {
+  if (!env || !env.HS_VERIFY_KV) return;
+  const key = face + "|" + tool + "|" + cls + "|" + target;
+  const run = async () => {
+    try {
+      const k = reqUsageKey();
+      const cur = (await env.HS_VERIFY_KV.get(k, "json")) || { counts: {} };
+      if (!cur.counts || typeof cur.counts !== "object") cur.counts = {};
+      if (!(key in cur.counts) && Object.keys(cur.counts).length >= 400) return;  // 閉じた一覧なので届かんはずの上限
+      cur.counts[key] = (Number(cur.counts[key]) || 0) + 1;
+      await env.HS_VERIFY_KV.put(k, JSON.stringify(cur), { expirationTtl: 60 * 60 * 24 * USAGE_TTL_DAYS });
+    } catch (_e) { /* 計数の失敗で測定本体を止めない */ }
+  };
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(run());
+  else run();
+}
+const MEASURING_TOOLS = ["check_conformance", "preflight_agent"];
+async function requesterReport(env, n) {
+  const totals = {};
+  const by_day = [];
+  let outsideMeasureExternal = 0, outsideMeasureOwn = 0, outsideLookups = 0, operatorAll = 0;
+  for (let i = 0; i < n; i++) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    if (d < USAGE_REQ_SINCE) { by_day.push({ day: d, state: "not_counted_yet" }); continue; }
+    let row = null;
+    try { row = await env.HS_VERIFY_KV.get(reqUsageKey(d), "json"); } catch (_e) { row = null; }
+    const counts = (row && row.counts) || {};
+    let dayOutsideExternal = 0;
+    for (const [k, v] of Object.entries(counts)) {
+      const c = Number(v) || 0;
+      totals[k] = (totals[k] || 0) + c;
+      const [face, tool, cls, target] = k.split("|");
+      const outside = REQ_NOT_OUTSIDE.indexOf(cls) < 0;
+      if (!outside) { operatorAll += c; continue; }
+      const measuring = face === "check" || (face === "mcp" && MEASURING_TOOLS.indexOf(tool) >= 0);
+      if (measuring && target === "external") { outsideMeasureExternal += c; dayOutsideExternal += c; }
+      else if (measuring && target === "own") outsideMeasureOwn += c;
+      else outsideLookups += c;
+    }
+    by_day.push({ day: d, state: row ? "counted" : "none_recorded", outside_measurements_of_external_endpoints: dayOutsideExternal, counts });
+  }
+  return {
+    counting_since: USAGE_REQ_SINCE,
+    headline: {
+      outside_measurements_of_external_endpoints: outsideMeasureExternal,
+      outside_measurements_of_our_endpoints: outsideMeasureOwn,
+      outside_lookups_and_other_calls: outsideLookups,
+      operator_or_internal_requests: operatorAll,
+    },
+    headline_means:
+      "outside_measurements_of_external_endpoints counts POST /check and MCP check_conformance / preflight_agent calls " +
+      "that were not declared as ours and did not come through an internal binding, aimed at an endpoint outside our zone. " +
+      "It is the closest this gate can get to 'someone else measured someone else's server here'. It still includes our " +
+      "own runs that did not declare themselves; known_own_schedules lists the ones we know about.",
+    classes: REQ_CLASSES,
+    class_rules: {
+      operator_declared: "the request carried x-hs-requester: operator. Unauthenticated on purpose: a false claim can only move a request out of the outside counts, never into them",
+      no_client_ip: "no cf-connecting-ip (a service binding or a local test); not an outside party",
+      ua_claude: "the User-Agent mentions Claude or Anthropic; which Claude user it was is unknown, and that includes us",
+      ua_openai: "the User-Agent mentions OpenAI or ChatGPT; which user it was is unknown",
+      other: "anything else, including our own GitHub runner walks that cannot declare themselves",
+    },
+    key_format: "face|tool|class|target: face is check, a2a or mcp; tool is the MCP tool name (- for check and a2a); target is own, external or none",
+    known_own_schedules: KNOWN_OWN_SCHEDULES,
+    totals,
+    by_day,
+    privacy: "Only the class name is stored. No IP address, no User-Agent string, no request body.",
+    accuracy: "A lower bound, like the counters above: read and written back, so simultaneous requests can overwrite each other.",
+  };
+}
+
 async function usageReport(env, days) {
   const n = Math.min(Math.max(Number(days) || 30, 1), 90);
   const today = new Date();
@@ -651,6 +762,7 @@ async function usageReport(env, days) {
     external_hosts: hosts.slice(0, 100),
     by_day: out,
     distinct_requester_networks: await netReport(env, n),
+    requesters: await requesterReport(env, n),
     what_this_is:
       "Counts of requests, published so that the question 'is this actually used by anyone' has an answer " +
       "made of numbers instead of an adjective. external_checks counts verdicts requested for endpoints " +
@@ -5285,7 +5397,7 @@ export default {
     }
 
     // A2A JSON-RPC (0.3.3)。card の supportedInterfaces / url がここを指す。
-    if (path === "/a2a" && request.method === "POST") { noteRequesterNetwork(env, ctx, request, "a2a"); return await handleGateA2A(request, env, url.origin); }
+    if (path === "/a2a" && request.method === "POST") { noteRequesterNetwork(env, ctx, request, "a2a"); bumpRequests(env, ctx, "a2a", "-", requesterClass(request), "none"); return await handleGateA2A(request, env, url.origin); }
     if (path === "/a2a" && request.method === "GET") {
       return json({ ok: true, transport: "A2A JSON-RPC (POST)", methods: ["SendMessage", "message/send"], agent_card: url.origin + "/.well-known/agent-card.json", extensions: [CONDUCT_EXT_URI], extensions_accepted: CONDUCT_EXT_URIS, usage: A2A_GATE_USAGE });
     }
@@ -5301,6 +5413,12 @@ export default {
         return json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "batch not supported" } }, 400);
       }
       if (body && body.method === "tools/call" && body.params && body.params.name === "check_conformance") noteRequesterNetwork(env, ctx, request, "mcp");
+      if (body && body.method === "tools/call" && body.params) {
+        const _tn = typeof body.params.name === "string" && MCP_TOOLS.some((t) => t.name === body.params.name) ? body.params.name : "unknown_tool";
+        const _a = (body.params.arguments && typeof body.params.arguments === "object") ? body.params.arguments : {};
+        const _u = [_a.endpoint, _a.url, _a.server_url, _a.server, _a.endpoint_url, _a.agent].find((x) => typeof x === "string" && x);
+        bumpRequests(env, ctx, "mcp", _tn, requesterClass(request), targetClass(_u));
+      }
       const res = await handleMcp(body, env);
       if (res === null) return new Response(null, { status: 202, headers: CORS_HEADERS });
       return json(res);
@@ -5892,6 +6010,7 @@ export default {
       if (_hostErr) return json({ error: "endpoint_host_rejected", reason: _hostErr }, 400);
       const own = isOwnZone(endpoint);
       bumpUsage(env, ctx, own ? "own_checks" : "external_checks", own ? null : parsed.hostname);
+      bumpRequests(env, ctx, "check", "-", requesterClass(request), own ? "own" : "external");
       noteRequesterNetwork(env, ctx, request, "check");
       try {
         return json(await checkWithConsent(endpoint, body && body.allow_tool_call === true));
