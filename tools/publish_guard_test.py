@@ -48,6 +48,22 @@ CASES = [
     ("秘密鍵そのものがあれば止める",
      {"id.txt": "-----BEGIN PRIVATE KEY-----\nMIIB\n"}, 1, "秘密鍵"),
 
+    ("秘密鍵が JSON の文字列の中にあっても止める(2026-09-28)",
+     {"k.json": '{"pem":"-----BEGIN PRIVATE KEY-----\\nMC4CAQAwBQYDK2VwBCIEIAAAA\\n-----END PRIVATE KEY-----\\n"}'},
+     1, "秘密鍵"),
+
+    ("秘密鍵が JS の文字列の中に \\r\\n で入っていても止める(2026-09-28)",
+     {"k.js": 'const k = "-----BEGIN PRIVATE KEY-----\\r\\nMC4CAQAwBQYDK2VwBCIEIAAAA";'},
+     1, "秘密鍵"),
+
+    ("PEM を書く道具の見出しだけなら止めない(yakumo/sign/signer_core.js と同じ行、2026-09-28)",
+     {"yakumo/sign/signer_core.js":
+      'return "-----BEGIN PRIVATE KEY-----\\n" + der.match(/.{1,64}/g).join("\\n") + "\\n-----END PRIVATE KEY-----\\n";'},
+     0, "秘密鍵の見出しだけ"),
+
+    ("文章の中で見出しに触れるだけなら止めない(2026-09-28)",
+     {"doc.html": "<p>The file starts with -----BEGIN PRIVATE KEY-----.</p>"}, 0, "秘密鍵の見出しだけ"),
+
     ("鍵マネージャという名前のファイルは止める",
      {"HORIZON_SHIELD_鍵マネージャ.html": "<p>なにも書いていない</p>"},
      1, "鍵マネージャ"),

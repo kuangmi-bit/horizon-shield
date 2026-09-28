@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex,nofollow">
+<meta name="robots" content="index,follow">
 <title>Yakumo 記録の署名</title>
 <meta name="description" content="Yakumo の加盟店が、自分の端末の中の鍵で、会社の宣言と測定値に署名するためのページ。鍵は端末の外に出ません。">
 <meta name="author" content="The HORIZ音s株式会社">
 <link rel="canonical" href="https://shield.the-horizons-innovation.com/yakumo/sign/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Yakumo 記録の署名","url":"https://shield.the-horizons-innovation.com/yakumo/sign/","applicationCategory":"UtilitiesApplication","operatingSystem":"Web browser","isAccessibleForFree":true,"inLanguage":"ja","description":"Yakumo の加盟店が、自分の端末の中の Ed25519 鍵で、法人番号を名乗る会社の宣言(a2a-actor-declaration-v0)と測定値(a2a-measurement-v0)に署名するページ。鍵は端末の外に出ない。","isPartOf":{"@type":"WebSite","name":"Yakumo","url":"https://shield.the-horizons-innovation.com/yakumo/"},"publisher":{"@type":"Organization","name":"The HORIZ音s株式会社","url":"https://shield.the-horizons-innovation.com/"}}</script>
 <style>
   :root{
     --bg:#FAFAFB;--fg:#0B0C10;--dim:#5A5F6B;--faint:#8A909C;--line:#DADCE2;--field:#FFFFFF;
@@ -47,6 +48,7 @@
   .note{font-size:13px;color:var(--dim);border-left:2px solid var(--accent);padding-left:10px;margin:12px 0}
   .confirm{border:1px solid var(--bad);padding:10px 12px;margin-top:10px;font-size:13px}
   footer{border-top:1px solid var(--line);margin-top:34px;padding-top:14px;font-size:12px;color:var(--faint)}
+  footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
   code{font-family:var(--mono);font-size:12.5px}
 </style>
 </head>
@@ -121,6 +123,7 @@
 
   <footer>
     このページは The HORIZ音s株式会社 が公開しています。処理の中身は <code>signer_core.js</code> にあり、GitHub の ogasurfproject-jpg/horizon-shield の <code>yakumo/sign/</code> で誰でも読めます。署名の形式は MUSUBI の a2a-actor-declaration-v0 と a2a-measurement-v0 です。
+    <br><a href="https://shield.the-horizons-innovation.com/yakumo/">Yakumo(検証済みの加盟店)</a> ・ <a href="https://shield.the-horizons-innovation.com/">HORIZON SHIELD</a>
   </footer>
 </div>
 

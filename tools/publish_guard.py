@@ -22,6 +22,14 @@
   名前が出ることと、値が出ることは違う。これを一緒にすると、
   「いつも赤い門」ができる。いつも赤い門は、誰も見なくなる。
   だから赤にするのは値と書類だけにして、名前は「控え」に落とした。
+
+秘密鍵の見出しも同じ (2026-09-28):
+  yakumo/sign/signer_core.js は、利用者が自分の鍵を PEM で控えられるように
+  "-----BEGIN PRIVATE KEY-----" という見出しの文字列を持つ。鍵の値は一文字も無い。
+  最初の版は見出しだけで赤にしていたので、この 1 行でサイト全体の公開が止まった。
+  本物の PEM は必ず見出しの直後に base64 の本体が続く(生の改行でも、JSON や JS の
+  文字列の中の \\n でも)。だから赤にするのは「見出しの直後に base64 の文字が 4 つ以上続く」ものだけにして、
+  見出しだけは控えに落とす。本物の鍵を見逃す形は増やしていない(publish_guard_test.py)。
 """
 import os
 import re
@@ -48,8 +56,10 @@ VALUE_SHAPES = [
     (re.compile(r"github_pat_[A-Za-z0-9_]{20,}"), "GitHub の鍵"),
     (re.compile(r"\bghp_[A-Za-z0-9]{30,}"), "GitHub の鍵"),
     (re.compile(r"\bxox[baprs]-[A-Za-z0-9\-]{20,}"), "Slack の鍵"),
-    (re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"), "秘密鍵"),
+    (re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----(?:\s|\\[rn])*[A-Za-z0-9+/]{4,}"), "秘密鍵"),
 ]
+# 見出しだけ(本体が続かない)。PEM を作る道具の文字列であって値ではない。控えに残すが、止めない。
+PEM_HEADER_ONLY = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----")
 
 # 名前に出てはいけない語。お客様の書類と鍵の一覧。
 FORBIDDEN_NAME = ["鍵マネージャ", "鍵一覧", "契約書", "ご請求書", "残金お支払い", "判定書"]
@@ -101,6 +111,8 @@ def scan(root):
             for name in SECRET_NAMES:
                 if name in text:
                     note.append((rel, name))
+            if PEM_HEADER_ONLY.search(text) and not VALUE_SHAPES[4][0].search(text):
+                note.append((rel, "秘密鍵の見出しだけ(本体なし)"))
     return stop, note
 
 
