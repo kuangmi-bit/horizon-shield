@@ -1,0 +1,26 @@
+{
+  "name": "a2a-conduct",
+  "version": "1.4.0",
+  "description": "The A2A Conduct Extension (conduct-v1.4) in a few calls: declare who pays your agent, echo the extension, attach the conduct pointers, and preflight any agent before delegating. No dependencies. Works with the official @a2a-js/sdk. Byte-identical to a2a_conduct.py.",
+  "type": "module",
+  "main": "./a2a_conduct.mjs",
+  "types": "./a2a_conduct.d.ts",
+  "exports": {
+    ".": { "types": "./a2a_conduct.d.ts", "default": "./a2a_conduct.mjs" }
+  },
+  "bin": { "a2a-conduct": "./cli.mjs" },
+  "files": ["a2a_conduct.mjs", "a2a_conduct.d.ts", "cli.mjs", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node test/parity.test.mjs && node test/sdk_walk.test.mjs"
+  },
+  "keywords": ["a2a", "agent2agent", "a2a-extension", "agent-card", "conduct", "compensation", "witness", "a2a-js"],
+  "license": "Apache-2.0",
+  "author": "The HORIZ音s株式会社",
+  "homepage": "https://gate.horizonshield.dev/ext/conduct/v1",
+  "repository": { "type": "git", "url": "git+https://github.com/ogasurfproject-jpg/horizon-shield.git", "directory": "workers/hs-ledger/nenrin/a2a-conduct-js" },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "@a2a-js/sdk": "1.2.1",
+    "express": "5.2.1"
+  }
+}
