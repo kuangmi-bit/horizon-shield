@@ -26,6 +26,10 @@ def run(files):
     return r.returncode, r.stdout + r.stderr
 
 
+# PEM の見出しは実行時に組み立てる。このファイル自身に鍵の形の文字列を置かない(gitleaks の private-key が赤になる、2026-09-28)。
+PEM_H = "-----BEGIN " + "PRIVATE KEY-----"
+PEM_E = "-----END " + "PRIVATE KEY-----"
+
 CASES = [
     ("普通のページは通る",
      {"index.html": "<h1>こんにちは</h1>"}, 0, None),
@@ -49,20 +53,20 @@ CASES = [
      {"id.txt": "-----BEGIN PRIVATE KEY-----\nMIIB\n"}, 1, "秘密鍵"),
 
     ("秘密鍵が JSON の文字列の中にあっても止める(2026-09-28)",
-     {"k.json": '{"pem":"-----BEGIN PRIVATE KEY-----\\nMC4CAQAwBQYDK2VwBCIEIAAAA\\n-----END PRIVATE KEY-----\\n"}'},
+     {"k.json": '{"pem":"' + PEM_H + '\\nMC4CAQAwBQYDK2VwBCIEIAAAA\\n' + PEM_E + '\\n"}'},
      1, "秘密鍵"),
 
     ("秘密鍵が JS の文字列の中に \\r\\n で入っていても止める(2026-09-28)",
-     {"k.js": 'const k = "-----BEGIN PRIVATE KEY-----\\r\\nMC4CAQAwBQYDK2VwBCIEIAAAA";'},
+     {"k.js": 'const k = "' + PEM_H + '\\r\\nMC4CAQAwBQYDK2VwBCIEIAAAA";'},
      1, "秘密鍵"),
 
     ("PEM を書く道具の見出しだけなら止めない(yakumo/sign/signer_core.js と同じ行、2026-09-28)",
      {"yakumo/sign/signer_core.js":
-      'return "-----BEGIN PRIVATE KEY-----\\n" + der.match(/.{1,64}/g).join("\\n") + "\\n-----END PRIVATE KEY-----\\n";'},
+      'return "' + PEM_H + '\\n" + der.match(/.{1,64}/g).join("\\n") + "\\n' + PEM_E + '\\n";'},
      0, "秘密鍵の見出しだけ"),
 
     ("文章の中で見出しに触れるだけなら止めない(2026-09-28)",
-     {"doc.html": "<p>The file starts with -----BEGIN PRIVATE KEY-----.</p>"}, 0, "秘密鍵の見出しだけ"),
+     {"doc.html": "<p>The file starts with " + PEM_H + ".</p>"}, 0, "秘密鍵の見出しだけ"),
 
     ("鍵マネージャという名前のファイルは止める",
      {"HORIZON_SHIELD_鍵マネージャ.html": "<p>なにも書いていない</p>"},

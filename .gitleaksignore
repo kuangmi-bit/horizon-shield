@@ -1,3 +1,6 @@
 # gitleaks の誤検知(Cloudflare Web Analytics の公開 beacon token)。fingerprint = commit:path:rule:line
 5f7743a15b26036a6922d8efbe719225ff7d8e09:souba/kyutoki-20man/index.html:generic-api-key:171
 5f7743a15b26036a6922d8efbe719225ff7d8e09:ops/monitor_pages_20260915/build_pages2.py:generic-api-key:141
+# 2026-09-28: publish_guard_test.py の試験用の見出し + 短い偽の本体(鍵ではない、base64 で 25 文字)。次の commit で見出しを実行時に組み立てる形に直した。
+e79c84825e7ae53139352fe436670f14b6180549:tools/publish_guard_test.py:private-key:52
+e79c84825e7ae53139352fe436670f14b6180549:tools/publish_guard_test.py:private-key:61
