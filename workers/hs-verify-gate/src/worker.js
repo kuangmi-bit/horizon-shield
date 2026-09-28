@@ -5299,6 +5299,10 @@ export default {
           "cache-control": "public, max-age=31536000, immutable",
           "access-control-allow-origin": "*",
           "x-record-sha256": sha,
+          // 2026-09-28 record-privacy-v1: the measured party can answer this verdict on the ledger (nenrin-response-v0).
+          // A header, so the hashed body is untouched: no verdict, status, condition or card byte moves.
+          "link": "<https://ledger.horizonshield.dev/response?about=" + sha + ">; rel=\"replies\"",
+          "x-subject-responses": "https://ledger.horizonshield.dev/response?about=" + sha + " lists the measured party's signed replies to this verdict, if any. They change nothing in it.",
           "x-recompute": "SHA-256 of this body, byte for byte, equals the path. The body is the verdict with record_sha256 and recompute_note removed, exactly as it was hashed; nothing was re-serialized."
         }
       });

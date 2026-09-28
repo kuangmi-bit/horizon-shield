@@ -114,6 +114,8 @@ t("control", "GET /record/<sha> answers 200 with application/json and an immutab
   rres.status + " " + rres.headers.get("content-type") + " " + rres.headers.get("cache-control"));
 t("attack", "SHA-256 of the served body, byte for byte, equals the path (no serialization step for the reader)", sha256(rbuf) === latest.record_sha256, sha256(rbuf).slice(0, 16) + " vs " + latest.record_sha256.slice(0, 16));
 t("control", "the x-record-sha256 header equals the path", rres.headers.get("x-record-sha256") === latest.record_sha256);
+t("control", "record-privacy-v1: a Link header points at the measured party's replies on the ledger, outside the hashed body",
+  (rres.headers.get("link") || "") === '<https://ledger.horizonshield.dev/response?about=' + latest.record_sha256 + '>; rel="replies"' && /response\?about=/.test(rres.headers.get("x-subject-responses") || ""), rres.headers.get("link"));
 let served = null; try { served = JSON.parse(rbuf.toString("utf8")); } catch (_e) {}
 t("control", "the body parses as the verdict object, without record_sha256 and recompute_note (they were never in the hashed bytes)",
   served && typeof served === "object" && !("record_sha256" in served) && !("recompute_note" in served) && served.endpoint === EP && served.status === latest.status,
