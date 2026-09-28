@@ -431,7 +431,30 @@ function scan(text, opts) {
   return v;
 }
 
+// Reader ceiling (2026-09-28), the same number and the same count as READER_MAX_DEPTH / text_depth in
+// agreement_verify.py. See the note there: CPython 3.14 stopped running out of stack where it used to, so the
+// "let the host decide" rule above gave two names to one input. Counted on the raw text, outside strings,
+// before scanning, so a malformed deep input gets the same name in both languages too.
+export const READER_MAX_DEPTH = 512;
+export function textDepth(text) {
+  let depth = 0, deepest = 0, inStr = false, esc = false;
+  for (let k = 0; k < text.length; k++) {
+    const c = text.charCodeAt(k);
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === 0x5c) esc = true;
+      else if (c === 0x22) inStr = false;
+    } else if (c === 0x22) inStr = true;
+    else if (c === 0x5b || c === 0x7b) { depth++; if (depth > deepest) deepest = depth; }
+    else if (c === 0x5d || c === 0x7d) depth--;
+  }
+  return deepest;
+}
+
 export function parseScan(text, opts) {
+  if (typeof text === "string" && textDepth(text) > READER_MAX_DEPTH) {
+    throw new CanonicalError("too_deep", "the JSON is nested past what a reader can parse");
+  }
   try {
     return scan(text, opts);
   } catch (e) {
