@@ -47,6 +47,7 @@ function v11(mut) {
              amount_minor_units: 10000n, minor_unit_scale: 0n, currency: "JPY", disclosure_url: "https://party-b.example/pricing" },
     recorder: { domain: "recorder.example", is_a_party: false, fee: { basis: "per_record", amount_minor_units: 0n, currency: "JPY" } },
     record_paid_by: "both",
+    publication: "public", // record-privacy-v1 (intake 0.2.0): both parties consent, inside the signed bytes
     establishes: ["that both parties signed these bytes at the stated time", "that each party named the counterparty conduct record by sha256 at that moment"],
     does_not_establish: ["that either party performed", "that this record is a contract", "that money moved", "that the conduct record each side pinned is accurate", "that the terms are lawful or complete"],
     signatures: [] };

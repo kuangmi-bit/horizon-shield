@@ -1,3 +1,4 @@
+// RUN_ALL: suite
 // agreement_intake.test.mjs
 // Drives the agreement intake against the REAL verifier (agreement_verify.mjs),
 // the REAL Durable Object class (AgreementDedupeDO) wrapped in an in memory
@@ -71,6 +72,7 @@ function v11Record(overrides) {
     },
     recorder: { domain: "recorder.example", is_a_party: false, fee: { basis: "per_record", amount_minor_units: 0n, currency: "JPY" } },
     record_paid_by: "both",
+    publication: "public", // record-privacy-v1: both parties consent to publication, inside the signed bytes
     establishes: ["that both parties signed these bytes at the stated time",
                   "that each party named the counterparty conduct record by sha256 at that moment"],
     does_not_establish: ["that either party performed", "that this record is a contract", "that money moved",
@@ -105,7 +107,7 @@ function v1Record() {
     schema: "a2a-agreement-v1", agreed_at: "2026-09-10T00:00:00Z",
     parties: [partyV1("party-a.example", "payer", "a".repeat(64)), partyV1("party-b.example", "payee", "b".repeat(64))],
     terms: { what: "one audit of one estimate", who_pays_whom: "party-a.example pays party-b.example", amount: 10000n, currency: "JPY", disclosure_url: "https://party-b.example/pricing" },
-    record_paid_by: "both", recorder_fee: { basis: "per_record", amount: 0n, currency: "JPY" },
+    record_paid_by: "both", recorder_fee: { basis: "per_record", amount: 0n, currency: "JPY" }, publication: "public",
     establishes: ["that both parties signed these bytes at the stated time"],
     does_not_establish: ["that either party performed", "that this record is a contract", "that money moved or that payment was made",
                          "that the conduct record each side pinned is accurate", "that the terms are lawful or complete"],
@@ -365,6 +367,44 @@ const deps = (store, extra) => Object.assign({ verify, fetchKey: fetchKeyOK, sto
     t("self desc: states its caps", d.caps && d.caps.daily_global === 500 && d.caps.daily_per_network === 50);
     t("self desc: states it is not an oracle (decision 4.5)", /run the offline verifier yourself/.test(d.no_oracle));
     t("self desc: points at the boundary and the decisions", d.boundary && d.decisions && d.intake_version === INTAKE_VERSION);
+  }
+
+  // --- record-privacy-v1 (intake 0.2.0): publication needs both parties' signed consent ---
+  {
+    const store = doBackedStore();
+    const noPub = signV11(v11Record((r) => { delete r.publication; }));
+    const canNo = canonicalUtf8(noPub);
+    const r = await handleAgreementIntake(req({ record_canonical: canNo }), deps(store));
+    t("privacy: fully signed, verifier accepts, but no publication consent: 422 publication_consent_missing", r.status === 422 && r.body.reason_code === "publication_consent_missing" && r.body.report && r.body.report.verdict === "accepted", r.status + " " + r.body.reason_code);
+    const g = await handleAgreementGet(sha256hex(canNo), deps(store));
+    t("privacy: that record is not stored or served", g.status === 404, "got " + g.status);
+    t("privacy: the refusal says how to publish and how to keep it private", /publication/.test(r.body.how_to_publish) && /timestamp/.test(r.body.how_to_keep_private));
+
+    const priv = signV11(v11Record((r) => { r.publication = "private"; }));
+    const rp = await handleAgreementIntake(req({ record_canonical: canonicalUtf8(priv) }), deps(store));
+    t("privacy: publication \"private\" is refused as publication_not_public, nothing stored", rp.status === 422 && rp.body.reason_code === "publication_not_public" && (await handleAgreementGet(sha256hex(canonicalUtf8(priv)), deps(store))).status === 404);
+
+    const odd = signV11(v11Record((r) => { r.publication = "Public"; }));
+    const ro = await handleAgreementIntake(req({ record_canonical: canonicalUtf8(odd) }), deps(store));
+    t("privacy: only the exact string \"public\" counts (\"Public\" is refused)", ro.status === 422 && ro.body.reason_code === "publication_not_public");
+
+    // one party adds consent after the other signed: the verifier refuses, so the intake never reaches the policy step
+    const a = v11Record((r) => { delete r.publication; });
+    const msgA = signingBytes(a, "a2a-agreement-v1.1");
+    const b = v11Record();
+    const msgB = signingBytes(b, "a2a-agreement-v1.1");
+    b.signatures = [
+      { domain: "party-a.example", alg: "ed25519", signature: crypto.sign(null, Buffer.from(msgA), A.priv).toString("base64") },
+      { domain: "party-b.example", alg: "ed25519", signature: crypto.sign(null, Buffer.from(msgB), B.priv).toString("base64") },
+    ];
+    const r1 = await handleAgreementIntake(req({ record_canonical: canonicalUtf8(b) }), deps(store));
+    t("privacy: consent added by one party after the other signed is refused by the verifier and not stored", r1.status === 422 && r1.body.verdict !== "accepted" && (await handleAgreementGet(sha256hex(canonicalUtf8(b)), deps(store))).status === 404, r1.status + " " + r1.body.verdict);
+
+    const ok = signV11(v11Record());
+    const r2 = await handleAgreementIntake(req({ record_canonical: canonicalUtf8(ok) }), deps(store));
+    t("privacy: with \"publication\": \"public\" signed by both, it is published (201)", r2.status === 201);
+    const d = agreementSelfDescription(ORIGIN);
+    t("privacy: GET /agreement states the rule and links the policy", /publication/.test(d.publication_requires_both_parties) && /RECORD_PRIVACY_v1/.test(d.privacy_policy));
   }
 
   console.log("");

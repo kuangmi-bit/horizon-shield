@@ -1,3 +1,4 @@
+// RUN_ALL: library  受付の本体 (hs-ledger の worker が import する)。試験は agreement_intake.test.mjs
 // agreement_intake.mjs
 // The agreement intake, v0. Built 2026-09-16 to ops/AGREEMENT_INTAKE_v0_BOUNDARY.md
 // and ops/AGREEMENT_INTAKE_v0_DECISIONS.md. The verifier is not touched.
@@ -29,7 +30,18 @@
 import { parseStrict, CanonicalError } from "./agreement_canonical.mjs";
 import { verify as defaultVerify, VERIFIER_VERSION, SCHEMAS } from "./agreement_verify.mjs";
 
-export const INTAKE_VERSION = "0.1.0";
+export const INTAKE_VERSION = "0.2.0";
+// 0.2.0 (2026-09-28, record-privacy-v1). Publication needs both parties' consent, inside the signed bytes.
+// Until 0.1.0, either party could file a fully signed agreement and this intake published it in full: a record two
+// parties made in private could be made public by one of them. Now a record is published only when it carries
+// "publication": "public" at the top level. signingBytes covers every top-level key except signatures, so the field
+// is signed by both parties (a record where one party added it after the other signed fails the verifier). The
+// verifier is unchanged; this is policy at the door, applied after an accepted verdict. A record without the field
+// is not stored, not anchored, not served; to prove it existed without publishing it, timestamp its
+// canonical_sha256 yourself (OpenTimestamps is free), which reveals nothing.
+export const PUBLICATION_FIELD = "publication";
+export const PUBLICATION_PUBLIC = "public";
+export const PRIVACY_POLICY = "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-verify-gate/ext/RECORD_PRIVACY_v1.md";
 
 // A transport cap read before the record is parsed. The verifier applies its own
 // per schema canonical size cap (too_large) after; this only stops a body too big
@@ -259,6 +271,25 @@ export async function handleAgreementIntake(request, deps) {
     });
   }
 
+  // 6b. record-privacy-v1: both parties must have signed consent to publication. Checked after the verifier said
+  //     accepted, so the field is known to be covered by both signatures. Nothing is stored on refusal.
+  if (record[PUBLICATION_FIELD] !== PUBLICATION_PUBLIC) {
+    const present = Object.prototype.hasOwnProperty.call(record, PUBLICATION_FIELD);
+    return res(422, {
+      status: "refused", verdict: "accepted_by_verifier_not_published",
+      reason_code: present ? "publication_not_public" : "publication_consent_missing",
+      why: present
+        ? "the record says publication " + JSON.stringify(record[PUBLICATION_FIELD]) + "; this ledger publishes only records whose signed bytes say \"publication\": \"public\""
+        : "the signed bytes do not say that both parties consent to publication; one party filing a record is not both parties agreeing to publish it",
+      how_to_publish: 'add "publication": "public" at the top level of the record, have both parties sign again, and file the new canonical bytes',
+      how_to_keep_private: "do not file it here. To prove the record existed at a time without revealing it, timestamp its canonical_sha256 yourself (for example: ots stamp), and keep the bytes between the parties",
+      canonical_sha256: report.canonical_sha256,
+      policy: PRIVACY_POLICY,
+      note: "the verifier's report is included; it accepted the signatures. Nothing was stored, anchored or served.",
+      report, verifier_version: report.verifier_version,
+    });
+  }
+
   // 7. accepted. deduplicate atomically on strongly consistent storage, keyed by
   //    canonical_sha256 (boundary 2.3). fail closed if the gate is not bound.
   const canonicalSha = report.canonical_sha256;
@@ -341,6 +372,8 @@ export function agreementSelfDescription(origin) {
     schemas: SCHEMAS,
     verifier_version: VERIFIER_VERSION,
     only_accepted_is_public: "a refused or incomplete record is returned to you with its full report and is not stored, anchored, or served (decision 4.2)",
+    publication_requires_both_parties: 'since intake 0.2.0 (record-privacy-v1) a record is published only when its signed bytes carry "publication": "public" at the top level, so both parties consented; otherwise it is refused and nothing is kept. To prove existence privately, timestamp the canonical_sha256 yourself.',
+    privacy_policy: PRIVACY_POLICY,
     serve_by_sha: o + "/agreement/{canonical_sha256}",
     anchoring: "accepted records are deduplicated, served by sha, and queued for the daily batch that anchors the pool to Bitcoin at 00:30 UTC (boundary 2.4); GET /agreement/{sha} shows status pending_anchor until the batch runs, then anchored with its ledger_entry. the Bitcoin stamp follows on the operator's stamping run.",
     pending_pool: o + "/agreement/pending",

@@ -1,0 +1,65 @@
+# Record Privacy v1 (`record-privacy-v1`)
+
+**Status:** v1, 2026-09-28. Applies to every record HORIZON SHIELD publishes or anchors: gate verdicts, witness
+walks, the NENRIN ledgers, agreement records, MUSUBI contracts and runs, résumés, and the Yakumo directory.
+**Language:** RFC 2119 keywords. This is an operating policy, not legal advice; it has not yet been reviewed by a
+lawyer, and it will be revised if a review says it must.
+
+## 1. Why a policy
+
+A public, append-only, Bitcoin-anchored record cannot be taken back. That is its purpose, and it is also why the
+question "should this be public at all" has to be answered before anything is written, not after.
+
+Two facts about Japan shape the answer. Stating a fact that lowers someone's standing can be defamation even when
+the fact is true (Penal Code article 230); it is excused only when the fact concerns the public interest, the purpose
+is solely to serve it, and the truth is proven (article 230-2). A company can be the injured party. And information
+about a company is not personal information, but information about its officers, employees and sole traders is
+(Act on the Protection of Personal Information, article 2; the Personal Information Protection Commission's general
+guidelines, section 2-1).
+
+## 2. Four kinds of record, four defaults
+
+**P. Measurements of a surface its operator published.** An agent card, an MCP endpoint, a well-known file: the
+operator put it on the public internet for machines to read. Measurements of it are published in full, with their
+bytes and hashes, so anyone can recompute them. The measured party can answer: a response is filed like any other
+record (a witness walk of its own, or a discrepancy record) and never replaces the measurement. Showing responses
+beside the measurement on the register pages is not built yet (section 3).
+
+**B. Records between private parties.** Agreements, contracts, delegations, execution receipts. The default is
+private. A record is published in full only when the signed bytes say so with the consent of every signing party.
+Until then the only thing that may be made public is a commitment (a hash) that reveals nothing.
+
+**A. Adverse facts.** Failures, refusals, disagreements. They are published only about class P subjects, only as
+counts and links to the recomputable records they come from, never as narrative, never as a score or penalty, and
+always with the subject's response when there is one. The reader decides what a count means.
+
+**I. Natural persons.** No public record names a natural person who has not named themselves in it. A witness may
+sign with a name they chose. A customer, an officer, an employee or a sole trader is not named by us; where a work
+record must mention a customer it is masked (`〇〇様`). Directory listings name only businesses that applied to be
+listed.
+
+## 3. How each record type meets it (as of 2026-09-28)
+
+| Record | Class | Default | Status |
+|---|---|---|---|
+| Gate verdicts, register, `/record/{sha}` | P | public | complies; responses beside the measurement are not shown yet (open) |
+| Witness walks (`a2a-conduct-walk`) | P | public; the walker may choose `hash-only` or `commitment` | complies |
+| Agreement records (`POST /agreement`, a2a-agreement-v1/v1.1) | B | published only with `"publication": "public"` in the signed bytes | **complies since intake 0.2.0 (2026-09-28)**; before that, one party could publish a record both had signed |
+| MUSUBI contracts (`grant.privacy`) | B | the signed `grant.privacy` value governs; only `public_record` may be published in full | the first two contracts are `public_record` by both parties; no layer enforces the field yet (open) |
+| Task-bound observations (`/witness/task`) | B when the task is between private parties | commitment unless both parties consent | not enforced yet (open); the intake accepts task observations as filed |
+| Résumé and trust-signal adverse counts | A | counts over class P endpoints, `erasable: false` | counts comply; a link to the subject's response is not shown yet (open) |
+| Yakumo directory | I | businesses that applied; customers masked | complies (checked 2026-09-28: two verified, one pending with no name shown) |
+
+"Open" rows are stated so that nobody reads this table as more than it is.
+
+## 4. Keeping a record private and still provable
+
+Do not file it on a public ledger. Compute its canonical SHA-256 and timestamp that hash (OpenTimestamps is free and
+reveals nothing). If a dispute ever needs the record, the parties reveal the bytes and anyone can check them against
+the timestamped hash.
+
+## 5. What this does not establish
+
+That every record ever published before this policy meets it (the table says where it did not). That the classes are
+drawn where a court would draw them. That publishing a class P measurement is always lawful; it is our judgment that
+measuring what an operator published for machines is in the public interest, and a lawyer has not yet confirmed it.
