@@ -24,7 +24,8 @@ This directory runs that Go verifier, byte for byte, against the card the gate a
   `a2acrypto/export_canon.go` is ours (exposes the canonical bytes). `a2a/agent.go` is a three-field
   stub of `a2a.AgentCardSignature` with the upstream JSON tags.
 - `main.go`: reads a card file, prints the served bytes' sha256 and the Go canonical form's sha256,
-  resolves the key from the `jku` JWKS with the upstream `JWKSKeyResolver`, and reports every signature.
+  resolves the key from the `jku` JWKS with the upstream `JWKSKeyResolver` (from a file when a third argument
+  is given), prints the sha256 of the JWKS bytes used, and reports every signature.
 - `canon_compare.mjs`: the JS side. Prints the sha256 of the two canonical forms `../sign_lib.mjs` signs over.
 
 ## Run
@@ -32,6 +33,16 @@ This directory runs that Go verifier, byte for byte, against the card the gate a
     curl -s https://gate.horizonshield.dev/.well-known/agent-card.json > card.json
     go run . card.json                 # Go 1.24 or newer, standard library only
     node canon_compare.mjs card.json   # needs ../node_modules (npm ci in ..)
+
+## Offline run (2026-09-28): card bytes, key-set bytes and verifier named together
+
+    go run . fixtures/gate_card_20260928.json "" fixtures/gate_jwks_20260928.json
+
+The third argument makes the run offline: the resolver still asks for the trusted JWKS URL and only that URL is
+answered, from the file. Every run, online or offline, now prints `jwks_sha256` of the bytes the key came from.
+`fixtures/` holds the gate 0.4.17 card (sha256 `2df33ff1...`) and JWKS (sha256 `692fd49d...`) as served on
+2026-09-28. Result and three controls: `results_20260928.txt`. The Go canonical sha256 `30ea4e2a...` equals the
+`jcs_sha256` the signer printed, so signer and verifier hash the same bytes.
 
 ## Result on 2026-09-26 (gate 0.4.15, served sha256 99d374405a59bbdc92f93f52e5f6c647da8db8ec06a5b851c59dc8e1880fcb8d)
 

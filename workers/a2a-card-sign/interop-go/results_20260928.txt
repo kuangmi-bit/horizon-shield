@@ -1,0 +1,17 @@
+2026-09-28, gate 0.4.17 (GATE_COMMIT 9d3d4ee50c71), offline: card and JWKS bytes pinned in fixtures/, no network
+verifier: a2a-go v2.6.0 a2acrypto, tag commit ebf17c56ef7e63c72883a45454a538bbc0df66b8 (2026-09-25, CHANGELOG "## [2.6.0]")
+  copied files identical to the tag except verify.go line 28 (import path github.com/a2aproject/a2a-go/v2/a2a -> hs.local/cardcheck/a2a)
+  Go 1.24.7, linux/amd64, standard library only, GOPROXY=off
+command: go run . fixtures/gate_card_20260928.json "" fixtures/gate_jwks_20260928.json
+card="MCP Verification Gate" version=0.4.17 served_bytes=9420 served_sha256=2df33ff120745a7f46b8afc1378d72b437b3f05b4db61c8d8b3655c581584455
+go_canonical_bytes=6852 go_canonical_sha256=30ea4e2ad2a070a74c6c45da0e8858ad6c4cd9ab15e805f9f117269bf145c01a
+signature[0]: PASS
+signature[1]: FAIL signature verification failed
+jwks_source=file fixtures/gate_jwks_20260928.json (served as https://gate.horizonshield.dev/.well-known/jwks.json) jwks_bytes=256 jwks_sha256=692fd49da681cc0d0bda9ad46963fa5f45957a59d10f84998e9b2e4061209d3c
+result: 1 of 2 signatures verify under a2a-go v2.6.0 a2acrypto
+cross-check: go_canonical_sha256 equals jcs_sha256 printed by workers/a2a-card-sign/sign.mjs when the card was signed
+  (30ea4e2a..., 2026-09-28): the signer and an independent verifier in another language hash the same bytes.
+controls (each must verify nothing):
+  one character of the JWKS key x changed        -> 0 of 2
+  card "version" 0.4.17 changed to 0.4.18         -> 0 of 2
+  trusted JWKS URL set to https://evil.invalid/... -> 0 of 2, "jku ... is not on the trusted allowlist", no JWKS read
