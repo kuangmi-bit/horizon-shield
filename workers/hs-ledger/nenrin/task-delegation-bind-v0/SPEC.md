@@ -32,10 +32,30 @@ Two Ed25519 detached signatures (wire form: detached JWS, EdDSA; DIDs resolve to
 - edge_sig: the delegating party (hop.from) signs canonical({task_id, hop}). The edge A->B is party-attested, not just witness-claimed. This closes the self-asserted-chain hole at the party level.
 Honest line: signatures prove WHO asserted, not that the assertion is TRUE. Attribution (sigs) + independence (R1) + non-suppression (R4) together = attributable, independent, non-suppressible observations. Signing does not change evidence_id (preimage excludes sigs).
 
+## Publication consent (record-privacy-v1, 2026-09-28)
+A task observation names two parties and what one did for the other, so the ledger publishes it in full only when
+each hop party is either a public surface or has consented. A public surface is an https origin on a public host
+(no localhost, no bare IP, no userinfo, at least one dot): what an operator published for machines, the same class
+as a witness walk. A did:key party is a private identity until it signs:
+- consent: a list of {party, sig}. sig is Ed25519 by that party's did:key over
+  canonical({purpose: "nenrin-task-publication-consent-v0", task_id, hop, publication: "public"}). The purpose and
+  publication keys keep it from ever equalling an edge_sig message.
+- consent is a derived field: it sits outside the preimage, so adding it later changes neither evidence_id nor
+  witness_sig. A present-but-invalid entry (wrong key, a non-party, a party that is not a did:key, not a list) is
+  refused with 422, like witness_sig and edge_sig.
+- Without it the ledger keeps a commitment only: the evidence_id and the receipt time, bundled into the daily batch
+  as {evidence_id, commitment: true}. Nothing naming the task, the parties, the witness or the verdict is stored or
+  served, and GET /witness/task/evidence/<id> answers commitment_only. POST the same observation with the consents to
+  publish it; a commitment already anchored then fixes the earlier existence time. A re-post without consent never
+  downgrades an observation that is already public.
+- The reference walker's task binding (a2a-conduct-walk/task_bind.py) adds the requester's consent; the walked agent
+  is an https origin, so its bindings stay public as before.
+Observations filed before this rule stay as filed; their batch entries are in the append-only ledger.
+
 ## Canonical form, pinned (the portable part of the verification contract)
 
 Artifact identity is a SHA-256 over the UTF-8 bytes of canonical(preimage), where preimage is the record without
-evidence_id, witness_sig and edge_sig. The record's schema name sits inside the hashed bytes. There is no domain
+evidence_id, witness_sig, edge_sig and consent. The record's schema name sits inside the hashed bytes. There is no domain
 prefix in v0; the agreement and contract record families add one, this family commits its type through the schema
 field instead. The canonical rule is the one the sieve and contract layers already prove byte-identical across
 Python and Node. Its name is musubi-canonical-v0, its vectors are ../musubi-v0/canonical_vectors.json, and that name

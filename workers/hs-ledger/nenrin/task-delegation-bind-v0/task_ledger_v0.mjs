@@ -14,6 +14,19 @@
 // delegation edge party-attested. Keys resolve from did:key with no network (self-contained, offline byte-match).
 // A present-but-invalid signature is REJECTED (422); an absent signature is accepted (unsigned, content-only).
 //
+// record-privacy-v1 (2026-09-28, workers/hs-verify-gate/ext/RECORD_PRIVACY_v1.md). A task observation names two
+// parties (hop.from, hop.to) and what one did for the other. It is published in full only when each party either is a
+// public surface (an https origin on a public host: what an operator published for machines, class P, the same as a
+// witness walk) or signed consent to publication. A did:key party is a private identity until it consents:
+// consent = [{ party, sig }], each sig Ed25519 by that party's did:key over
+// canonical({ purpose: "nenrin-task-publication-consent-v0", task_id, hop, publication: "public" }). consent is a
+// derived field (outside the evidence_id preimage), so adding it later changes neither evidence_id nor witness_sig.
+// Without both consents the ledger keeps a commitment only: the evidence_id and the receipt time, anchored in the
+// daily batch with nothing else. Nothing that names the task, the parties, the witness or the verdict is stored or
+// served. Re-POST the same observation with both consents to publish it; the anchored commitment then proves it
+// existed at the earlier time. A present-but-invalid consent is refused (422). Observations filed before this rule
+// stay as filed (their batch entries are in the append-only ledger).
+//
 // Routes (additive):
 //   POST /witness/task              body = a WitnessObservation (evidence_id present; witness_sig/edge_sig optional)
 //   GET  /witness/task?task_id=..   [&hop=<seq>]  -> full set + per-hop aggregate (R4) + chain check (R3)
@@ -44,7 +57,11 @@ export function canonical(v) {
   return canon(v);
 }
 
-const DERIVED_FIELDS = ["evidence_id", "witness_sig", "edge_sig"];
+const DERIVED_FIELDS = ["evidence_id", "witness_sig", "edge_sig", "consent"];
+export const CONSENT_PURPOSE = "nenrin-task-publication-consent-v0";
+export function consentMessage(obs) {
+  return canonical({ purpose: CONSENT_PURPOSE, task_id: obs.task_id, hop: obs.hop, publication: "public" });
+}
 function preimage(obs) {
   const b = Object.assign({}, obs);
   for (const k of DERIVED_FIELDS) delete b[k];
@@ -132,7 +149,40 @@ async function verifySignatures(obs) {
   return { ok: true };
 }
 
+// record-privacy-v1: which hop parties validly consented. Absent consent is fine (commitment only);
+// a consent entry that is present but malformed or does not verify is refused, like witness_sig and edge_sig.
+async function verifyConsent(obs) {
+  if (obs.consent === undefined) return { ok: true, parties: [] };
+  if (!Array.isArray(obs.consent)) return { ok: false, reason: "consent_not_a_list" };
+  const want = [obs.hop.from, obs.hop.to];
+  const got = new Set();
+  const msg = consentMessage(obs);
+  for (const c of obs.consent) {
+    if (!c || typeof c !== "object" || typeof c.party !== "string" || typeof c.sig !== "string") return { ok: false, reason: "consent_entry_malformed" };
+    if (!want.includes(c.party)) return { ok: false, reason: "consent_from_non_party" };
+    const pub = pubFromDidKey(c.party);
+    if (!pub) return { ok: false, reason: "consent_party_not_did_key" };
+    if (!(await ed25519Verify(pub, c.sig, msg))) return { ok: false, reason: "consent_sig_invalid" };
+    got.add(c.party);
+  }
+  return { ok: true, parties: [...got] };
+}
+// class P: an https origin on a public host. localhost, bare IPs, userinfo and non-https schemes are not public surfaces.
+export function isPublicSurface(party) {
+  if (typeof party !== "string") return false;
+  let u; try { u = new URL(party); } catch { return false; }
+  if (u.protocol !== "https:" || u.username || u.password) return false;
+  const h = u.hostname.toLowerCase();
+  if (!h.includes(".") || h === "localhost" || h.endsWith(".localhost") || h.startsWith("[") || /^[0-9.]+$/.test(h)) return false;
+  return true;
+}
+function publicationBasis(obs, consentParties) {
+  const one = (d) => (isPublicSurface(d) ? "public_surface" : (consentParties.includes(d) ? "consent" : null));
+  return { from: one(obs.hop.from), to: one(obs.hop.to) };
+}
+
 const OBS_KEY = (eid) => "nenrin:task:obs:" + eid;
+const COMMIT_KEY = (eid) => "nenrin:task:commit:" + eid;  // record-privacy-v1: { evidence_id, received_at } and nothing else
 const IDX_KEY = (tid, seq, wid) => "nenrin:task:" + tid + ":" + seq + ":" + wid;
 const IDX_PREFIX = (tid) => "nenrin:task:" + tid + ":";
 const PENDING_KEY = (eid) => "nenrin:tw:pending:" + eid;   // daily Bitcoin anchor pool (disjoint from the nenrin:task: index)
@@ -171,13 +221,30 @@ export async function handleTaskWitnessPost(request, env) {
   if (!v.ok) return j({ ok: false, error: v.reason }, 422);
   const s = await verifySignatures(obs); // optional attribution; present-but-invalid is rejected
   if (!s.ok) return j({ ok: false, error: s.reason }, 422);
+  const cs = await verifyConsent(obs); // record-privacy-v1; present-but-invalid is rejected
+  if (!cs.ok) return j({ ok: false, error: cs.reason }, 422);
   const eid = obs.evidence_id;
+  const basis = publicationBasis(obs, cs.parties);
+  if (!basis.from || !basis.to) {
+    // Commitment only. Never downgrade an observation that is already public.
+    if (await env.LEDGER.get(OBS_KEY(eid))) return j({ ok: true, stored: "public", already: true, evidence_id: eid, note: "this observation was already published with both parties' consent; nothing changed" });
+    const missing = [basis.from ? null : "hop.from", basis.to ? null : "hop.to"].filter(Boolean);
+    if (!(await env.LEDGER.get(COMMIT_KEY(eid)))) await env.LEDGER.put(COMMIT_KEY(eid), JSON.stringify({ evidence_id: eid, received_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z") }));
+    if (!(await env.LEDGER.get(ANCHORED_KEY(eid))) && !(await env.LEDGER.get(PENDING_KEY(eid)))) await env.LEDGER.put(PENDING_KEY(eid), canonical({ evidence_id: eid, commitment: true }));
+    return j({
+      ok: true, stored: "commitment", evidence_id: eid,
+      consent_missing_from: missing.length === 2 ? "both parties" : missing[0],
+      why: "record-privacy-v1: a task observation names two parties and what one did for the other, so it is published only when each party is a public surface (an https origin) or signed consent. Until then the ledger keeps the evidence_id and the receipt time, anchored daily, and nothing else",
+      how_to_publish: "each party signs canonical({purpose: \"" + CONSENT_PURPOSE + "\", task_id, hop, publication: \"public\"}) with its did:key; POST the same observation with consent: [{party, sig}, {party, sig}]. evidence_id and witness_sig do not change",
+      policy: "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-verify-gate/ext/RECORD_PRIVACY_v1.md",
+    });
+  }
   await env.LEDGER.put(OBS_KEY(eid), canonical(obs));
   await env.LEDGER.put(IDX_KEY(obs.task_id, obs.hop.seq, obs.witness_id), eid);
   // enqueue for the daily Bitcoin anchor batch, unless this evidence is already in an anchored batch
   if (!(await env.LEDGER.get(ANCHORED_KEY(eid)))) await env.LEDGER.put(PENDING_KEY(eid), canonical(obs));
   return j({
-    ok: true, stored: true, task_id: obs.task_id, hop_seq: obs.hop.seq, witness_id: obs.witness_id,
+    ok: true, stored: "public", publication_basis: basis, task_id: obs.task_id, hop_seq: obs.hop.seq, witness_id: obs.witness_id,
     evidence_id: eid, witness_sig: typeof obs.witness_sig === "string", edge_sig: typeof obs.edge_sig === "string",
   });
 }
@@ -330,7 +397,19 @@ export async function handleTaskEvidence(p, request, url, env) {
       } catch (e) {}
     }
   }
-  if (!obs) return j({ ok: false, error: "not_found", evidence_id: eid, note: "no task observation with this evidence_id; a pin that names no stored evidence is a claim, not an observation" }, 404);
+  if (!obs) {
+    const commitRaw = await env.LEDGER.get(COMMIT_KEY(eid));
+    if (commitRaw || anchored || pendRaw) {
+      let c = null; try { c = commitRaw ? JSON.parse(commitRaw) : null; } catch (e) {}
+      return j({
+        ok: true, evidence_id: eid, commitment_only: true, recompute_ok: null,
+        received_at: c && c.received_at || null,
+        status: anchored ? "anchored" : (pendRaw ? "pending" : "stored"), anchored, bitcoin,
+        note: "record-privacy-v1: the ledger holds a commitment to this observation, not its content, because both parties have not consented to publication. It proves an observation with this evidence_id existed by the anchor time; whoever holds the bytes can show they hash to it",
+      });
+    }
+    return j({ ok: false, error: "not_found", evidence_id: eid, note: "no task observation with this evidence_id; a pin that names no stored evidence is a claim, not an observation" }, 404);
+  }
   const recomputed = await evidenceId(obs);
   return j({
     ok: true,
@@ -370,7 +449,7 @@ export async function anchorTaskWitnessPool(env, origin, trigger) {
     schema: "nenrin-task-witness-batch-v1",
     anchored_at: new Date().toISOString(),
     count: items.length,
-    records: items.map((o) => ({
+    records: items.map((o) => (o.commitment === true ? { evidence_id: o.evidence_id, commitment: true } : {
       evidence_id: o.evidence_id, task_id: o.task_id, hop_seq: o.hop.seq, witness_id: o.witness_id,
       verdict: o.conduct.verdict, witness_sig: typeof o.witness_sig === "string", edge_sig: typeof o.edge_sig === "string",
     })),
@@ -385,7 +464,7 @@ export async function anchorTaskWitnessPool(env, origin, trigger) {
   await env.LEDGER.put("hash:" + h, String(n));
   await env.LEDGER.put("seq", String(n));
   for (const o of items) {
-    await env.LEDGER.put(ANCHORED_KEY(o.evidence_id), JSON.stringify({ n, obs: o }));
+    await env.LEDGER.put(ANCHORED_KEY(o.evidence_id), JSON.stringify(o.commitment === true ? { n, obs: null, commitment: true } : { n, obs: o }));
     await env.LEDGER.delete(PENDING_KEY(o.evidence_id));
   }
   return { status: 201, body: { n, url: origin + "/ledger/" + n, anchored: items.length, trigger, note: "the batch anchor fixes the existence time of every task observation listed; the Bitcoin stamp follows on the operator stamping run" } };

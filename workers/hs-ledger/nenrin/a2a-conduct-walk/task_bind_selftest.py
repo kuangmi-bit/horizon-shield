@@ -51,6 +51,17 @@ try:
 except Exception:
     ok("edge_sig verifies (requester attests P->B)", False)
 
+# record-privacy-v1: the requester consents to publication; the agent origin is a public surface
+c = obs.get("consent") or []
+ok("consent carries exactly the requester (hop.from)", len(c) == 1 and c[0]["party"] == obs["hop"]["from"])
+try:
+    msg = T.canonical({"purpose": T.CONSENT_PURPOSE, "task_id": obs["task_id"], "hop": obs["hop"], "publication": "public"})
+    p_priv.public_key().verify(base64.b64decode(c[0]["sig"]), msg.encode("utf-8"))
+    ok("consent verifies (requester consents to publication)", True)
+except Exception:
+    ok("consent verifies (requester consents to publication)", False)
+ok("consent is outside the preimage (evidence_id unchanged by it)", T.evidence_id({k: v for k, v in obs.items() if k != "consent"}) == obs["evidence_id"])
+
 pem = wpriv.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
 tf = tempfile.NamedTemporaryFile(delete=False, suffix=".pem")
 tf.write(pem)

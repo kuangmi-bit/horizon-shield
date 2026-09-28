@@ -24,7 +24,7 @@ LEDGER_TASK_URL = "https://ledger.horizonshield.dev/witness/task"
 # urllib's default UA (Python-urllib/<ver>) is on Cloudflare's bot signature list and is refused at the
 # edge with 403 (error 1010) before it ever reaches the worker. An explicit honest product UA passes.
 PRODUCER_UA = "HORIZON-SHIELD-NENRIN/1.0 (task-delegation-bind-v0)"
-DERIVED_FIELDS = ("evidence_id", "witness_sig", "edge_sig")
+DERIVED_FIELDS = ("evidence_id", "witness_sig", "edge_sig", "consent")  # consent: record-privacy-v1, see task_ledger_v0.mjs
 
 
 def canonical(v):
@@ -115,6 +115,20 @@ def sign_edge(obs, from_priv):
     return o
 
 
+CONSENT_PURPOSE = "nenrin-task-publication-consent-v0"
+
+
+def sign_consent(obs, party_priv, party_did):
+    """consent (record-privacy-v1): a hop party signs canonical({purpose, task_id, hop, publication: "public"}).
+    The ledger publishes the observation only when both hop.from and hop.to have consented; otherwise it keeps a
+    commitment (the evidence_id) and nothing else. consent is outside the preimage, so evidence_id and witness_sig
+    do not change when it is added."""
+    msg = canonical({"purpose": CONSENT_PURPOSE, "task_id": obs["task_id"], "hop": obs["hop"], "publication": "public"})
+    o = dict(obs)
+    o["consent"] = list(obs.get("consent", [])) + [{"party": party_did, "sig": base64.b64encode(party_priv.sign(msg.encode("utf-8"))).decode("ascii")}]
+    return o
+
+
 def _read_json(resp):
     """Decode a response body as JSON; if it is not JSON (e.g. an edge error page), return {"raw": text}."""
     txt = resp.read().decode("utf-8", errors="replace")
@@ -164,9 +178,9 @@ def signed_demo():
     b, B = new_agent()   # hop.to party
     out = []
 
-    # 1) fully signed, valid: W1 witnesses A->B, edge signed by A (hop.from)
+    # 1) fully signed, valid: W1 witnesses A->B, edge signed by A (hop.from), both parties consent to publication
     o = build_observation("sig-t1", 0, A, B, "PASS", W1, observed_at=at)
-    o = sign_edge(sign_observation(o, w1), a)
+    o = sign_consent(sign_consent(sign_edge(sign_observation(o, w1), a), a, A), b, B)
     out.append({"case": "valid_signed", "expect": "accept", "obs": o})
 
     # 2) forged witness_sig: witness_id says W1 but W2 signed -> invalid
@@ -187,9 +201,15 @@ def signed_demo():
     o4["evidence_id"] = evidence_id(o4)
     out.append({"case": "restamped_stale_sig", "expect": "reject", "obs": o4})
 
-    # 5) unsigned still accepted (backward compatible)
+    # 5) unsigned still accepted (backward compatible); with no consent the ledger keeps a commitment only
     o5 = build_observation("sig-t5", 0, A, B, "PASS", W1, observed_at=at)
     out.append({"case": "unsigned", "expect": "accept", "obs": o5})
+
+    # 6) forged consent: hop.to's consent entry signed by hop.from's key -> invalid
+    o6 = build_observation("sig-t6", 0, A, B, "PASS", W1, observed_at=at)
+    o6 = sign_consent(o6, a, A)
+    o6 = sign_consent(o6, a, B)
+    out.append({"case": "forged_consent", "expect": "reject", "obs": o6})
 
     return out
 

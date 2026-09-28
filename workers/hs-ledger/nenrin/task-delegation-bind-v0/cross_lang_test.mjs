@@ -4,7 +4,7 @@
 // evidence_id. If canonical() differed across languages by a single byte, the JS R2 check would 422.
 // Run: python3 task_witness_emit.py > obs.json && node cross_lang_test.mjs
 import { readFileSync } from "node:fs";
-import { handleTaskWitness } from "./task_ledger_v0.mjs";
+import { handleTaskWitness, evidenceId } from "./task_ledger_v0.mjs";
 
 const observations = JSON.parse(readFileSync(new URL("./obs.json", import.meta.url), "utf8"));
 
@@ -35,9 +35,16 @@ for (const o of observations) {
 }
 ok("all " + observations.length + " python observations accepted by JS ledger", accepted === observations.length);
 
-{ const g = await get("task_id=prod-t2"); ok("prod-t2 two-hop chain continuous (cross-lang prev_evidence_id linkage, R3)", g.body.hops_observed === 2 && g.body.chain_continuous === true); }
-{ const g = await get("task_id=prod-t3"); ok("prod-t3 disagreement preserved (R4)", g.body.hops[0].verdict === "disagreement" && g.body.hops[0].witnesses === 2); }
-{ const g = await get("task_id=prod-t1"); ok("prod-t1 single PASS", g.body.hops[0].verdict === "PASS" && g.body.hops[0].witnesses === 1); }
+// record-privacy-v1: the Python demo parties are placeholder did:keys that cannot sign consent, so the ledger keeps
+// each as a commitment and serves nothing by task_id. The byte match above is the cross-language claim; linkage is
+// checked directly on the Python bytes, and aggregation (R3, R4) is language independent and covered in
+// task_ledger_selftest.mjs with consenting parties.
+const stored = [];
+for (const o of observations) stored.push((await post(o)).body.stored);
+ok("placeholder parties cannot consent: every observation is kept as a commitment", stored.every((x) => x === "commitment"));
+{ const t2 = observations.filter((o) => o.task_id === "prod-t2").sort((a, b) => a.hop.seq - b.hop.seq);
+  ok("prod-t2 hop1.prev_evidence_id (Python) equals the JS evidence_id of hop0 (cross-lang linkage, R3)", t2.length === 2 && t2[1].prev_evidence_id === (await evidenceId(t2[0]))); }
+{ const g = await get("task_id=prod-t2"); ok("nothing is served by task_id for a commitment", g.body.hops_observed === 0); }
 
 console.log(fails ? ("\n" + fails + " FAILED") : "\nALL PASS (cross-lang producer <-> ledger)");
 process.exit(fails ? 1 : 0);

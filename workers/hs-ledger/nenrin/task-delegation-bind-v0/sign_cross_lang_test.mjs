@@ -33,8 +33,8 @@ for (const c of cases) {
   ok(c.case + "  -> " + got + "  (expect " + c.expect + ")", passed);
 }
 
-{ const g = await get("task_id=sig-t1"); ok("sig-t1 GET: signed_witnesses=1 and edge_attested=true", g.body.hops[0].signed_witnesses === 1 && g.body.hops[0].edge_attested === true); }
-{ const g = await get("task_id=sig-t5"); ok("sig-t5 GET: unsigned stored, signed_witnesses=0", g.body.hops[0].signed_witnesses === 0 && g.body.hops[0].verdict === "PASS"); }
+{ const g = await get("task_id=sig-t1"); ok("sig-t1 GET: both parties consented in Python, published: signed_witnesses=1 and edge_attested=true", g.body.hops_observed === 1 && g.body.hops[0].signed_witnesses === 1 && g.body.hops[0].edge_attested === true); }
+{ const g = await get("task_id=sig-t5"); ok("sig-t5 GET: no consent, kept as a commitment, nothing served (record-privacy-v1)", g.body.hops_observed === 0); }
 
 console.log(fails ? ("\n" + fails + " FAILED") : "\nALL PASS (sign cross-lang: producer signs, ledger verifies via did:key)");
 process.exit(fails ? 1 : 0);

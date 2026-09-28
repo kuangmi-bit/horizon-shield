@@ -67,6 +67,10 @@ def build_signed_task_observation(task_id, agent_id, verdict, witness_priv, witn
     obs = T.build_observation(task_id, 0, P, agent_id, verdict, witness_did, detail_ref=detail_ref)
     obs = T.sign_observation(obs, witness_priv)  # W attests: "I observed this"
     obs = T.sign_edge(obs, p_priv)               # P attests: "I delegated task T to B"
+    # record-privacy-v1: P, the requester, consents to publication. B is the agent's https origin, a public surface
+    # (class P, like the walk itself), so the ledger publishes this observation; without P's consent it would keep a
+    # commitment only. consent sits outside the preimage: evidence_id and witness_sig do not change.
+    obs = T.sign_consent(obs, p_priv, P)
     return obs, p_priv
 
 

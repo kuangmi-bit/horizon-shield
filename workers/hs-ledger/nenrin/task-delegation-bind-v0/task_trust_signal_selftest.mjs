@@ -3,6 +3,9 @@
 // disclosure, dispatcher guards, and the hard promise that no numeric score is ever emitted.
 // Run: node task_trust_signal_selftest.mjs
 import { evidenceId, handleTaskWitness, handleTaskTrustSignal } from "./task_ledger_v0.mjs";
+// record-privacy-v1: parties are real did:keys and both consent by default, so these cases exercise publication as before;
+// the commitment-only path has its own cases in task_ledger_selftest.mjs.
+import { D, consented } from "./consent_testkit.mjs";
 
 function kv() {
   const m = new Map();
@@ -15,7 +18,7 @@ function kv() {
 const ENV = () => ({ LEDGER: kv() });
 
 async function obs({ task_id, seq = 0, from = "did:key:A", to = "did:key:B", prev = null, verdict = "PASS", witness = "did:key:W1" }) {
-  const o = { task_id, hop: { seq, from, to }, prev_evidence_id: prev, conduct: { verdict, detail_ref: null }, witness_id: witness, observed_at: "2026-09-16T00:00:00Z" };
+  const o = { task_id, hop: { seq, from: D(from), to: D(to) }, prev_evidence_id: prev, conduct: { verdict, detail_ref: null }, witness_id: D(witness), observed_at: "2026-09-16T00:00:00Z" };
   o.evidence_id = await evidenceId(o);
   return o;
 }
@@ -23,7 +26,7 @@ function urlFor(qs) { return new URL("https://ledger.horizonshield.dev/trust-sig
 
 let fails = 0;
 const ok = (name, cond) => { console.log((cond ? "  ok   " : "  FAIL ") + name); if (!cond) fails++; };
-async function post(env, o) { const r = await handleTaskWitness("/witness/task", { method: "POST", json: async () => o }, null, env); return { status: r.status, body: JSON.parse(await r.text()) }; }
+async function post(env, o) { const r = await handleTaskWitness("/witness/task", { method: "POST", json: async () => consented(o) }, null, env); return { status: r.status, body: JSON.parse(await r.text()) }; }
 async function ts(env, qs) {
   const r = await handleTaskTrustSignal("/trust-signal", { method: "GET" }, urlFor(qs), env);
   return r === null ? { isNull: true } : { status: r.status, body: JSON.parse(await r.text()) };

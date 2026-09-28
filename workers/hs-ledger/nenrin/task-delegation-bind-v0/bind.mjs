@@ -26,7 +26,7 @@ export function canonical(v) {
 
 // evidence_id = content hash over the preimage (the record minus derived/envelope fields).
 // Signatures are excluded so adding them never changes evidence_id, and the witness signs the same bytes.
-const DERIVED_FIELDS = ["evidence_id", "witness_sig", "edge_sig"];
+const DERIVED_FIELDS = ["evidence_id", "witness_sig", "edge_sig", "consent"];   // consent: record-privacy-v1, see task_ledger_v0.mjs
 export function preimage(obs) {
   const b = Object.assign({}, obs);
   for (const k of DERIVED_FIELDS) delete b[k];
