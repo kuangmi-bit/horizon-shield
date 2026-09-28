@@ -258,6 +258,12 @@ def is_recruit_path(relpath):
     parts = _segments(relpath)
     return "recruit" in parts[1:3]
 
+def is_pricing_path(relpath):
+    # 2026-09-29: 運営者自身の料金表(yakumo/plans/)は、特定商取引法の表示として月額を載せる必要があるので金額チェックを免除する。
+    #   免除は yakumo/plans/ そのものだけ。加盟店の下(yakumo/<店>/plans/)や施主向け生成面の下に plans を名乗る枝を置いても免除しない。
+    parts = _segments(relpath)
+    return len(parts) >= 2 and parts[0] == "yakumo" and parts[1] == "plans"
+
 # 2026-08-30: noindex には2種類ある。
 #   管理/取引/フォーム面(admin/mypage/register/store 等)を noindex にするのは正当(honest scope)。
 #   施主向けの公開コンテンツ面を noindex にするのは事故(公開したいものが消える)。
@@ -638,7 +644,7 @@ def _check_page_full(relpath):
     # v1.3.0 content: 同じ検出を全部走らせた上で、出典への href があれば金額は可。無ければ MONEY_WITHOUT_SOURCE 1件に畳む。
     _kind = namespace_kind(relpath)
     _money_start = len(errs)
-    if not is_recruit_path(relpath):
+    if not is_recruit_path(relpath) and not is_pricing_path(relpath):
         _alts = " ".join(re.findall(r'<img[^>]*\balt="([^"]*)"', html))
         _scope = vis + " " + _alts
         mm = MONEY_RE.search(_scope) or KANJI_MONEY_RE.search(_scope)
