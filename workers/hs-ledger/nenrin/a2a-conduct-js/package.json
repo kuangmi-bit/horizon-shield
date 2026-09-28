@@ -8,7 +8,7 @@
   "exports": {
     ".": { "types": "./a2a_conduct.d.ts", "default": "./a2a_conduct.mjs" }
   },
-  "bin": { "a2a-conduct": "./cli.mjs" },
+  "bin": { "a2a-conduct": "cli.mjs" },
   "files": ["a2a_conduct.mjs", "a2a_conduct.d.ts", "cli.mjs", "README.md", "LICENSE"],
   "scripts": {
     "test": "node test/parity.test.mjs && node test/sdk_walk.test.mjs"
