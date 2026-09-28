@@ -1,6 +1,10 @@
 // quarantine_route: TSUGI の隔離の口 (扉 0.4.10)。運営のみ、提案 hash 必須、隔離中は測らん・配らん・lookup が quarantined と言う、解除も記録。
 // 隔離は停止であって所見やない。この suite は「止まる」ことと「止めた事実が残る」ことだけ見る。走らせ方: node test/quarantine_route.test.mjs
 import worker from "../src/worker.js";
+import { readFileSync } from "node:fs";
+// 版は src/worker.js の CONFIG.version から読む (2026-09-29)。ここに "0.4.x" を直書きすると、版を上げる度にこの試験が落ち、
+// 直す度に別の所が壊れる形になる。見たいのは「/spec と /health が、ソースの版をそのまま言うか」であって、特定の数字やない。
+const SRC_VERSION = (readFileSync(new URL("../src/worker.js", import.meta.url), "utf8").match(/const CONFIG = \{\s*version: "(\d+\.\d+\.\d+)"/) || [])[1];
 
 const CTX = { waitUntil(p) { if (p && p.catch) p.catch(() => {}); } };
 const jres = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
@@ -90,7 +94,7 @@ const sw2 = await (await post("/sweep", { force: true }, auth)).json();
 t("sweep after the lift measures the row again (or skips it for another stated reason, never for quarantine)", !(sw2.skipped || []).some((x) => x.endpoint === EP && /quarantined/.test(x.reason)));
 
 const spec = await (await call("/spec")).json();
-t("control: /spec reports 0.4.18", spec.version === "0.4.18", spec.version);
+t("control: /spec reports the source version (" + SRC_VERSION + ")", typeof SRC_VERSION === "string" && spec.version === SRC_VERSION, spec.version);
 console.log(out.join("\n"));
 console.log("=== " + pass + " / " + (pass + fail) + " 合格 (quarantine route、扉 0.4.10) ===");
 if (fail) process.exit(1);

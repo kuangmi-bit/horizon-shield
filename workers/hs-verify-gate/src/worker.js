@@ -39,7 +39,7 @@ import { answerWitnessRequest, measureWitnessSurfaces, loadWitnessKeyFromEnv, ex
 
 // 仕様確定までの暫定値。名称や閾値はここだけ直せば全体に効く。
 const CONFIG = {
-  version: "0.4.18",  // 2026-09-28. 0.4.18: 鍵の履歴 key-history-v1 を /.well-known/key-history.json で配る(4 本の公開鍵: card hs-2026-09、agreement、witness、operator。いつからか、今の状態、盗まれた疑いの時刻)。失効した鍵の署名は、盗まれ得た時刻より前にそのバイトが在ったと運営者の外の時計(Bitcoin 錨など)で示せる時だけ運営者に帰属する。JWKS は履歴の active と retired の card 鍵から作る(revoked は配らん)、今は 1 本なので配信バイトは不変。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。仕様 ext/KEY_HISTORY_v1.md。0.4.17: MCP tool preflight_agent (相手の A2A agent を任せる前に 1 回で確かめる: card、誰が払うか、登録簿の読み、証人の出し先)。0.4.16: /a2a の応答が「/mcp が応えた」と書いとった(仕様 3 節の /endpoint を定数で埋めとった)。外からの歩き 1 本で発覚。conduct-v1.4 (仕様 14 節) で /served_by を足し、/endpoint は「記録が当たる測定対象」に意味を絞る。下の 0.4.16 の段を見よ。 2026-09-20. 0.4.14: 扉を TSUGI v2 籤の被証人側にする。/a2a が witness_request (nenrin-witness-request-v1) を受けたら、相手の公開 9 表面を自分の vantage で測り、Ed25519 で署名した nenrin-witness-observation-v1 を返す (src/witness.js、Node 参照 recovery-v0/witness_reply.mjs と byte 一致を test/witness_parity.test.mjs が守る)。署名鍵は運営者鍵とも card 鍵とも別の証人鍵 (env.WITNESS_PRIVKEY_B64、公開鍵は /keys/witness.json と env.WITNESS_PUBKEY_B64)。self_witness と非公開 target は断る、鍵未設定は witness_not_configured で正直に断る。card の conduct params に witness_policy.reciprocal と witness_reply の宣言を足す (池入りの条件、宣言と実装の差は残さん)。判定規則も status も条件も動かさん。card 本体が変わるので再署名要。0.4.13: card に Security declaration を足す(securitySchemes.operator = x-sweep-token の apiKeySecurityScheme、securityRequirements [{}] = 匿名で呼べる)。/a2a も /mcp も無認証のまま、動きは 1 バイトも変わらん。同時に、相手の card を読む写し(cardProject)が securitySchemes / securityRequirements を公式 SDK と同じ bytes に写すようになった(map、oneof、StringList、scopes)。0.4.12 までは持っとるだけで「検証できん」と言うとった。今「検証できん」と言うのは公式 SDK 自身が投げる形(null の要素)だけ。写しの粗も揃えた(String()/Boolean() の型変換、camel と snake の両置きは camel が勝つ)。canon_equiv.test.mjs に全部固定。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.12: card に did:web:gate.horizonshield.dev の identity を足す。/.well-known/did.json で DID document を配り(card 署名鍵 kid hs-2026-09 と、在れば運営者鍵を registry 非依存でドメインに縛る。両方この扉が既に配る公開鍵、秘密鍵は Worker に無い)、card の conduct params に identity {kind:did, ref} で参照を足す(仕様 11.5 が params の identity を許す)。Agenstry の identity 3/10「no registry identifier」への手当。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.11: card を 1.0 主体に。root protocolVersion を 0.3.0 から 1.0 に上げ(0.3 は supportedInterfaces に残す)、provider に url(shield.the-horizons-innovation.com)を足す。判定規則も status も条件も 1 つも動かさん。A2A を喋る動きも 1 バイト変わらん。外部 discovery が root の 0.3.0 を pre-1.0 と読んで減点し、provider が名前だけで url 無しやったのへの手当。card の本体が変わるので再署名要(incident 2 と同じ規律)。0.4.10: TSUGI の隔離の口 POST /register/quarantine (運営のみ、提案 hash 必須、解除も記録)。隔離中の行は掃引で測らん、lookup と /register は quarantined と言う。判定規則も status の意味も条件も動かさん: 隔離は停止であって所見やない。0.4.9: /keys/operator.json の説明文を柱の新名 TSUGI に (旧称 Proof-of-Recovery)。判定規則も status も条件も 1 つも動かさん。0.4.8: 運営者の許可鍵を配る口 /keys/operator.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。Proof-of-Recovery の Policy Gate (nenrin-authorization-v1) は運営者の Ed25519 鍵で署名される。読む側は recovery_verify の strict モードにこの公開鍵を渡し、署名の無い / 信用してない鍵 / 期限切れの許可の後に実行された修復を弾く。agreement.json / witness.json と同じ規律: 未設定なら 404 で「無い」と言う、空を 200 で返さん。秘密鍵はこの Worker に無い、署名は手元 (recovery-v0/authorize.mjs)。発端は 2026-09-19 の Agenstry の指摘から回った最初の回復一周 (recovery_fixture_20260920.json)。あの許可はチャットの「approved」で鍵で署名しとらんかった。v1 の検証器はそれを authorization_unsigned と言う。以後は鍵で閉じ、その鍵をここで配る。 2026-09-11. 0.4.7: conduct-v1.3 を配る。判定規則も status も条件も 1 つも動かさん。この扉は歩く側やないから、動きは 1 バイトも変わっとらん。変わるんは「配っとる仕様の本文」と「公開しとる assertion の一覧」の 2 つだけや。中身は 2 点。(1) 402 Payment Required は答えであって沈黙やない。v1 の 4 節は measured_endpoint_answered を「status 200」だけで定義しとったから、自分の card の宣言どおりに金を要求した endpoint が、壊れた endpoint と同じ 1 つの結果に落ちとった。設計上の判断と故障が、記録の上で区別が付かん。歩きは絶対に払たらあかん(払た witness は歩いた相手と金銭関係を持つ = この層が開示させる当のもの)ので、402 は n/a にして、新しい主張 payment_required_as_declared が起きた事を書く。宣言せずに課金しとったら FAIL や。この行が無かったら「全部 402 で返せば二度と測られん」が成立する。(2) compensation_well_formed が拡張の話をやめる。今までは拡張が無いだけで「宣言が壊れとる」と書き、証拠として capabilities.extensions の文を貼っとった。違う 2 つの問いに 1 つの答えを出しとった。どっちの穴も fixture では永遠に出ん。手元の偽 agent が全部 無料で全部 宣言済みやったからで、実在の agent(api.babyblueviper.com)を 1 枚歩いて初めて出た。新 spec sha 25f3e3efaf2e3cf208537d1d1fb4dd4559c90b8c379e679b4fd1eec9faa086a1。仕様・扉の一覧・歩きの実装の 3 箇所がこの一覧を持っとるのに、一致を見張る物が 1 つも無かった。walk_selftest の d01/d02/d03 がそれや。d03 は名前やのうて定義を突き合わせる。今回の本体は定義のズレやったから、名前だけ見る見張りは緑のまま通り抜けとった。 0.4.6: 合意記録の署名鍵を配る口 /keys/agreement.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。a2a-agreement-v1.1 の記録は鍵を署名バイトの中に持つから、検証にこの URL は要らん。効くのは「その鍵はその当事者が自分のドメインで配っとる鍵か」という帰属の主張だけや。鍵が未設定なら 404 で「無い」と言う。空の値を 200 で返したら、読む側は「鍵が違う」と判断してまう。「無い」と「空」は違う。秘密鍵はこの Worker に無い。署名は手元でやる。 2026-09-10. 0.4.5: 帰属の行に「鍵が相手のドメインの下にあること」を要求する。0.4.4 は署名が verify しさえすれば「運営者に帰属する」と書いとった。jku が他所のホストでも書いとった。それは嘘や。この行の存在理由は「TLS は取った瞬間しか押さえん、署名が効くのは持ち出した時と時間が経った時」やのに、鍵が第三者のサーバにあったら、その第三者が鍵を消せば帰属は消えるし、運営者はいつでも否認できる。転送に耐える著者性という肝心の性質が立っとらん。さらに悪いのは、自ドメインの署名が verify せんかった card でも、他所の署名が 1 本 verify すれば帰属しとった(実測で確認)。同じ日に合意記録層では key_url が自分のドメインの下に無ければ拒否しとる。片方で拒否して片方で帰属させとった。直しは 3 状態: 自ドメインの鍵で verify = 帰属、自ドメインの署名が false = 帰属せん(理由を書く)、他所の鍵でだけ verify = 帰属せん(鍵の場所を名指しして書く)。判定も status も条件も 1 つも動かさん。動くのは「この記録が何を証明するか」だけ。この穴は test/attributability.test.mjs の 1 本を control(正しい振る舞い)として固定してしもとった。attack に直した。0.4.4: 署名の有無を establishes / does_not_establish に効かせる。合否は動かさん(条件も赤も増えん)。動かすのは「この記録が何を証明するか」。無署名の card = その宣言は持ち出せん = 登録簿の行は相手の言葉やなく この扉の観測に帰属するだけで、相手はいつでも否認できる。うちの看板は「信用が要らん」やのに、無署名の相手の行は読む側が うちを信用するしかない状態やった。その差を記録に書いてなかったのは相手の穴やなく うちの穴。署名が verify したら宣言は運営者に帰属する = この扉が消えても意味が残る。0.4.3: 拡張の永続識別子(w3id.org)を読む側で認める。perma-id/w3id.org#6653 が merge され https://w3id.org/horizonshield/conduct/v1 が 302 で扉の URI に解決するようになった。A2A 本家の拡張ガイダンスが perma-id を推しとるので、それに従って書かれた card を黙って「宣言無し」に落とすわけにいかん。識別子は 1 本のまま(v1 は今までの文字列)、綴りは閉じた 2 本の一覧で完全一致、どっちで宣言されたかは判定のバイトに必ず書く。check の最中に redirect は叩かん。判定規則の変更はこれ 1 点(読む場所が 1 つ増える。求める形は 5 鍵のまま)。0.4.2: 判定に number_safety を入れる(判定自身のバイトの中の数値が全部 RFC 7493 の安全域の整数か。条件07 が測る相手の表面に課しとる規則を、扉自身の出力に課す。Federico Blanco Sanchez-Llanos が 2026-09-09 に payments 側から公開した同じ型: 精度はパースの時点で失われるので散文では間に合わん)。欄は数値を 1 つも持たんので、足しても答えは変わらん。hash の手順は不変。0.4.1: 掃引の判定は hash 対象のバイトそのものを KV に保存し、GET /record/<record_sha256> でそのまま配る(SEP-1913 で vaaraio が /is-verified の投影を 1024 通り直列化しても再現できんかった件。公開しとった sha のバイトは掃引では保存しとらんかった。recompute_url は /history を指しとった)。判定規則と hash の手順は不変。0.4.0 (conduct-v1.1): 判定と /self に establishes / does_not_establish を入れて hash に含める(Federico の 2026-09-07 の指摘: 「正しさは判定しとらん」の断りが落とせて conformance は通っとった)。塩の commitment を掃引ごとに台帳の witness intake へ commitment 型記録で錨打ち(窓ごとに 1 回、/nenrin/window に commitment_filed)。GET /register/lookup(verified/pending/declined/unknown + 先月の輪の数 + 証明せん物、24h cache)。well-known の notify / identity / witness_policy を読む(掃引後に notify へ POST、1 時間 1 回、/check からは飛ばさん)。判定規則は 0.3.0 のまま。0.3.5 (2026-09-06): 時刻座標の本番と設計のズレを直す(履歴に coordinate_derivation を残す、次の窓の salt を先に作り beacon は salt より後の block に限る、基準高さは quorum 番目の tip - 6 で hash の一致だけを要求、窓ごとに規則を固定、GET /nenrin/window で commitment を公開。判定規則は 0.3.0 のまま)。0.3.4: 相手の card の A2A 署名(§8.4)を読んで detail に書く(判定不変)。扉自身の card も署名可(署名は Mac で作る、鍵は Worker に無い)。0.3.2: A2A Conduct Extension v1(条件3 を capabilities.extensions[].params.compensation からも読む、両方あれば一致必須、/ext/conduct/v1 で仕様を配る)。0.3.3: 扉自身が A2A を喋る(/a2a に SendMessage と message/send、両綴りの拡張ヘッダ、1.0 と 0.3 の両線)。判定規則は 0.3.0 のまま。
+  version: "0.4.19",  // 2026-09-29. 0.4.19: 表面の指紋に extras を足す (extras_covers = annotations, _meta, outputSchema, title の閉じた一覧、extras_manifest_hash、道具ごとの extras_hashes)。0.4.18 までの tool_hashes と manifest_hash は name / description / inputSchema しか覆わんので、destructiveHint を黙って外した版も outputSchema の差し替えも見えんかった (Arthur Teboul, DokuTrak, 2026-09-28)。既存の欄は 1 バイトも変えん (過去の記録の指紋と今の指紋を比べられるまま)。差分は surface_change.extras_changed に書く。extras を持たん前回との比較では extras を比べん (配った直後に全道具が変わったと誤報せん)。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。2026-09-28. 0.4.18: 鍵の履歴 key-history-v1 を /.well-known/key-history.json で配る(4 本の公開鍵: card hs-2026-09、agreement、witness、operator。いつからか、今の状態、盗まれた疑いの時刻)。失効した鍵の署名は、盗まれ得た時刻より前にそのバイトが在ったと運営者の外の時計(Bitcoin 錨など)で示せる時だけ運営者に帰属する。JWKS は履歴の active と retired の card 鍵から作る(revoked は配らん)、今は 1 本なので配信バイトは不変。判定規則も status も条件も動かさん。card の version 行が変わるので再署名要。仕様 ext/KEY_HISTORY_v1.md。0.4.17: MCP tool preflight_agent (相手の A2A agent を任せる前に 1 回で確かめる: card、誰が払うか、登録簿の読み、証人の出し先)。0.4.16: /a2a の応答が「/mcp が応えた」と書いとった(仕様 3 節の /endpoint を定数で埋めとった)。外からの歩き 1 本で発覚。conduct-v1.4 (仕様 14 節) で /served_by を足し、/endpoint は「記録が当たる測定対象」に意味を絞る。下の 0.4.16 の段を見よ。 2026-09-20. 0.4.14: 扉を TSUGI v2 籤の被証人側にする。/a2a が witness_request (nenrin-witness-request-v1) を受けたら、相手の公開 9 表面を自分の vantage で測り、Ed25519 で署名した nenrin-witness-observation-v1 を返す (src/witness.js、Node 参照 recovery-v0/witness_reply.mjs と byte 一致を test/witness_parity.test.mjs が守る)。署名鍵は運営者鍵とも card 鍵とも別の証人鍵 (env.WITNESS_PRIVKEY_B64、公開鍵は /keys/witness.json と env.WITNESS_PUBKEY_B64)。self_witness と非公開 target は断る、鍵未設定は witness_not_configured で正直に断る。card の conduct params に witness_policy.reciprocal と witness_reply の宣言を足す (池入りの条件、宣言と実装の差は残さん)。判定規則も status も条件も動かさん。card 本体が変わるので再署名要。0.4.13: card に Security declaration を足す(securitySchemes.operator = x-sweep-token の apiKeySecurityScheme、securityRequirements [{}] = 匿名で呼べる)。/a2a も /mcp も無認証のまま、動きは 1 バイトも変わらん。同時に、相手の card を読む写し(cardProject)が securitySchemes / securityRequirements を公式 SDK と同じ bytes に写すようになった(map、oneof、StringList、scopes)。0.4.12 までは持っとるだけで「検証できん」と言うとった。今「検証できん」と言うのは公式 SDK 自身が投げる形(null の要素)だけ。写しの粗も揃えた(String()/Boolean() の型変換、camel と snake の両置きは camel が勝つ)。canon_equiv.test.mjs に全部固定。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.12: card に did:web:gate.horizonshield.dev の identity を足す。/.well-known/did.json で DID document を配り(card 署名鍵 kid hs-2026-09 と、在れば運営者鍵を registry 非依存でドメインに縛る。両方この扉が既に配る公開鍵、秘密鍵は Worker に無い)、card の conduct params に identity {kind:did, ref} で参照を足す(仕様 11.5 が params の identity を許す)。Agenstry の identity 3/10「no registry identifier」への手当。判定規則も status も条件も動かさん。card の本体が変わるので再署名要。0.4.11: card を 1.0 主体に。root protocolVersion を 0.3.0 から 1.0 に上げ(0.3 は supportedInterfaces に残す)、provider に url(shield.the-horizons-innovation.com)を足す。判定規則も status も条件も 1 つも動かさん。A2A を喋る動きも 1 バイト変わらん。外部 discovery が root の 0.3.0 を pre-1.0 と読んで減点し、provider が名前だけで url 無しやったのへの手当。card の本体が変わるので再署名要(incident 2 と同じ規律)。0.4.10: TSUGI の隔離の口 POST /register/quarantine (運営のみ、提案 hash 必須、解除も記録)。隔離中の行は掃引で測らん、lookup と /register は quarantined と言う。判定規則も status の意味も条件も動かさん: 隔離は停止であって所見やない。0.4.9: /keys/operator.json の説明文を柱の新名 TSUGI に (旧称 Proof-of-Recovery)。判定規則も status も条件も 1 つも動かさん。0.4.8: 運営者の許可鍵を配る口 /keys/operator.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。Proof-of-Recovery の Policy Gate (nenrin-authorization-v1) は運営者の Ed25519 鍵で署名される。読む側は recovery_verify の strict モードにこの公開鍵を渡し、署名の無い / 信用してない鍵 / 期限切れの許可の後に実行された修復を弾く。agreement.json / witness.json と同じ規律: 未設定なら 404 で「無い」と言う、空を 200 で返さん。秘密鍵はこの Worker に無い、署名は手元 (recovery-v0/authorize.mjs)。発端は 2026-09-19 の Agenstry の指摘から回った最初の回復一周 (recovery_fixture_20260920.json)。あの許可はチャットの「approved」で鍵で署名しとらんかった。v1 の検証器はそれを authorization_unsigned と言う。以後は鍵で閉じ、その鍵をここで配る。 2026-09-11. 0.4.7: conduct-v1.3 を配る。判定規則も status も条件も 1 つも動かさん。この扉は歩く側やないから、動きは 1 バイトも変わっとらん。変わるんは「配っとる仕様の本文」と「公開しとる assertion の一覧」の 2 つだけや。中身は 2 点。(1) 402 Payment Required は答えであって沈黙やない。v1 の 4 節は measured_endpoint_answered を「status 200」だけで定義しとったから、自分の card の宣言どおりに金を要求した endpoint が、壊れた endpoint と同じ 1 つの結果に落ちとった。設計上の判断と故障が、記録の上で区別が付かん。歩きは絶対に払たらあかん(払た witness は歩いた相手と金銭関係を持つ = この層が開示させる当のもの)ので、402 は n/a にして、新しい主張 payment_required_as_declared が起きた事を書く。宣言せずに課金しとったら FAIL や。この行が無かったら「全部 402 で返せば二度と測られん」が成立する。(2) compensation_well_formed が拡張の話をやめる。今までは拡張が無いだけで「宣言が壊れとる」と書き、証拠として capabilities.extensions の文を貼っとった。違う 2 つの問いに 1 つの答えを出しとった。どっちの穴も fixture では永遠に出ん。手元の偽 agent が全部 無料で全部 宣言済みやったからで、実在の agent(api.babyblueviper.com)を 1 枚歩いて初めて出た。新 spec sha 25f3e3efaf2e3cf208537d1d1fb4dd4559c90b8c379e679b4fd1eec9faa086a1。仕様・扉の一覧・歩きの実装の 3 箇所がこの一覧を持っとるのに、一致を見張る物が 1 つも無かった。walk_selftest の d01/d02/d03 がそれや。d03 は名前やのうて定義を突き合わせる。今回の本体は定義のズレやったから、名前だけ見る見張りは緑のまま通り抜けとった。 0.4.6: 合意記録の署名鍵を配る口 /keys/agreement.json を足す。判定規則も status も条件も 1 つも動かさん。この口は判定に一切関わらん。a2a-agreement-v1.1 の記録は鍵を署名バイトの中に持つから、検証にこの URL は要らん。効くのは「その鍵はその当事者が自分のドメインで配っとる鍵か」という帰属の主張だけや。鍵が未設定なら 404 で「無い」と言う。空の値を 200 で返したら、読む側は「鍵が違う」と判断してまう。「無い」と「空」は違う。秘密鍵はこの Worker に無い。署名は手元でやる。 2026-09-10. 0.4.5: 帰属の行に「鍵が相手のドメインの下にあること」を要求する。0.4.4 は署名が verify しさえすれば「運営者に帰属する」と書いとった。jku が他所のホストでも書いとった。それは嘘や。この行の存在理由は「TLS は取った瞬間しか押さえん、署名が効くのは持ち出した時と時間が経った時」やのに、鍵が第三者のサーバにあったら、その第三者が鍵を消せば帰属は消えるし、運営者はいつでも否認できる。転送に耐える著者性という肝心の性質が立っとらん。さらに悪いのは、自ドメインの署名が verify せんかった card でも、他所の署名が 1 本 verify すれば帰属しとった(実測で確認)。同じ日に合意記録層では key_url が自分のドメインの下に無ければ拒否しとる。片方で拒否して片方で帰属させとった。直しは 3 状態: 自ドメインの鍵で verify = 帰属、自ドメインの署名が false = 帰属せん(理由を書く)、他所の鍵でだけ verify = 帰属せん(鍵の場所を名指しして書く)。判定も status も条件も 1 つも動かさん。動くのは「この記録が何を証明するか」だけ。この穴は test/attributability.test.mjs の 1 本を control(正しい振る舞い)として固定してしもとった。attack に直した。0.4.4: 署名の有無を establishes / does_not_establish に効かせる。合否は動かさん(条件も赤も増えん)。動かすのは「この記録が何を証明するか」。無署名の card = その宣言は持ち出せん = 登録簿の行は相手の言葉やなく この扉の観測に帰属するだけで、相手はいつでも否認できる。うちの看板は「信用が要らん」やのに、無署名の相手の行は読む側が うちを信用するしかない状態やった。その差を記録に書いてなかったのは相手の穴やなく うちの穴。署名が verify したら宣言は運営者に帰属する = この扉が消えても意味が残る。0.4.3: 拡張の永続識別子(w3id.org)を読む側で認める。perma-id/w3id.org#6653 が merge され https://w3id.org/horizonshield/conduct/v1 が 302 で扉の URI に解決するようになった。A2A 本家の拡張ガイダンスが perma-id を推しとるので、それに従って書かれた card を黙って「宣言無し」に落とすわけにいかん。識別子は 1 本のまま(v1 は今までの文字列)、綴りは閉じた 2 本の一覧で完全一致、どっちで宣言されたかは判定のバイトに必ず書く。check の最中に redirect は叩かん。判定規則の変更はこれ 1 点(読む場所が 1 つ増える。求める形は 5 鍵のまま)。0.4.2: 判定に number_safety を入れる(判定自身のバイトの中の数値が全部 RFC 7493 の安全域の整数か。条件07 が測る相手の表面に課しとる規則を、扉自身の出力に課す。Federico Blanco Sanchez-Llanos が 2026-09-09 に payments 側から公開した同じ型: 精度はパースの時点で失われるので散文では間に合わん)。欄は数値を 1 つも持たんので、足しても答えは変わらん。hash の手順は不変。0.4.1: 掃引の判定は hash 対象のバイトそのものを KV に保存し、GET /record/<record_sha256> でそのまま配る(SEP-1913 で vaaraio が /is-verified の投影を 1024 通り直列化しても再現できんかった件。公開しとった sha のバイトは掃引では保存しとらんかった。recompute_url は /history を指しとった)。判定規則と hash の手順は不変。0.4.0 (conduct-v1.1): 判定と /self に establishes / does_not_establish を入れて hash に含める(Federico の 2026-09-07 の指摘: 「正しさは判定しとらん」の断りが落とせて conformance は通っとった)。塩の commitment を掃引ごとに台帳の witness intake へ commitment 型記録で錨打ち(窓ごとに 1 回、/nenrin/window に commitment_filed)。GET /register/lookup(verified/pending/declined/unknown + 先月の輪の数 + 証明せん物、24h cache)。well-known の notify / identity / witness_policy を読む(掃引後に notify へ POST、1 時間 1 回、/check からは飛ばさん)。判定規則は 0.3.0 のまま。0.3.5 (2026-09-06): 時刻座標の本番と設計のズレを直す(履歴に coordinate_derivation を残す、次の窓の salt を先に作り beacon は salt より後の block に限る、基準高さは quorum 番目の tip - 6 で hash の一致だけを要求、窓ごとに規則を固定、GET /nenrin/window で commitment を公開。判定規則は 0.3.0 のまま)。0.3.4: 相手の card の A2A 署名(§8.4)を読んで detail に書く(判定不変)。扉自身の card も署名可(署名は Mac で作る、鍵は Worker に無い)。0.3.2: A2A Conduct Extension v1(条件3 を capabilities.extensions[].params.compensation からも読む、両方あれば一致必須、/ext/conduct/v1 で仕様を配る)。0.3.3: 扉自身が A2A を喋る(/a2a に SendMessage と message/send、両綴りの拡張ヘッダ、1.0 と 0.3 の両線)。判定規則は 0.3.0 のまま。
   tier_pass: "verified",        // 通過時の称号(暫定)
   tier_fail: "pending",         // 未通過(不合格とは呼ばない)
   tier_held: "held",            // 到達できず測れなかった。不適合とは別の状態
@@ -212,10 +212,10 @@ const CARD_SIGNATURE = {
   "jku": "https://gate.horizonshield.dev/.well-known/jwks.json",
   "alg": "ES256",
   "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJocy0yMDI2LTA5Iiwiamt1IjoiaHR0cHM6Ly9nYXRlLmhvcml6b25zaGllbGQuZGV2Ly53ZWxsLWtub3duL2p3a3MuanNvbiJ9",
-  "signature": "AJ1VguPhQjGXX9DEJdfowQrfOFBZQwTJq0bLZI6vHgw6--vDNU7pSDK_UI5MdnBDN6U8gpghXHmUxis3Samxog",
+  "signature": "7HFvWqfkzpWLf9AgSwYfiavVqJ7qnFpXt7seRibyLx9wdfz_dlCBRrW83TrfCwf2iLYvb5hMuKusQag57kjHKg",
   "plain": {
     "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJocy0yMDI2LTA5Iiwiamt1IjoiaHR0cHM6Ly9nYXRlLmhvcml6b25zaGllbGQuZGV2Ly53ZWxsLWtub3duL2p3a3MuanNvbiJ9",
-    "signature": "HxExstR--9HRB9z6-fwOMS76WXNWX-z5ETZW0FNPmlKKolQWPi3r-K5J3abdAbpt5h9UV22kuthLGqQ0OUpVWQ"
+    "signature": "3FrC-EaL4ITHB8PEUWK2H0Ml_OMaVBllN7rrkiY3740BTXvMiLqNupEnE2V04JRz_ymbxn9XhITxW8vxzGR18Q"
   },
   "jwk": {
     "kty": "EC",
@@ -226,8 +226,8 @@ const CARD_SIGNATURE = {
     "alg": "ES256",
     "use": "sig"
   },
-  "canonical_sha256": "e40137657109e02c0e8ba787e53f1db4115ef0b343bb27edcc359845a005febc",
-  "jcs_sha256": "7c3bcb5f963342b665819cd89d94f08003021cb68e140e57915215a0dabe01c3"
+  "canonical_sha256": "fffd4d0b16be6a5ac3f6071f686c27e7e4c179e205a7fc48ebac5e251f0cc174",
+  "jcs_sha256": "874be232b85b2996f706736435ac297e45da14a5b7e7a2092ad7508d85843b64"
 };
 /* @@CARD_SIGNATURE_END */
 // GCP twin は別ドメインで動くので、entrypoint が globalThis.CARD_ORIGIN_OVERRIDE を先に立てて上書きできる。
@@ -1448,9 +1448,52 @@ function canonicalJson(v) {
 // ハッシュは16hex(64bit)に切る。変更検出用の指紋であって、暗号学的な同一性証明ではない。
 // 名前ハッシュだけでは「名前を残して inputSchema を書き換える」変更(統合破壊の第1位)が見えない。
 // だからマニフェスト全体と、ツール1本ごとの指紋を持つ。
+// 0.4.19. tool_hashes の外に置いた、道具の宣言の残り。hint (destructiveHint など) と _meta は、
+// client が人に確認を求めるかどうかを決める材料で、inputSchema と同じく黙って変わってはならん。
+// 一覧は閉じる: 未知の欄まで拾うと、相手が毎回変える欄 (時刻など) で毎日「変わった」と言う。
+const SURFACE_EXTRAS_COVERS = ["annotations", "_meta", "outputSchema", "title"];
+
+// 前回と今回の表面を比べて、日付付きの差分 (無ければ null) を返す。副作用なし、KV も触らん。
+// 両方 complete のときだけ比べる: 部分読みとの比較から「削除」を出さない。
+// extras (0.4.19) は、両方がその欄を持ち、両方の値が hash (null でない) のときだけ比べる。
+// 0.4.18 までの記録は extras を持たんので、配った直後の 1 回目に「全道具の hint が変わった」と誤報せん。
+function surfaceChange(prev, cur) {
+  if (!prev || !cur || prev.complete !== true || cur.complete !== true) return null;
+  const manifestMoved = prev.manifest_hash !== cur.manifest_hash;
+  const extrasComparable = typeof prev.extras_manifest_hash === "string" && typeof cur.extras_manifest_hash === "string";
+  const extrasMoved = extrasComparable && prev.extras_manifest_hash !== cur.extras_manifest_hash;
+  if (!manifestMoved && !extrasMoved) return null;
+  const prevT = prev.tool_hashes || {};
+  const curT = cur.tool_hashes || {};
+  const out = {
+    added: Object.keys(curT).filter((k) => !(k in prevT)),
+    removed: Object.keys(prevT).filter((k) => !(k in curT)),
+    definition_changed: Object.keys(curT).filter((k) => (k in prevT) && curT[k] !== prevT[k])
+  };
+  if (extrasComparable) {
+    const prevE = prev.extras_hashes || {};
+    const curE = cur.extras_hashes || {};
+    out.extras_changed = Object.keys(curE).filter((k) => (k in prevE) && curE[k] !== prevE[k]);
+  }
+  out.note = "The tool surface changed between measurements. This is a dated fact, not a defect: the MCP specification treats tool-list changes as normal operation (notifications/tools/list_changed). Recorded for anyone; judged by no one." +
+    (out.extras_changed && out.extras_changed.length
+      ? " extras_changed lists tools whose annotations, _meta, outputSchema or title moved while name, description and inputSchema may not have. Annotations such as destructiveHint are what a client reads to decide whether to ask a person first; they are self-declared hints and this gate does not judge whether the new value is true."
+      : "");
+  return out;
+}
+
 async function surfaceHashes(tools, initResult, pages, complete, parseNotes) {
   const sorted = tools.slice().sort((a, b) => (String(a.name) < String(b.name) ? -1 : 1));
   const strip = (t) => ({ name: t.name, description: t.description || "", inputSchema: t.inputSchema || null });
+  // 0.4.19. strip は name / description / inputSchema しか見ん。だから destructiveHint を黙って外した版も、
+  // outputSchema を差し替えた版も、manifest_hash は 1 桁も動かんかった (Arthur Teboul が 2026-09-28 に指摘)。
+  // strip と manifest_hash は変えん: 変えたら過去の全記録の指紋と今の指紋が、中身が同じでも食い違う。
+  // 足すのは別の欄。覆う欄は閉じた一覧で、記録そのものに書く (extras_covers)。
+  const extra = (t) => {
+    const o = {};
+    for (const k of SURFACE_EXTRAS_COVERS) o[k] = (t && t[k] !== undefined) ? t[k] : null;
+    return o;
+  };
   const pn = parseNotes || { detectable: false, lost: [] };
 
   // 正規化を拒んだ場合、それは相手が壊れているのではなく、こちらが「その形は正規化できない」と
@@ -1475,8 +1518,10 @@ async function surfaceHashes(tools, initResult, pages, complete, parseNotes) {
   };
 
   const perTool = {};
+  const perToolExtras = {};
   for (const t of sorted) {
     perTool[String(t.name)] = await hash(strip(t));
+    perToolExtras[String(t.name)] = await hash(extra(t));
   }
   const out = {
     complete: complete,
@@ -1484,7 +1529,10 @@ async function surfaceHashes(tools, initResult, pages, complete, parseNotes) {
     names_hash: (await sha256hex(JSON.stringify(sorted.map((t) => String(t.name))))).slice(0, 16),
     manifest_hash: await hash(sorted.map(strip)),
     server_info_hash: initResult ? await hash(initResult) : null,
-    tool_hashes: perTool
+    tool_hashes: perTool,
+    extras_covers: SURFACE_EXTRAS_COVERS.slice(),
+    extras_manifest_hash: await hash(sorted.map((t) => ({ name: t.name, ...extra(t) }))),
+    extras_hashes: perToolExtras
   };
   out.canonicalization = refused ? "refused" : "rfc8785-jcs";
   // 検出できたか / 検出した結果どうだったか、を分けて書く。
@@ -3296,6 +3344,7 @@ function endpointPage(origin, row) {
       (lsc.added && lsc.added.length ? 'added: ' + esc(lsc.added.join(', ')) + '<br>' : '') +
       (lsc.removed && lsc.removed.length ? 'removed: ' + esc(lsc.removed.join(', ')) + '<br>' : '') +
       (lsc.definition_changed && lsc.definition_changed.length ? 'definition changed: ' + esc(lsc.definition_changed.join(', ')) + '<br>' : '') +
+      (lsc.extras_changed && lsc.extras_changed.length ? 'hints or metadata changed (annotations, _meta, outputSchema, title): ' + esc(lsc.extras_changed.join(', ')) + '<br>' : '') +
       '<span class="n">A tool can keep its name and change what it accepts. That breaks the code calling it and breaks no badge, ' +
       'so it is recorded here as a dated fact. The MCP specification treats tool list changes as normal operation. ' +
       'Nothing here says this change was wrong.</span></div>' : '') +
@@ -3653,17 +3702,8 @@ async function recordHistory(env, endpoint, record) {
   // 指標にしない。回数も割合も作らない。何が増え、何が消え、何の définition が変わったか、だけ。
   // 両方 complete のときだけ比較する ,  部分読みとの比較から「削除」を出さない。
   const prevSurface = last && last.surface ? last.surface : null;
-  if (entry.surface && prevSurface && entry.surface.complete === true && prevSurface.complete === true
-      && entry.surface.manifest_hash !== prevSurface.manifest_hash) {
-    const prevT = prevSurface.tool_hashes || {};
-    const curT = entry.surface.tool_hashes || {};
-    entry.surface_change = {
-      added: Object.keys(curT).filter((k) => !(k in prevT)),
-      removed: Object.keys(prevT).filter((k) => !(k in curT)),
-      definition_changed: Object.keys(curT).filter((k) => (k in prevT) && curT[k] !== prevT[k]),
-      note: "The tool surface changed between measurements. This is a dated fact, not a defect: the MCP specification treats tool-list changes as normal operation (notifications/tools/list_changed). Recorded for anyone; judged by no one."
-    };
-  }
+  const sc = surfaceChange(prevSurface, entry.surface);
+  if (sc) entry.surface_change = sc;
 
   // 2026-08-23. ここまで、変化の判定は status と5条件の合否だけを見ていた。
   // だから「ツール名はそのまま、inputSchema だけ差し替えた」変更は、5条件を全部通したまま
@@ -3706,13 +3746,15 @@ async function recordHistory(env, endpoint, record) {
     let changes = [];
     try { changes = (await env.HS_VERIFY_KV.get("changes:recent", "json")) || []; } catch (_e) {}
     // 表面の移動を、条件の反転と同じ重さで書く。読み手にとってはこちらの方が実害が早い。
-    const sc = entry.surface_change || null;
     const scBits = [];
     if (sc) {
       if (sc.added && sc.added.length) scBits.push(sc.added.length + " tool added");
       if (sc.removed && sc.removed.length) scBits.push(sc.removed.length + " tool removed");
       if (sc.definition_changed && sc.definition_changed.length) {
         scBits.push(sc.definition_changed.length + " tool definition changed (" + sc.definition_changed.slice(0, 3).join(", ") + ")");
+      }
+      if (sc.extras_changed && sc.extras_changed.length) {
+        scBits.push(sc.extras_changed.length + " tool hints or metadata changed (" + sc.extras_changed.slice(0, 3).join(", ") + ")");
       }
     }
     const flipBits = flips.map((f) => f.condition + " " + (f.from ? "pass" : "fail") + " to " + (f.to ? "pass" : "fail"));
@@ -3767,7 +3809,7 @@ async function readChanges(env) {
     return {
       changes: v || [],
       note: "Changes recorded by the scheduled re-measurement. A change means either that a condition flipped, or that the declared tool surface moved. It never means that a fresh verdict was simply issued.",
-      why_surface_matters: "A server can keep every tool name, swap what a tool accepts, and still pass all five conditions. That change breaks the code calling it and breaks no badge, so it is reported here with the same weight as a flip. Entries carry surface_changed with the tools added, removed, or redefined.",
+      why_surface_matters: "A server can keep every tool name, swap what a tool accepts, and still pass all five conditions. That change breaks the code calling it and breaks no badge, so it is reported here with the same weight as a flip. Entries carry surface_changed with the tools added, removed, or redefined, and (since 0.4.19) extras_changed for tools whose annotations, _meta, outputSchema or title moved. A tool that quietly stops declaring destructiveHint is a change here.",
       not_a_judgement: "The MCP specification treats tool list changes as normal operation. Nothing here says a change was wrong. It says a change happened, and on what date."
     };
   } catch (_e) {
@@ -5874,4 +5916,5 @@ export default {
 
 // 0.4.1 test hooks (no behaviour). Tests recompute the served bytes and compare to the path.
 export const _numberSafety = { scanNumbers, numberSafety, IJSON_MAX_SAFE };
+export const _surface = { surfaceHashes, surfaceChange, SURFACE_EXTRAS_COVERS };
 export const _recordBytes = { canonicalOf, storeRecordBytes, readRecordBytes, recordBytesUrl, RECORD_KEY_PREFIX, RECORD_BYTES_SINCE };

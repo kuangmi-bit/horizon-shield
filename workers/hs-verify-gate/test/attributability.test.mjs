@@ -10,6 +10,10 @@
 // 使い方: node test/attributability.test.mjs   (workers/hs-verify-gate で)  1 つでも落ちたら exit 1。
 import { createHash } from "node:crypto";
 import worker, { cardSignatureCanonical } from "../src/worker.js";
+import { readFileSync } from "node:fs";
+// 版は src/worker.js の CONFIG.version から読む (2026-09-29)。ここに "0.4.x" を直書きすると、版を上げる度にこの試験が落ち、
+// 直す度に別の所が壊れる形になる。見たいのは「/spec と /health が、ソースの版をそのまま言うか」であって、特定の数字やない。
+const SRC_VERSION = (readFileSync(new URL("../src/worker.js", import.meta.url), "utf8").match(/const CONFIG = \{\s*version: "(\d+\.\d+\.\d+)"/) || [])[1];
 
 const O = "https://gate.redteam.invalid";
 const EP = "https://srv.redteam.invalid/mcp";
@@ -166,7 +170,7 @@ t("control", "exactly one attributability line is added, never both", (() => {
 })(), JSON.stringify(v.does_not_establish));
 
 const spec = await (await worker.fetch(new Request(O + "/spec"), ENV, CTX)).json();
-t("control", "/health and /spec report 0.4.18", spec.version === "0.4.18" && (await (await worker.fetch(new Request(O + "/health"), ENV, CTX)).json()).gate_version === "0.4.18", JSON.stringify(spec.version));
+t("control", "/health and /spec report the source version (" + SRC_VERSION + ")", typeof SRC_VERSION === "string" && spec.version === SRC_VERSION && (await (await worker.fetch(new Request(O + "/health"), ENV, CTX)).json()).gate_version === SRC_VERSION, JSON.stringify(spec.version));
 
 const passed = R.filter((r) => r.ok).length;
 const by = (k) => R.filter((r) => r.kind === k);
