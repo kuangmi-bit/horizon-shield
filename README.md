@@ -21,6 +21,21 @@ An [MCP](https://modelcontextprotocol.io) server that lets AI agents check wheth
 
 ---
 
+## Independent evidence, as of 2026-09-29
+
+What people who do not work for this project have measured, signed or reproduced. Every row links to something you can fetch and recompute. The last two rows are the counts that are still small, stated as plainly as the rest.
+
+| What | Who | Check it |
+|------|-----|----------|
+| Walked our gate from their own host, served the record content-addressed on their own domain, and filed the same bytes to our ledger signed with the key their domain serves | Federico Blanco Sánchez-Llanos's agent, `api.babyblueviper.com` (filed 2026-09-28) | [their copy](https://api.babyblueviper.com/record/064bb61b158ec8d863e04bb3eb040fe494c5be9d3088414408d691fb13505da3), [the filing](https://github.com/ogasurfproject-jpg/horizon-shield/issues/25#issuecomment-5870535144) |
+| A two party agreement signed by both sides, with consent to publish inside the signed bytes; both signing keys match the keys each domain serves | this project and `api.babyblueviper.com`, record `5d3e62f1…` (accepted 2026-09-28) | `curl -s https://agreement.horizonshield.dev/agreement/5d3e62f1f0b139992dd15db07b4abc6288a8a824effc31da8300ebe1d6ae6e6c/report` |
+| Re-verified the gate's agent card signature with their own verifier: 10/10, and the digest they recorded, `7c3bcb5f9633…`, is the one our signing tool printed. They found and fixed two bugs in their verifier to get there | Agenstry, an independent agent directory in Amsterdam (2026-09-28) | [listing](https://agenstry.com/agents/gate.horizonshield.dev), [the card](https://gate.horizonshield.dev/.well-known/agent-card.json) |
+| Scored the JIDEC ledger export at L1/L1 under an outside ledger conformance spec, asserted in their CI; an issue we reported is recorded there as EXT-020 | the VLC-1 specification's maintainers | [VLC-1](https://github.com/MattyIceMatrix/vlc-1), THIRD-PARTY.md |
+| Outside operators who used the gate to measure their own servers | 5 real hosts in the 30 days to 2026-09-28 (the counter lists 6; one is a test name that does not resolve), none since 2026-09-24 | `curl -s https://gate.horizonshield.dev/usage` |
+| Rows on the public register that are not ours | 1 of 9, still pending | `curl -s https://gate.horizonshield.dev/register` |
+
+One external witness is a start, not a network. The re-verification pool below counts it as one control cluster, and a quorum of two independent controls is not met yet. [Issue #27](https://github.com/ogasurfproject-jpg/horizon-shield/issues/27) is the open call for the second.
+
 ## NENRIN: tree rings for AI facing services
 
 > A tree adds one ring a year. Nobody can paint one in afterwards. NENRIN gives that property to software services.
@@ -75,7 +90,7 @@ Five record types, hash-linked: drift (a witness measured a public surface and i
 
 Re-verification witnesses are not chosen by the operator. They are drawn from a public pool with `sha256(bitcoin block hash | pool hash | record hash)` as the seed, so a third party recomputes who should have been asked. A drawn witness receives only a blind request (no expected values) and returns only a signed observation; nothing it says is executed. This is the July 2026 lesson turned around: unknown agents may observe you, never instruct you.
 
-Two real incidents are recorded in [`workers/hs-ledger/nenrin/recovery-v0`](workers/hs-ledger/nenrin/recovery-v0): a raw deploy that bypassed the deploy guard and silently broke the card signature and the OpenAI domain challenge (found by an external verifier, closed with an unsigned chat approval, which the strict verifier flags as such), and a card signature broken by two version bumps deployed without a re-sign (found by the daily witness, closed with a signed authorization, twelve records). The pool of external witnesses is empty on 2026-09-20; the records say so instead of pretending a quorum. Incident 2 can be recomputed in a browser, hashes and the operator's Ed25519 signature, with no trust in this project: https://shield.the-horizons-innovation.com/tsugi/ Its chain file and record hashes are anchored as [JIDEC entry 50](https://ledger.horizonshield.dev/ledger/50) (OpenTimestamps, Bitcoin).
+Two real incidents are recorded in [`workers/hs-ledger/nenrin/recovery-v0`](workers/hs-ledger/nenrin/recovery-v0): a raw deploy that bypassed the deploy guard and silently broke the card signature and the OpenAI domain challenge (found by an external verifier, closed with an unsigned chat approval, which the strict verifier flags as such), and a card signature broken by two version bumps deployed without a re-sign (found by the daily witness, closed with a signed authorization, twelve records). The pool of external witnesses was empty on 2026-09-20, and the records say so instead of pretending a quorum. It now holds one member, Federico Blanco Sánchez-Llanos's agent; the diversity check (witness_diversity v2.3) counts it as a single control cluster, so the records still report the quorum as short rather than met. Incident 2 can be recomputed in a browser, hashes and the operator's Ed25519 signature, with no trust in this project: https://shield.the-horizons-innovation.com/tsugi/ Its chain file and record hashes are anchored as [JIDEC entry 50](https://ledger.horizonshield.dev/ledger/50) (OpenTimestamps, Bitcoin).
 
 ## Repository map
 
@@ -141,6 +156,12 @@ Federico Blanco Sánchez-Llanos's agent, is in the tree as
 [`first_agreement_record.json`](workers/hs-ledger/nenrin/agreement-v0/first_agreement_record.json).
 An earlier version of this paragraph said there was no intake; the code had been written and
 deployed but not committed, which this repository noticed on 2026-09-20 and corrected.
+
+The second record between the same two agents was re-signed on 2026-09-28 with `"publication": "public"`
+inside the bytes both parties signed (record-privacy-v1: nothing bilateral is published on one side's say so).
+It was accepted the same day with both signing keys matching the keys each domain serves, and each side's
+pinned conduct record is filed on the ledger:
+[`5d3e62f1…/report`](https://agreement.horizonshield.dev/agreement/5d3e62f1f0b139992dd15db07b4abc6288a8a824effc31da8300ebe1d6ae6e6c/report).
 
 ## The register, as a repository
 
