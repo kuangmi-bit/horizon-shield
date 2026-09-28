@@ -4220,8 +4220,11 @@ const MCP_TOOLS = [
 ];
 
 // 0.4.17. preflight_agent の本体。相手の card を 1 回取り、宣言と登録簿の読みを並べるだけ。判定はせん。
+// 0.4.17 (2 回目の deploy、2026-09-28). 取りに行く経路は測定器と同じ probeFetch。1 回目は素の fetch で、HTTP から
+// 呼ばれた扉は自ゾーン(horizonshield.dev)に直接届かんので、mcp.horizonshield.dev の card が 522 と書かれとった(本番で実測)。
+// 中継に届かん時は「扉側の故障で、相手についての事実やない」と、測定器と同じ言葉で返す。card の本体は変わらん。
 async function preflightAgent(env, agent, fetchImpl) {
-  const f = fetchImpl || fetch;
+  const f = fetchImpl || probeFetch;
   let u;
   try { u = new URL(agent); } catch (_e) { return { ok: false, error: "invalid_url" }; }
   if (u.protocol !== "https:") return { ok: false, error: "https_required" };
@@ -4239,7 +4242,12 @@ async function preflightAgent(env, agent, fetchImpl) {
     res = await f(cardUrl, { headers: { accept: "application/json", "user-agent": "hs-verify-gate/" + CONFIG.version + " (+https://gate.horizonshield.dev)" }, signal: AbortSignal.timeout(CONFIG.timeout_ms) });
     out.card_status = res.status;
     text = (await res.text()).slice(0, 262144);
-  } catch (e) { out.card_status = 0; out.error = "card_unreachable: " + String(e && e.message || e); return out; }
+  } catch (e) {
+    const m = String(e && e.message || e);
+    out.card_status = 0;
+    out.error = /gate-side failure/.test(m) ? "gate_side_failure: " + m : "card_unreachable: " + m;
+    return out;
+  }
   if (!(res.status >= 200 && res.status < 300)) { out.error = "card_http_" + res.status; return out; }
   let card = null;
   try { card = JSON.parse(text); } catch (_e) { out.error = "card_not_json"; return out; }

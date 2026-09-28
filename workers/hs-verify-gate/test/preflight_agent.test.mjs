@@ -98,5 +98,35 @@ chk("not json: failure channel, card_not_json", r.isError === true && b.error ==
 r = await pf({ agent: "https://missing.redteam.invalid" }); b = JSON.parse(r.content[0].text);
 chk("404 card: failure channel, card_http_404, status kept", r.isError === true && b.card_status === 404 && b.error === "card_http_404", JSON.stringify(b).slice(0, 200));
 
+// 8. 自ゾーン (horizonshield.dev): HTTP から呼ばれた扉は直接届かん (本番で 522 を実測)。測定器と同じく中継を通す。
+{
+  const RELAY = "https://relay.redteam.invalid/relay";
+  const OWN = "https://mcp.horizonshield.dev";
+  const relayed = [];
+  const prev = globalThis.fetch;
+  let relayUp = true;
+  globalThis.fetch = async (url, init) => {
+    const u = new URL(url);
+    if (u.href === RELAY) {
+      if (!relayUp) throw new Error("fetch failed");
+      const b = JSON.parse(init.body); relayed.push(b.url);
+      if (b.url === OWN + "/.well-known/agent-card.json") return jres({ relayed: true, status: 200, headers: { "content-type": "application/json" }, body: JSON.stringify(CARDS["paid.redteam.invalid"]) });
+      return jres({ relayed: true, status: 404, headers: {}, body: "nf" });
+    }
+    if (/horizonshield\.dev$/.test(u.hostname)) return new Response("error code: 522", { status: 522 });
+    return prev(url, init);
+  };
+  const ENVR = { HS_VERIFY_KV: kv, GATE_COMMIT: "preflight-local", RELAY_URL: RELAY, RELAY_TOKEN: "t" };
+  const call = async (agent) => (await (await worker.fetch(new Request(O + "/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "tools/call", params: { name: "preflight_agent", arguments: { agent } } }) }), ENVR, CTX)).json()).result;
+  let rr = await call(OWN); let ss = rr.structuredContent || {};
+  chk("own zone: fetched through the relay, not directly (no 522)", !rr.isError && ss.card_status === 200 && ss.extension_declared === true && relayed.includes(OWN + "/.well-known/agent-card.json"), JSON.stringify(rr).slice(0, 300));
+  rr = await call("https://paid.redteam.invalid"); ss = rr.structuredContent || {};
+  chk("other zones: direct, relay not used", !rr.isError && ss.extension_declared === true && relayed.length === 1, JSON.stringify(relayed));
+  relayUp = false;
+  rr = await call(OWN); const bb = JSON.parse(rr.content[0].text);
+  chk("relay down: failure channel says gate-side, not a statement about the agent", rr.isError === true && String(bb.error).startsWith("gate_side_failure") && bb.error.includes("not a statement about the target"), JSON.stringify(bb).slice(0, 300));
+  globalThis.fetch = prev;
+}
+
 console.log(fails ? "\n" + fails + " FAIL" : "\nall pass");
 process.exit(fails ? 1 : 0);
