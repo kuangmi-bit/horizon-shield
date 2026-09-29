@@ -6,6 +6,13 @@ condition a digest on one side equals a digest on the other, which rules exist o
 which fields have no counterpart, and what each original signature covers. It claims no
 semantic equivalence, no compatibility, and no endorsement in either direction.
 
+Revised 2026-09-30 after review by Poke-nushi (a2aproject/A2A#1769): in section 1 the grant and receipt
+preimage formulas now also exclude action_binding, as bind_exec.mjs at the NENRIN pin does, and the paragraph
+on derived fields no longer says the ids sit outside every signature. A record's own id is outside that
+record's signature; references to it inside other records are signed. The pins are unchanged, and nothing in
+sections 2 to 8 changed except the two notes marked "2026-09-30" (the digest equality condition in
+section 2 and the provider_id row in section 3), which record the reviewer's answers.
+
 ## 0. Pins
 
 NENRIN side: ogasurfproject-jpg/horizon-shield at da98d4bfe0c38ef9fb89e6cfcd50f5fed3f336cd
@@ -41,8 +48,8 @@ NENRIN (execution layer, task-execution-bind-v0):
 
 | record | signer | signed bytes | derived fields outside the signed bytes |
 | --- | --- | --- | --- |
-| AuthorizationGrant | caller (caller_sig) | musubi-canonical-v0(grant minus grant_ref, caller_sig): schema, task_id, action{tool,target,args_sha256}, caller_id, provider_id, nonce, not_before, not_after | grant_ref (SHA-256 of those bytes), action_binding |
-| ExecutionReceipt | provider named in the grant (provider_sig) | musubi-canonical-v0(receipt minus receipt_id, provider_sig): schema, task_id, grant_ref, executed_action, outcome{status, result_sha256, evidence}, provider_id, executed_at | receipt_id (SHA-256 of those bytes), action_binding |
+| AuthorizationGrant | caller (caller_sig) | musubi-canonical-v0(grant minus grant_ref, caller_sig, action_binding): schema, task_id, action{tool,target,args_sha256}, caller_id, provider_id, nonce, not_before, not_after | grant_ref (SHA-256 of those bytes), action_binding |
+| ExecutionReceipt | provider named in the grant (provider_sig) | musubi-canonical-v0(receipt minus receipt_id, provider_sig, action_binding): schema, task_id, grant_ref, executed_action, outcome{status, result_sha256, evidence}, provider_id, executed_at | receipt_id (SHA-256 of those bytes), action_binding |
 | Intent (preflight) | provider (intent_sig) | musubi-canonical-v0(intent minus intent_id, intent_sig, action_binding): the declared proposed_action referencing the grant by grant_ref | intent_id, action_binding |
 
 NENRIN (observation layer, task-delegation-bind-v0):
@@ -54,10 +61,15 @@ NENRIN (observation layer, task-delegation-bind-v0):
 
 Key resolution on the NENRIN side is did:key, offline. Signatures in the pinned fixtures are raw
 Ed25519 over the canonical bytes, base64; SPEC.md names detached JWS (EdDSA) as the production
-wire form. grant_ref sits inside the receipt's signed bytes, so provider_sig binds the receipt to
-one specific grant (E3). grant_ref, receipt_id, evidence_id and action_binding sit outside every
-signature; each of the three ids is recomputable from the signed bytes, and action_binding is
-recomputed from the signed action and refused on mismatch (rule AB).
+wire form. Each record's own derived id is outside that record's signature, and is recomputable from
+the signed bytes: grant_ref outside caller_sig, receipt_id outside provider_sig, intent_id outside
+intent_sig, evidence_id outside witness_sig. That does not make references to those ids unsigned. The
+receipt's grant_ref is inside the bytes provider_sig covers, so provider_sig binds the receipt to one
+specific grant (E3); the intent's grant_ref is inside intent_sig; a receipt reference carried in
+observation.conduct.detail_ref (nenrin-exec://<receipt_id>) is inside witness_sig; and prev_evidence_id is
+inside the next observation's witness_sig. These signed references are what bind the records together.
+action_binding alone is outside every signature: it is derived from the signed action and refused on
+mismatch (rule AB).
 
 VATE (bf9b6fa3):
 
@@ -115,6 +127,10 @@ the two rules produce different bytes (raw UTF-8 versus 見積) and different di
 printable ASCII with integer-free actions, and it is a per-object fact, not a property of the pair
 of rules.
 
+2026-09-30, from Poke-nushi's review: a case that asserts the equality names the exact request preimage,
+the canonical byte rule and the hash encoding, and recomputes both digests for that input. Declaring the
+basis is not enough on its own; the recomputation is what establishes it for that case.
+
 ## 3. Direct correspondences
 
 "direct" here means the same fact, carried as a separate field on both sides, comparable by
@@ -128,7 +144,7 @@ equality once the condition in the last column holds.
 | grant.action.tool | request.action (string) | the action name | request.action is a string in VATE; target and args live in VATE's profile-defined request basis object and constraints, not in this field |
 | receipt.executed_at | execution.started_at, execution.finished_at | one instant versus an interval | a profile would state which VATE instant the NENRIN instant is, or record both |
 | grant.not_before, grant.not_after | issued_at, expires_at (admission) | a validity window the execution instant must fall in; NENRIN checks executed_at inside the grant window, VATE checks started_at and finished_at inside the admission window | the windows are issued by different parties (caller versus verifier) and are not the same window |
-| grant.provider_id (executor the caller authorizes; did:key) | subject.actor (admission), execution.runtime, subject.runtime | identity of the executing party | VATE distinguishes actor from runtime; NENRIN has one executor identity; a profile decides whether provider_id is actor, runtime or both |
+| grant.provider_id (executor the caller authorizes; did:key) | subject.actor (admission), execution.runtime, subject.runtime | identity of the executing party | VATE distinguishes actor from runtime; NENRIN has one executor identity. 2026-09-30, from Poke-nushi's review: the role mapping stays profile-specific, and a profile states whether provider_id identifies the actor, the runtime or both, and what evidence establishes that association. One executor identifier does not populate both roles by default |
 | grant.caller_id (the party that signs the authorization) | subject.principal | the party on whose authority the action runs | in VATE principal is the linked principal behind the actor, not necessarily the signer of an authorization artifact |
 | receipt.outcome.result_sha256 | result.output_hash | a digest of the output | NENRIN v0 does not pin the grammar or preimage of result_sha256 (compared as an opaque string; the fixtures use placeholders); VATE pins "sha-256:" + 64 hex over its result basis; equality needs a NENRIN profile rule that pins the grammar first |
 | receipt.outcome.status | result.outcome (success, partial_success, failed, cancelled) | outcome state | NENRIN v0 does not enumerate status; a value map is a profile rule, not a direct correspondence |

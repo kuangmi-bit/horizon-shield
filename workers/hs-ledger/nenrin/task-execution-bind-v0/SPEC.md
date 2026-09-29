@@ -98,8 +98,10 @@ effective_request_hash without reading this spec; it only needs the canonicaliza
 (../musubi-v0/canonical_vectors.json, reproduced byte for byte in Python and Node).
 
 Rules:
-- action_binding is DERIVED, like grant_ref and receipt_id: it sits outside every preimage and every signature
-  (GRANT_DERIVED, RECEIPT_DERIVED, INTENT_DERIVED). Attaching it changes no id and no signature, so every published
+- action_binding is DERIVED. Like grant_ref and receipt_id it is excluded from its own record's preimage and
+  signature (GRANT_DERIVED, RECEIPT_DERIVED, INTENT_DERIVED); unlike them, no other record references it, so it
+  sits outside every preimage and every signature. (grant_ref, by contrast, is inside the receipt's and the
+  intent's signed bytes.) Attaching it changes no id and no signature, so every published
   fixture keeps its grant_ref and receipt_id, and a record signed without it can carry it later.
 - It adds no trust. The action it digests is already inside the signed bytes; the binding is a second spelling of
   the same fact for a reader with a different profile.
