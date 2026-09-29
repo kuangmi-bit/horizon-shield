@@ -175,6 +175,22 @@ const signedRecs = batch.records.filter((x) => x.witness_name === "Witness Examp
 chk("batch: a v1 record carries exactly the v1 keys", plain && Object.keys(plain).join(",") === "sha,purpose,witness_name,vantage,signed", JSON.stringify(plain));
 chk("batch: domain-signed records carry signed_domain, and the second carries counted:false", signedRecs.length === 2 && signedRecs.every((x) => x.signed_domain === "witness.example") && signedRecs.filter((x) => x.counted === false).length === 1, JSON.stringify(signedRecs));
 
+// 13b. a pending key that outlived its batch (seen live 2026-09-30: eea3be5b..., anchored in entry 58, still "pending")
+reset();
+r = await post(walk({ walked_at: "2026-09-07T05:00:00Z", witness: { name: "Stale", vantage: "s" } }), { ip: "192.0.2.11" });
+const staleSha = r.j.sha;
+const staleRec = kvMock.store.get("wit:pending:" + staleSha);
+await worker.scheduled({}, env, {});
+const seqAfterFirst = kvMock.store.get("seq");
+kvMock.store.set("wit:pending:" + staleSha, staleRec);            // the leftover key, as seen in production
+const sv = await (await worker.fetch(new Request(ORIGIN + "/witness/" + staleSha), env)).json();
+chk("stale pending key: GET /witness/<sha> answers anchored with its entry, not pending", sv.status === "anchored" && sv.ledger_entry === Number(seqAfterFirst), JSON.stringify(sv).slice(0, 160));
+const sp = await (await worker.fetch(new Request(ORIGIN + "/witness/pending"), env)).json();
+chk("stale pending key: /witness/pending does not list an anchored record", sp.count === 0, JSON.stringify(sp.pending));
+await worker.scheduled({}, env, {});
+chk("stale pending key: the next batch writes no entry and removes the leftover key",
+  kvMock.store.get("seq") === seqAfterFirst && !kvMock.store.has("wit:pending:" + staleSha), kvMock.store.get("seq"));
+
 // 14. self description states the v1.1 rules and refusals.
 const desc = await (await worker.fetch(new Request(ORIGIN + "/witness"), env)).json();
 chk("GET /witness states caps, lanes and the v1.1 refusal codes", desc.limits_stated_not_hidden.daily_per_domain === 50 && desc.limits_stated_not_hidden.daily_global === 500 && Array.isArray(desc.conduct_v1_1.refusals) && desc.conduct_v1_1.refusals.includes("disclaimer_missing") && desc.conduct_v1_1.refusals.includes("self_witness"), JSON.stringify(desc.conduct_v1_1 && desc.conduct_v1_1.refusals));

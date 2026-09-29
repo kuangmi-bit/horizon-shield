@@ -1613,6 +1613,7 @@ async function handle(request, env) {
         const raw = await env.LEDGER.get(k.name);
         if (!raw) continue;
         const s = JSON.parse(raw);
+        if (await env.LEDGER.get(`wit:anchored:${s.sha}`)) continue;   // already in a batch; the pending key is stale
         out.push({ sha: s.sha, purpose: s.purpose, witness_name: s.witness_name, vantage: s.vantage, signed: s.signed,
                    signed_domain: s.signed_domain || null, mode: s.mode || "full", counted: s.counted !== false, submitted_at: s.submitted_at });
       }
@@ -1630,7 +1631,9 @@ async function handle(request, env) {
       const anch = (await env.LEDGER.get(`wit:anchored:${sha}`)) || null;
       if (!raw && !anch) return json({ error: "not found", sha }, 404);
       const responses = await responsesAbout(env, sha, origin);   // record-privacy-v1: the measured party's reply, if any
-      if (raw) { const s = JSON.parse(raw); return json({ status: "pending", ...s, responses }); }
+      // 2026-09-30. Anchored wins. A pending key that outlived its batch (seen live: eea3be5b..., anchored in entry 58,
+      // still answered "pending" two days later) must not hide the anchor a reader can check.
+      if (raw && !anch) { const s = JSON.parse(raw); return json({ status: "pending", ...s, responses }); }
       const a = JSON.parse(anch);
       return json({ status: "anchored", sha, ledger_entry: a.n, url: `${origin}/ledger/${a.n}`, record: a.stored || null, responses });
     }
@@ -2141,10 +2144,16 @@ async function anchorWitnessPool(env, origin, trigger) {
   const keys = listed.keys.slice(0, WITNESS_BATCH_MAX);
   if (!keys.length) return { status: 200, body: { ok: true, anchored: 0, note: "pool is empty" } };
   const items = [];
+  let healed = 0;
   for (const k of keys) {
     const raw = await env.LEDGER.get(k.name);
-    if (raw) items.push(JSON.parse(raw));
+    if (!raw) continue;
+    const s = JSON.parse(raw);
+    // 2026-09-30. A record already anchored is never batched twice; its leftover pending key is removed.
+    if (await env.LEDGER.get(`wit:anchored:${s.sha}`)) { await env.LEDGER.delete(k.name); healed++; continue; }
+    items.push(s);
   }
+  if (!items.length) return { status: 200, body: { ok: true, anchored: 0, healed, note: "pool held only records already anchored; their pending keys were removed" } };
   items.sort((a, b2) => (a.sha < b2.sha ? -1 : 1));
   // jidec-chain-v1 (2026-09-28): the batch carries the ledger head as it stands before the batch is appended,
   // so the head is inside bytes that get stamped to Bitcoin. A broken chain is written as such, not hidden.
