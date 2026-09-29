@@ -79,20 +79,23 @@ chk("the pending list shows every accepted pin", pend.count === accepted + 1, "c
 const seqBefore = Number(kv.store.get("seq") || 0);
 await worker.scheduled({}, env, { waitUntil() {} });
 const seqAfter = Number(kv.store.get("seq") || 0);
-chk("scheduled() wrote exactly one new ledger entry for the TRACE pool (other pools are empty)", seqAfter === seqBefore + 1, seqBefore + " -> " + seqAfter);
-const entry = JSON.parse(kv.store.get("entry:" + seqAfter));
+chk("scheduled() wrote the TRACE batch and then one head checkpoint (other pools are empty)", seqAfter === seqBefore + 2, seqBefore + " -> " + seqAfter);
+const traceN = seqBefore + 1;
+const entry = JSON.parse(kv.store.get("entry:" + traceN));
+const ckpt = JSON.parse(JSON.parse(kv.store.get("entry:" + seqAfter)).record_canonical);
+chk("the checkpoint stamps the head of everything before it, including the TRACE batch", ckpt.schema === "nenrin-head-checkpoint-v1" && ckpt.ledger_head.n === traceN, JSON.stringify(ckpt).slice(0, 200));
 const batch = JSON.parse(entry.record_canonical);
 chk("the entry is a nenrin-trace-pin-batch-v0 whose sha256 is its claim", batch.schema === "nenrin-trace-pin-batch-v0" && sha(entry.record_canonical) === entry.claim_sha256 && entry.anchored_by === "schedule");
 chk("the batch lists the first pin by sha, sorted, with iat and thumbprint", batch.records.some((x) => x.sha === b1.sha && x.iat === rec.iat) && batch.records.every((x, i, a) => i === 0 || a[i - 1].sha < x.sha));
 chk("the pool is empty after the batch", (await (await call("/evidence/trace/pending")).json()).count === 0);
 const after = await (await call("/evidence/trace/" + b1.sha)).json();
-chk("GET /evidence/trace/<sha> now says anchored and names the ledger entry", after.status === "anchored" && after.anchor && after.anchor.ledger_entry === seqAfter && after.anchor.batch_sha256 === entry.claim_sha256);
+chk("GET /evidence/trace/<sha> now says anchored and names the ledger entry", after.status === "anchored" && after.anchor && after.anchor.ledger_entry === traceN && after.anchor.batch_sha256 === entry.claim_sha256);
 const raw2 = Buffer.from(await (await call("/evidence/trace/" + b1.sha + "?format=raw")).arrayBuffer());
 chk("the served bytes are unchanged after anchoring", sha(raw2) === b1.sha);
 const head = await (await call("/ledger/head")).json();
 chk("the chain head walks through the new entry (jidec-chain-v1 not broken)", head && head.n === seqAfter && !head.broken_at, JSON.stringify(head).slice(0, 160));
 await worker.scheduled({}, env, { waitUntil() {} });
-chk("a second scheduled() with an empty pool writes nothing", Number(kv.store.get("seq") || 0) === seqAfter);
+chk("a second scheduled() with empty pools writes nothing (the last entry is already a checkpoint)", Number(kv.store.get("seq") || 0) === seqAfter);
 chk("an existing route is untouched (GET /witness still answers)", (await call("/witness")).status === 200);
 
 process.exit(chk.done() ? 1 : 0);

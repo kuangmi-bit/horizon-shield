@@ -99,4 +99,27 @@ chk("batch: record_canonical carries ledger_head of the entries before it (n = 5
 env = { LEDGER: kv.binding };
 r = await go(env, "/ledger/head"); j = await r.json();
 chk("batch: after it, the head moves to n = 6 and still recomputes", r.status === 200 && j.n === 6);
+
+// head checkpoint (2026-09-30): a quiet day still gets a stamped head, and an idle ledger does not grow on its own
+{
+  const k = kvOf(entries(5));
+  const e5 = { LEDGER: k.binding };
+  const exp5 = await (await go(e5, "/ledger/export.jsonl")).text();
+  const mk5 = JSON.parse(exp5.trim().split("\n").pop());
+  await worker.scheduled({}, e5, { waitUntil() {} });
+  const ce = JSON.parse(k.store.get("entry:6") || "null");
+  const cr = ce ? JSON.parse(ce.record_canonical) : null;
+  chk("checkpoint: empty pools still append one entry whose stamped bytes carry the head of 1..5",
+    k.store.get("seq") === "6" && cr && cr.schema === "nenrin-head-checkpoint-v1" && cr.ledger_head.n === 5 && cr.ledger_head.entry_sha256 === expectHead(es), JSON.stringify(cr).slice(0, 200));
+  chk("checkpoint: it carries the bound end marker hash the export served at n 5 (the --expect-head value)", cr && cr.ledger_head.marker_sha256 === mk5.entry_sha256);
+  chk("checkpoint: claim_sha256 is sha256 of its record_canonical, and it waits for the stamping run", ce.claim_sha256 === sha(ce.record_canonical) && ce.ots_status === "unstamped" && ce.anchored_by === "schedule");
+  const hd = await (await go(e5, "/ledger/head")).json();
+  chk("checkpoint: the chain walks through it (head n 6)", hd.n === 6 && !hd.error, JSON.stringify(hd).slice(0, 120));
+  await worker.scheduled({}, e5, { waitUntil() {} });
+  chk("checkpoint: an idle day after a checkpoint writes nothing", k.store.get("seq") === "6");
+  const cut5 = entries(5).filter((e) => e.n !== 3);
+  const kb = mockKV([["seq", "5"], ...cut5.map((e) => ["entry:" + e.n, JSON.stringify(e)])]);
+  await worker.scheduled({}, { LEDGER: kb.binding }, { waitUntil() {} });
+  chk("checkpoint: a broken chain is not stamped as if it were whole", kb.store.get("seq") === "5" && !kb.store.has("entry:6"));
+}
 process.exit(chk.done() ? 1 : 0);

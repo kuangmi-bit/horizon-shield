@@ -7,7 +7,7 @@
 // --- NENRIN Resume v1 (2026-09-13). Read-only assembly of anchored witness-walk records for one endpoint.
 // The core is shared with python (workers/hs-ledger/nenrin/resume-v1, byte-match 21/21); the worker only
 // injects its own Web Crypto hasher. No node imports in the core, so this bundles as is.
-import { walkChain, exportRow, boundHeadRecord, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE, HEAD_FIELDS, HEAD_RECIPE } from "./chain_v1.mjs";
+import { walkChain, exportRow, boundHeadRecord, markerSha, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE, HEAD_FIELDS, HEAD_RECIPE } from "./chain_v1.mjs";
 import { assembleResume as assembleResumeV1, Reject as ResumeReject } from "../nenrin/resume-v1/resume_v1.mjs";
 import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1/trust_signal_v1.mjs";
 import { handleTaskWitness, handleTaskTrustSignal, anchorTaskWitnessPool, handleTaskEvidence } from "../nenrin/task-delegation-bind-v0/task_ledger_v0.mjs";
@@ -1694,7 +1694,7 @@ async function handle(request, env) {
       const w = await walkChain((n) => getEntry(env, n), seq);
       if (!w.ok) return json({ schema: "jidec-head-v1", chain: CHAIN_SCHEMA, error: "chain_broken", broken_at: w.broken_at, last_linked: w.n, head_before_break: w.head }, 409, { "cache-control": "no-store" });
       return json(Object.assign(await boundHeadRecord(w.n, w.head), { recipe: CHAIN_RECIPE, fields: CHAIN_FIELDS, marker_recipe: HEAD_RECIPE, marker_fields: HEAD_FIELDS, export: origin + "/ledger/export.jsonl",
-        anchored_in: "the head as it stood is written into each daily nenrin-witness-batch-v1 entry (ledger_head), whose claim_sha256 is stamped to Bitcoin; compare a head you hold with the one a stamped batch carries",
+        anchored_in: "the head as it stood is written into each daily nenrin-witness-batch-v1 entry (ledger_head) and, at the end of any daily run that added entries, into a nenrin-head-checkpoint-v1 entry with the end marker hash; their claim_sha256 are stamped to Bitcoin; compare a head you hold with the one a stamped entry carries",
         does_not_establish: ["that every submission the ledger received was appended; the chain covers what was appended", "that the head served now equals a head you did not obtain independently; hold one, or read one from a stamped batch"] }), 200, { "cache-control": "no-store" });
     }
     if (p === "/ledger/export.jsonl" && request.method === "GET") {
@@ -2191,6 +2191,41 @@ async function anchorWitnessPool(env, origin, trigger) {
   return { status: 201, body: { n, url: `${origin}/ledger/${n}`, anchored: items.length, trigger, note: "the batch anchor covers every record listed in it; the Bitcoin stamp follows on the operator's stamping run" } };
 }
 
+// 2026-09-30. Head checkpoint. The witness batch carries ledger_head, but it is written only when a witness
+// submission is pending, so on a quiet day the head was never stamped and a reader had no Bitcoin-bounded head to
+// hold against the export (VLC-1 --expect-head). After the day's pools, when the last entry is not already a
+// checkpoint, this appends one entry whose stamped bytes carry the head (and the bound end marker's hash) of
+// everything before it. An idle day after a checkpoint writes nothing, so the ledger does not grow on its own.
+// A broken chain is not stamped as if it were whole; it is reported and skipped.
+const HEAD_CHECKPOINT_SCHEMA = "nenrin-head-checkpoint-v1";
+async function headCheckpoint(env, origin, trigger) {
+  const seq = Number((await env.LEDGER.get("seq")) || 0);
+  if (!seq) return { status: 200, body: { ok: true, written: false, note: "empty ledger" } };
+  const last = await getEntry(env, seq);
+  let lastSchema = null;
+  try { lastSchema = last && last.record_canonical ? JSON.parse(last.record_canonical).schema : null; } catch (_e) { lastSchema = null; }
+  if (lastSchema === HEAD_CHECKPOINT_SCHEMA) return { status: 200, body: { ok: true, written: false, note: "the last entry is already a head checkpoint" } };
+  const w = await walkChain((n) => getEntry(env, n), seq);
+  if (!w.ok) return { status: 200, body: { ok: false, written: false, broken_at: w.broken_at, note: "chain broken; a broken head is not stamped as whole" } };
+  const rec = {
+    schema: HEAD_CHECKPOINT_SCHEMA,
+    anchored_at: new Date().toISOString(),
+    ledger_head: { chain: CHAIN_SCHEMA, n: w.n, entry_sha256: w.head, marker_sha256: await markerSha(w.n, w.head) },
+    note: "the jidec-chain-v1 head of entries 1..n and the hash of the bound jidec-head-v1 end marker at n; this entry's claim_sha256 is stamped to Bitcoin, which bounds both from above"
+  };
+  const canonical = JSON.stringify(rec);
+  const h = (await sha256hex(canonical)).toLowerCase();
+  const dup = await env.LEDGER.get(`hash:${h}`);
+  if (dup) return { status: 200, body: { ok: true, written: false, n: Number(dup), dedup: true } };
+  const n = seq + 1;
+  const entry = { n, work: `NENRIN head checkpoint (entries 1..${w.n})`, claim_sha256: h, record_canonical: canonical, schema: "v0-plain", created_at: new Date().toISOString(), ots_status: "unstamped", bitcoin_block: null, block_time: null, stamped_at: null };
+  entry.anchored_by = trigger;
+  await env.LEDGER.put(`entry:${n}`, JSON.stringify(entry));
+  await env.LEDGER.put(`hash:${h}`, String(n));
+  await env.LEDGER.put("seq", String(n));
+  return { status: 201, body: { ok: true, written: true, n, url: `${origin}/ledger/${n}`, head_of: w.n } };
+}
+
 // Agreement pool batch and anchor (boundary 2.4), mirroring anchorWitnessPool. Bundles the
 // day's accepted records into one ledger entry and anchors its hash; the Bitcoin stamp follows
 // on the operator's stamping run. The full bytes stay served by GET /agreement/{sha}.
@@ -2256,6 +2291,12 @@ export default {
       console.log("trace pin batch:", JSON.stringify(rp.body));
     } catch (e) {
       console.log("trace pin batch failed:", String(e && e.message || e));
+    }
+    try {
+      const rc = await headCheckpoint(env, "https://ledger.horizonshield.dev", "schedule");
+      console.log("head checkpoint:", JSON.stringify(rc.body));
+    } catch (e) {
+      console.log("head checkpoint failed:", String(e && e.message || e));
     }
   },
 };
