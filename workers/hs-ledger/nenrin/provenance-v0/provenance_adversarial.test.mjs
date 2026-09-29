@@ -157,6 +157,23 @@ const r17 = verifyProvenance({ task_id: T, observations: [h0, h1], grant: gAB, r
 chk("P17 a lying action_binding is refused (execution_invalid / action_binding_mismatch, record receipt)", r17.verdict === "refused" && reasonOf(r17.refusals, "execution_invalid") === "action_binding_mismatch" && r17.refusals.find((x) => x.code === "execution_invalid").record === "receipt", JSON.stringify(r17.refusals));
 chk("P17 the signatures still verify (the lie is outside the signed bytes); the refusal is the content check", !has(r17.refusals, "execution_signature_invalid"));
 
+// ---- P18 horizon-shield#26 case 1: `receipt` and `receipts` are one set (reported by Poke-nushi) ----
+function divergentReceipt(g) {
+  const r = { schema: "task-execution-bind-v0/receipt", task_id: g.task_id, grant_ref: g.grant_ref, executed_action: { tool: "a2a.invoke", target: "/invoices/other", args_sha256: "sha_args_ok" }, outcome: { status: "completed", result_sha256: "sha_res_1", evidence: GOODEV }, provider_id: B, executed_at: IN };
+  r.receipt_id = receiptId(r);
+  return signReceipt(r, priv(B));
+}
+const rB = divergentReceipt(grant);
+const r18 = verifyProvenance({ task_id: T, grant, receipt, receipts: [rB], resolve });
+chk("P18 receipt A with receipts [B] (B signed by the provider, action diverged) is refused, not accepted under B's id",
+  r18.verdict === "refused" && r18.refusals.some((x) => x.code === "execution_invalid" && x.reason === "action_diverged" && x.receipt_id === rB.receipt_id), JSON.stringify(r18.refusals));
+chk("P18 the reported receipt_id is never B's", r18.layers.execution.receipt_id !== rB.receipt_id);
+const r18b = verifyProvenance({ task_id: T, grant, receipt, receipts: [receipt], resolve });
+chk("P18 the same receipt passed as both receipt and receipts[0] is one record, accepted", r18b.verdict === "accepted" && r18b.layers.execution.reconciliation === "reconciled", JSON.stringify(r18b.refusals));
+const strangerDiv = divergentReceipt(grant); const fk = signReceipt({ ...strangerDiv, provider_sig: undefined }, priv(EVIL));
+const r18c = verifyProvenance({ task_id: T, grant, receipt, receipts: [fk], resolve });
+chk("P18 a divergent receipt the provider did not sign does not refuse the set (it is not authentic, so it is not reconciled either)", r18c.verdict === "accepted" && r18c.layers.execution.receipt_id === receipt.receipt_id, JSON.stringify(r18c.refusals));
+
 // ---- determinism + no forbidden dashes ----
 chk("report is deterministic for identical input", JSON.stringify(verifyProvenance(happy)) === JSON.stringify(r0));
 chk("no em/en/bar dashes in graph or report", !DASH.test(JSON.stringify([happy.observations, grant, receipt, r0])));

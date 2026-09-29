@@ -172,7 +172,7 @@ export function canonical(v) {
 
 // evidence_id = content hash over the preimage (the record minus derived/envelope fields).
 // Signatures are excluded so adding them never changes evidence_id, and the witness signs the same bytes.
-const DERIVED_FIELDS = ["evidence_id", "witness_sig", "edge_sig"];
+const DERIVED_FIELDS = ["evidence_id", "witness_sig", "edge_sig", "consent"];   // consent: record-privacy-v1, see task_ledger_v0.mjs
 export function preimage(obs) {
   const b = Object.assign({}, obs);
   for (const k of DERIVED_FIELDS) delete b[k];
@@ -665,7 +665,7 @@ export function preflightReport(input) {
 // never collapsed into the favorable outcome. The wall that no signature can cross (no side-effect oracle) is
 // written into does_not_establish on every report, accepted or refused.
 
-export const VERIFIER_VERSION = "0.1.2";
+export const VERIFIER_VERSION = "0.1.3";
 export const LINK_PREFIX = "nenrin-exec://";
 
 // R3 generalized to a SET with possibly several witnesses per hop: seqs contiguous from 0, every root has a
@@ -697,7 +697,16 @@ export function verifyProvenance(input) {
   const observations = Array.isArray(input.observations) ? input.observations : [];
   const grant = input.grant || null;
   const primaryReceipt = input.receipt || null;
-  const receipts = Array.isArray(input.receipts) && input.receipts.length ? input.receipts : (primaryReceipt ? [primaryReceipt] : []);
+  // 0.1.3 (horizon-shield#26, reported by Poke-nushi). `receipt` and `receipts` used to feed different checks: the
+  // action check ran on `receipt`, reconciliation and the reported receipt_id on `receipts`, so receipt A with
+  // receipts [B] reported B's id under A's verdict. Now there is one receipt set, the union of both inputs, and
+  // every authentic receipt in it passes the same action and binding checks as the primary one.
+  const receipts = [];
+  { const seen = new Set();
+    for (const r of (primaryReceipt ? [primaryReceipt] : []).concat(Array.isArray(input.receipts) ? input.receipts : [])) {
+      let key; try { key = canonical(r); } catch (_e) { key = String(receipts.length); }
+      if (!seen.has(key)) { seen.add(key); receipts.push(r); }
+    } }
   const resolve = typeof input.resolve === "function" ? input.resolve : () => null;
   const lookup = typeof input.lookup === "function" ? input.lookup : null;
   const requireSigs = input.require_signatures !== false;
@@ -754,6 +763,14 @@ export function verifyProvenance(input) {
     if (!ve.ok) refuse("execution_invalid", "the grant/receipt pair failed recompute, binding, window or E1", Object.assign({ reason: ve.reason }, ve.record ? { record: ve.record } : {}));
     let sigs = { ok: true, reason: "signatures_not_required" };
     if (requireSigs) { sigs = verifySignedExecution(grant, primary, resolve); if (!sigs.ok) refuse("execution_signature_invalid", "caller_sig or provider_sig does not verify", { reason: sigs.reason }); }
+    // every other receipt in the set that the authorized provider really signed (or every one, when signatures are
+    // not required) must pass the same checks; one that does not is refused by index, not silently reconciled
+    receipts.forEach((r, i) => {
+      if (r === primary) return;
+      if (requireSigs && !verifySignedExecution(grant, r, resolve).ok) return;
+      const vr = verifyExecution(grant, r);
+      if (!vr.ok) refuse("execution_invalid", "a presented receipt failed recompute, binding, window or E1 against the grant", { reason: vr.reason, receipt_index: i, receipt_id: r && r.receipt_id });
+    });
     const rec = requireSigs ? reconcileSigned(receipts, grant.grant_ref, grant.provider_id, resolve) : reconcileOutcome(receipts, grant.grant_ref);
     if (rec.status === "equivocation") refuse("execution_equivocation", "the authorized provider signed conflicting outcomes for one grant; no single outcome can be established (E2, fail-closed)", { receipt_ids: rec.receipt_ids });
     else if (rec.status !== "reconciled") refuse("execution_unreconciled", "no authentic receipt reconciles this grant", { status: rec.status });
@@ -901,7 +918,7 @@ export function verifyProvenance(input) {
 // collapsed to the favorable value), the honest LIMITS carried through unchanged, content ANCHORS the engine
 // can key on, and the steps to recompute everything offline without trusting this operator.
 
-export const CONSUME_VERSION = "0.1.0";
+export const CONSUME_VERSION = "0.1.1";
 
 export function consumeEvidence(input) {
   const p = verifyProvenance(input);
@@ -912,7 +929,8 @@ export function consumeEvidence(input) {
   // verified FACTS. Each is a fact or null (not asserted), never a score.
   const facts = {
     verified: p.verdict === "accepted",
-    authorized_before_execution: pre ? true : null,
+    // horizon-shield#26: a refused preflight established nothing, so the fact is null, not true
+    authorized_before_execution: pre && !p.refusals.some((r) => r.code.startsWith("preflight_")) ? true : null,
     executed_matches_authorization: exec ? exec.pair === "action_bound" : null,
     outcome: exec && exec.outcome ? { status: exec.outcome.status, reconciled: exec.reconciliation === "reconciled" } : null,
     hops: L.delegation && L.delegation.present ? L.delegation.hop_verdicts.map((h) => ({ seq: h.seq, verdict: h.verdict, disagreement: h.verdict === "disagreement" })) : [],

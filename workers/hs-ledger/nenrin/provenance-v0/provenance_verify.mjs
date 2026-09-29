@@ -12,14 +12,14 @@
 // Fail-closed for readers: a refused report establishes nothing; disagreement and equivocation are surfaced,
 // never collapsed into the favorable outcome. The wall that no signature can cross (no side-effect oracle) is
 // written into does_not_establish on every report, accepted or refused.
-import { evidenceId, verifyObservation, chainContinuous, aggregateVerdict } from "../task-delegation-bind-v0/bind.mjs";
+import { evidenceId, verifyObservation, chainContinuous, aggregateVerdict, canonical } from "../task-delegation-bind-v0/bind.mjs";
 import { verifySigned as verifyObservationSigned } from "../task-delegation-bind-v0/sign.mjs";
 import { receiptId, verifyExecution, reconcileOutcome } from "../task-execution-bind-v0/bind_exec.mjs";
 import { verifySignedExecution, reconcileSigned } from "../task-execution-bind-v0/sign_exec.mjs";
 import { verifyEvidence } from "../task-execution-bind-v0/outcome_evidence.mjs";
 import { verifyPreflight, verifyIntentSig, intentMatchesReceipt } from "../task-execution-bind-v0/preflight.mjs";
 
-export const VERIFIER_VERSION = "0.1.2";
+export const VERIFIER_VERSION = "0.1.3";
 export const LINK_PREFIX = "nenrin-exec://";
 
 // R3 generalized to a SET with possibly several witnesses per hop: seqs contiguous from 0, every root has a
@@ -51,7 +51,16 @@ export function verifyProvenance(input) {
   const observations = Array.isArray(input.observations) ? input.observations : [];
   const grant = input.grant || null;
   const primaryReceipt = input.receipt || null;
-  const receipts = Array.isArray(input.receipts) && input.receipts.length ? input.receipts : (primaryReceipt ? [primaryReceipt] : []);
+  // 0.1.3 (horizon-shield#26, reported by Poke-nushi). `receipt` and `receipts` used to feed different checks: the
+  // action check ran on `receipt`, reconciliation and the reported receipt_id on `receipts`, so receipt A with
+  // receipts [B] reported B's id under A's verdict. Now there is one receipt set, the union of both inputs, and
+  // every authentic receipt in it passes the same action and binding checks as the primary one.
+  const receipts = [];
+  { const seen = new Set();
+    for (const r of (primaryReceipt ? [primaryReceipt] : []).concat(Array.isArray(input.receipts) ? input.receipts : [])) {
+      let key; try { key = canonical(r); } catch (_e) { key = String(receipts.length); }
+      if (!seen.has(key)) { seen.add(key); receipts.push(r); }
+    } }
   const resolve = typeof input.resolve === "function" ? input.resolve : () => null;
   const lookup = typeof input.lookup === "function" ? input.lookup : null;
   const requireSigs = input.require_signatures !== false;
@@ -108,6 +117,14 @@ export function verifyProvenance(input) {
     if (!ve.ok) refuse("execution_invalid", "the grant/receipt pair failed recompute, binding, window or E1", Object.assign({ reason: ve.reason }, ve.record ? { record: ve.record } : {}));
     let sigs = { ok: true, reason: "signatures_not_required" };
     if (requireSigs) { sigs = verifySignedExecution(grant, primary, resolve); if (!sigs.ok) refuse("execution_signature_invalid", "caller_sig or provider_sig does not verify", { reason: sigs.reason }); }
+    // every other receipt in the set that the authorized provider really signed (or every one, when signatures are
+    // not required) must pass the same checks; one that does not is refused by index, not silently reconciled
+    receipts.forEach((r, i) => {
+      if (r === primary) return;
+      if (requireSigs && !verifySignedExecution(grant, r, resolve).ok) return;
+      const vr = verifyExecution(grant, r);
+      if (!vr.ok) refuse("execution_invalid", "a presented receipt failed recompute, binding, window or E1 against the grant", { reason: vr.reason, receipt_index: i, receipt_id: r && r.receipt_id });
+    });
     const rec = requireSigs ? reconcileSigned(receipts, grant.grant_ref, grant.provider_id, resolve) : reconcileOutcome(receipts, grant.grant_ref);
     if (rec.status === "equivocation") refuse("execution_equivocation", "the authorized provider signed conflicting outcomes for one grant; no single outcome can be established (E2, fail-closed)", { receipt_ids: rec.receipt_ids });
     else if (rec.status !== "reconciled") refuse("execution_unreconciled", "no authentic receipt reconciles this grant", { status: rec.status });

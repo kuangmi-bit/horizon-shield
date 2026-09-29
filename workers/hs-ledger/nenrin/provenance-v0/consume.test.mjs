@@ -67,5 +67,16 @@ chk("postureLine gives counts only, no score key, and reflects the disagreement"
 chk("consume is deterministic for identical input", JSON.stringify(consumeEvidence(base)) === JSON.stringify(consumed));
 chk("no em/en/bar dashes in the projection", !DASH.test(JSON.stringify(consumed)));
 
+// horizon-shield#26 case 2: a refused preflight does not project authorized_before_execution true
+{
+  const bad = { schema: "task-execution-bind-v0/intent", task_id: T, grant_ref: grant.grant_ref, proposed_action: { tool: "a2a.invoke", target: "/invoices/other", args_sha256: "sha_args_ok" }, provider_id: B, declared_at: IN };
+  bad.intent_id = intentId(bad);
+  const cb = consumeEvidence({ ...base, intent: signIntent(bad, priv(B)) });
+  chk("#26: a refused preflight (action_diverged) projects authorized_before_execution null, not true",
+    cb.conflicts.refused === true && cb.conflicts.refusal_codes.includes("preflight_invalid") && cb.facts.authorized_before_execution === null, JSON.stringify(cb.facts));
+  const noIntent = consumeEvidence({ ...base, intent: undefined });
+  chk("#26: no intent at all is still null (not asserted)", noIntent.facts.authorized_before_execution === null);
+}
+
 console.log(fail ? ("\n" + fail + " FAILED") : "\nALL PASS (nenrin-consume-v0: verified evidence for a trust engine, no score, no decision)");
 process.exit(fail ? 1 : 0);

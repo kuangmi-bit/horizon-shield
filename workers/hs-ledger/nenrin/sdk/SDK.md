@@ -72,6 +72,21 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.2.3 (2026-09-30): one receipt set, and no fact from a refused preflight
+Both fixes come from horizon-shield#26, reported by Poke-nushi with a reproduction against 0.2.2 (verifier_version
+0.1.3, consume_version 0.1.1):
+- `receipt` and `receipts` are one set. Under 0.2.2 the action check ran on `receipt` while reconciliation and
+  the reported receipt_id used `receipts`, so receipt A with receipts [B] (B signed by the provider for another
+  action) was accepted and reported B's id. Now the two inputs are merged (a record passed in both counts once),
+  and every receipt in the set that the authorized provider signed passes the same recompute, binding, window and
+  E1 checks; one that fails is refused as execution_invalid with its index and receipt_id. A receipt the provider
+  did not sign still cannot refuse the set (griefing resistance, P6, unchanged).
+- consumeEvidence projects authorized_before_execution as true only when the preflight layer raised no refusal.
+  A refused preflight (for example action_diverged) projects null, the documented "not asserted" value. The
+  overall verdict was already refused in both cases; what changed is the projected facts.
+Regression: provenance_adversarial P18 (four checks) and consume #26 (two checks); on the 0.2.2 sources three and
+one of them fail. The interop fixtures in ../interop-v0 reproduce their frozen verdict signatures unchanged.
+
 ## 0.2.2 (2026-09-26): canonical pin, rules and signers on the report, VATE-shaped action_binding
 Published 2026-09-26 by the workflow (run 3, commit 8638b99b, SLSA provenance v1 on the registry; reproduce.sh
 0.2.2 reproduced the tarball the same day). nenrin_verify.mjs is rebuilt from the sources at this commit

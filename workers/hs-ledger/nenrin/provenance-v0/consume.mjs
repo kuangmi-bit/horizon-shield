@@ -11,7 +11,7 @@
 // can key on, and the steps to recompute everything offline without trusting this operator.
 import { verifyProvenance } from "./provenance_verify.mjs";
 
-export const CONSUME_VERSION = "0.1.0";
+export const CONSUME_VERSION = "0.1.1";
 
 export function consumeEvidence(input) {
   const p = verifyProvenance(input);
@@ -22,7 +22,8 @@ export function consumeEvidence(input) {
   // verified FACTS. Each is a fact or null (not asserted), never a score.
   const facts = {
     verified: p.verdict === "accepted",
-    authorized_before_execution: pre ? true : null,
+    // horizon-shield#26: a refused preflight established nothing, so the fact is null, not true
+    authorized_before_execution: pre && !p.refusals.some((r) => r.code.startsWith("preflight_")) ? true : null,
     executed_matches_authorization: exec ? exec.pair === "action_bound" : null,
     outcome: exec && exec.outcome ? { status: exec.outcome.status, reconciled: exec.reconciliation === "reconciled" } : null,
     hops: L.delegation && L.delegation.present ? L.delegation.hop_verdicts.map((h) => ({ seq: h.seq, verdict: h.verdict, disagreement: h.verdict === "disagreement" })) : [],
