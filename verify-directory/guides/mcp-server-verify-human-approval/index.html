@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP Human Approval: What a Server Can Verify · HORIZON SHIELD</title>
+<meta name="description" content="An MCP server never sees the human approval given in the client. What it can enforce on every call, what it can&#x27;t, and what an outside verifier can test.">
+<meta name="author" content="Arthur Teboul">
+<link rel="canonical" href="https://shield.the-horizons-innovation.com/verify-directory/guides/mcp-server-verify-human-approval/">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MCP Human Approval: What a Server Can Verify">
+<meta property="og:description" content="An MCP server never sees the human approval given in the client. What it can enforce on every call, what it can&#x27;t, and what an outside verifier can test.">
+<meta property="og:url" content="https://shield.the-horizons-innovation.com/verify-directory/guides/mcp-server-verify-human-approval/">
+<meta property="og:site_name" content="HORIZON SHIELD">
+<meta property="og:image" content="https://shield.the-horizons-innovation.com/verify-directory/assets/wedjat-og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/verify-directory/assets/vd.css">
+<style>
+.article{max-width:720px;margin-left:auto;margin-right:auto}
+.article p{margin:0 0 1.05em}
+.article ul,.article ol{margin:0 0 1.2em;padding-left:1.3em}
+.article h1{font-size:clamp(30px,5vw,46px);line-height:1.12;margin:.3em 0 1em;letter-spacing:-.01em}
+.article h2{font-size:clamp(21px,3vw,26px);line-height:1.25}
+.article h3{font-size:18px;margin-top:1.8em}
+.article blockquote.takeaways p{margin:.6em 0}
+.article h2{margin-top:2.2em}
+.article p,.article li{line-height:1.7}
+.article pre{overflow-x:auto;padding:14px 16px;border:1px solid var(--line-2);font-family:'JetBrains Mono',monospace;font-size:13px}
+.article code{font-family:'JetBrains Mono',monospace;font-size:.92em}
+.article .tablewrap{overflow-x:auto}
+.article table{border-collapse:collapse;width:100%;font-size:14px}
+.article th,.article td{border-top:1px solid var(--line-2);padding:8px 10px;text-align:left;vertical-align:top}
+.article blockquote.takeaways{margin:1.6em 0;padding:4px 18px;border-left:2px solid var(--line-2)}
+.article .byline{margin-top:28px}
+.byline{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.04em;text-transform:uppercase;opacity:.8}
+.guestnote{font-size:14px;border-top:1px solid var(--line-2);margin-top:3em;padding-top:1em}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MCP Human Approval: What a Server Can Verify",
+  "alternativeHeadline": "What an MCP server can verify about a human's yes, and what it can't",
+  "description": "An MCP server never sees the human approval given in the client. What it can enforce on every call, what it can't, and what an outside verifier can test.",
+  "inLanguage": "en-US",
+  "keywords": [
+    "MCP human approval",
+    "human in the loop",
+    "MCP tool annotations",
+    "destructiveHint",
+    "MCP server verification",
+    "audit log"
+  ],
+  "author": {
+    "@type": "Person",
+    "name": "Arthur Teboul",
+    "jobTitle": "Founder",
+    "url": "https://dokutrak.com",
+    "sameAs": [
+      "https://github.com/Crackx17"
+    ],
+    "worksFor": {
+      "@type": "Organization",
+      "name": "DokuTrak",
+      "url": "https://dokutrak.com"
+    }
+  },
+  "citation": [
+    "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+    "https://github.com/Crackx17/dokutrak-mcp",
+    "https://shield.the-horizons-innovation.com/verify-directory/method/",
+    "https://gate.horizonshield.dev/spec"
+  ],
+  "datePublished": "2026-09-29",
+  "publisher": {
+    "@type": "Organization",
+    "name": "The HORIZONs Co., Ltd.",
+    "url": "https://shield.the-horizons-innovation.com"
+  },
+  "dateModified": "2026-09-29",
+  "url": "https://shield.the-horizons-innovation.com/verify-directory/guides/mcp-server-verify-human-approval/",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://shield.the-horizons-innovation.com/verify-directory/guides/mcp-server-verify-human-approval/"
+  }
+}
+</script>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="logo"><a href="/verify-directory/">HORIZON SHIELD</a> <span class="sub">/ verify</span></div>
+    <nav class="navlinks">
+      <a href="/verify-directory/survey/">Survey</a>
+      <a href="/verify-directory/register/">Register</a>
+      <a href="/verify-directory/failures/">Failures</a>
+      <a href="/verify-directory/operators/">Operators</a>
+      <a href="/verify-directory/method/">Method</a>
+      <a href="/verify-directory/pricing/">Pricing</a>
+    </nav>
+    <a class="langsw" href="/verify-directory/ja/">日本語</a>
+  </div>
+</header>
+
+<div class="wrap"><div class="crumb"><a href="/verify-directory/">verify</a><span class="sep">/</span>guides<span class="sep">/</span>human approval</div></div>
+
+<main>
+<div class="wrap article">
+<div class="byline">Guest article · Arthur Teboul, founder of DokuTrak · 2026-09-29</div>
+<h1>MCP human approval: what a server can verify, and what it can&#x27;t</h1>
+<p>Picture two calls to the same MCP (Model Context Protocol) tool. In the first, the agent lays out who will receive an email, by when, and what it asks for; the user reads it, spots nothing wrong, and clicks Allow. In the second, the model skips all of that and calls the tool straight away. Seen from the server, the two calls are identical: same tool name, same arguments, same credential.</p>
+<p>That is the position of anyone who builds an MCP tool with a consequence. The human-in-the-loop confirmation you designed happens in the client, and none of it reaches you. I build DokuTrak, a <a href="https://dokutrak.com/document-collection" rel="nofollow noopener">client document collection</a> tool built for accountants, lawyers and other professionals, and our open-source connector has one tool that emails a real person. This article sorts what our server can guarantee about that tool, whatever the agent says, from what it cannot know at all. Then it asks what a verifier standing outside, such as Horizon Shield's MCP Verification Gate, could check.</p>
+<blockquote class="takeaways">
+<p><strong>Key Takeaways</strong></p>
+<ul>
+<li>The human's yes for an MCP tool is given in the client. No part of it travels to the server, so the server can't tell an approved call from an unapproved one.</li>
+<li>What a server can guarantee is what it enforces on every call regardless of consent: acts only a signed-in person may take, an allow-list for agent keys, a recipient fixed when the request is created, revocation on the next call, and an audit trail that also keeps refusals.</li>
+<li>An outside verifier can compare what a server declares with how it behaves, and replay refusals. It can't see the yes either.</li>
+</ul>
+</blockquote>
+<h2 id="where-human-approval-actually-happens">Where human approval actually happens</h2>
+<p>Human approval for an MCP tool call happens entirely in the client. Our open-source connector, <a href="https://github.com/Crackx17/dokutrak-mcp" rel="nofollow noopener">dokutrak-mcp</a> (version 0.1.1), exposes four tools. Two only read. A third flags rejected files and puts the request back on its reminder schedule, without emailing anyone. The fourth, <code>create_request</code>, builds a request for documents and emails it to the client in a single call, and that email can't be taken back. Every layer that makes a person confirm it is client-side.</p>
+<ul>
+<li><strong>The description.</strong> It tells the model to lay out the recipient, the deadline, every document in the words the client will see, and any message, then to call "only once they have confirmed, even when the request already looks complete." Whether the model obeys is up to the model: in one of our tests, on September 15, 2026, it called the tool without showing the recap.</li>
+<li><strong>The annotations.</strong> The tool declares <code>destructiveHint: true</code>, <code>idempotentHint: false</code> and <code>openWorldHint: true</code>, and its <code>_meta</code> carries <code>anthropic/requiresUserInteraction</code>, a key defined by Anthropic rather than by the spec. As of September 2026, Claude Desktop asks before running a tool flagged destructive, and Claude Code asks on every call to a tool carrying that key, auto mode included.</li>
+<li><strong>The prompt.</strong> The client draws it, the user answers it, and the client acts on the answer.</li>
+</ul>
+<p>The <a href="https://modelcontextprotocol.io/specification/2026-07-28/server/tools" rel="noopener">MCP specification for tools</a> agrees: annotations are hints a client should rely on only when it trusts the server, and keeping a person able to refuse a call is a recommendation addressed to applications, not to servers. The server gets the request afterward, with no trace of what came before it.</p>
+<h2 id="what-the-server-actually-receives">What the server actually receives</h2>
+<p>Our MCP server is a thin local process. It turns a tool call into HTTP requests against our API, authenticated with a key the professional created for their agent, and every check below lives in that API; that is what I mean by "the server" from here on. Here is all it learns about the caller, trimmed from the middleware that reads the key:</p>
+<pre><code class="language-ts">req.auth = {
+  userId: context.userId,
+  organizationId: context.organizationId,
+  apiKeyId: context.apiKeyId,
+  // 'mcp' when the key was minted for an Agent Connection
+  actorChannel: context.origin === 'mcp' ? 'mcp' : 'api_key',
+};
+</code></pre>
+<p>Key, workspace, channel. There is no field for "a person approved this," because nothing could fill it honestly. Even <code>mcp</code> is narrower than it sounds: it says the key was issued for an agent, not that the call came through MCP, and not that anyone looked at it.</p>
+<p>It is tempting to add the missing field yourself, say a <code>confirmed: true</code> argument. It would prove nothing: the model that might skip the recap is the one that would write <code>true</code>. A confirmation becomes a statement the agent makes about itself.</p>
+<h2 id="what-an-mcp-server-can-enforce-without-seeing-consent">What an MCP server can enforce without seeing consent</h2>
+<p>A server that can't see consent can still enforce rules that don't depend on it. Ours enforces five.</p>
+<p><strong>Acts only a signed-in person may take.</strong> Approving or rejecting a document, including approving all of a request's files at once, is refused unless the call comes from a browser session. The check allows one channel, <code>session</code>, rather than blocking a list of machine channels, so anything else is refused, including a key the professional created for their own scripts, whatever role that key carries.</p>
+<p>Such a user key gets a 403 of type <code>approval-requires-human</code>. An agent key doesn't even reach that check: the allow-list below refuses it first, with its own error type. Two independent checks, and a test asserts which one fires first.</p>
+<p><strong>An allow-list, not a deny-list.</strong> An agent key reaches only an explicit list of endpoints, each entry naming the agent tool that needs it. We rejected a deny-list because it would have left <code>POST /v1/api-keys</code> open: an agent could mint itself an unconfined key in one call. Anything off the list answers 403 <code>agent-endpoint-not-allowed</code>.</p>
+<p><strong>No address at send time.</strong> The send step takes no recipient. It goes to the address stored on the request when it was created.</p>
+<p><strong>Revocation on the next call.</strong> The key is looked up in the database on every request, and nothing about it is cached. A revoked key gets the same 401 as a key that never existed.</p>
+<p><strong>A record that keeps refusals.</strong> The approval and allow-list refusals write an <code>auth.failure</code> row, with the caller's channel, before the response leaves; a revoked key's attempt is logged too. A Postgres trigger rejects any <code>UPDATE</code> or <code>DELETE</code> on the audit table. That protects the table, not the database: a role allowed to drop the trigger could still rewrite history, and our threat model says so.</p>
+<p>The connector is open source; the API isn't, so these five points are my description, not something you can read in the repo. The refusals are what anyone holding a key can confirm.</p>
+<h2 id="what-an-mcp-server-cant-prove-about-a-tool-call">What an MCP server can't prove about a tool call</h2>
+<p>Of the five claims below about a call to <code>create_request</code>, our server establishes one.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Established by our server?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>An agent key did not approve a document</td>
+<td>Yes</td>
+<td>Refused on every call and logged</td>
+</tr>
+<tr>
+<td>A person read the recap and said yes</td>
+<td>No</td>
+<td>The recap and the prompt stay in the client</td>
+</tr>
+<tr>
+<td>The client honored the annotations</td>
+<td>No</td>
+<td>The client reads them; the call carries no record of whether a prompt was shown</td>
+</tr>
+<tr>
+<td>The recipient is the right person</td>
+<td>No</td>
+<td><code>recipient_email</code> is what the agent wrote; the server checks the format, then binds it</td>
+</tr>
+<tr>
+<td>A <code>session</code> means a human at the keyboard</td>
+<td>No</td>
+<td>The server checks the channel, not who is using it</td>
+</tr>
+</tbody>
+</table></div>
+<p>The recipient row is the one I think about most. The server sends only to the stored address, but it can't tell a correct address from a wrong one that exists. Only the recap puts that address before the professional's eyes, which is why we keep it even though the client already asks before the call runs.</p>
+<h2 id="what-an-outside-verifier-could-test">What an outside verifier could test</h2>
+<p>Horizon Shield's gate measures MCP servers from outside and publishes each verdict with a hash anyone can recompute. Its <a href="https://shield.the-horizons-innovation.com/verify-directory/method/">method page</a> explains why it won't execute tools unless the owner asks: "the first tool a server lists may well be destructive." Its <a href="https://gate.horizonshield.dev/spec">verification spec</a> has each verdict list what it establishes and what it does not, the split this article has been drawing.</p>
+<p>Here is what I think a verifier of that kind could check on a tool like ours. These are proposals; we haven't run any of them. Our connector also speaks stdio on the user's machine, so today it wouldn't meet the gate's <a href="https://shield.the-horizons-innovation.com/verify-directory/operators/">first condition</a>: an endpoint reachable from the public internet.</p>
+<p><strong>Declared surface over time.</strong> From <code>tools/list</code> alone, a verifier can record that the tool which emails someone declares <code>destructiveHint: true</code> and carries the confirmation <code>_meta</code> key, while the two tools that only read declare <code>readOnlyHint: true</code>. The gate keeps a hash per tool over the name, the description and the input schema and, since version 0.4.19, a second hash over the annotations, <code>_meta</code>, output schema and title. That second hash was added after an early draft of this article pointed out the gap. A release that quietly dropped <code>destructiveHint</code> would show up as a dated change. The gate records that the hint moved; it does not judge whether the new value is true.</p>
+<p><strong>Which tools a verifier may run.</strong> Annotations are self-declared, so they can't prove a tool is harmless. They can still give a verifier a floor: never execute a tool its own server calls destructive, even with consent.</p>
+<p><strong>Refusals, replayed.</strong> With consent and a sandbox workspace, the calls built to fail are the safest ones to make. They should change nothing but the audit log and answer identically each time: an agent key on an approval route gets 403 <code>agent-endpoint-not-allowed</code>, a user key gets 403 <code>approval-requires-human</code>, a revoked key gets 401. Those refusals live in our API, one layer under the connector, which exposes no approving tool at all. An MCP-only gate wouldn't reach them; it would need an agent key and direct HTTPS access to the API.</p>
+<p><strong>What stays out of reach.</strong> The yes itself. A verifier outside the client sees no more of it than we do.</p>
+<h2 id="four-habits-for-mcp-builders">Four habits for MCP builders</h2>
+<ol>
+<li><strong>Write down what your server knows about a caller.</strong> If "a human approved" isn't one of the fields, don't let your docs imply it is.</li>
+<li><strong>Guard human-only acts by channel, not by tool list.</strong> Leaving a tool out of your MCP server hides it from the model; the endpoint is still there for any key.</li>
+<li><strong>Make refusals typed, repeatable and logged.</strong> They are the part of your design a stranger can replay.</li>
+<li><strong>Publish what you don't establish</strong>, with the same prominence as what you do.</li>
+</ol>
+<h2 id="faq">FAQ</h2>
+<h3 id="can-an-mcp-server-verify-human-approval-of-a-tool-call">Can an MCP server verify human approval of a tool call?</h3>
+<p>Not from the protocol. The permission prompt and any recap happen in the client, and the call that reaches the server carries no proof of either. A server can only enforce rules that hold whether or not someone approved.</p>
+<h3 id="are-mcp-tool-annotations-like-destructivehint-enforced">Are MCP tool annotations like <code>destructiveHint</code> enforced?</h3>
+<p>No. They are hints that a client may act on. As of September 2026, Claude Desktop shows a prompt for any tool marked <code>destructiveHint: true</code>, and Claude Code prompts whenever <code>anthropic/requiresUserInteraction</code> is set. A client that ignores them loses that layer, and the server isn't told.</p>
+<h3 id="what-should-an-mcp-server-enforce-itself">What should an MCP server enforce itself?</h3>
+<p>Anything that must hold even if the agent is wrong: decisions reserved to a signed-in person, the endpoints an agent key can reach, a recipient fixed at creation rather than at send time, immediate revocation, and a log that records refused attempts along with successful ones.</p>
+<h3 id="can-an-mcp-server-check-that-an-email-goes-to-the-right-person">Can an MCP server check that an email goes to the right person?</h3>
+<p>No. It can bind the send to the address stored when the request was created, but it can't tell a correct address from a wrong one that exists. Only a recap shown to a person before sending catches that.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://modelcontextprotocol.io/specification/2026-07-28/server/tools" rel="noopener">Model Context Protocol specification, Tools (2026-07-28)</a></li>
+<li><a href="https://github.com/Crackx17/dokutrak-mcp" rel="nofollow noopener">dokutrak-mcp</a>, source of the tool definitions quoted above, with a README section on what the connector cannot do</li>
+<li>Horizon Shield, <a href="https://shield.the-horizons-innovation.com/verify-directory/method/">what the gate measures</a>, <a href="https://shield.the-horizons-innovation.com/verify-directory/operators/">notes for server operators</a> and the <a href="https://gate.horizonshield.dev/spec">MCP Verification Gate spec</a></li>
+</ul>
+<hr />
+<p><em>Arthur Teboul is the founder of <a href="https://dokutrak.com" rel="nofollow noopener">DokuTrak</a>, which gathers client paperwork for accountants, lawyers and other professionals, and he maintains <a href="https://github.com/Crackx17/dokutrak-mcp" rel="nofollow noopener">dokutrak-mcp</a> (GitHub: Crackx17).</em></p>
+<p class="guestnote">This is a guest article. The author wrote it in his own words and it carries no payment in either direction; links to DokuTrak are marked nofollow. HORIZON SHIELD checked every statement about its own gate against the code. The paragraph on the declared surface was updated after the gate added a second per tool hash in version 0.4.19, prompted by a draft of this article. <a href="https://shield.the-horizons-innovation.com/">HORIZON SHIELD</a> · <a href="/verify-directory/">the verification directory</a></p>
+</div>
+</main>
+</body>
+</html>
