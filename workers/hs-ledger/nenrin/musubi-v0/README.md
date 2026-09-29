@@ -200,6 +200,23 @@ The first outside contractor (babyblueviper1) ran a cold break attempt at 330b94
 - Stated limits: as v1.4 and v1.5. A stolen principal key still signs a valid v2 approval.
 
 
+## settle v1.7: an anchor through a batch must name the record as a listing (2026-09-30, Issue #25)
+settle v1.1 to v1.6 accept an anchor when its proof operations reach the header's merkle root. Since hexlify joined those operations (46b94263), a proof can pass from a record's digest through the batch bytes the ledger stamps, and the bytes path alone accepts the digest wherever its hex sits in a stamped batch. babyblueviper1 showed this on anchor_compose leg 1 (horizon-shield#25); 05bca753 made anchor_compose structural and gave verifiers `batch_leg_check`. v1.7 is settle calling it. Two gaps, both reproduced against v1.6 in the self test:
+
+| | gap | v1.6 | v1.7 |
+|---|---|---|---|
+| G1 | an anchor through a stamped batch that names the record only under `rejected`, lists it as another kind, or lists sha256(digest) | within_grant, final | underspecified, `anchor_batch_leg_refused` with the refusal code |
+| G2 | the same execution anchored twice, once through an earlier batch that only names it: collapse keeps the earliest anchor that verifies | keeps the earlier batch, the anchor moves earlier | keeps the batch that lists the record |
+
+    python3 settle_v1_7.py --selftest       # expect: SELF-TEST PASSED, 7 checks
+    python3 settle_v1_7.py --settle contract.json --event e1.json --view headers.json [--nenrin walk.json]
+
+- The rule (`batch_leg_rule`): a proof that uses hexlify must start with it, and `anchor_compose.batch_leg_check` must accept it (strict JSON, a known batch schema, exactly one `records[i].sha`, matching kind and schema, count, the splice at that member). A proof without hexlify is a merkle path and is unchanged.
+- The walk is v1.6's walk with two lines changed: collapse uses the v1.7 validity, and a proof-valid anchor must also pass the rule, refused exactly where `anchor_proof_invalid` is. For honest anchors, a batch listing or a plain merkle path, v1.7 renders v1.6's settlement on every field except `schema`, `settled_under`, `anchor_rule` and one `establishes` line (checked on synthetic runs and on run0002).
+- The second contract says `settle under a2a-settlement-v1.6 or later`, so v1.7 is within its signed terms. run0002 settles within_grant, final under both.
+- Five mutants (the walk skipping the rule, collapse on the v1.6 validity, hexlify allowed anywhere, the rule trusting the bytes path, no guard on malformed operands) are each killed by the self test.
+- Stated limits: as v1.6. A batch of a schema `anchor_compose.BATCH_RULES` does not know is refused, not guessed. Nothing here shows which ledger stamped a batch; the header and the proof show only that these bytes were committed by then.
+
 ## bond v0: the bond's teeth, without custody (2026-09-25)
 Every settlement since v0 computes `bond_outcome`, but nothing recorded what the holder actually did with the money, and an outside review said so plainly. HS will not answer that with custody (refused at every layer). `bond_v0.py` makes the consequence a record: `a2a-bond-resolution-v0`, in which the party that `bond.holder` names states, over its own signature with the key pinned in the signed contract, what it did with the bond (`released` or `forfeited_to_principal`), pinned to `contract_sha256` and to the exact settlement bytes (`settlement_sha256`).
 
