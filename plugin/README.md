@@ -43,7 +43,7 @@ In the Claude directory, search for HORIZON SHIELD. From Claude Code:
 
 ## Related
 
-The MCP Conduct Register plugin, in the same marketplace, shows how MCP servers and AI agents behaved when they were measured.
+The MCP Conduct Register plugin (https://github.com/ogasurfproject-jpg/mcp-conduct-register) shows how MCP servers and AI agents behaved when they were measured.
 
 ## Source and data
 

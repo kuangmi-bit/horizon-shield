@@ -9,11 +9,6 @@
       "name": "horizon-shield",
       "source": "./plugin",
       "description": "Check Japanese construction and renovation estimates against the open JCCDB dataset with recomputable fair-price receipts, and find contractors that passed the independent fair-price check. No API key. Adds /audit, /red-flags, /verify."
-    },
-    {
-      "name": "mcp-conduct-register",
-      "source": "./plugin-conduct",
-      "description": "See how an MCP server or AI agent behaved when it was measured, with a Bitcoin-anchored history you can recompute. Read-only. Adds /conduct, /nenrin."
     }
   ]
 }
