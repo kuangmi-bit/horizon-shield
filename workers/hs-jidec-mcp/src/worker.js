@@ -3,7 +3,7 @@
 // Phase 4 of jidec-path-v1. Lets any MCP-capable agent cite and re-check a
 // Bitcoin-anchored verification path by URI, without trusting HORIZON SHIELD.
 //
-// Tools:
+// Tools (1.3.0 adds nenrin_resume, nenrin_trust_signal, nenrin_witness, nenrin_ledger_head, nenrin_ledger_entry):
 //   jidec_cite(citation)            resolve + independently verify any citation
 //   jidec_replay(citation)          re-observe the anchored path live, report drift
 //   jidec_list_paths()              list anchored verification paths
@@ -53,7 +53,10 @@
 // under the old hostname still re-observe correctly when reached through this.
 const LEDGER_ORIGIN = "https://ledger.horizonshield.dev";
 const HEX64 = /^[0-9a-f]{64}$/i;
-const VERSION = "1.2.1";
+// 1.3.0 (2026-09-30): NENRIN read tools. The A2A card keeps its own version (CARD_VERSION) because its bytes are
+// signed and its A2A face did not change; re-signing is a separate step, not a side effect of adding MCP tools.
+const VERSION = "1.3.0";
+const CARD_VERSION = "1.2.1";
 const PROTOCOL_VERSION = "2025-11-25";
 
 /* ------------------------------ origin policy ------------------------------ */
@@ -326,6 +329,37 @@ const RECIPE_OUTPUT_SCHEMA = {
   additionalProperties: true,
 };
 
+const NENRIN_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    lookup: LOOKUP_FIELD,
+    source_url: { type: "string", description: "The public ledger URL that returned this body. Fetch it yourself to compare." },
+    does_not_establish: { type: "array", items: { type: "string" } },
+  },
+  required: ["lookup", "source_url"],
+  additionalProperties: true,
+};
+
+const NENRIN_LIMITS = [
+  "a signature proves who asserted a record and how records link, not that the assertion is true",
+  "no executed action is proven to have happened in the world",
+  "not yet anchored is not false, and absent from the ledger is not a negative finding",
+  "this is a history, not a score or a recommendation",
+];
+
+function httpsEndpoint(v) {
+  try { const u = new URL(String(v || "")); return u.protocol === "https:" ? u.toString() : null; } catch { return null; }
+}
+
+async function nenrinRead(env, path, what) {
+  const r = await ledgerGet(env, path);
+  const source_url = LEDGER_ORIGIN + path;
+  if (r.status === 404) return { lookup: "absent", source_url, does_not_establish: NENRIN_LIMITS, note: "The ledger was read and holds no " + what + ". That is a fact about the ledger, not a finding about anyone." };
+  if (r.status !== 200 || !r.body || typeof r.body !== "object")
+    throw new Error("the ledger could not be read for " + what + ": HTTP " + r.status + ". This is NOT a statement that the record does not exist.");
+  return { lookup: "ok", source_url, ...r.body, does_not_establish: NENRIN_LIMITS };
+}
+
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
 const TOOLS = [
@@ -375,6 +409,67 @@ const TOOLS = [
     },
     outputSchema: RECIPE_OUTPUT_SCHEMA,
     annotations: { title: "Get the executable verification recipe", ...READ_ONLY },
+  },
+  {
+    name: "nenrin_resume",
+    title: "Recorded conduct history of an endpoint (NENRIN résumé)",
+    description:
+      "Return the NENRIN résumé of an agent or MCP endpoint: every recorded measurement that touches its origin (by the gate and by outside witnesses, signed or not), which are Bitcoin-anchored, discrepancies, rings, agreements, and the records not counted with the reason. Includes resume_sha256 and a recompute recipe. A history, not a score. Absent means no record, not a negative finding.",
+    inputSchema: {
+      type: "object",
+      properties: { endpoint: { type: "string", description: "https URL of the agent or MCP endpoint, e.g. https://mcp.horizonshield.dev/mcp" } },
+      required: ["endpoint"],
+    },
+    outputSchema: NENRIN_OUTPUT_SCHEMA,
+    annotations: { title: "Recorded conduct history of an endpoint (NENRIN résumé)", ...READ_ONLY },
+  },
+  {
+    name: "nenrin_trust_signal",
+    title: "Compact conduct signal of an endpoint",
+    description:
+      "Return the compact NENRIN signal for an endpoint: counts of anchored measurements, witness diversity and freshness, in a shape a trust engine or orderer can read. No score, no allow or deny.",
+    inputSchema: {
+      type: "object",
+      properties: { endpoint: { type: "string", description: "https URL of the agent or MCP endpoint" } },
+      required: ["endpoint"],
+    },
+    outputSchema: NENRIN_OUTPUT_SCHEMA,
+    annotations: { title: "Compact conduct signal of an endpoint", ...READ_ONLY },
+  },
+  {
+    name: "nenrin_witness",
+    title: "One witness record by its SHA-256",
+    description:
+      "Return one NENRIN witness record by its record SHA-256: pending or anchored, and when anchored, the ledger entry and batch that carry it. Use it to check a walk someone says they submitted.",
+    inputSchema: {
+      type: "object",
+      properties: { sha256: { type: "string", description: "64-hex record SHA-256" } },
+      required: ["sha256"],
+    },
+    outputSchema: NENRIN_OUTPUT_SCHEMA,
+    annotations: { title: "One witness record by its SHA-256", ...READ_ONLY },
+  },
+  {
+    name: "nenrin_ledger_head",
+    title: "Current ledger head and its bound end marker",
+    description:
+      "Return the current head of the JIDEC/NENRIN ledger: entry count n, the head hash, and the end marker bound into the chain (jidec-head-v1) with the recipe to recompute it. Compare it with a head you saw earlier to detect truncation or rewrite.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: NENRIN_OUTPUT_SCHEMA,
+    annotations: { title: "Current ledger head and its bound end marker", ...READ_ONLY },
+  },
+  {
+    name: "nenrin_ledger_entry",
+    title: "One ledger entry by number",
+    description:
+      "Return ledger entry n as the ledger serves it: claim_sha256, the canonical record bytes, work description, OpenTimestamps status and Bitcoin block when anchored. Pair with jidec_how_to_verify to recompute it.",
+    inputSchema: {
+      type: "object",
+      properties: { n: { type: "integer", minimum: 1, description: "entry number" } },
+      required: ["n"],
+    },
+    outputSchema: NENRIN_OUTPUT_SCHEMA,
+    annotations: { title: "One ledger entry by number", ...READ_ONLY },
   },
 ];
 
@@ -447,6 +542,27 @@ async function callTool(name, args, env) {
     };
   }
 
+  if (name === "nenrin_resume" || name === "nenrin_trust_signal") {
+    const ep = httpsEndpoint(args.endpoint);
+    if (!ep) throw new Error("endpoint must be an https URL, e.g. https://mcp.horizonshield.dev/mcp");
+    const route = name === "nenrin_resume" ? "/resume" : "/trust-signal";
+    return await nenrinRead(env, route + "?endpoint=" + encodeURIComponent(ep), "record for " + ep);
+  }
+
+  if (name === "nenrin_witness") {
+    const sha = String(args.sha256 || "").toLowerCase();
+    if (!HEX64.test(sha)) throw new Error("sha256 must be 64 hex characters");
+    return await nenrinRead(env, "/witness/" + sha, "witness record " + sha);
+  }
+
+  if (name === "nenrin_ledger_head") return await nenrinRead(env, "/ledger/head", "head");
+
+  if (name === "nenrin_ledger_entry") {
+    const n = Number(args.n);
+    if (!Number.isInteger(n) || n < 1) throw new Error("n must be a positive integer");
+    return await nenrinRead(env, "/ledger/" + n, "entry " + n);
+  }
+
   throw new Error("unknown tool: " + name);
 }
 
@@ -457,7 +573,7 @@ const SERVER_INFO = {
   capabilities: { tools: { listChanged: false } },
   serverInfo: { name: "hs-jidec-mcp", title: "HORIZON SHIELD JIDEC", version: VERSION },
   instructions:
-    "JIDEC is a Bitcoin-anchored public verification ledger. Every tool here is read-only and requires no trust in HORIZON SHIELD: you fetch the bytes, you recompute the hash, you check the timestamp. Start with jidec_list_paths, then jidec_cite a record, then jidec_how_to_verify if you want to reproduce the result yourself.",
+    "JIDEC / NENRIN is a Bitcoin-anchored public verification ledger. Every tool here is read-only and requires no trust in HORIZON SHIELD: you fetch the bytes, you recompute the hash, you check the timestamp. For what an agent or MCP endpoint has done over time, call nenrin_resume (or nenrin_trust_signal for the compact form); for one submitted walk, nenrin_witness; for the chain itself, nenrin_ledger_head and nenrin_ledger_entry. To cite and recompute a record, jidec_cite then jidec_how_to_verify. A NENRIN history is not a score: a signature proves who asserted, not that it is true, and absence is not a negative finding. Offline verifier for NENRIN bundles: npx nenrin-verify.",
 };
 
 
@@ -675,7 +791,7 @@ const AGENT_CARD = {
   url: A2A_URL,
   preferredTransport: "JSONRPC",
   provider: { organization: "The HORIZONs\u682a\u5f0f\u4f1a\u793e", url: "https://shield.the-horizons-innovation.com" },
-  version: VERSION,
+  version: CARD_VERSION,
   capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extensions: [conductExtension()] },
   defaultInputModes: ["application/json", "text/plain"],
   defaultOutputModes: ["application/json", "text/plain"],
