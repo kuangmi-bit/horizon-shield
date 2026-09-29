@@ -7,7 +7,7 @@
 // --- NENRIN Resume v1 (2026-09-13). Read-only assembly of anchored witness-walk records for one endpoint.
 // The core is shared with python (workers/hs-ledger/nenrin/resume-v1, byte-match 21/21); the worker only
 // injects its own Web Crypto hasher. No node imports in the core, so this bundles as is.
-import { walkChain, exportRow, headRecord, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE } from "./chain_v1.mjs";
+import { walkChain, exportRow, boundHeadRecord, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE, HEAD_FIELDS, HEAD_RECIPE } from "./chain_v1.mjs";
 import { assembleResume as assembleResumeV1, Reject as ResumeReject } from "../nenrin/resume-v1/resume_v1.mjs";
 import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1/trust_signal_v1.mjs";
 import { handleTaskWitness, handleTaskTrustSignal, anchorTaskWitnessPool, handleTaskEvidence } from "../nenrin/task-delegation-bind-v0/task_ledger_v0.mjs";
@@ -1690,7 +1690,7 @@ async function handle(request, env) {
       const seq = Number((await env.LEDGER.get("seq")) || 0);
       const w = await walkChain((n) => getEntry(env, n), seq);
       if (!w.ok) return json({ schema: "jidec-head-v1", chain: CHAIN_SCHEMA, error: "chain_broken", broken_at: w.broken_at, last_linked: w.n, head_before_break: w.head }, 409, { "cache-control": "no-store" });
-      return json(Object.assign(headRecord(w.n, w.head), { recipe: CHAIN_RECIPE, fields: CHAIN_FIELDS, export: origin + "/ledger/export.jsonl",
+      return json(Object.assign(await boundHeadRecord(w.n, w.head), { recipe: CHAIN_RECIPE, fields: CHAIN_FIELDS, marker_recipe: HEAD_RECIPE, marker_fields: HEAD_FIELDS, export: origin + "/ledger/export.jsonl",
         anchored_in: "the head as it stood is written into each daily nenrin-witness-batch-v1 entry (ledger_head), whose claim_sha256 is stamped to Bitcoin; compare a head you hold with the one a stamped batch carries",
         does_not_establish: ["that every submission the ledger received was appended; the chain covers what was appended", "that the head served now equals a head you did not obtain independently; hold one, or read one from a stamped batch"] }), 200, { "cache-control": "no-store" });
     }
@@ -1699,7 +1699,7 @@ async function handle(request, env) {
       const lines = [];
       const w = await walkChain((n) => getEntry(env, n), seq, async (e, prev, h) => { lines.push(JSON.stringify(exportRow(e, prev, h))); });
       if (!w.ok) lines.push(JSON.stringify({ schema: "jidec-chain-broken-v1", broken_at: w.broken_at, last_linked: w.n }));
-      else lines.push(JSON.stringify(headRecord(w.n, w.head)));
+      else lines.push(JSON.stringify(await boundHeadRecord(w.n, w.head)));
       return new Response(lines.join("\n") + "\n", { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", ...CORS } });
     }
 

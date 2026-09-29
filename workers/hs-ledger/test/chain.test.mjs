@@ -1,4 +1,4 @@
-// jidec-chain-v1 (2026-09-28): predecessor binding and head. Offline, real worker, mock KV.
+// jidec-chain-v1 (2026-09-28, end marker bound 2026-09-29): predecessor binding and head. Offline, real worker, mock KV.
 // Why this exists: scored against VLC-1 the ledger was L0 (no predecessor binding, no head). These checks keep
 // the binding honest: it recomputes by the published recipe, a removed or edited entry breaks it, it is
 // reported rather than skipped, and the daily batch carries the head inside the bytes that get stamped.
@@ -52,6 +52,27 @@ for (const row of lines.slice(0, 5)) {
 }
 chk("export: every row links to its predecessor and hashes to its entry_sha256", linked);
 chk("export: an entry without created_at omits it (never null)", !("created_at" in lines[1]) && Object.values(lines[1]).every((v) => v !== null));
+
+// the end marker is bound too (VLC-1 1.4.1-draft, EXT-022): it links to the last entry and hashes by the same canon
+const mk = lines[5];
+const markerBody = (m) => { const b = {}; for (const f of ["n", "schema", "prev_entry_sha256", "head"]) if (f in m) b[f] = m[f]; return b; };
+chk("marker: links to the last entry and its entry_sha256 recomputes over n, schema, prev_entry_sha256, head",
+  mk.prev_entry_sha256 === prev && mk.head === prev && sha(canon(markerBody(mk))) === mk.entry_sha256, JSON.stringify(mk));
+chk("marker: derivable from a stamped head alone (n and entry_sha256 as a batch's ledger_head carries them)",
+  sha(canon({ n: 5, schema: "jidec-head-v1", prev_entry_sha256: expectHead(es), head: expectHead(es) })) === mk.entry_sha256);
+chk("marker: GET /ledger/head carries the same marker hash and says how it is made",
+  j.entry_sha256 === mk.entry_sha256 && j.prev_entry_sha256 === j.head && typeof j.marker_recipe === "string" && j.marker_fields.join() === "n,schema,prev_entry_sha256,head");
+{
+  // EXT-022: drop the newest entry, copy the new last entry_sha256 into the marker, compute no hash
+  const cutTail = lines.slice(0, 4);
+  const forged = { ...mk, n: 4, head: cutTail[3].entry_sha256, prev_entry_sha256: cutTail[3].entry_sha256 };
+  const headOnly = forged.head === cutTail[3].entry_sha256;              // what the unbound check compared, and passes
+  chk("attack EXT-022: tail cut with the marker's head rewritten and no hash recomputed: the head comparison alone passes, the marker hash does not",
+    headOnly && sha(canon(markerBody(forged))) !== forged.entry_sha256);
+  const reforged = { ...forged, entry_sha256: sha(canon(markerBody(forged))) };
+  chk("attack EXT-022, done properly: recomputing the marker hash gives a value a held head would not produce",
+    reforged.entry_sha256 !== mk.entry_sha256);
+}
 
 // attacks
 const cut = es.filter((e) => e.n !== 3);

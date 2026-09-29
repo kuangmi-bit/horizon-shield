@@ -66,3 +66,24 @@ export function exportRow(entry, prev, h) {
 export function headRecord(n, head) {
   return { schema: HEAD_SCHEMA, n, head, root: CHAIN_ROOT, chain: CHAIN_SCHEMA };
 }
+
+// 2026-09-29. The end marker is bound by the chain too. VLC-1 1.4.1-draft (Corrigendum 6, EXT-022) found that an
+// end marker the chain does not bind proves nothing about the tail on the log alone: drop the newest entries,
+// copy the new last entry_sha256 into the marker's head, compute no hash, and the head comparison still passes.
+// Under 1.4.1 the export therefore scored L0 on the log alone and L1 only against a held head. Here the marker
+// links to the last entry and carries its own entry_sha256 by the same recipe, over the fields it has:
+//   marker entry_sha256 = sha256( canon({ n, schema: "jidec-head-v1", prev_entry_sha256: head, head }) )
+// so a rewritten marker breaks a hash. A verifier holding a stamped head (n and entry_sha256 from a batch's
+// ledger_head) derives the marker hash from those two values alone, so the stamped batches stay usable as the
+// independently held value.
+export const HEAD_FIELDS = ["n", "schema", "prev_entry_sha256", "head"];
+export const HEAD_RECIPE = "marker entry_sha256 = sha256(canon({n, schema: \"jidec-head-v1\", prev_entry_sha256: head, head})), the same canon as entries; prev_entry_sha256 and head are both the last entry_sha256";
+export async function markerSha(n, head) {
+  return sha256hexStr(canon({ n, schema: HEAD_SCHEMA, prev_entry_sha256: head, head }));
+}
+export async function boundHeadRecord(n, head) {
+  const r = headRecord(n, head);
+  r.prev_entry_sha256 = head;
+  r.entry_sha256 = await markerSha(n, head);
+  return r;
+}
