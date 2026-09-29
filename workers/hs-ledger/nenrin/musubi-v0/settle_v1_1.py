@@ -24,7 +24,9 @@ What v1.1 does, on top of v1 (settle_v1.py is untouched and still does ordering,
   2. Fork choice is cumulative work, computed from the headers (compare_views). Two views that do not
      share the contract's checkpoint are not comparable. Equal work is a tie, and a tie picks nothing.
   3. Every anchor carries a proof: a list of append / prepend / sha256 operations (the OpenTimestamps
-     model) that takes sha256(canonical(record without "anchor")) to the merkle root serialized in
+     model; hexlify, which OpenTimestamps also defines, was added 2026-09-29 so a record listed by its
+     hex sha inside a stamped batch can be proven through that batch) that takes
+     sha256(canonical(record without "anchor")) to the merkle root serialized in
      the header at the claimed height. A record that claims a height without committing to that
      block cannot be ordered there. Backdating needs a proof into an old block, which needs the old
      block's merkle root, which needs the work.
@@ -166,6 +168,11 @@ def run_proof(digest, ops):
         kind = op.get("op")
         if kind == "sha256":
             cur = hashlib.sha256(cur).digest()
+        elif kind == "hexlify":
+            # 2026-09-29. Lowercase ASCII hex of the current bytes (OpenTimestamps OpHexlify). The ledger lists a
+            # record by its hex sha inside a batch whose bytes are what gets stamped; without this op no proof can
+            # pass from a record's digest through that batch, so a real anchored record could never be settled.
+            cur = cur.hex().encode("ascii")
         elif kind in ("append", "prepend"):
             hx = op.get("hex")
             if not (isinstance(hx, str) and HEXOPS.match(hx)) or len(hx) // 2 > MAX_OPERAND:
