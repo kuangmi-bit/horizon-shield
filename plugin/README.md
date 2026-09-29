@@ -1,56 +1,61 @@
 # HORIZON SHIELD (Claude plugin)
 
-Audit Japanese construction and renovation estimates against the open JCCDB dataset (425,765 records: line items and observations, CC BY 4.0) and return Bitcoin-anchored, independently recomputable fair-price receipts.
+Check Japanese construction and renovation estimates against the open JCCDB dataset (v5.0: 425,765 records, 95,403 line items and 330,362 source-cited observations, CC BY 4.0), get fair-price receipts anyone can recompute, and find contractors that passed the same independent check.
 
-This plugin bundles:
+Listed in the Claude directory (Claude Code, Cowork, Claude apps).
 
-- A remote MCP connector (`horizon-shield`) that points at the public HORIZON SHIELD server at `https://mcp.horizonshield.dev`. Read-only, no API key.
-- A skill that teaches Claude when and how to use the audit tools.
-- Three slash commands: `/audit`, `/red-flags`, `/verify`.
+## What is inside
+
+Two remote MCP servers, no API key:
+
+| server | what it answers |
+|---|---|
+| `horizon-shield` (https://mcp.horizonshield.dev) | Japanese fair-price checks (JCCDB), red flags in estimates, recomputable receipts, U.S. public construction-cost data (USCCDB). 30 tools |
+| `yakumo-contractors` (https://hearing.horizonshield.dev/mcp) | contractors in Japan that passed the fair-price check, and checks on a contractor the user names |
+
+Two skills that tell Claude when to use them: `horizon-shield` (estimates) and `find-contractor`.
+
+Three commands:
+
+- `/audit <work name> <quoted price in JPY>`: verdict, fair range and gap from the average.
+- `/red-flags <estimate or sales wording>`: known overcharge and high-pressure tactics.
+- `/verify <work name>`: a fair-price receipt with a SHA-256 hash, recomputable at its verify URL.
 
 ## Install
 
-From Claude Code or Cowork:
+In the Claude directory, search for HORIZON SHIELD. From Claude Code:
 
 ```
 /plugin marketplace add ogasurfproject-jpg/horizon-shield
 /plugin install horizon-shield@the-horizons
-```
-
-Then reload:
-
-```
 /reload-plugins
 ```
 
-## Commands
+## What it reads and writes
 
-- `/audit <work name> <quoted price in JPY>` : judge a quote as fair, a bit high, or overcharge-risk, with the gap from the average.
-- `/red-flags <estimate or sales wording>` : flag known overcharge and high-pressure tactics.
-- `/verify <work name>` : issue a tamper-evident fair-price receipt (SHA-256, recomputable at a verify URL).
+- Two tools write: `verify_fair_price` and `create_ap2_fairness_attestation` append a record to the public ledger. The skill tells Claude to say so before calling them. Everything else reads.
+- Nothing moves money or cryptocurrency. Bitcoin is used only as an OpenTimestamps time anchor. Inputs are a work name, a price, an area or a search term; no account and no personal data are needed.
 
-## What it does
+## What it does not claim
 
-A homeowner commissioning construction work cannot reliably judge whether a quote reflects a fair price. HORIZON SHIELD makes a third-party fair-price reference callable and verifiable by software, so an agent can check a number instead of trusting it. Each fair-price claim carries a SHA-256 hash under the PTKA model (a third party records the fair price before the contractor quote) and is recomputable by anyone at a public verify URL.
+- A fair-price verdict is a reference range from public data for the homeowner to act on. It does not declare a contractor dishonest. Japan only, in JPY.
+- A contractor listing means that store passed the fair-price check. It is not a recommendation, and no referral or listing fee is taken.
 
-## Tools (14, all read-only)
+## Related
 
-`get_price_range`, `audit_estimate`, `verify_fair_price`, `verify_integrity_claim`, `create_ap2_fairness_attestation`, `check_red_flags`, `get_estimate_reading_guide`, `search_cost_category`, `list_cost_categories`, `get_fair_price_sources`, `get_jccdb_dataset_info`, `preview_reverse_estimate`, `suggest_ehn`, `get_agent_card`.
-
-## Safety
-
-Read-only. The server moves no money and no cryptocurrency: the AP2 tool only issues a verification attestation, and Bitcoin is used solely as an OpenTimestamps timestamp anchor. No personal data is stored by the server; inputs are a work name and a price.
+The MCP Conduct Register plugin, in the same marketplace, shows how MCP servers and AI agents behaved when they were measured.
 
 ## Source and data
 
-- Server and dataset: https://github.com/ogasurfproject-jpg/horizon-shield
+- Code and data: https://github.com/ogasurfproject-jpg/horizon-shield
+- JCCDB v5.0: https://doi.org/10.5281/zenodo.22980284
 - Live service: https://shield.the-horizons-innovation.com
 - Privacy policy: https://shield.the-horizons-innovation.com/privacy
 
 ## Author
 
-Toshikatsu Oga, The HORIZONs Co., Ltd., Hiratsuka, Japan. ORCID 0009-0000-9180-903X.
+Toshikatsu Oga, The HORIZONs Co., Ltd., Japan. ORCID 0009-0000-9180-903X.
 
 ## License
 
-MIT
+MIT (plugin). JCCDB data is CC BY 4.0.

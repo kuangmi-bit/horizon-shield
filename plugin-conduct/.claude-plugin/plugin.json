@@ -1,0 +1,28 @@
+{
+  "name": "mcp-conduct-register",
+  "displayName": "MCP Conduct Register",
+  "version": "1.0.0",
+  "description": "Before you connect an MCP server or trust an AI agent, see how it behaved when it was measured: the conduct register's verdicts (what passed, and what a verdict does not claim), its Bitcoin-anchored NENRIN history by the gate and outside witnesses, and the way to recompute every record yourself. Read-only, no API key.",
+  "author": {
+    "name": "Toshikatsu Oga",
+    "email": "contact@the-horizons-innovation.com",
+    "url": "https://gate.horizonshield.dev"
+  },
+  "homepage": "https://shield.the-horizons-innovation.com/verify-directory/",
+  "repository": "https://github.com/ogasurfproject-jpg/horizon-shield",
+  "license": "MIT",
+  "icon": "./icon.png",
+  "privacyPolicyUrl": "https://shield.the-horizons-innovation.com/verify-directory/privacy/",
+  "keywords": [
+    "mcp",
+    "mcp-security",
+    "agent-verification",
+    "a2a",
+    "provenance",
+    "conduct",
+    "transparency-log",
+    "bitcoin-timestamp",
+    "opentimestamps",
+    "recompute"
+  ]
+}
