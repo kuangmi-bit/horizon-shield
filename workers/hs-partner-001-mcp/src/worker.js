@@ -102,19 +102,61 @@ function tierLabel(tier) {
   if (tier === "honbu") return "本部直加盟";
   return "加盟店";
 }
+// 2026-09-30 公開してよい設問だけを出す(ホワイトリスト)。
+// それまでは extra を全部出し、危ない名前だけを弾いていた(ブラックリスト)。その結果、001 の公開 MCP に
+// 私信(社内の人への挨拶)、こちらの設問文そのもの、値引きの打診や材料の値上がり(相場の観測であって店の紹介ではない)、
+// 代理店の件への返事、受け答え(「こちら記入すみです」)が「強み」として出ていた(番人が 2026-09-30 に live で確認)。
+// 載せるのは、施主が店を選ぶ材料になる設問だけ。新しい設問を公開したいときは、ここに足す。
+const PUBLIC_EXTRA = {
+  q_ai_summary: "summary",
+  q_strengths: "strengths_detail",
+  q_story: "story",
+  q_cases: "cases",
+  q_spec: "spec",
+  q_warranty: "warranty",
+  q_license: "license",
+  q_hours: "hours",
+  q_trust: "trust"
+};
+const PUBLIC_MIN_CHARS = 6;  // 「無し」「了解です」のような受け答えは店の紹介にならない
+function publicText(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "object") {
+    if (v.attributed === "ambiguous" || v.attributed === "ambiguous_waves") return "";
+    return typeof v.text === "string" ? v.text : "";
+  }
+  return String(v);
+}
+function publicExtra(src, out) {
+  for (const [qid, label] of Object.entries(PUBLIC_EXTRA)) {
+    if (out[label] != null) continue;  // profile 直下の整備済みの値を優先する
+    const t = publicText(src && src[qid]).trim();
+    if (t.length < PUBLIC_MIN_CHARS) continue;
+    out[label] = scrubForMcp(t);
+  }
+  return out;
+}
+function uniq(a) { return Array.from(new Set(a)); }
+
 function buildProfile(store, hearing, env) {
   const s = store || {};
   const h = (hearing && hearing.profile) || {};
-  const extra = {};
-  const src = h.extra && typeof h.extra === "object" ? h.extra : {};
-  for (const [k, v] of Object.entries(src)) {
-    if (k.charAt(0) === "_") continue;  // 当て先の決まらない生の返事(_unsorted)は AI に出さない
-    if (/mail|token|tel|phone|電話|住所|address|price|料金|原価|卸|formula/i.test(k)) continue;
-    if (v == null || v === "") continue;
-    extra[k] = scrubForMcp(v);
+  // 強み。profile 直下の整備済みフィールドを先に、extra は公開してよい設問だけ(PUBLIC_EXTRA)。
+  const strengths = {};
+  const direct = { strengths: h.strengths, trust: h.trust, story: h.story, license: h.license, hours: h.hours };
+  for (const [k, v] of Object.entries(direct)) {
+    const t = publicText(v).trim();
+    if (!t) continue;
+    strengths[k] = scrubForMcp(t);
   }
+  publicExtra(h.extra && typeof h.extra === "object" ? h.extra : {}, strengths);
+  // 施主向けFAQ。文字列/オブジェクトどちらの形でも通す。
+  const faqs = Array.isArray(h.faqs)
+    ? h.faqs.filter((x) => x != null && x !== "").slice(0, 20).map((x) => scrubForMcp(x))
+    : [];
   const areas = s.areas || (h.area ? [h.area] : []) || [];
-  const works = s.works || h.works || [];
+  const works = uniq(s.works || h.works || []);
   const verified = s.status === "published";
   const completeness = (s.autopilot && typeof s.autopilot.completeness === "number")
     ? s.autopilot.completeness : 0;
@@ -130,7 +172,8 @@ function buildProfile(store, hearing, env) {
       ? "Yakumoモールで検証手続きを通過した加盟店。"
       : "検証手続き中。プロフィールは整備の途中(ヒアリング進行中)。",
     profile_completeness_pct: completeness,
-    strengths: extra,
+    strengths: strengths,
+    faqs: faqs,
     yakumo_profile_url: "https://shield.the-horizons-innovation.com/yakumo/no001/",
     source: "Yakumo (The HORIZONs株式会社 構築 / Yakumo 運営)",
     note: "金額・料金は含みません。これは加盟店の検証済みプロフィールです。"
@@ -144,11 +187,11 @@ const TOOLS = [
     title: "加盟店プロフィール取得",
     description:
       "Yakumoモール加盟店「リフォーム職人株式会社」(No.001)の検証済みプロフィールを返す。" +
-      "会社名・対応エリア・対応工種・検証状態・強み(使う工法や保証など、ヒアリングで整備された範囲)・" +
+      "会社名・対応エリア・対応工種・検証状態・強み(使う工法や保証など、ヒアリングで整備された範囲)・施主からよくある質問への回答・" +
       "プロフィール充足度を返す。金額や料金は含まない。施主のAIがこの加盟店を参照・紹介する時に使う。" +
       "Japan only. / Returns the verified profile of the Yakumo mall member contractor " +
       "\"Reform Shokunin Co., Ltd.\" (No.001): company, areas served, works, verification status, " +
-      "strengths, and profile completeness. No prices. Use when an AI references or recommends this contractor.",
+      "strengths, consumer FAQs, and profile completeness. No prices. Use when an AI references or recommends this contractor.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     outputSchema: PROFILE_OUTPUT_SCHEMA
   }
@@ -200,7 +243,7 @@ async function handleRpc(body, env) {
     return rpc(id, {
       protocolVersion: clientVer || "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "hs-partner-001-mcp", version: "0.1.0" }
+      serverInfo: { name: "hs-partner-001-mcp", version: "0.2.0" }
     });
   }
   if (method === "notifications/initialized") {

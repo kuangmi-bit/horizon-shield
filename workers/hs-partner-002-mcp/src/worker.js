@@ -122,12 +122,49 @@ function splitWorks(v) {
     .filter((x) => x.length > 0);
 }
 
+// 2026-09-30 公開してよい設問だけを出す(ホワイトリスト)。
+// それまでは extra を全部出し、危ない名前だけを弾いていた(ブラックリスト)。その結果、001 の公開 MCP に
+// 私信(社内の人への挨拶)、こちらの設問文そのもの、値引きの打診や材料の値上がり(相場の観測であって店の紹介ではない)、
+// 代理店の件への返事、受け答え(「こちら記入すみです」)が「強み」として出ていた(番人が 2026-09-30 に live で確認)。
+// 載せるのは、施主が店を選ぶ材料になる設問だけ。新しい設問を公開したいときは、ここに足す。
+const PUBLIC_EXTRA = {
+  q_ai_summary: "summary",
+  q_strengths: "strengths_detail",
+  q_story: "story",
+  q_cases: "cases",
+  q_spec: "spec",
+  q_warranty: "warranty",
+  q_license: "license",
+  q_hours: "hours",
+  q_trust: "trust"
+};
+const PUBLIC_MIN_CHARS = 6;  // 「無し」「了解です」のような受け答えは店の紹介にならない
+function publicText(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "object") {
+    if (v.attributed === "ambiguous" || v.attributed === "ambiguous_waves") return "";
+    return typeof v.text === "string" ? v.text : "";
+  }
+  return String(v);
+}
+function publicExtra(src, out) {
+  for (const [qid, label] of Object.entries(PUBLIC_EXTRA)) {
+    if (out[label] != null) continue;  // profile 直下の整備済みの値を優先する
+    const t = publicText(src && src[qid]).trim();
+    if (t.length < PUBLIC_MIN_CHARS) continue;
+    out[label] = scrubForMcp(t);
+  }
+  return out;
+}
+function uniq(a) { return Array.from(new Set(a)); }
+
 function buildProfile(store, hearing, env) {
   const s = store || {};
   const h = (hearing && hearing.profile) || {};
 
   // 工種・エリアは hearing(実ヒアリング) を優先し、無ければ store にフォールバック。
-  const works = splitWorks(h.works).length ? splitWorks(h.works) : splitWorks(s.works);
+  const works = uniq(splitWorks(h.works).length ? splitWorks(h.works) : splitWorks(s.works));
   const areas = (Array.isArray(h.areas_served) && h.areas_served.length)
     ? h.areas_served
     : (Array.isArray(s.areas) && s.areas.length ? s.areas : (h.area ? [h.area] : []));
@@ -137,16 +174,11 @@ function buildProfile(store, hearing, env) {
   const direct = { strengths: h.strengths, trust: h.trust, story: h.story, license: h.license, hours: h.hours };
   for (const [k, v] of Object.entries(direct)) {
     if (DENY.test(k)) continue;
-    if (v == null || v === "") continue;
-    strengths[k] = scrubForMcp(v);
+    const t = publicText(v).trim();
+    if (!t) continue;
+    strengths[k] = scrubForMcp(t);
   }
-  const src = h.extra && typeof h.extra === "object" ? h.extra : {};
-  for (const [k, v] of Object.entries(src)) {
-    if (k.charAt(0) === "_") continue;  // 当て先の決まらない生の返事(_unsorted)は AI に出さない
-    if (DENY.test(k)) continue;
-    if (v == null || v === "") continue;
-    strengths[k] = scrubForMcp(v);
-  }
+  publicExtra(h.extra && typeof h.extra === "object" ? h.extra : {}, strengths);
 
   // 施主向けFAQ。文字列/オブジェクトどちらの形でも通す。
   const faqs = Array.isArray(h.faqs)
@@ -243,7 +275,7 @@ async function handleRpc(body, env) {
     return rpc(id, {
       protocolVersion: clientVer || "2024-11-05",
       capabilities: { tools: {} },
-      serverInfo: { name: "hs-partner-002-mcp", version: "0.1.0" }
+      serverInfo: { name: "hs-partner-002-mcp", version: "0.2.0" }
     });
   }
   if (method === "notifications/initialized") {

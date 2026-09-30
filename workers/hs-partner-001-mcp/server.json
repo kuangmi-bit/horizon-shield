@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ogasurfproject-jpg/hs-partner-001-mcp",
+  "title": "Yakumo verified contractor No.001: Reform Shokunin Co., Ltd. (Aichi, Japan)",
+  "description": "Verified profile of Reform Shokunin Co., Ltd., a Yakumo member renovation contractor in Aichi.",
+  "version": "0.2.0",
+  "websiteUrl": "https://shield.the-horizons-innovation.com/yakumo/no001/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/workers/hs-hearing/icon.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/ogasurfproject-jpg/horizon-shield",
+    "source": "github",
+    "subfolder": "workers/hs-partner-001-mcp"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://p001.horizonshield.dev/mcp"
+    }
+  ]
+}

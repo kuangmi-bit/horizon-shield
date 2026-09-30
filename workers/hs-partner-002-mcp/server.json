@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ogasurfproject-jpg/hs-partner-002-mcp",
+  "title": "Yakumo verified contractor No.002: Mineo Toyo Juki Co., Ltd. (Shonan, Japan)",
+  "description": "Verified profile of Mineo Toyo Juki, a window and entrance door contractor in Shonan, Japan.",
+  "version": "0.2.0",
+  "websiteUrl": "https://shield.the-horizons-innovation.com/yakumo/no002/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/workers/hs-hearing/icon.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/ogasurfproject-jpg/horizon-shield",
+    "source": "github",
+    "subfolder": "workers/hs-partner-002-mcp"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://p002.horizonshield.dev/mcp"
+    }
+  ]
+}
