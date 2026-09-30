@@ -1,6 +1,6 @@
 // RUN_ALL: library (CLI, network)  池の各項の公開 DNS の事実を集めて witness_facts.json に書く。採点は witness_diversity_test.mjs (偽 fetch)
 //
-//   node witness_diversity_collect.mjs [--pool witness_pool.json] [--out witness_facts.json] [--report witness_diversity_report.json]
+//   node witness_diversity_collect.mjs [--pool witness_pool.json] [--out witness_facts.json] [--report witness_diversity_report.json] [--arrivals witness_arrivals.json]
 //
 // 取る物 (全部 DNS over HTTPS の公開の答え、鍵も認証も要らん):
 //   A / AAAA        signed_domain の IP
@@ -8,7 +8,7 @@
 //   ASN             IP ごとに Team Cymru の origin.asn.cymru.com の TXT (IP から AS 番号を引く公開の口)
 // 二つの DoH (Cloudflare と Google) に同じ問いを投げ、答えが食い違ったら両方を記録する (片方に寄せん)。
 // 書く物は事実と、取った時刻と、取り方だけ。判定は witness_diversity.mjs がする。
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { normalizePool } from "./witness_draw.mjs";
@@ -102,7 +102,9 @@ async function main(argv) {
   const facts = {};
   for (const e of normalizePool(pool)) { facts[e.signed_domain.toLowerCase()] = await collectFact(e.signed_domain, { cardUrl: e.a2a_url ? new URL(e.a2a_url).origin + "/.well-known/agent-card.json" : null }); process.stdout.write("  " + e.signed_domain + "  ips " + facts[e.signed_domain.toLowerCase()].ips.length + "  asns " + facts[e.signed_domain.toLowerCase()].asns.join(",") + "\n"); }
   writeFileSync(out, JSON.stringify({ schema: "nenrin-witness-facts-v0", collected_by: "witness_diversity_collect.mjs " + COLLECT_VERSION, facts }, null, 2) + "\n");
-  const report = await diversityReport(pool, facts);
+  const arrPath = arg("--arrivals", path.join(HERE, "witness_arrivals.json"));
+  const arrivals = existsSync(arrPath) ? JSON.parse(readFileSync(arrPath, "utf8")) : null;
+  const report = await diversityReport(pool, facts, { arrivals });
   writeFileSync(rep, JSON.stringify(report, null, 2) + "\n");
   console.log("pool " + report.pool_size + "  control clusters " + report.control_clusters + "  findings " + (report.findings.join(",") || "none"));
   console.log("wrote " + out + " and " + rep);

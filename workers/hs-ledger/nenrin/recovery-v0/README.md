@@ -115,10 +115,11 @@ Shield は再検証の証人を自分で選ばん。公開の池 (witness_pool.j
 - 強い信号 (同じ支配の疑い、1 つの塊にまとめる): 同じ登録ドメイン、同じ IP /24、同じ鍵、同じ独自ネームサーバー。推移的に繋ぐ。
 - 弱い信号 (数えるが塊にはせん): 同じ ASN、同じ大手 DNS 事業者、同じホスティング基盤 (workers.dev など)。大手 CDN を使うだけで重なるので、強いに数えたら正直な証人に濡れ衣を着せる。
 - `diversityReport` は塊の数、各 distinct の数、共有された信号と所属、findings (shared_control_suspected、shared_infrastructure、facts_missing、single_control_cluster) を返す。点は付けん。事実の無い項は「別人」と数えず facts_missing を出す。
+- 池に入った経路 (arrival、2026-09-30): `witness_arrivals.json` に運営者が各項の経路を申告する。invited (運営者が声を掛けた、公開の招待があれば ref に URL)、referred (池の誰かが紹介、referred_by)、unsolicited (自分で来た)。報告は arrived_via で数え、arrivals_sha256 で固定し、申告の無い項は undisclosed と数えて自発には数えん。申告のある項が全部 invited なら operator_outreach_only を出す。経路は塊にも pool_sha256 にも籤にも効かん (数に見せるだけ)。発端は「こっちが選んだ証人は多様性の報告を不正直にする」という外部証人の指摘。
 - `drawDiverse` (籤 0.2.0、rule one_per_control_cluster): draw() と同じ seed で最後まで並べ、その順に歩いて、既に引いた項と同じ塊の項を飛ばす。飛ばした項と理由を記録する。全部の項が別の塊なら draw() の頭 k 人と完全に同じ (互換、試験で確認)。
 - 証さんこと: 別の塊でも同じ人が支配しとる可能性 (本気の Sybil は業者を変える。この計器は Sybil を高く付かせるだけ)、DNS の答えの真偽、証人の観測の正しさ。
 
-回し方 (Mac、network が要る): `node witness_diversity_collect.mjs` で witness_facts.json と witness_diversity_report.json を書く。試験は `node witness_diversity_test.mjs` (偽 fetch、32 本)。
+回し方 (Mac、network が要る): `node witness_diversity_collect.mjs` で witness_facts.json と witness_diversity_report.json を書く。試験は `node witness_diversity_test.mjs` (偽 fetch、60 本)。
 
 答えが無かった事と答えが空やった事は別物として扱う。どの resolver も答えん型は `unanswered` に書き (collect 0.1.1)、A と AAAA と NS の全部が unanswered の事実は「事実無し」と数えて `facts_missing` を出す。空の答えとして数えると、網が塞がった所で集めた池が「強い信号が何も被っとらん = 全員別人」に見える。2026-09-27 に DoH が塞がった網で実際に集めて見つけた。試験 37 本。
 

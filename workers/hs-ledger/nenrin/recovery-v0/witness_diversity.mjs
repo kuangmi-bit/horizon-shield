@@ -163,7 +163,36 @@ export function controlClusters(entries, facts = {}) {
   return { sigs, clusterOf };
 }
 
-export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolSha = null } = {}) {
+// 池に入った経路 (arrival、2026-09-30、フェデリコの指摘への手当)。
+// 「こっちが選んだ証人」は多様性の報告を不正直にする。籤は誰が引かれるかから運営者を外すが、誰に声を掛けたかは
+// 運営者が決めとる。それを隠さず数に出す: 各項が invited (運営者が声を掛けた)、referred (池の誰かが紹介した)、
+// unsolicited (自分で来た) のどれで入ったか。書くのは運営者の申告で、invited には公開の招待の URL を ref に
+// 付ける (誰でも招待の文面と日付を確かめられる)。申告の無い項は undisclosed と数え、自発とは数えん。
+export const ARRIVAL_SCHEMA = "nenrin-witness-arrivals-v0";
+export const ARRIVAL_KINDS = ["invited", "referred", "unsolicited"];
+export function normalizeArrivals(arrivals, entries) {
+  const src = arrivals && typeof arrivals === "object" ? (arrivals.arrivals && typeof arrivals.arrivals === "object" ? arrivals.arrivals : arrivals) : {};
+  const out = {};
+  for (const e of entries) {
+    const d = e.signed_domain.toLowerCase();
+    const a = src[d] || src[e.signed_domain];
+    if (!a) continue;
+    if (!ARRIVAL_KINDS.includes(a.via)) throw new Error("arrival for " + d + ": via must be one of " + ARRIVAL_KINDS.join(", "));
+    const rec = { via: a.via };
+    if (a.ref != null) {
+      if (typeof a.ref !== "string" || !/^https:\/\/\S+$/.test(a.ref)) throw new Error("arrival for " + d + ": ref must be an https URL");
+      rec.ref = a.ref;
+    }
+    if (a.via === "referred") {
+      if (typeof a.referred_by !== "string" || !a.referred_by) throw new Error("arrival for " + d + ": referred needs referred_by");
+      rec.referred_by = a.referred_by.toLowerCase();
+    }
+    out[d] = rec;
+  }
+  return { schema: ARRIVAL_SCHEMA, arrivals: out };
+}
+
+export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolSha = null, arrivals = null } = {}) {
   const entries = normalizePool(pool);
   const { sigs, clusterOf } = controlClusters(entries, facts);
   const clusters = new Map();
@@ -173,15 +202,22 @@ export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolS
   const withLegal = sigs.filter((s) => s.legal_entity).length;
   const pool_sha256 = givenPoolSha || await sha(canonicalUtf8({ schema: POOL_SCHEMA, entries: entries.map((e) => ({ signed_domain: e.signed_domain, key_url: e.key_url, public_key_ed25519_b64: e.public_key_ed25519_b64 })) }));
   const facts_sha256 = await sha(canonicalUtf8(normalizeFacts(facts, entries)));
+  const arr = normalizeArrivals(arrivals, entries);
+  const arrivals_sha256 = await sha(canonicalUtf8(arr));
+  const via = { invited: 0, referred: 0, unsolicited: 0, undisclosed: 0 };
+  for (const s of sigs) { const r = arr.arrivals[s.host.toLowerCase()]; via[r ? r.via : "undisclosed"] += 1; }
+  const disclosed = sigs.length - via.undisclosed;
   const strong_shared = groupShared(sigs, "strong");
   const weak_shared = groupShared(sigs, "weak");
   const report = {
     schema: DIVERSITY_SCHEMA,
-    pool_sha256, facts_sha256,
+    pool_sha256, facts_sha256, arrivals_sha256,
     pool_size: String(sigs.length),
     entries_with_facts: String(withFacts),
     control_clusters: String(clusters.size),
     entries_declaring_legal_entity: String(withLegal),
+    arrived_via: { invited: String(via.invited), referred: String(via.referred), unsolicited: String(via.unsolicited), undisclosed: String(via.undisclosed) },
+    arrivals: Object.entries(arr.arrivals).map(([signed_domain, r]) => ({ signed_domain, ...r })).sort((a, b) => (a.signed_domain < b.signed_domain ? -1 : 1)),
     distinct: {
       registrable_domains: String(distinct((s) => [s.registrable])),
       public_keys: String(distinct((s) => s.strong.filter(([k]) => k === "public_key").map(([, v]) => v))),
@@ -198,16 +234,20 @@ export async function diversityReport(pool, facts = {}, { poolSha256: givenPoolS
       ...(withFacts < sigs.length ? ["facts_missing"] : []),
       ...(withLegal < sigs.length ? ["legal_entity_undeclared"] : []),
       ...(clusters.size < 2 ? ["single_control_cluster"] : []),
+      ...(via.undisclosed ? ["arrival_undisclosed"] : []),
+      ...(disclosed > 0 && via.invited === disclosed ? ["operator_outreach_only"] : []),
     ],
     establishes: [
       "the pool has " + sigs.length + " entries that fall into " + clusters.size + " control clusters, where two entries share a cluster when they share a registrable domain, a public key, an IP prefix, a custom nameserver or a declared legal entity identifier",
-      "every count is recomputable from pool_sha256 and facts_sha256 with this file",
+      "arrival is disclosed for " + disclosed + " of " + sigs.length + " entries: " + via.invited + " invited by the operator, " + via.referred + " referred by a pool member, " + via.unsolicited + " unsolicited",
+      "every count is recomputable from pool_sha256, facts_sha256 and arrivals_sha256 with this file",
     ],
     does_not_establish: [
       "that entries in different clusters are controlled by different people; a determined operator can use different registrars, hosts and networks, and this instrument only makes that more expensive",
       "that the DNS answers in the facts are true or current; they are what the pool builder observed at observed_at",
       "that a declared legal entity identifier is true, registered or complete; it is the witness's own declaration under legal-entity-v1, a Sybil can omit it or declare different entities, and only the register can answer",
       "that different organizations have different economic interests; who pays each witness is not observed here",
+      "that an entry recorded as unsolicited or referred was not approached privately by the operator; arrival is the operator's own disclosure, and only an invited entry carries a public link to check",
       "that any witness observes correctly",
       "any score, rank or trust level; the report counts and never scores",
     ],

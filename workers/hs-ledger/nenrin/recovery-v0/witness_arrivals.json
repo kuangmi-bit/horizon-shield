@@ -1,0 +1,11 @@
+{
+  "schema": "nenrin-witness-arrivals-v0",
+  "what_this_is": "how each pool member arrived, as disclosed by the operator: invited (the operator asked them), referred (a pool member pointed them here; referred_by names who), or unsolicited (they came on their own). An invited entry links the public invitation where one exists. The diversity report counts these, so outreach from the operator's side is visible in the numbers.",
+  "what_this_is_not": "proof of how anyone arrived. It is the operator's own account; a private approach recorded as unsolicited would be a false record, and nothing here can detect it. Candidates who were invited but never joined are not listed.",
+  "arrivals": {
+    "api.babyblueviper.com": {
+      "via": "invited",
+      "note": "asked directly by the operator in private messages after he had cross-checked NENRIN records on his own; no public invitation to link"
+    }
+  }
+}

@@ -3,7 +3,7 @@
 // 大手 CDN・大手 DNS・同じ基盤は弱い信号に留め (正直な証人に濡れ衣を着せん)、
 // drawDiverse が同じ塊から 2 人引かず、全員別の塊なら draw() と同じ k 人を返し、点を一切出さんこと。
 import { draw } from "./witness_draw.mjs";
-import { registrableDomain, nsOperator, ipPrefix, diversityReport, drawDiverse, controlClusters } from "./witness_diversity.mjs";
+import { registrableDomain, nsOperator, ipPrefix, diversityReport, drawDiverse, controlClusters, normalizeArrivals } from "./witness_diversity.mjs";
 import { collectFact, cymruName } from "./witness_diversity_collect.mjs";
 
 let pass = 0, fail = 0; const results = [];
@@ -56,7 +56,7 @@ t("missing facts are reported (facts_missing), not counted as proof of independe
 // ---- 3. 点を付けん ----
 const flat = JSON.stringify(rep);
 t("report carries no score, rank, trust or rating key", !/"(score|rank|rating|trust_level|trust_score|grade)"/.test(flat));
-t("report says what it does not establish (different people, DNS truth, legal entity truth, economic interest, witness truth, no score)", rep.does_not_establish.length === 6 && rep.does_not_establish.some((s) => /determined operator/.test(s)));
+t("report says what it does not establish (different people, DNS truth, legal entity truth, economic interest, private approach, witness truth, no score)", rep.does_not_establish.length === 7 && rep.does_not_establish.some((s) => /determined operator/.test(s)) && rep.does_not_establish.some((s) => /approached privately/.test(s)));
 t("report is deterministic (same inputs, same bytes)", JSON.stringify(await diversityReport(sybilPool, facts)) === flat);
 t("fact order does not change facts_sha256", (await diversityReport(sybilPool, Object.fromEntries(Object.entries(facts).reverse()))).facts_sha256 === rep.facts_sha256);
 
@@ -145,6 +145,32 @@ const fNoLe = await collectFact("w.example.com", { fetchImpl: cardFetch({ capabi
 t("collect: a card without the declaration is recorded as not_declared", fNoLe.legal_entity === null && fNoLe.legal_entity_source === "not_declared");
 const f404 = await collectFact("w.example.com", { fetchImpl: cardFetch({}, 404) });
 t("collect: a card that does not answer is recorded with its status, not as an absent declaration", f404.legal_entity === null && f404.legal_entity_source === "card_http_404");
+
+// ---- 池に入った経路 (arrival): 運営者の声掛けを数に出す ----
+{
+  const none = await diversityReport(sybilPool, facts);
+  t("arrival: with no disclosure every entry is undisclosed, never counted as unsolicited", none.arrived_via.undisclosed === "5" && none.arrived_via.unsolicited === "0" && none.findings.includes("arrival_undisclosed"));
+  const arrivals = { arrivals: {
+    "w1.sybil.example": { via: "invited", ref: "https://github.com/example/repo/issues/1" },
+    "honest-a.org": { via: "unsolicited" },
+    "honest-b.net": { via: "referred", referred_by: "Honest-A.org" },
+  } };
+  const r = await diversityReport(sybilPool, facts, { arrivals });
+  t("arrival: counts each kind and leaves the rest undisclosed", r.arrived_via.invited === "1" && r.arrived_via.unsolicited === "1" && r.arrived_via.referred === "1" && r.arrived_via.undisclosed === "2");
+  t("arrival: the invitation link and the referrer are carried, referrer lowercased", r.arrivals.find((a) => a.signed_domain === "w1.sybil.example").ref === "https://github.com/example/repo/issues/1" && r.arrivals.find((a) => a.signed_domain === "honest-b.net").referred_by === "honest-a.org");
+  t("arrival: disclosure never changes the control clusters or pool_sha256", r.control_clusters === rep.control_clusters && r.pool_sha256 === rep.pool_sha256 && r.facts_sha256 === rep.facts_sha256);
+  t("arrival: arrivals_sha256 changes when a disclosure changes", r.arrivals_sha256 !== none.arrivals_sha256 && (await diversityReport(sybilPool, facts, { arrivals: { arrivals: { ...arrivals.arrivals, "honest-a.org": { via: "invited" } } } })).arrivals_sha256 !== r.arrivals_sha256);
+  t("arrival: a free-text note is not hashed (only via, ref, referred_by)", (await diversityReport(sybilPool, facts, { arrivals: { arrivals: { ...arrivals.arrivals, "honest-a.org": { via: "unsolicited", note: "found us on a search" } } } })).arrivals_sha256 === r.arrivals_sha256);
+  t("arrival: a domain that is not in the pool is ignored (an invited candidate who never joined is not listed)", (await diversityReport(sybilPool, facts, { arrivals: { arrivals: { ...arrivals.arrivals, "never-joined.example": { via: "invited" } } } })).arrivals_sha256 === r.arrivals_sha256);
+  const allInvited = await diversityReport({ entries: [E("a.one.org", 31), E("b.two.org", 32)] }, {}, { arrivals: { "a.one.org": { via: "invited" }, "b.two.org": { via: "invited" } } });
+  t("arrival: when every disclosed entry was invited, operator_outreach_only is raised", allInvited.findings.includes("operator_outreach_only") && !allInvited.findings.includes("arrival_undisclosed"));
+  t("arrival: one unsolicited entry clears operator_outreach_only", !r.findings.includes("operator_outreach_only"));
+  const bad = (a) => { try { normalizeArrivals(a, sybilPool.entries); return null; } catch (e) { return e.message; } };
+  t("arrival: an unknown kind is refused", /via must be one of/.test(bad({ "honest-a.org": { via: "volunteered" } })));
+  t("arrival: referred without referred_by is refused", /referred needs referred_by/.test(bad({ "honest-a.org": { via: "referred" } })));
+  t("arrival: a non-https ref is refused", /ref must be an https URL/.test(bad({ "honest-a.org": { via: "invited", ref: "http://x.example/1" } })));
+  t("arrival: the report still carries no score", !/"(score|rank|rating|trust_level|trust_score|grade)"/.test(JSON.stringify(r)));
+}
 
 console.log(results.join("\n"));
 console.log("\nwitness_diversity: " + pass + " passed, " + fail + " failed");
