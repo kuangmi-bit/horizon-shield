@@ -87,6 +87,8 @@ jobs:
       #     handleLineWebhook を丸ごと通す配線の検査も入っている。
       - name: 入口の統一
         run: node workers/hs-hearing/inbound_test.mjs
+      - name: 返事の形(貼った設問と答え、値段の話への答え)
+        run: node workers/hs-hearing/echo_reply_test.mjs
 
       # 4. 鍵があるかを見る。無ければ配らない。
       #    2026-08-24: 鍵を入れる前にこれを足したので、push のたびに落ちて

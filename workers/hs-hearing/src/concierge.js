@@ -96,3 +96,57 @@ export function conciergeFAQ(text) {
   }
   return null;
 }
+
+/* ------------------------------------------------------------------------
+   2026-09-30 返事の形を読む(貼った設問 ↓ 答え)。
+
+   実測(hs-partner-001、HORIZON グループ): 堤さまと森下さまは、こちらの設問を
+   トークに貼り、その下に「↓」を置いて答えを書いてくださった。先頭には
+   「@HORIZON SHIELD」のメンションが付く。
+   これまでは全文をひとかたまりで読んでいたため、
+     ・堤さまの答えは、貼った設問の「教えてください」で「質問」と判定され、取り込まれなかった
+     ・森下さまの答えは、こちらが訊いた「他社より高いと言われたとき」「仕入れ値」への答えなので
+       「金額」「価格」の語が入り、金額の門で「料金の問い合わせ」とされ、取り込まれなかった
+   相手はこちらの頼んだとおりに答えている。読み違えていたのはこちらである。
+
+   splitEchoReply は、先頭のメンションを外し、最初の「↓」だけの行で前後に分ける。
+   前が貼った設問(echo)、後ろが答え(answer)。矢印の行が無ければ全文が答え。 */
+const BOT_MENTION_RE = /@[ 　]*HORIZON[ 　]*SHIELD[ 　]*/gi;
+const ARROW_LINE_RE = /^[ 　]*[↓⬇⇩⇓▼▽][↓⬇⇩⇓▼▽️]*[ 　]*(?:(?:回答|答え|返答|ご回答)[ 　]*[:：]?)?[ 　]*$/;
+export function splitEchoReply(text) {
+  const raw = String(text || "").replace(/\r/g, "");
+  const mentioned = /@[ 　]*HORIZON[ 　]*SHIELD/i.test(raw);
+  const t = raw.replace(BOT_MENTION_RE, "").trim();
+  const lines = t.split("\n");
+  const i = lines.findIndex((l) => ARROW_LINE_RE.test(l));
+  if (i > 0) {
+    const echo = lines.slice(0, i).join("\n").trim();
+    const answer = lines.slice(i + 1).join("\n").trim();
+    if (echo && answer) return { echo, answer, mentioned };
+  }
+  return { echo: "", answer: t, mentioned };
+}
+
+/* 金額の語。handlePartnerInbound の門と同じ物差し(ここに1つだけ置く)。 */
+export const MONEY_WORDS_RE = /(金額|料金|価格|費用|いくら|お値段|値段|支払|お支払|請求|割引|値引|万円|見積[^。]{0,8}金額|プラン[^。]{0,8}料金)/;
+
+/* こちら(運営)へのお金の問い合わせ。掲載料・会費・支払い方法・いくらか、など。
+   答えの中に「価格は上がっている」があっても、これには当たらない。 */
+export const FEE_INQUIRY_RE = /(掲載料|掲載の料金|掲載費|会費|月額|月々|ご請求|請求書|振込|振り込み|お支払い(方法|先|は|について)|支払い(方法|先|は)|料金(は|って|を教え|について|体系)|費用(は|って|について)|いくらですか|いくらでしょう|いくらかかり|いくらになり|プラン[^。]{0,8}料金|有料(ですか|でしょうか|になり))/;
+
+/* 返事待ちの設問が、そもそも値段の話を訊いているか(仕入れ値・高いと言われた・諸経費・単価など)。
+   訊いたことへの答えにお金の語が入るのは当然で、それを料金の問い合わせと読んではいけない。 */
+export const PRICE_TOPIC_RE = /(高い|安い|仕入れ|材料|価格|値段|金額|単価|諸経費|費用|相場|値上|値下|見積)/;
+export function askedAboutPrices(askedText) {
+  return PRICE_TOPIC_RE.test(String(askedText || ""));
+}
+
+/* 貼った設問の下に書かれた答えの意図。貼った設問の中の「教えてください」は見ない。
+   答えの最後が問いの形で終わるときだけ質問とする(答えの途中の言い回しで質問にしない)。 */
+export function answerIntentAfterEcho(answer) {
+  const a = String(answer || "").trim();
+  if (!a) return "other";
+  if (/[?？][ 　]*$/.test(a)) return "question";
+  if (/(ますか|ますでしょうか|でしょうか|ですか)[。 　]*$/.test(a)) return "question";
+  return "answer";
+}

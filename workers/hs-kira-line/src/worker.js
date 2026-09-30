@@ -264,7 +264,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v10-consent-2", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v10-group-reply-20260930", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -363,7 +363,18 @@ async function processEvents(events, env) {
       if (event.type === "message" && event.message.type === "text" && event.message.text) {
         try {
           const gt = event.message.text.trim();
-          if (gt && gid) await ingestPartnerSilently(gt, userId, gid, env);
+          if (gt && gid) {
+            const _reply = await ingestPartnerSilently(gt, userId, gid, env);
+            // HS-KIRA-GROUP-ADDRESSED-20260930: グループでも、公式アカウントを @ で呼んだ発言にだけは返事をする。
+            //   8/20 の「グループでは黙る」は、発言のたびに1対1の筋で返して会話を荒らさないためだった。
+            //   だが加盟店さん(hs-partner-001 の HORIZON グループ)は、こちらの設問に @HORIZON SHIELD を付けて
+            //   答えてくださっている。呼ばれて黙るのは、無視と同じである。呼ばれていない発言には、これまでどおり黙る。
+            //   返す文は hs-hearing の窓口(handlePartnerInbound)が決めたもの。空なら返さない。
+            if (_reply && event.replyToken && isAddressedToBot(event)) {
+              await replyToLine(event.replyToken, _reply, env.LINE_CHANNEL_TOKEN);
+              console.log("[group] replied (addressed) gid=" + gid);
+            }
+          }
         } catch (_e) {}
       } else if (event.type === "message" && (event.message.type === "image" || event.message.type === "file")) {
         // グループに貼られた資料(画像/ファイル)は、勝手に扱わず、大賀さんに要対応で知らせる。
@@ -1337,7 +1348,9 @@ async function pushToLine(userId, text, channelToken) {
 }
 __name(pushToLine, "pushToLine");
 async function verifySignature(body, signature, channelSecret) {
-  if (!channelSecret || !signature) return true;
+  // 2026-09-30 署名が無い・鍵が無い・検証が投げた、の3つとも通していた(fail-open)。
+  //   誰でも「加盟店の発言」を作って送れば、hearing に取り込まれ、掲載ページまで流れる道になる。全部落とす。
+  if (!channelSecret || !signature) return false;
   try {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey("raw", encoder.encode(channelSecret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -1345,7 +1358,7 @@ async function verifySignature(body, signature, channelSecret) {
     const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
     return expected === signature;
   } catch {
-    return true;
+    return false;
   }
 }
 __name(verifySignature, "verifySignature");
@@ -1500,11 +1513,24 @@ async function ingestPartnerSilently(userMessage, userId, groupId, env) {
     console.log("[bridge] resp " + _r.status + " gid=" + (groupId || "none") + " " + _b.slice(0, 150));
     if (!_r.ok) {
       try { await pushToLine(env.LINE_USER_ID, "【KIRAから hearing への転送失敗】status=" + _r.status + " gid=" + (groupId || "none") + "。加盟店の回答が取り込めてない。要確認。", env.LINE_CHANNEL_TOKEN); } catch (_e2) {}
+      return "";
     }
+    // 2026-09-30 hearing の窓口が決めた返事の文を返す(呼ばれた発言にだけ、呼び出し側が送る)。
+    try { const _j = JSON.parse(_b); return (_j && typeof _j.reply === "string") ? _j.reply.trim() : ""; } catch (_e3) { return ""; }
   } catch (e) {
     console.log("[bridge] ERROR " + String(e));
     try { await pushToLine(env.LINE_USER_ID, "【KIRAから hearing への転送エラー】" + String(e).slice(0, 120) + "。要確認。", env.LINE_CHANNEL_TOKEN); } catch (_e2) {}
+    return "";
   }
+}
+// 2026-09-30 公式アカウントが @ で呼ばれたか。LINE の mention.mentionees[].isSelf を第一に見て、
+//   無い場合は本文の「@HORIZON SHIELD」で見る。
+function isAddressedToBot(event) {
+  const m = event && event.message;
+  if (!m) return false;
+  const ms = m.mention && Array.isArray(m.mention.mentionees) ? m.mention.mentionees : [];
+  if (ms.some((x) => x && x.isSelf === true)) return true;
+  return /@[ \u3000]*HORIZON[ \u3000]*SHIELD/i.test(String(m.text || ""));
 }
 __name(ingestPartnerSilently, "ingestPartnerSilently");
 async function isPartner(userId, text, env) {

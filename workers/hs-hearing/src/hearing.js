@@ -1586,9 +1586,10 @@ async function lineReply(env, replyToken, text) {
 }
 // メール/LINE共通: 回答テキストを取り込み、構造化->マージ->関所->生成トリガー。source で経路を区別。
 // AUTOPILOT: 既存プロフィールに統合(上書きしない)、pending質問の消込、フォーカス判定、完成度再計算、活動記録。
-async function ingestHearingAnswer(env, store_id, store, text, source) {
+async function ingestHearingAnswer(env, store_id, store, text, source, rawForLog) {
+  // 2026-09-30 返事のログには生の全文(貼った設問ごと)を残す。構造化と欄への当て込みは text(答えの部分)で行う。
   await env.HS_HEARING_KV.put(source + "reply:" + store_id + ":" + Date.now(),
-    JSON.stringify({ text: String(text).slice(0, 6000), at: new Date().toISOString(), source }));
+    JSON.stringify({ text: String(rawForLog || text).slice(0, 6000), at: new Date().toISOString(), source }));
   // 2026-09-25 施主の名前(益田様・田中さん)を、生成の LLM にも profile にも入れない。生の返事は上の reply ログに残る。
   text = PII.scrubNames(String(text));
   const structured = await llmStructure(env, text, store);
@@ -1774,8 +1775,10 @@ async function aiPartnerReply(env, text, ctx) {
   }
   out = String(out || "").trim();
   if (!out) return null;
+  // 2026-09-30 ここは「回答」への返事である。返事にお金の語が出たら、料金の案内ではなく受領の定型に替える。
+  //   材料の値上がりを答えてくださった方に「料金は大賀からご案内します」と返すのは、問いと答えの取り違えになる。
   if (/[0-9０-９][\s]*(円|万|万円)|[¥$]\s*[0-9０-９]|(料金|価格|費用|お値段|値引|割引)/.test(out)) {
-    return "料金・金額については、担当の大賀からご案内します。少々お待ちください。";
+    return "ご回答ありがとうございます。いただいた内容は、掲載に反映いたします。\n不足があれば、こちらから改めてお伺いします。";
   }
   // 施主向けの言い回しが出たら、そのまま送らない。加盟店に依頼者として返すのは失礼にあたる。
   if (/(ご依頼いただ|ご依頼内容|ご依頼の件|工事の流れ|大体の流れ|工事内容を確認)/.test(out)) {
@@ -1850,29 +1853,54 @@ async function conciergeAnswer(env, text, ctx) {
 
    store は呼ぶ側が読んで渡す。取り込み後に読み直す必要がある処理
    (last_attributed の切り分け判定)は、この中で読み直す。 */
+/* 2026-09-30 返事待ちの設問の文を全部つなぐ(波が複数あっても拾う)。値段の話を訊いているかの判定に使う。 */
+function pendingAskedTexts(ap) {
+  const p = (ap && ap.pending) || {};
+  const out = [String(p.text || "")];
+  for (const v of Object.values(p.asked_texts || {})) out.push(String(v || ""));
+  for (const w of (Array.isArray(p.waves) ? p.waves : [])) {
+    for (const v of Object.values((w && w.texts) || {})) out.push(String(v || ""));
+  }
+  return out.join("\n");
+}
+
 async function handlePartnerInbound(env, storeId, store, text, source) {
-  const t = String(text || "").trim();
+  const raw = String(text || "").trim();
   const company = (store && store.company) || "";
   const src = source || "line";
 
-  // 0) 金額は、どの入口でも、機械に喋らせない。担当(大賀)に回す。
-  if (/(金額|料金|価格|費用|いくら|お値段|値段|支払|お支払|請求|割引|値引|万円|見積[^。]{0,8}金額|プラン[^。]{0,8}料金)/.test(t)) {
-    try { await notify(env, "[Yakumo] 金額に関する問い合わせ。要対応(大賀が案内): store=" + storeId + " src=" + src + " / " + t.slice(0, 120)); } catch (_e) {}
-    return { kind: "money", res: null, reply: "料金・金額については、担当の大賀からご案内します。少々お待ちください。" };
-  }
+  // 2026-09-30 返事の形を読む(貼った設問 ↓ 答え、先頭の @HORIZON SHIELD)。
+  //   判定(金額・意図)と取り込みは、答えの部分で行う。生の全文は返事のログに残す。
+  //   詳しくは concierge.js の splitEchoReply。
+  const sp = CONCIERGE.splitEchoReply(raw);
+  const t = sp.answer;
+  const hasEcho = !!sp.echo;
 
   // 取り込みの前に、直前に尋ねていた設問を控える(取り込みで pending が消えるため)。
   const _apNow = (store && store.autopilot) || {};
   const _askedText = (_apNow.pending && _apNow.pending.text) || "";
+  const _askedAll = pendingAskedTexts(_apNow);
+
+  // 0) 金額は、どの入口でも、機械に喋らせない。担当(大賀)に回す。
+  //    2026-09-30 ただし、こちらが値段の話を訊いている(返事待ちの設問が仕入れ値や「高いと言われた」など)か、
+  //    相手がこちらの設問を貼って答えているときは、答えの中のお金の語は答えの一部であって、問い合わせではない。
+  //    森下さまの答え(材料の値上がりと、高いと言われたときの説明)は、ここで捨てられていた。
+  //    そのときでも、掲載料・支払い・いくらか等、こちらへのお金の問い合わせなら、これまでどおり大賀に回す。
+  const answeringUs = hasEcho || CONCIERGE.askedAboutPrices(_askedAll);
+  if (CONCIERGE.MONEY_WORDS_RE.test(t) && (!answeringUs || CONCIERGE.FEE_INQUIRY_RE.test(t))) {
+    try { await notify(env, "[Yakumo] 金額に関する問い合わせ。要対応(大賀が案内): store=" + storeId + " src=" + src + " / " + t.slice(0, 120)); } catch (_e) {}
+    return { kind: "money", res: null, reply: "料金・金額については、担当の大賀からご案内します。少々お待ちください。" };
+  }
 
   // 1) まず意図を見る。入ってくる文は「回答」だけではない。質問は取り込まない。
   //    質問を回答として取り込むと、問いを無視して「掲載します」と答えたことになる。
   //    誤って回答を質問と見ても、生文は残るので実害は小さい。逆は大きい(非対称)。
-  const intent = CONCIERGE.partnerIntent(t);
+  //    2026-09-30 設問を貼って答えているときは、貼った設問の「教えてください」を見ない。答えの終わりが問いの形のときだけ質問。
+  const intent = hasEcho ? CONCIERGE.answerIntentAfterEcho(t) : CONCIERGE.partnerIntent(t);
   if (intent === "question") {
     try {
       await env.HS_HEARING_KV.put("partnerq:" + storeId + ":" + Date.now(),
-        JSON.stringify({ text: t.slice(0, 2000), at: new Date().toISOString(), company, src }));
+        JSON.stringify({ text: raw.slice(0, 2000), at: new Date().toISOString(), company, src }));
     } catch (_e) {}
     // 質問は回答ではないが engaged(応答)。督促の罰点を解き、活動を残す。
     // 返事待ちの設問(pending)は消さない, まだ答えていないので、追撃の巡回はそのまま続く。
@@ -1889,7 +1917,7 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
   // 2) 回答として取り込む(取り込みが投げても落ちない)。
   let res;
   try {
-    res = await ingestHearingAnswer(env, storeId, store, t, src);
+    res = await ingestHearingAnswer(env, storeId, store, t, src, raw);
   } catch (e) {
     res = { ok: false, reason: "ingest-threw:" + String(e).slice(0, 60) };
   }
@@ -1901,6 +1929,9 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
   if (_attrib === "ambiguous" || _attrib === "ambiguous_waves") {
     try { await notify(env, "[Yakumo] 切り分け不能(" + _attrib + ")のため定型で返信。人が当て直すこと: "
       + (company || storeId) + " src=" + src + " / " + t.slice(0, 80)); } catch (_e) {}
+    // 2026-09-30 こちらの設問を貼って答えてくださったときに「取り違えているかもしれない」とは返さない。
+    //   どの設問の欄に入れるかは人が当て直すが、それはこちらの手間であって、相手に負わせる話ではない。
+    if (hasEcho) return { kind: "answer-uncertain", res, reply: "ご回答ありがとうございます。いただいた内容は担当の大賀が確認し、掲載に反映します。" };
     return { kind: "answer-uncertain", res, reply: "ご返信ありがとうございます。いただいた内容は担当の大賀が確認し、"
       + "掲載に必要なところをこちらで整えます。どの質問へのご回答か、こちらで取り違えている"
       + "可能性がありますので、行き違いがありましたらお知らせください。" };
@@ -1914,7 +1945,7 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
       + "対応の内容が分かるように教えていただけますか。分かるところだけで結構です。" };
   }
 
-  const smart = await aiPartnerReply(env, t, { company, asked: _askedText });
+  const smart = await aiPartnerReply(env, t, { company, asked: sp.echo || _askedText });
   try { await notify(env, "[Yakumo] " + src + "の回答にAI応答: " + (company || storeId) + " / " + t.slice(0, 60)); } catch (_e) {}
   return { kind: "answer", res, reply: smart || "受け取りました。ありがとうございます。内容は運営事務局で確認します。お急ぎのご用件でしたら、その旨をお書きください。" };
 }
