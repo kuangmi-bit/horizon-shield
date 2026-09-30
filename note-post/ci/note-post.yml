@@ -1,6 +1,7 @@
 name: note自動投稿
 # 2026-09-30 連載『大工ムニョスは「一式」を許さない』に切り替え(note-post/story.js と story/)。
-#   毎朝 09:00 JST に一話。見出し画像を作って付け、タグを付けて公開し、LINE に知らせる。
+#   毎朝 09:00 JST に一話。見出し画像(アニメの漫画風の絵 + 題)を作って付け、タグを付けて公開し、LINE に知らせる。
+#   絵は OpenAI の画像モデル(secrets.OPENAI_API_KEY)。無ければ Gemini(secrets.GEMINI_API_KEY)。どちらも無い・失敗したときは文字だけの見出し画像。人物の見本 story/art/cast.png は最初の一回で作って記録する。
 #   ドライラン: Run workflow で dry_run を入れる。story_key に main-008 などを入れると、その回を先に見られる。
 #   以前の解説記事に戻すときだけ、リポジトリの Variables に NOTE_MODE=explainer を置く。
 on:
@@ -44,6 +45,8 @@ jobs:
           LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
           LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
           HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NOTE_MODE: ${{ vars.NOTE_MODE || 'story' }}
           DRY_RUN: ${{ (github.event.inputs.dry_run == 'true') && '1' || '0' }}
           STORY_KEY: ${{ github.event.inputs.story_key || '' }}
@@ -61,7 +64,7 @@ jobs:
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          for f in note-post/posted_titles.json note-post/posted_dates.json note-post/story/state.json note-post/story/posted; do
+          for f in note-post/posted_titles.json note-post/posted_dates.json note-post/story/state.json note-post/story/posted note-post/story/art; do
             if [ -e "$f" ]; then git add "$f"; fi
           done
           if git diff --staged --quiet; then echo "記録の変化なし"; exit 0; fi

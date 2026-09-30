@@ -295,7 +295,44 @@ function cloudSvg(x, y, filled) {
   return '<g transform="translate(' + x + ',' + y + ')" fill="' + f + '" stroke="' + st + '" stroke-width="1.6">'
     + '<path d="M3 20 C0 20 0 14 4 13 C3 8 9 5 12 8 C14 3 22 3 24 8 C28 6 33 9 31 14 C35 15 34 20 30 20 Z"/></g>';
 }
-function eyecatchHtml(outline, ep) {
+/* 絵があるときの見出し画像: 絵を一面に敷き、左上に話数の札、下に題の帯、最下段に物差しの細い帯。 */
+function mangaCoverHtml(outline, ep, artDataUrl) {
+  const W = 1280, H = 670;
+  const title = String(ep.title || '');
+  const n = title.length;
+  const fs = n <= 10 ? 64 : n <= 14 ? 56 : n <= 18 ? 48 : n <= 24 ? 42 : 36;
+  const lab = ep.kind === 'main' ? ('第' + ep.no + '話') : ('外伝 ' + ep.no);
+  const k = lacquered(ep);
+  let clouds = '';
+  for (let i = 0; i < 8; i++) clouds += cloudSvg(W - 72 - 8 * 30 + i * 30, 646, i < k);
+  let ticks = '';
+  for (let i = 0; i <= 60; i++) {
+    const x = (72 + 820 * i / 60).toFixed(1);
+    const h = i % 10 === 0 ? 14 : i % 5 === 0 ? 10 : 6;
+    ticks += '<line x1="' + x + '" y1="648" x2="' + x + '" y2="' + (648 + h) + '" stroke="#5a3d1a" stroke-width="' + (i % 10 === 0 ? 1.6 : 1) + '"/>';
+  }
+  const svg = '<svg width="' + W + '" height="' + H + '" xmlns="http://www.w3.org/2000/svg" style="position:absolute;left:0;top:0">'
+    + '<rect x="0" y="642" width="' + W + '" height="28" fill="#d4a766"/>' + ticks + clouds + '</svg>';
+  return '<!doctype html><html lang="ja"><head><meta charset="utf-8">'
+    + '<style>html,body{margin:0;padding:0}body{width:' + W + 'px;height:' + H + 'px;overflow:hidden;background:#0b0f17;position:relative;'
+    + 'font-family:"Noto Sans CJK JP","Noto Sans JP","Hiragino Sans",sans-serif;color:#fff}'
+    + '.art{position:absolute;left:0;top:0;width:' + W + 'px;height:642px;object-fit:cover;object-position:center 35%}'
+    + '.tag{position:absolute;left:40px;top:34px;background:#0b0f17;color:#fff;padding:10px 18px 12px;border:3px solid #fff}'
+    + '.tag .k{font-size:14px;letter-spacing:.3em;color:#e2b877;display:block;margin-bottom:2px}.tag .n{font-size:40px;font-weight:900;letter-spacing:.04em;line-height:1}'
+    + '.band{position:absolute;left:0;right:0;top:482px;height:160px;background:rgba(8,11,18,.86);border-top:3px solid #fff}'
+    + '.series{position:absolute;left:40px;top:500px;font-size:20px;letter-spacing:.06em;color:#e2b877;font-weight:700}'
+    + '.title{position:absolute;left:40px;right:230px;top:530px;height:104px;display:flex;align-items:center;font-family:"Noto Serif CJK JP","Noto Serif JP",serif;font-weight:900;font-size:' + fs + 'px;line-height:1.2;letter-spacing:.02em;text-shadow:0 0 1px #000}'
+    + '.brand{position:absolute;right:40px;top:604px;font-size:13px;letter-spacing:.3em;color:#9fb0c4}'
+    + '</style></head><body>'
+    + '<img class="art" src="' + artDataUrl + '">' + svg
+    + '<div class="tag"><span class="k">連載小説</span><span class="n">' + esc(lab) + '</span></div>'
+    + '<div class="band"></div><div class="series">' + esc(outline.series) + '</div>'
+    + '<div class="title"><div>「' + esc(title) + '」</div></div><div class="brand">HORIZON SHIELD</div>'
+    + '</body></html>';
+}
+
+function eyecatchHtml(outline, ep, artDataUrl) {
+  if (artDataUrl) return mangaCoverHtml(outline, ep, artDataUrl);
   const W = 1280, H = 670;
   const title = String(ep.title || '');
   const n = title.length;

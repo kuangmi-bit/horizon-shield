@@ -1137,16 +1137,29 @@ async function storyMain() {
     const tags = STORY.hashtagsFor(outline, ep);
     if (STORY.DASH_TEST.test(post + title) || STORY.MACHINE_RE.test(post + title)) throw new Error('最後の確かめで、ダッシュか機械の名前が見つかった');
 
+    // 見出し画像: アニメの漫画風の絵(OpenAI、無ければ Gemini)を描き、その上に題と話数を載せる。絵が無ければ文字だけの画像。
+    const ART = require('./art');
+    let artUrl = null, artNote = '';
+    try {
+      const a = await ART.makeArt(outline, ep, { openaiKey: process.env.OPENAI_API_KEY, geminiKey: process.env.GEMINI_API_KEY, anthropicKey: process.env.ANTHROPIC_API_KEY });
+      for (const n of (a.notes || [])) console.log('絵:', n);
+      if (a.ok) {
+        fs.mkdirSync(path.join(__dirname, 'debug'), { recursive: true });
+        fs.writeFileSync(path.join(__dirname, 'debug', 'art-' + ep.key + (/jpe?g/.test(a.mime) ? '.jpg' : '.png')), a.buf);
+        artUrl = 'data:' + a.mime + ';base64,' + a.buf.toString('base64');
+        console.log('絵を描いた:', a.model, a.via, '/ 場面:', a.scene);
+      } else { artNote = a.why; console.log('絵なし(文字だけの見出し画像にする):', a.why); }
+    } catch (e) { artNote = String(e.message || e); console.log('絵なし:', artNote); }
     const png = path.join(__dirname, 'debug', 'eyecatch-' + ep.key + '.png');
     let eyecatch = null;
-    try { eyecatch = await renderEyecatchPng(STORY.eyecatchHtml(outline, ep), png); console.log('見出し画像を作った:', png); }
+    try { eyecatch = await renderEyecatchPng(STORY.eyecatchHtml(outline, ep, artUrl), png); console.log('見出し画像を作った:', png); }
     catch (e) { console.log('見出し画像を作れなかった(投稿は続ける):', e.message); }
 
     if (dry) {
       console.log('===== DRY_RUN 連載のプレビュー(投稿しない) =====');
       console.log('題:', title);
       console.log('タグ:', tags.map((t) => '#' + t).join(' '));
-      console.log('見出し画像:', eyecatch || '(なし)');
+      console.log('見出し画像:', eyecatch || '(なし)', artUrl ? '(絵あり)' : '(絵なし: ' + artNote + ')');
       console.log('----- note の本文 -----');
       console.log(post);
       console.log('----- 本文ここまで 字数:', body.replace(/\s/g, '').length, '-----');
@@ -1166,6 +1179,7 @@ async function storyMain() {
     recordPostedDate(title);
     const rem = STORY.remaining(outline, st);
     let notice = STORY.ownerNotice(outline, ep, noteUrl, rem, source);
+    if (!artUrl) notice += '\n\n絵は描けず、文字だけの見出し画像にした(' + String(artNote).slice(0, 200) + ')';
     if (eyecatch && !(LAST_EYECATCH && LAST_EYECATCH.ok)) {
       notice += '\n\n見出し画像は付けられなかった(' + ((LAST_EYECATCH && LAST_EYECATCH.why) || '画像なし') + ')。記事は公開済み。画面の記録は Actions の成果物 note-debug にある。';
     }

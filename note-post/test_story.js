@@ -182,7 +182,60 @@ console.log('\n8) 公開した回を残す');
     check('設定書が system に入る', p.system.includes('八雲の物差し'));
   }
 
-  const EXPECT = 101;
+  console.log('\n10) 見出し画像の絵(模擬の応答で)');
+  {
+    const A = require('./art');
+    const b64 = Buffer.from('P'.repeat(400)).toString('base64');
+    const ref = Buffer.from('R'.repeat(400)).toString('base64');
+    const i1 = A.findImage({ output_image: { data: b64, mime_type: 'image/png' } });
+    check('Interactions の形(output_image.data)から絵を取り出す', i1 && i1.data === b64 && i1.mime === 'image/png');
+    const i2 = A.findImage({ candidates: [{ content: { parts: [{ text: 'x' }, { inlineData: { mimeType: 'image/jpeg', data: b64 } }] } }] });
+    check('generateContent の形(inlineData)から絵を取り出す', i2 && i2.data === b64 && i2.mime === 'image/jpeg');
+    const i3 = A.findImage({ input: [{ type: 'image', mime_type: 'image/png', data: ref }], outputs: [{ type: 'image', mime_type: 'image/png', data: b64 }] });
+    check('渡した見本の絵を、返ってきた絵と取り違えない', i3 && i3.data === b64);
+    check('絵が無い応答は null', A.findImage({ outputs: [{ type: 'text', text: 'no' }] }) === null);
+    const ep1 = mains[0];
+    const pr = A.artPrompt(outline, ep1, 'SCENE');
+    check('絵の指示に場面・人物・舞台・禁止事項が入る', pr.includes('SCENE') && pr.includes('Muñoz') && pr.includes('Minami') && pr.includes('Haru') && pr.includes('Shiomi') && pr.includes('no text'));
+    const pr7 = A.artPrompt(outline, mains[6], 'SCENE7');
+    check('昔話の回は今の人物を描かせない', !pr7.includes('Muñoz') && !pr7.includes('Shiomi'));
+    check('筋書きに場面がある回は、それを使う', (await A.sceneFromBeats(ep1, {})) === ep1.scene);
+    check('場面が無く鍵も無ければ、決まり文句', (await A.sceneFromBeats(mains[20], {})).includes('Spanish carpenter'));
+    check('OpenAI の形(data[0].b64_json)から絵を取り出す', (A.findImage({ data: [{ b64_json: b64 }], output_format: 'png' }) || {}).data === b64);
+    // OpenAI で描く: 1つ目のモデルは 404、2つ目で絵が返る。寸法で断られたら次の寸法
+    let calls = [];
+    const f = async (url, init) => {
+      const body = JSON.parse(init.body); calls.push(url.replace(/^https:\/\/[^/]+/, '') + ' ' + body.model + ' ' + (body.size || ''));
+      if (body.model === 'm-nai') return { ok: false, status: 404, json: async () => ({ error: { message: 'model not found' } }) };
+      if (body.size === '1536x864') return { ok: false, status: 400, json: async () => ({ error: { message: 'Invalid size' } }) };
+      return { ok: true, status: 200, json: async () => ({ data: [{ b64_json: b64 }], output_format: 'png' }) };
+    };
+    const d = await A.drawOpenAI('p', [], { openaiKey: 'k', fetchImpl: f, openaiModels: ['m-nai', 'm-aru'] });
+    check('無いモデルは飛ばし、寸法で断られたら横長の標準寸法で描く', d.ok && d.model === 'm-aru' && calls.some((c) => c.includes('1536x1024')), calls.join(' / '));
+    check('見本が無いときは generations を使う', calls.every((c) => c.startsWith('/v1/images/generations')));
+    // OpenAI が駄目なら Gemini に回る
+    const f3 = async (url, init) => {
+      if (String(url).includes('api.openai.com')) return { ok: false, status: 401, json: async () => ({ error: { message: 'bad key' } }) };
+      return { ok: true, status: 200, json: async () => ({ output_image: { data: b64, mime_type: 'image/png' } }) };
+    };
+    const d3 = await A.drawAny('p', [], { openaiKey: 'k', geminiKey: 'g', fetchImpl: f3, openaiModels: ['m'], geminiModels: ['gm'] });
+    check('OpenAI が駄目なら Gemini で描く', d3.ok && d3.via.startsWith('gemini'), JSON.stringify(d3.tried || ''));
+    // 人物の見本が無ければ先に作って保存し、その回の絵に見本を添える(edits に images で渡す)
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'art-'));
+    const sheet = path.join(tmp, 'cast.png');
+    let sent = [];
+    const f2 = async (url, init) => { const body = JSON.parse(init.body); sent.push(url.replace(/^https:\/\/[^/]+/, '') + ':' + ((body.images || []).length)); return { ok: true, status: 200, json: async () => ({ data: [{ b64_json: b64 }] }) }; };
+    const a = await A.makeArt(outline, ep1, { openaiKey: 'k', fetchImpl: f2, openaiModels: ['m'], castSheetPath: sheet });
+    check('見本が無ければ先に作って保存する', a.ok && fs.existsSync(sheet) && a.notes.some((n) => n.includes('見本を作った')));
+    check('その回の絵は edits に見本を1枚添えて描く', sent.length === 2 && sent[0] === '/v1/images/generations:0' && sent[1] === '/v1/images/edits:1', JSON.stringify(sent));
+    const a2 = await A.makeArt(outline, ep1, {});
+    check('鍵が無ければ、絵なし(文字だけに戻る)', !a2.ok && a2.why.includes('OPENAI_API_KEY'));
+    const html = S.eyecatchHtml(outline, ep1, 'data:image/png;base64,' + b64);
+    check('絵があれば、絵を敷いた見出し画像になる', html.includes('class="art"') && html.includes('第1話') && html.includes('見積書は、こっち側から読む'));
+    check('絵が無ければ、文字だけの見出し画像', !S.eyecatchHtml(outline, ep1).includes('class="art"'));
+  }
+
+  const EXPECT = 118;
   console.log('\n確かめた数: ' + checks + ' (最低 ' + EXPECT + ')');
   if (checks < EXPECT) { console.log('  NG   試験がまるごと走っていません。'); fail++; }
   console.log(fail ? fail + ' 件 失敗' : '連載の検査 すべて通過');
