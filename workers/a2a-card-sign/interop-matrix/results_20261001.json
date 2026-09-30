@@ -1,0 +1,377 @@
+{
+  "schema": "hs-a2a-signing-interop-v0",
+  "versions": {
+    "a2a-python": "a2a-sdk 1.2.1",
+    "a2a-js": "@a2a-js/sdk 1.3.0",
+    "a2a-go": "a2a-go main 534a60fc (2026-09-30)"
+  },
+  "test_key": {
+    "kid": "hs-interop-test-v1",
+    "phrase": "HORIZON SHIELD A2A card-signing interop test key v1 (public, test vectors only)",
+    "jwks_sha256": "595bed787f85114b68b66bb1e013dd527905731ee25112a8f60d7c3c4cbab699"
+  },
+  "spec_8_4_1_example": {
+    "input": {
+      "name": "Example Agent",
+      "description": "",
+      "capabilities": {
+        "streaming": false,
+        "pushNotifications": false,
+        "extensions": []
+      },
+      "skills": []
+    },
+    "expected": "{\"capabilities\":{\"pushNotifications\":false,\"streaming\":false},\"description\":\"\",\"name\":\"Example Agent\",\"skills\":[]}",
+    "python": "{\"capabilities\":{\"pushNotifications\":false,\"streaming\":false},\"name\":\"Example Agent\"}",
+    "js": "{\"capabilities\":{\"pushNotifications\":false,\"streaming\":false},\"name\":\"Example Agent\"}",
+    "go": "{\"capabilities\":{\"extensions\":[],\"pushNotifications\":false,\"streaming\":false},\"description\":\"\",\"name\":\"Example Agent\",\"skills\":[]}",
+    "matches": {
+      "python": false,
+      "js": false,
+      "go": false
+    }
+  },
+  "rows": [
+    {
+      "case": "control",
+      "what": "no field at its default value",
+      "card_sha256": "43e5056fdace6311f77d445dc98d392f47cc6cfa0408b92fca0b41cbe05d3e9c",
+      "canonical": {
+        "python": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        },
+        "js": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        },
+        "go": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        }
+      },
+      "cells": {
+        "python>python": {
+          "ok": true
+        },
+        "python>js": {
+          "ok": true
+        },
+        "python>go": {
+          "ok": true,
+          "error": null
+        },
+        "js>python": {
+          "ok": true
+        },
+        "js>js": {
+          "ok": true
+        },
+        "js>go": {
+          "ok": true,
+          "error": null
+        },
+        "go>python": {
+          "ok": true
+        },
+        "go>js": {
+          "ok": true
+        },
+        "go>go": {
+          "ok": true,
+          "error": null
+        }
+      }
+    },
+    {
+      "case": "empty_description",
+      "what": "description = \"\" (REQUIRED)",
+      "card_sha256": "8b403ce50faa5150a9a8b41f48177925c3fda87da2fab21da5e0a27e0c122a80",
+      "canonical": {
+        "python": {
+          "len": 376,
+          "sha256": "a4b11173d238f241c493a21f123718c546fddf3e973d37a2a4e451a040c0f59e"
+        },
+        "js": {
+          "len": 376,
+          "sha256": "a4b11173d238f241c493a21f123718c546fddf3e973d37a2a4e451a040c0f59e"
+        },
+        "go": {
+          "len": 393,
+          "sha256": "9a36f162585b1570ae0b8f7540f14255ec5576d11a737ab26ac255c79a0bc0a6"
+        }
+      },
+      "cells": {
+        "python>python": {
+          "ok": true
+        },
+        "python>js": {
+          "ok": true
+        },
+        "python>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "js>python": {
+          "ok": true
+        },
+        "js>js": {
+          "ok": true
+        },
+        "js>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "go>python": {
+          "ok": false,
+          "error": "InvalidSignaturesError: No valid signature found"
+        },
+        "go>js": {
+          "ok": false,
+          "error": "No valid signatures found on agent card."
+        },
+        "go>go": {
+          "ok": true,
+          "error": null
+        }
+      }
+    },
+    {
+      "case": "empty_skills",
+      "what": "skills = [] (REQUIRED)",
+      "card_sha256": "f9113332b11e4ce8a1525b6da164fcafa85273487860a93d5439bf0088fcfaf3",
+      "canonical": {
+        "python": {
+          "len": 344,
+          "sha256": "dc62b9c1ca83179d3e3cd8bd01dc12df05211044fb5e9b108989355ed8d466af"
+        },
+        "js": {
+          "len": 344,
+          "sha256": "dc62b9c1ca83179d3e3cd8bd01dc12df05211044fb5e9b108989355ed8d466af"
+        },
+        "go": {
+          "len": 356,
+          "sha256": "cd2ef2a721aad5d163bf2e0699ed0933f0d9c6e91a61c1facd79d75be3e45ea0"
+        }
+      },
+      "cells": {
+        "python>python": {
+          "ok": true
+        },
+        "python>js": {
+          "ok": true
+        },
+        "python>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "js>python": {
+          "ok": true
+        },
+        "js>js": {
+          "ok": true
+        },
+        "js>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "go>python": {
+          "ok": false,
+          "error": "InvalidSignaturesError: No valid signature found"
+        },
+        "go>js": {
+          "ok": false,
+          "error": "No valid signatures found on agent card."
+        },
+        "go>go": {
+          "ok": true,
+          "error": null
+        }
+      }
+    },
+    {
+      "case": "empty_skill_tags",
+      "what": "skills[0].tags = [] (REQUIRED on AgentSkill)",
+      "card_sha256": "9cc7e483652167402a27580415a87493b1e52e1d75976ab1330ac82c686b5233",
+      "canonical": {
+        "python": {
+          "len": 417,
+          "sha256": "36ee28e611a3ef2c171bb8041923d443807ae0b4b9628665b52f3f4f37c41ab8"
+        },
+        "js": {
+          "len": 417,
+          "sha256": "36ee28e611a3ef2c171bb8041923d443807ae0b4b9628665b52f3f4f37c41ab8"
+        },
+        "go": {
+          "len": 427,
+          "sha256": "7248fcdf2c8a9b077262c5614861508e9ec579cafc6b9bba13ca15429f4d8a4f"
+        }
+      },
+      "cells": {
+        "python>python": {
+          "ok": true
+        },
+        "python>js": {
+          "ok": true
+        },
+        "python>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "js>python": {
+          "ok": true
+        },
+        "js>js": {
+          "ok": true
+        },
+        "js>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "go>python": {
+          "ok": false,
+          "error": "InvalidSignaturesError: No valid signature found"
+        },
+        "go>js": {
+          "ok": false,
+          "error": "No valid signatures found on agent card."
+        },
+        "go>go": {
+          "ok": true,
+          "error": null
+        }
+      }
+    },
+    {
+      "case": "empty_extensions",
+      "what": "capabilities.extensions = [] (not REQUIRED)",
+      "card_sha256": "eed28d8d46da7bd98d112a6664010aafd230f8e66f56f698bb3ae17f0565cdbf",
+      "canonical": {
+        "python": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        },
+        "js": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        },
+        "go": {
+          "len": 450,
+          "sha256": "afbd88a7a51eaf974e795f125fec4bedd5cd675d0f76316ad934ed5b39488ba3"
+        }
+      },
+      "cells": {
+        "python>python": {
+          "ok": true
+        },
+        "python>js": {
+          "ok": true
+        },
+        "python>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "js>python": {
+          "ok": true
+        },
+        "js>js": {
+          "ok": true
+        },
+        "js>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "go>python": {
+          "ok": false,
+          "error": "InvalidSignaturesError: No valid signature found"
+        },
+        "go>js": {
+          "ok": false,
+          "error": "No valid signatures found on agent card."
+        },
+        "go>go": {
+          "ok": true,
+          "error": null
+        }
+      }
+    },
+    {
+      "case": "nested_empty_security",
+      "what": "securityRequirements = [{}] (not REQUIRED, nested empty)",
+      "card_sha256": "2c691e09aaffc495f10f0b56f076e27f98c77c5e911939eabcd724327d42a0ef",
+      "canonical": {
+        "python": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        },
+        "js": {
+          "len": 434,
+          "sha256": "d2988a6544f23a9f6d270f1c0d0a1bb67ea02cb08923d693cfdf97c2e2bdad40"
+        },
+        "go": {
+          "len": 462,
+          "sha256": "4e0baa46a06ed401ac056832139bc06c2f0d43c9e1de9ba783213169bc20e30f"
+        }
+      },
+      "cells": {
+        "python>python": {
+          "ok": true
+        },
+        "python>js": {
+          "ok": true
+        },
+        "python>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "js>python": {
+          "ok": true
+        },
+        "js>js": {
+          "ok": true
+        },
+        "js>go": {
+          "ok": false,
+          "error": "[{\"error\": \"signature verification failed\", \"index\": 0, \"ok\": false}]"
+        },
+        "go>python": {
+          "ok": false,
+          "error": "InvalidSignaturesError: No valid signature found"
+        },
+        "go>js": {
+          "ok": false,
+          "error": "No valid signatures found on agent card."
+        },
+        "go>go": {
+          "ok": true,
+          "error": null
+        }
+      }
+    }
+  ],
+  "frozen_production_card": {
+    "card_sha256": "2df33ff120745a7f46b8afc1378d72b437b3f05b4db61c8d8b3655c581584455",
+    "jwks_sha256": "692fd49da681cc0d0bda9ad46963fa5f45957a59d10f84998e9b2e4061209d3c",
+    "python": {
+      "ok": true
+    },
+    "js": {
+      "ok": true
+    },
+    "go": {
+      "ok": true,
+      "per_signature": [
+        {
+          "error": "<nil>",
+          "index": 0,
+          "ok": true
+        },
+        {
+          "error": "signature verification failed",
+          "index": 1,
+          "ok": false
+        }
+      ]
+    }
+  }
+}
