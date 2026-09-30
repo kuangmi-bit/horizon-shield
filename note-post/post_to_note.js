@@ -1,5 +1,10 @@
-const puppeteer = require('puppeteer-core');
+// 2026-09-30 puppeteer-core は使う時に読む(検査や、本文だけの確認では要らない)。
 const fs = require('fs');
+const path = require('path');
+const CHROME_PATH = process.env.CHROME_PATH || '/usr/bin/google-chrome-stable';
+// 既定は連載(story)。以前の解説記事に戻すときだけ NOTE_MODE=explainer。
+const NOTE_MODE = process.env.NOTE_MODE || 'story';
+let LAST_EYECATCH = null;
 /**
  * HORIZON SHIELD note自動投稿 v11
  * 変更点：
@@ -636,10 +641,10 @@ async function clickButtonByText(page, text) {
   return false;
 }
 
-async function postToNote(theme, articleText) {
+async function postToNote(theme, articleText, opts) {
   console.log('ブラウザ起動中...');
-  const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/google-chrome-stable',
+  const browser = await require('puppeteer-core').launch({
+    executablePath: CHROME_PATH,
     headless: true,
     args: [
       '--no-sandbox',
@@ -684,6 +689,12 @@ async function postToNote(theme, articleText) {
     const editableCount = await page.evaluate(() => document.querySelectorAll('[contenteditable]').length);
     console.log('contenteditable数:', editableCount);
     if (editableCount === 0) throw new Error('エディタが開けていない');
+
+    // 2026-09-30 見出し画像(連載のとき)。失敗しても投稿は止めない。
+    if (opts && opts.eyecatchPng) {
+      LAST_EYECATCH = await uploadEyecatch(page, opts.eyecatchPng);
+      console.log('見出し画像:', JSON.stringify(LAST_EYECATCH));
+    }
 
     const titleEl = await page.$('[placeholder="記事タイトル"]');
     if (titleEl) {
@@ -890,6 +901,7 @@ function savePostedTitle(title) {
 // main
 // ========================================
 async function main() {
+  if (NOTE_MODE !== 'explainer') return storyMain();
   console.log('=== HORIZON SHIELD note自動投稿 v11 開始 ===');
   try {
     // ★ NOTE_EMAIL / NOTE_PASSWORD を削除（Cookie認証のため不要）
@@ -981,5 +993,192 @@ async function main() {
     process.exit(1);
   }
 }
+
+// ========================================
+// 2026-09-30 連載『大工ムニョスは「一式」を許さない』
+//   中身は story.js(次の話・本文・門・全文)。ここはブラウザと LINE だけ。
+// ========================================
+const STORY = require('./story');
+
+async function renderEyecatchPng(html, outPath) {
+  const browser = await require('puppeteer-core').launch({
+    executablePath: CHROME_PATH, headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
+  try {
+    const p = await browser.newPage();
+    await p.setViewport({ width: 1280, height: 670, deviceScaleFactor: 1 });
+    await p.setContent(html, { waitUntil: 'load', timeout: 20000 });
+    await p.evaluate(() => (document.fonts ? document.fonts.ready : null));
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    await p.screenshot({ path: outPath, type: 'png', clip: { x: 0, y: 0, width: 1280, height: 670 } });
+    return outPath;
+  } finally {
+    await browser.close();
+  }
+}
+
+// 画面の記録(うまくいかなかったとき、どこで止まったかを後で見るため)。Actions の成果物に残す。
+async function snap(page, name) {
+  if (process.env.NOTE_DEBUG_SHOTS === '0') return;
+  try {
+    const d = path.join(__dirname, 'debug');
+    fs.mkdirSync(d, { recursive: true });
+    await page.screenshot({ path: path.join(d, name + '.png') });
+  } catch (_e) { /* 記録に失敗しても投稿は続ける */ }
+}
+
+// 文字がちょうど一致する要素を探す(「下書き保存」を「保存」と取り違えないため、完全一致だけ)。
+async function findByTexts(page, texts, sel) {
+  const els = await page.$$(sel);
+  for (const t of texts) {
+    for (const el of els) {
+      let tx = '';
+      try { tx = await el.evaluate((e) => (e.textContent || '').trim()); } catch (_e) { tx = ''; }
+      if (tx === t) return el;
+    }
+  }
+  return null;
+}
+
+// 見出し画像を付ける。note の画面が変わっていても投稿を止めないよう、失敗は結果として返すだけ。
+async function uploadEyecatch(page, pngPath) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  try {
+    await snap(page, '1-editor');
+    let btn = null;
+    for (const sel of ['button[aria-label="画像を追加"]', 'button[aria-label*="見出し画像"]', 'button[aria-label*="画像"]']) {
+      btn = await page.$(sel);
+      if (btn) break;
+    }
+    if (!btn) btn = await findByTexts(page, ['見出し画像を追加', '画像を追加'], 'button, [role="button"]');
+    if (!btn) { await snap(page, '1-no-button'); return { ok: false, why: '見出し画像のボタンが見つからない' }; }
+    await btn.click();
+    await sleep(1200);
+    await snap(page, '2-menu');
+    let item = await findByTexts(page, ['画像をアップロード', 'パソコンからアップロード', 'アップロード'], 'button, [role="button"], [role="menuitem"], li, label');
+    if (!item) item = await findByTexts(page, ['画像をアップロード', 'アップロード'], 'div, span');
+    if (item) {
+      const [fc] = await Promise.all([page.waitForFileChooser({ timeout: 8000 }), item.click()]);
+      await fc.accept([pngPath]);
+    } else {
+      const input = await page.$('input[type="file"]');
+      if (!input) { await snap(page, '2-no-upload'); await page.keyboard.press('Escape'); return { ok: false, why: 'アップロードの項目が見つからない' }; }
+      await input.uploadFile(pngPath);
+    }
+    await sleep(3000);
+    await snap(page, '3-crop');
+    let save = await findByTexts(page, ['保存', '適用', '完了', '決定'],
+      '[role="dialog"] button, .ReactModal__Content button, [class*="Modal"] button, [class*="modal"] button');
+    if (!save) save = await findByTexts(page, ['保存', '適用'], 'button');
+    if (save) { await save.click(); await sleep(3000); }
+    await snap(page, '4-after');
+    const still = await page.evaluate(() => Array.from(document.querySelectorAll('[role="dialog"], .ReactModal__Content'))
+      .some((d) => { const r = d.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(d).visibility !== 'hidden'; }));
+    if (still) { await page.keyboard.press('Escape'); await sleep(600); }
+    if (!save) return { ok: false, why: '切り抜き画面の保存ボタンが見つからない' };
+    return still ? { ok: false, why: '保存のあとも画面が残った' } : { ok: true };
+  } catch (e) {
+    try { await page.keyboard.press('Escape'); } catch (_e) { /* 何もしない */ }
+    await snap(page, '9-error');
+    return { ok: false, why: String((e && e.message) || e).slice(0, 120) };
+  }
+}
+
+async function broadcastLine(text) {
+  if (process.env.NOTE_BROADCAST === '0') { console.log('ブロードキャスト: 止めてある(NOTE_BROADCAST=0)'); return; }
+  try {
+    const res = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.LINE_CHANNEL_TOKEN}` },
+      body: JSON.stringify({ messages: [{ type: 'text', text: text.slice(0, 5000) }] }),
+    });
+    console.log('ブロードキャスト:', res.ok ? '成功' : `失敗 [${res.status}]`);
+  } catch (e) { console.log('ブロードキャスト失敗:', e.message); }
+}
+
+async function storyMain() {
+  console.log('=== note 連載 開始 ===');
+  const dry = process.env.DRY_RUN === '1';
+  let ep = null;
+  try {
+    const outline = STORY.loadOutline();
+    const bible = STORY.loadBible();
+    const state = STORY.loadState();
+    const now = new Date();
+    if (!dry && process.env.NOTE_FORCE !== '1' && STORY.alreadyPostedToday(state, now)) {
+      console.log('今日の回は公開済み。二度は出さない(出すときは NOTE_FORCE=1)。');
+      process.exit(0);
+    }
+    const want = (process.env.STORY_KEY || '').trim();
+    ep = (dry && want) ? STORY.episodeByKey(outline, state, want) : STORY.nextEpisode(outline, state);
+    if (!ep) throw new Error('次の話を決められない(' + (want || 'next') + ')');
+    ep = Object.assign({}, ep);
+    console.log('今日の回:', ep.key, ep.title || ('(自由題: ' + ep.topic + ')'));
+
+    let body = STORY.prewritten(ep);
+    let source = 'prewritten';
+    if (body) {
+      const g = STORY.gateBody(body, ep);
+      if (!g.ok) throw new Error('書き置きの回が門を通らない: ' + g.reasons.join(' / '));
+      body = body.trim();
+    } else {
+      if (!process.env.ANTHROPIC_API_KEY) throw new Error('環境変数未設定: ANTHROPIC_API_KEY');
+      const usedTitles = (state.posted || []).map((p) => p.title);
+      const r = await STORY.generate(ep, { outline, bible, state, prevBody: STORY.previousBody(outline, state, ep), usedTitles },
+        { apiKey: process.env.ANTHROPIC_API_KEY });
+      if (!r.ok) throw new Error('本文が門を通らない: ' + r.reasons.join(' | ').slice(0, 600));
+      body = r.body; ep.title = r.title; ep.line = r.line; source = 'generated';
+      console.log('書いた回数:', r.tries, ' モデル:', r.model);
+    }
+    const next = STORY.peekNext(outline, state, ep);
+    const title = STORY.fullTitle(outline, ep);
+    const post = STORY.composePost(outline, ep, body, next);
+    const tags = STORY.hashtagsFor(outline, ep);
+    if (STORY.DASH_TEST.test(post + title) || STORY.MACHINE_RE.test(post + title)) throw new Error('最後の確かめで、ダッシュか機械の名前が見つかった');
+
+    const png = path.join(__dirname, 'debug', 'eyecatch-' + ep.key + '.png');
+    let eyecatch = null;
+    try { eyecatch = await renderEyecatchPng(STORY.eyecatchHtml(outline, ep), png); console.log('見出し画像を作った:', png); }
+    catch (e) { console.log('見出し画像を作れなかった(投稿は続ける):', e.message); }
+
+    if (dry) {
+      console.log('===== DRY_RUN 連載のプレビュー(投稿しない) =====');
+      console.log('題:', title);
+      console.log('タグ:', tags.map((t) => '#' + t).join(' '));
+      console.log('見出し画像:', eyecatch || '(なし)');
+      console.log('----- note の本文 -----');
+      console.log(post);
+      console.log('----- 本文ここまで 字数:', body.replace(/\s/g, '').length, '-----');
+      console.log('----- LINE の友だちへ -----');
+      console.log(STORY.broadcastText(outline, ep, 'https://note.com/horizon_shield/n/(公開後のURL)'));
+      console.log('===== DRY_RUN 終了。投稿していない。=====');
+      process.exit(0);
+    }
+
+    for (const k of ['NOTE_SESSION', 'LINE_CHANNEL_TOKEN', 'LINE_USER_ID']) {
+      if (!process.env[k]) throw new Error('環境変数未設定: ' + k);
+    }
+    const noteUrl = await postToNote({ title, hashtags: tags }, post, { eyecatchPng: eyecatch });
+    console.log('投稿URL:', noteUrl);
+    const st = STORY.savePosted(ep, body, noteUrl, now, source);
+    savePostedTitle(title);
+    recordPostedDate(title);
+    const rem = STORY.remaining(outline, st);
+    let notice = STORY.ownerNotice(outline, ep, noteUrl, rem, source);
+    if (eyecatch && !(LAST_EYECATCH && LAST_EYECATCH.ok)) {
+      notice += '\n\n見出し画像は付けられなかった(' + ((LAST_EYECATCH && LAST_EYECATCH.why) || '画像なし') + ')。記事は公開済み。画面の記録は Actions の成果物 note-debug にある。';
+    }
+    await sendLine(notice);
+    await broadcastLine(STORY.broadcastText(outline, ep, noteUrl));
+    console.log('=== 完了 ===');
+    process.exit(0);
+  } catch (e) {
+    console.error('エラー:', e.message);
+    await sendLine('❌ note 連載の投稿を止めた' + (ep ? '(' + STORY.label(ep) + ')' : '') + '\n' + e.message).catch(() => {});
+    process.exit(1);
+  }
+}
+
 
 main();
