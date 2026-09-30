@@ -176,7 +176,23 @@ console.log("\n7) 設問を貼った下が問いの形なら、質問として�
   check("窓口が『途中で止めても大丈夫』と答える", String(out.reply).includes("途中で止めても大丈夫"), out.reply);
 }
 
-const EXPECT = 31;
+console.log("\n8) 同じ会社の人への一言(9/27 の実文)は、答えにしない");
+{
+  const env = makeEnv();
+  const store = seed(env, ["q_en_recent"], { q_en_recent: Q_CASE });
+  const out = await H.handlePartnerInbound(env, SID, store, "@森下 真也 \n明日以後宜しくです！", "line");
+  check("kind は aside", out.kind === "aside", out.kind);
+  check("返事はしない(空)", out.reply === "", JSON.stringify(out.reply));
+  check("取り込まない(linereply: 無し)", !has(env, "linereply:"));
+  check("生の文は aside: に残す", has(env, "aside:"));
+  const s = JSON.parse(env._kv.get("store:" + SID));
+  check("返事待ちは消さない(本当の答えを待つ)", !!(s.autopilot.pending && s.autopilot.pending.qids && s.autopilot.pending.qids.includes("q_en_recent")));
+  check("1行の『@森下 真也 宜しくです！』も aside", C.isPersonalAside("@森下 真也 宜しくです！"));
+  check("@HORIZON SHIELD 宛ては aside ではない", !C.isPersonalAside("@HORIZON SHIELD 受け取りました"));
+  check("同僚への @ の後に長い答えが続くなら aside ではない", !C.isPersonalAside("@森下 真也\n工種：ロールスクリーン取付\n地域：愛知県半田市\n工夫した点：お客様がご多忙のため、写真や参考パースで遠隔ですり合わせた"));
+}
+
+const EXPECT = 39;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "返事の形の読み分け すべて通過");

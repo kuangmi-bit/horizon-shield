@@ -150,3 +150,25 @@ export function answerIntentAfterEcho(answer) {
   if (/(ますか|ますでしょうか|でしょうか|ですか)[。 　]*$/.test(a)) return "question";
   return "answer";
 }
+
+/* 2026-09-30 同じ会社の人に宛てた一言を、こちらへの答えにしない。
+
+   実測(hs-partner-001): 9/27、継続エンリッチの q_en_recent(直近の工事1件)を送ったあと、
+   堤さまがそれを HORIZON グループに回し「@森下 真也 明日以後宜しくです!」と書かれた。
+   返事待ちが1問だけだったので、これが sole(その質問だけへの返事)として q_en_recent の欄に入った。
+   本当の答え(半田市のロールスクリーン)は 9/30 に森下さまから届いたが、そのときは返事待ちが空で、どの欄にも入らなかった。
+   9/7 の「@森下 真也 宜しくです!」と同じ形である。
+
+   先頭が公式アカウント以外への @ で、それを除くと短い一言しか残らないものは、社内の申し送りとして扱う。
+   答えとして取り込まず、返事待ちも消さず、返事もしない。生の文は aside: に残す。 */
+export function isPersonalAside(text) {
+  const raw = String(text || "").replace(/\r/g, "").trim();
+  if (!/^[@＠]/.test(raw)) return false;
+  if (/[@＠][ 　]*HORIZON[ 　]*SHIELD/i.test(raw)) return false;
+  const lines = raw.split("\n");
+  let rest;
+  if (lines[0].length <= 24) rest = lines.slice(1).join("\n");
+  else rest = lines[0].replace(/^[@＠][^ 　\n]+(?:[ 　][^ 　\n]+)?/, "") + "\n" + lines.slice(1).join("\n");
+  rest = rest.replace(/[@＠][^ 　\n]+/g, "").replace(/[\s　]/g, "");
+  return rest.length <= 30;
+}

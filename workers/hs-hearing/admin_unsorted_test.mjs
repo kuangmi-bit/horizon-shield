@@ -125,6 +125,23 @@ console.log("4. 未来の日付は今までどおり弾く(退行していない
   ok("理由は at_in_future", r.json && r.json.error === "at_in_future", JSON.stringify(r.json));
 }
 
+console.log("5. 継続エンリッチの設問(q_en_*)にも、人が当て直せる(2026-09-30)");
+{
+  // 森下さまが HORIZON グループで答えた「直近の工事1件」は q_en_recent への答え。
+  // ところが profile-patch の知っている qid に ENRICH_BANK が入っておらず、unknown_qid で弾かれていた。
+  const env = freshEnv();
+  const r = await call(env, "/admin/profile-patch", "POST", {
+    store_id: "hs-partner-001",
+    extra: { q_en_recent: "工種: ロールスクリーン取付 / 地域: 愛知県半田市" },
+  });
+  ok("200 で返る(q_en_recent を知っている)", r.status === 200, JSON.stringify(r.json).slice(0, 120));
+  const rec = JSON.parse(env.HS_HEARING_KV._map.get("hearing:hs-partner-001"));
+  ok("q_en_recent に本文が入る", rec.profile.extra.q_en_recent && rec.profile.extra.q_en_recent.text.includes("ロールスクリーン"));
+  ok("印は admin(今この場で人が書いた)", rec.profile.extra.q_en_recent && rec.profile.extra.q_en_recent.attributed === "admin");
+  const bad = await call(env, "/admin/profile-patch", "POST", { store_id: "hs-partner-001", extra: { q_en_nai: "x" } });
+  ok("存在しない q_en_ は今までどおり弾く", bad.status === 400 && bad.json && bad.json.error === "unknown_qid", JSON.stringify(bad.json));
+}
+
 console.log("");
 if (fails) { console.log("=== " + fails + " 件 不合格 (admin_unsorted_test) ==="); process.exit(1); }
 console.log("=== 全部 通過 (admin_unsorted_test) ===");

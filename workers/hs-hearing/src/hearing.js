@@ -1576,6 +1576,7 @@ async function lineFetchContent(env, messageId) {
 }
 async function lineReply(env, replyToken, text) {
   if (!env.LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
+  if (!String(text || "").trim()) return;   // 2026-09-30 返す文が空なら送らない(社内の一言など)
   try {
     await fetch("https://api.line.me/v2/bot/message/reply", {
       method: "POST",
@@ -1872,6 +1873,15 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
   // 2026-09-30 返事の形を読む(貼った設問 ↓ 答え、先頭の @HORIZON SHIELD)。
   //   判定(金額・意図)と取り込みは、答えの部分で行う。生の全文は返事のログに残す。
   //   詳しくは concierge.js の splitEchoReply。
+  // 2026-09-30 同じ会社の人への一言(先頭が公式アカウント以外への @ で、残りが短い)は答えにしない。concierge.js の isPersonalAside。
+  if (CONCIERGE.isPersonalAside(raw)) {
+    try {
+      await env.HS_HEARING_KV.put("aside:" + storeId + ":" + Date.now(),
+        JSON.stringify({ text: raw.slice(0, 1000), at: new Date().toISOString(), company, src }));
+    } catch (_e) {}
+    return { kind: "aside", res: null, reply: "" };
+  }
+
   const sp = CONCIERGE.splitEchoReply(raw);
   const t = sp.answer;
   const hasEcho = !!sp.echo;
@@ -3140,6 +3150,8 @@ export default {
           }
           for (const q of Object.keys(IND.industryBank(rec.profile.industry) || {})) known.add(q);
           for (const q of VIS.visibilityQids()) known.add(q);
+          // 2026-09-30 継続エンリッチの設問(q_en_*)も当て直せるようにする。知らない qid として弾いていた。
+          for (const q of Object.keys(AP.ENRICH_BANK || {})) known.add(q);
           /* 2026-09-11 _unsorted(当て先の決まっていない返事の置き場)を、消せるようにする。
              settlePendingOnAnswer は切り分け不能の1通を profile.extra._unsorted に1本だけ置く。
              人が中身を見て正しい qid に当て直したあと、この置き場は用済みになる。
