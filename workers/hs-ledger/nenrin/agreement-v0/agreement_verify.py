@@ -480,6 +480,18 @@ def load_keys(path):
     return out
 
 
+def load_successions(path):
+    """The same keys file may carry, per key_url, the handover chain served next to it:
+    {"https://x/keys/agreement.json": {"public_key_ed25519_b64": "...", "succession": [...]}}"""
+    with open(path, "r", encoding="utf-8") as f:
+        raw = parse_strict(f.read())
+    out = {}
+    for url, val in raw.items():
+        if isinstance(val, dict) and "succession" in val:
+            out[url] = val["succession"]
+    return out or None
+
+
 def ed25519_verify(pub_b64, sig_b64, message):
     """True / False, or None when the key or the signature is not usable at all."""
     try:
@@ -512,6 +524,8 @@ class Report(object):
         # v1.1 で key_url が自分のドメインの下に無かった当事者。(domain, host) の組。
         # 断りやのうて所見に落とす代わりに、帰属を確かに落とすために要る。2026-09-11。
         self.off_domain = []
+        # 鍵を引き継いだ当事者で、錨の block が引き継ぎより前やったもの。2026-09-30。
+        self.rotated = []
 
     def refuse(self, code, why):
         if (code, why) in self.seen:
@@ -537,7 +551,8 @@ def _early(r, input_text, est, dne):
     }
 
 
-def verify(record, keys=None, recorder_domain=None, now=None, input_text=None):
+def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
+           successions=None, anchored_block=None):
     r = Report()
 
     # 1. shape, before anything touches the content
@@ -939,6 +954,8 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None):
                     if served is None:
                         r.refuse("key_url_unreachable", "no public key was supplied for %s; offline this means the key set handed to the verifier does not contain it, and an intake would answer 503 and retry rather than judge" % ku)
                         url_results.append(False)
+                    elif served != pub and successions is not None and ku in successions:
+                        url_results.append(_succession(r, record, d, ku, pub, served, successions[ku], anchored_block))
                     elif served != pub:
                         r.refuse("key_url_mismatch", "the key served at %s is not the key pinned inside the signed bytes for %s" % (ku, d))
                         url_results.append(False)
@@ -994,6 +1011,36 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None):
     return _report(r, record, schema, checked, urls_checked, per_sig, input_text, can)
 
 
+def _succession(r, record, d, ku, pub, served, chain, anchored_block):
+    """The key pinned in the record is not the key served at ku today, and the party supplied a
+    handover chain. Decide attribution from the chain (key_succession.py). The signature check
+    itself is untouched: the key is inside the signed bytes and verifies either way."""
+    import key_succession as KS
+    ok, why, retired = KS.check_chain(chain, d, pub, served, sys.modules[__name__])
+    if not ok:
+        r.refuse("key_url_mismatch", "the key served at %s is not the key pinned inside the signed bytes for %s" % (ku, d))
+        r.find("succession_broken", "%s supplied a handover chain for %s, and it does not carry this record's key to the key served now: %s" % (d, ku, why))
+        return False
+    blk = retired["block"]
+    compromised = retired["reason"] == "compromise"
+    lb = record.get("lower_bound") if isinstance(record, dict) else None
+    lbh = lb.get("height") if isinstance(lb, dict) and lb.get("kind") == "bitcoin_block" else None
+    if isinstance(lbh, int) and not isinstance(lbh, bool) and lbh >= blk:
+        if compromised:
+            r.refuse("signed_after_compromise", "%s signed this record with a key it declared compromised at block %d, and the record names block %d, so it was written after that; whoever holds a leaked key can sign anything" % (d, blk, lbh))
+        else:
+            r.refuse("signed_after_retirement", "%s signed this record with a key it retired at block %d, and the record names block %d, so it was written after the handover; a retired key signing new records is the thing a handover exists to stop" % (d, blk, lbh))
+        return False
+    if isinstance(anchored_block, int) and not isinstance(anchored_block, bool) and anchored_block < blk:
+        r.find("key_rotated_attributable", "%s signed with a key it later handed over at block %d; the record is anchored at block %d, before that, and the old and new keys both signed the handover, so the signature stays attributable to %s. The anchor block was handed to this verifier and is taken as given" % (d, blk, anchored_block, d))
+        if compromised:
+            r.find("key_later_compromised", "%s later declared the key that signed this record compromised, at block %d; records anchored before that block keep their attribution, records after it do not" % (d, blk))
+        r.rotated.append(d)
+        return d not in [x[0] for x in r.off_domain]
+    r.find("key_rotated_time_unproven", "%s signed with a key it handed over at block %d. The signature verifies, but nothing handed to this verifier shows the record existed before that block, so it is not attributed to %s. An anchor block below %d would settle it" % (d, blk, d, blk))
+    return False
+
+
 def _report(r, record, schema, checked, urls_checked, per_sig, input_text, can):
     verdict = "refused" if r.refusals else ("accepted" if checked else "incomplete")
     self_measured = any(f["code"] == "conduct_self_measured" for f in r.findings)
@@ -1041,7 +1088,9 @@ def _report(r, record, schema, checked, urls_checked, per_sig, input_text, can):
             out["establishes"].append("the keys are inside the signed bytes, so this result can be reproduced from the record alone, with no network and no live key server")
             if not self_measured:
                 out["establishes"].append("each party pinned the counterparty's conduct as written by somebody other than the two parties")
-        if urls_checked:
+        if urls_checked and r.rotated:
+            out["establishes"].append("each signing key is the key served at that party's own key_url, or a key that party handed over to it later through a chain signed by the old and the new key, before the record's anchor, so the signature is attributable to the domain and not only to the holder of the key")
+        elif urls_checked:
             out["establishes"].append("each signing key is the key served at that party's own key_url, so the signature is attributable to the domain and not only to the holder of the key")
         lb = record.get("lower_bound") if isinstance(record, dict) else None
         if isinstance(lb, dict) and lb.get("kind") == "bitcoin_block":
@@ -1146,6 +1195,7 @@ def main(argv=None):
     ap.add_argument("--now", default=None, help="ISO-8601 UTC instant to compare agreed_at against")
     ap.add_argument("--example", action="store_true", help="print an unsigned v1.1 template and exit")
     ap.add_argument("--example-v1", action="store_true", help="print an unsigned v1 template and exit")
+    ap.add_argument("--anchored-block", type=int, default=None, help="the Bitcoin block height that anchors this record; only read when a key was handed over")
     ap.add_argument("--quiet", action="store_true", help="one line instead of the full report")
     a = ap.parse_args(argv)
 
@@ -1176,7 +1226,9 @@ def main(argv=None):
         return 1
 
     keys = load_keys(a.keys) if a.keys else None
-    rep = verify(rec, keys=keys, recorder_domain=a.recorder_domain, now=a.now, input_text=text)
+    succ = load_successions(a.keys) if a.keys else None
+    rep = verify(rec, keys=keys, recorder_domain=a.recorder_domain, now=a.now, input_text=text,
+                 successions=succ, anchored_block=a.anchored_block)
     if a.quiet:
         print("%s  refusals=%d findings=%d signatures_checked=%s key_urls_checked=%s  %s" % (
             rep["verdict"], len(rep["refusals"]), len(rep["findings"]),

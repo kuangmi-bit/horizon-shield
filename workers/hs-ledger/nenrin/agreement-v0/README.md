@@ -18,8 +18,8 @@ then disappears from what the record establishes.
 | --- | --- |
 | `agreement_verify.py` | reads a record, answers `accepted` / `refused` / `incomplete` with reasons |
 | `agreement_sign.py` | one party adds its own signature, on its own machine |
-| `agreement_redteam.py` | 201 vectors: 120 attacks, 60 controls, 12 misclassifications, 6 residuals. A few seconds |
-| `agreement_mutation.py` | breaks the verifier one rule at a time and checks the adversary notices. 77 mutants, two to three minutes. It mutates a copy in a temporary directory and never touches this one |
+| `agreement_redteam.py` | 242 vectors: 148 attacks, 69 controls, 12 misclassifications, 6 residuals, 7 fixes. A few seconds |
+| `agreement_mutation.py` | breaks the verifier and `key_succession.py` one rule at a time and checks the adversary notices. 101 mutants, about three minutes. It mutates a copy in a temporary directory and never touches this one |
 | `agreement_fixture.py` | freezes 5,286 inputs and the report the verifier gave for each, as one compressed envelope with a sha over it |
 | `agreement_strings.py` | the 426 sentence templates and 46 refusal codes the reports are built from, folded out of the fixture |
 | `agreement_float_repr.py` | 17,759 doubles as raw bits beside what Python's `json.dumps` wrote for each. The float table |
@@ -33,6 +33,9 @@ then disappears from what the record establishes.
 | `agreement_verify_test.mjs` | all 5,286 frozen cases through it, byte for byte against the frozen report |
 | `agreement_verify_mutation.mjs` | breaks a rule in `agreement_verify.mjs` 36 ways and checks the 5,286 notice |
 | `readme_numbers_test.mjs` | every count this table states, derived from the files and the suites, so the table cannot go stale quietly |
+| `key_succession.py` | key handover records (`a2a-key-succession-v0`, draft section 6.10): a chain signed by the old and the new key that carries attribution across a key rotation, for records anchored before the handover block. `key_succession.mjs` is its JavaScript twin |
+| `agreement_succession_parity_test.mjs` | 426 key handover cases built by `agreement_succession_cases.py`, through both verifiers, byte for byte |
+| `agreement_succession_mutation.mjs` | breaks the JavaScript handover rules 16 ways and checks the parity test notices. Works on copies, not links |
 | `agreement_pyrepr.py` | 833 values beside what Python's `repr` wrote for each. The refusal messages are made of it |
 
 The intake exists since 2026-09-16 (`agreement_intake.mjs`, wired into the ledger worker; see
@@ -54,9 +57,10 @@ deleted from this directory, because it holds no list to miss it from. That guar
 One at a time, if you want them one at a time:
 
 ```
-python3 agreement_redteam.py            # 185 / 185, needs cryptography, no network
-python3 agreement_mutation.py           # 74 / 74, only worth running after editing the verifier
+python3 agreement_redteam.py            # 242 / 242, needs cryptography, no network
+python3 agreement_mutation.py           # 101 / 101, only worth running after editing the verifier
 node agreement_canonical_test.mjs       # 44 / 44, the JavaScript byte form against Python's
+node agreement_succession_parity_test.mjs  # 426 / 426, key handovers through both verifiers
 ```
 
 A v1.1 record end to end, in full, because a quickstart that needs a step you have to guess is

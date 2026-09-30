@@ -1361,6 +1361,179 @@ case("control", "every refusal the draft names is implemented",
      V.DRAFT_CODES.issubset({c for rec in alls for c in codes(V.verify(rec, keys=KEYS))} | {"key_url_unreachable"}),
      str(sorted(V.DRAFT_CODES - ({c for rec in alls for c in codes(V.verify(rec, keys=KEYS))} | {"key_url_unreachable"}))))
 
+# =================================================================================================
+# 2026-09-30. Key succession (key_succession.py, draft 6.10). A party rotates its key; its
+# key_url now serves the new key. Before this, every older honest record was refused as
+# key_url_mismatch. Now a handover chain signed by the old and the new key carries attribution
+# across, but only for records anchored before the handover block.
+# =================================================================================================
+
+import key_succession as KS
+
+KD, PD = keypair(0x55)   # party A's second key
+KE, PE = keypair(0x66)   # party A's third key
+BLK1, BLK2 = 910000, 920000
+DOM_A = "party-a.example"
+
+
+def handover(old_pub, new_pub, blk, prev=None, reason="rotation", dom=DOM_A, old_k=None, new_k=None):
+    e = {"schema": KS.SCHEMA, "domain": dom, "purpose": "agreement",
+         "old_public_key_ed25519_b64": old_pub, "new_public_key_ed25519_b64": new_pub,
+         "reason": reason, "effective_block": blk,
+         "prev_succession_sha256": None if prev is None else KS.entry_sha256(prev, V.canonical, V.sha256_hex),
+         "signatures": []}
+    return KS.sign_handover(e, old_k, new_k, V.canonical)
+
+
+H1 = handover(PA, PD, BLK1, old_k=KA, new_k=KD)
+H2 = handover(PD, PE, BLK2, prev=H1, old_k=KD, new_k=KE)
+SERVED_D = {URL_A: PD, URL_B: PB}
+SERVED_E = {URL_A: PE, URL_B: PB}
+
+
+def vs(rec, served, chain, anchored=None):
+    return V.verify(rec, keys=served, successions=None if chain is None else {URL_A: chain},
+                    anchored_block=anchored)
+
+
+ROT = "handed over to it later"
+rs0 = vs(g11, SERVED_D, None)
+case("control", "succession: with no handover supplied, a rotated key_url still refuses the old record exactly as before",
+     rs0["verdict"] == "refused" and codes(rs0) == ["key_url_mismatch"], json.dumps(codes(rs0)))
+rs1 = vs(g11, SERVED_D, [H1], anchored=900000)
+case("fix", "succession: a rotation signed by the old and new key, anchored before the handover, keeps the record attributable",
+     rs1["verdict"] == "accepted" and rs1["key_urls_checked"] is True and "key_rotated_attributable" in finds(rs1),
+     json.dumps([codes(rs1), finds(rs1)]))
+case("fix", "succession: and the report says the key was handed over, instead of claiming it is the key served now",
+     any(ROT in s for s in rs1["establishes"]) and not any(s.startswith("each signing key is the key served at that party's own key_url, so") for s in rs1["establishes"]), "")
+rs1b = vs(g11, SERVED_D, [H1])
+case("control", "succession: without an anchor block the signature is accepted but NOT attributed to the domain",
+     rs1b["verdict"] == "accepted" and rs1b["key_urls_checked"] is False and "key_rotated_time_unproven" in finds(rs1b)
+     and not any(ROT in s or "attributable to the domain" in s for s in rs1b["establishes"]), json.dumps(finds(rs1b)))
+rs1c = vs(g11, SERVED_D, [H1], anchored=BLK1)
+case("attack", "succession: a record anchored AT the handover block is not before it, so it is not attributed",
+     rs1c["key_urls_checked"] is False and "key_rotated_time_unproven" in finds(rs1c), json.dumps(finds(rs1c)))
+rs1d = vs(g11, SERVED_D, [H1], anchored=True)
+case("attack", "succession: an anchor block of true is not a block height",
+     rs1d["key_urls_checked"] is False and "key_rotated_attributable" not in finds(rs1d), json.dumps(finds(rs1d)))
+
+
+def broken(name, chain, served=SERVED_D, rec=None, anchored=900000):
+    rep = vs(g11 if rec is None else rec, served, chain, anchored)
+    case("attack", "succession: " + name,
+         rep["verdict"] == "refused" and "key_url_mismatch" in codes(rep) and "succession_broken" in finds(rep)
+         and rep["key_urls_checked"] is False, json.dumps([codes(rep), finds(rep)]))
+    return rep
+
+
+broken("a handover signed by the new key alone is somebody claiming a key, and is refused",
+       [handover(PA, PD, BLK1, new_k=KD)])
+broken("a handover signed by the old key alone does not show the new key's holder took it",
+       [handover(PA, PD, BLK1, old_k=KA)])
+_fo = handover(PA, PD, BLK1, new_k=KD)
+_fo["signatures"].append({"by": "old", "sig": handover(PA, PD, BLK1, old_k=KX)["signatures"][0]["sig"]})
+broken("an attacker's signature in the old slot does not verify under the old key", [_fo])
+_late = copy.deepcopy(H1)
+_late["effective_block"] = BLK1 + 50000
+broken("moving the handover block later after signing breaks both signatures", [_late])
+broken("an empty chain is no chain", [])
+broken("a chain that stops short of the key served now is refused", [H1], served=SERVED_E)
+broken("a chain for another domain does not carry this domain's key",
+       [handover(PA, PD, BLK1, dom="party-b.example", old_k=KA, new_k=KD)])
+def resigned(**change):
+    """A handover changed and then signed again by both keys, so only the rule under test can catch it."""
+    e = {k: v for k, v in H1.items() if k != "signatures"}
+    e.update(change)
+    e["signatures"] = []
+    return KS.sign_handover(e, KA, KD, V.canonical)
+
+
+broken("a handover with a field outside the schema is refused, even signed", [resigned(note="x")])
+broken("a handover of another schema is refused, even signed", [resigned(schema="a2a-key-succession-v9")])
+broken("a handover for another purpose is refused, even signed", [resigned(purpose="payments")])
+broken("a handover whose prev sha is not null at the head is refused",
+       [handover(PA, PD, BLK1, prev=H1, old_k=KA, new_k=KD)])
+broken("reordering two handovers breaks the chain", [H2, H1], served=SERVED_E)
+_skip = handover(PD, PE, BLK2, old_k=KD, new_k=KE)
+broken("dropping the first handover leaves the record's key unretired", [_skip], served=SERVED_E)
+_nolink = handover(PD, PE, BLK2, prev=None, old_k=KD, new_k=KE)
+broken("a second handover that does not name the first by sha is refused", [H1, _nolink], served=SERVED_E)
+_foreign = handover(PX, PE, BLK2, prev=H1, old_k=KX, new_k=KE)
+broken("a second handover that passes on a key the first did not hand on is refused", [H1, _foreign], served=SERVED_E)
+_back = handover(PD, PE, BLK1 - 1, prev=H1, old_k=KD, new_k=KE)
+broken("a second handover dated before the first is refused", [H1, _back], served=SERVED_E)
+_loop = handover(PD, PA, BLK2, prev=H1, old_k=KD, new_k=KA)
+_loop2 = handover(PA, PE, BLK2 + 1, prev=_loop, old_k=KA, new_k=KE)
+broken("a chain that retires the same key twice loops, and is refused", [H1, _loop, _loop2], served=SERVED_E)
+broken("a handover to itself is refused", [handover(PA, PA, BLK1, old_k=KA, new_k=KA)])
+broken("a chain longer than %d is refused" % KS.MAX_CHAIN, [H1] * (KS.MAX_CHAIN + 1))
+
+rs2 = vs(g11, SERVED_E, [H1, H2], anchored=900000)
+case("fix", "succession: two handovers in a row, intact, keep the first key attributable",
+     rs2["verdict"] == "accepted" and rs2["key_urls_checked"] is True, json.dumps([codes(rs2), finds(rs2)]))
+rs2b = vs(g11, SERVED_E, [H1, H2], anchored=915000)
+case("attack", "succession: the retirement block that counts is the one that retired THIS record's key, not the last one",
+     rs2b["key_urls_checked"] is False and "key_rotated_time_unproven" in finds(rs2b), json.dumps(finds(rs2b)))
+
+# the record names a block after the handover: the retired key signed something new
+lbr = good11()
+lbr["lower_bound"] = {"kind": "bitcoin_block", "height": BLK1, "hash": "e" * 64}
+lbr = signed(lbr, BOTH)
+rs3 = vs(lbr, SERVED_D, [H1], anchored=BLK1 - 1)
+case("attack", "succession: a record that names a block at or after the retirement was signed by a retired key, and is refused",
+     "signed_after_retirement" in codes(rs3) and rs3["verdict"] == "refused", json.dumps(codes(rs3)))
+case("attack", "succession: and an anchor block handed over from outside does not override the block inside the signed bytes",
+     rs3["key_urls_checked"] is False, "")
+HC = handover(PA, PD, BLK1, reason="compromise", new_k=KD)
+rs4 = vs(lbr, SERVED_D, [HC], anchored=BLK1 - 1)
+case("attack", "succession: the same after a compromise is refused under its own code",
+     "signed_after_compromise" in codes(rs4), json.dumps(codes(rs4)))
+rs5 = vs(g11, SERVED_D, [HC], anchored=900000)
+case("fix", "succession: a compromise declared by the new key alone still keeps records anchored before it, and says the key was later compromised",
+     rs5["verdict"] == "accepted" and rs5["key_urls_checked"] is True and "key_later_compromised" in finds(rs5), json.dumps(finds(rs5)))
+_cmp_old = handover(PA, PD, BLK1, reason="compromise", old_k=KA)
+broken("a compromise signed by the leaked key alone proves nothing", [_cmp_old])
+_rsn = handover(PA, PD, BLK1, reason="lost", old_k=KA, new_k=KD)
+broken("a reason other than rotation or compromise is refused", [_rsn])
+
+# attribution still needs the key server to be the party's own
+offd = good11()
+offd["parties"][0]["key_url"] = "https://evilparty-a.example/keys/agreement.json"
+offd = signed(offd, BOTH)
+rs6 = V.verify(offd, keys={"https://evilparty-a.example/keys/agreement.json": PD, URL_B: PB},
+               successions={"https://evilparty-a.example/keys/agreement.json": [H1]}, anchored_block=900000)
+case("attack", "succession: an intact chain served from somebody else's host still does not attribute to the domain",
+     rs6["key_urls_checked"] is False and "key_url_off_domain" in finds(rs6), json.dumps(finds(rs6)))
+rs7 = V.verify(g11, keys=SERVED_D, successions={URL_B: [H1]}, anchored_block=900000)
+case("control", "succession: a chain supplied for another key_url changes nothing for this one",
+     codes(rs7) == ["key_url_mismatch"] and "succession_broken" not in finds(rs7), json.dumps(codes(rs7)))
+rs8 = vs(g11, V11_KEYS, [H1], anchored=900000)
+case("control", "succession: when the key served now IS the record's key, the chain is not consulted at all",
+     rs8["verdict"] == "accepted" and rs8["key_urls_checked"] is True and not any(ROT in s for s in rs8["establishes"])
+     and "key_rotated_attributable" not in finds(rs8), json.dumps(finds(rs8)))
+case("control", "succession: VERIFIER_VERSION is unchanged, because a record with no chain supplied gets the same report as before",
+     V.VERIFIER_VERSION == "0.2.0", V.VERIFIER_VERSION)
+
+# the command line: the keys file carries the chain next to the key
+skp = os.path.join(tmpd, "succ_keys.json")
+open(skp, "w", encoding="utf-8").write(json.dumps({URL_A: {"public_key_ed25519_b64": PD, "succession": [H1]}, URL_B: PB}))
+g11p = os.path.join(tmpd, "g11.json")
+open(g11p, "w", encoding="utf-8").write(V.canonical(g11))
+rc_s1, out_s1 = run([g11p, "--keys", skp, "--anchored-block", "900000"])
+rc_s2, out_s2 = run([g11p, "--keys", skp])
+case("control", "succession CLI: the chain in the keys file plus --anchored-block accepts and attributes",
+     rc_s1 == 0 and ROT in out_s1, str(rc_s1))
+case("control", "succession CLI: without --anchored-block it accepts and does not attribute",
+     rc_s2 == 0 and "key_rotated_time_unproven" in out_s2 and ROT not in out_s2, str(rc_s2))
+
+SUCC_REPORTS = [rs0, rs1, rs1b, rs1c, rs1d, rs2, rs2b, rs3, rs4, rs5, rs6, rs7, rs8]
+case("control", "succession: no report is both accepted and carrying a refusal",
+     not [i for i, x in enumerate(SUCC_REPORTS) if x["verdict"] == "accepted" and x["refusals"]], "")
+case("control", "succession: every new code is written in the v0.1 draft",
+     all(c in open(os.path.join(HERE, "..", "..", "..", "..", "ops", "AGREEMENT_EXT_v0_1_DRAFT.md"), encoding="utf-8").read()
+         for c in ("signed_after_retirement", "signed_after_compromise", "succession_broken",
+                   "key_rotated_attributable", "key_rotated_time_unproven", "key_later_compromised")), "")
+
 # --- residual -------------------------------------------------------------------------------------
 
 case("residual", "this verifier cannot tell whether a conduct record named by sha exists or says anything",

@@ -58,6 +58,10 @@ TARGET = os.path.join(HERE, "agreement_verify.py")
 SUITE = os.path.join(HERE, "agreement_redteam.py")
 SIGNER = os.path.join(HERE, "agreement_sign.py")
 OLD_BACKUP = os.path.join(HERE, ".agreement_verify.py.mutation_backup")
+# 2026-09-30. 鍵の引き継ぎの規則は key_succession.py に住んどる。その file にも変異を入れる。
+# 変異の 5 つ目に file 名を書いたらそっちを壊す。書かんかったら agreement_verify.py や。
+SUCCESSION = os.path.join(HERE, "key_succession.py")
+TARGETS = {os.path.basename(TARGET): TARGET, os.path.basename(SUCCESSION): SUCCESSION}
 
 
 def refuse_if_old_backup():
@@ -71,7 +75,7 @@ def refuse_if_old_backup():
     print("        (2026-09-10: ここで勝手に戻す作りやったせいで、正しい編集が黙って消えた)")
     sys.exit(2)
 
-# (name, exact text to replace, replacement, expect_caught)
+# (name, exact text to replace, replacement, expect_caught[, file name])
 MUTANTS = [
     # 2026-09-11. 他所ドメインの key_url を、断りやのうて所見に落とした規則 (草案 6.9)。
     # 新しい規則に変異が無かったら、それは試験されとらん規則や。
@@ -176,6 +180,62 @@ MUTANTS = [
      'if basis in FEE_BASES_BAD:', 'if basis in ():', False),
     ("EQUIVALENT: the signature length check inside the crypto path (the shape check already refused it)",
      'raw_sig = b64_raw(sig_b64, 64)', 'raw_sig = b64_raw(sig_b64, 64) or b"\\0" * 64', False),
+    # 2026-09-30. 鍵の引き継ぎ (草案 6.10)。帰属を運ぶ規則は、どれか 1 本抜けたら
+    # 盗んだ鍵か捨てた鍵で帰属が立つ。全部に変異を置く。
+    ("attribute nothing across a rotation (the old behaviour)",
+     "elif served != pub and successions is not None and ku in successions:",
+     "elif False:", True),
+    ("a broken chain only noted, not refused",
+     '    if not ok:\n        r.refuse("key_url_mismatch"',
+     '    if not ok:\n        r.find("key_url_mismatch"', True),
+    ("a record anchored AT the handover block counts as before it",
+     "and anchored_block < blk:", "and anchored_block <= blk:", True),
+    ("an anchor block of true is taken as block 1",
+     "if isinstance(anchored_block, int) and not isinstance(anchored_block, bool) and anchored_block < blk:",
+     "if isinstance(anchored_block, int) and anchored_block < blk:", True),
+    ("a record naming the retirement block itself is not caught",
+     "and lbh >= blk:", "and lbh > blk:", True),
+    ("a signature after a compromise is refused under the rotation code",
+     '        if compromised:\n            r.refuse("signed_after_compromise"',
+     '        if False:\n            r.refuse("signed_after_compromise"', True),
+    ("a rotated key on somebody else's host is attributed",
+     "        r.rotated.append(d)\n        return d not in [x[0] for x in r.off_domain]",
+     "        r.rotated.append(d)\n        return True", True),
+    ("a handover with no proof of time is attributed",
+     "An anchor block below %d would settle it\" % (d, blk, d, blk))\n    return False",
+     "An anchor block below %d would settle it\" % (d, blk, d, blk))\n    return True", True),
+    ("the report claims the served key after a rotation",
+     "if urls_checked and r.rotated:", "if False:", True),
+    ("a rotation needs only the new key",
+     'need = ("old", "new") if e["reason"] == "rotation" else ("new",)', 'need = ("new",)', True, "key_succession.py"),
+    ("a compromise needs the leaked key too",
+     'need = ("old", "new") if e["reason"] == "rotation" else ("new",)', 'need = ("old", "new")', True, "key_succession.py"),
+    ("handover signatures are never checked",
+     'if V.ed25519_verify(key, s["sig"], msg) is not True:', "if False:", True, "key_succession.py"),
+    ("the chain is not linked by sha",
+     'if e["prev_succession_sha256"] != entry_sha256(prev, V.canonical, V.sha256_hex):', "if False:", True, "key_succession.py"),
+    ("a handover may pass on a key it was never given",
+     'if old != prev["new_public_key_ed25519_b64"]:', "if False:", True, "key_succession.py"),
+    ("blocks may go backwards",
+     'if blk <= prev["effective_block"]:', "if False:", True, "key_succession.py"),
+    ("a key may be retired twice",
+     "if old in seen_old:", "if False:", True, "key_succession.py"),
+    ("the chain need not end at the served key",
+     'if chain[-1]["new_public_key_ed25519_b64"] != to_pub:', "if False:", True, "key_succession.py"),
+    ("a handover for another domain counts",
+     'if V.norm_domain(e["domain"]) != domain:', "if False:", True, "key_succession.py"),
+    ("extra fields are allowed",
+     "if set(e.keys()) != FIELDS:", "if False:", True, "key_succession.py"),
+    ("any schema is allowed",
+     'if e["schema"] != SCHEMA:', "if False:", True, "key_succession.py"),
+    ("any purpose is allowed",
+     'if e["purpose"] != "agreement":', "if False:", True, "key_succession.py"),
+    ("any reason is allowed",
+     'if e["reason"] not in REASONS:', "if False:", True, "key_succession.py"),
+    ("the head of the chain may name a previous record",
+     'if e["prev_succession_sha256"] is not None:', "if False:", True, "key_succession.py"),
+    ("EQUIVALENT: a handover to itself (the chain-end or loop check refuses it next)",
+     "if old == new:", "if False:", False, "key_succession.py"),
 ]
 
 
@@ -216,7 +276,7 @@ def build_workspace():
     link(os.path.join(repo, "workers", "hs-ledger", "seed_entry_agreement_v0.json"),
          os.path.join(work, "workers", "hs-ledger", "seed_entry_agreement_v0.json"))
 
-    skip = {os.path.basename(TARGET), "__pycache__"}
+    skip = set(TARGETS) | {"__pycache__"}
     for name in os.listdir(HERE):
         if name in skip or name.startswith(".agreement_verify.py.mutation_backup"):
             continue
@@ -226,12 +286,21 @@ def build_workspace():
 
 def main():
     refuse_if_old_backup()
-    with open(TARGET, encoding="utf-8") as f:
-        orig = f.read()
+    origs = {}
+    for n, pth in TARGETS.items():
+        with open(pth, encoding="utf-8") as f:
+            origs[n] = f.read()
+    orig = origs[os.path.basename(TARGET)]
     before = hashlib.sha256(orig.encode("utf-8")).hexdigest()
+    befores = {n: hashlib.sha256(t.encode("utf-8")).hexdigest() for n, t in origs.items()}
 
     work, here2 = build_workspace()
     copy_target = os.path.join(here2, os.path.basename(TARGET))
+
+    def put_all():
+        for n, t in origs.items():
+            with open(os.path.join(here2, n), "w", encoding="utf-8") as f:
+                f.write(t)
     copy_suite = os.path.join(here2, os.path.basename(SUITE))
 
     print("target      %s" % os.path.basename(TARGET))
@@ -250,8 +319,7 @@ def main():
 
     # 変異を入れる前に、写した敵が緑で走ることを見る。ここが赤かったら、
     # この先の "caught" は全部、変異のせいやのうて写し損ないのせいかもしれん。
-    with open(copy_target, "w", encoding="utf-8") as f:
-        f.write(orig)
+    put_all()
     base_caught, _base_ng, base_p = run_suite()
     if base_caught:
         print("★ 拒否: 変異を入れる前から敵が赤い。ここから先は何も測れん。")
@@ -261,13 +329,17 @@ def main():
     print("  %-56s %-8s %s" % ("(変異なし)", "green", "ここが緑やから、以下の caught に意味がある"))
 
     wrong = []
-    for name, old, new, expect in MUTANTS:
-        if orig.count(old) != 1:
-            print("  %-56s ANCHOR MATCHES %d TIMES" % (name[:56], orig.count(old)))
+    for m in MUTANTS:
+        name, old, new, expect = m[:4]
+        tgt = m[4] if len(m) > 4 else os.path.basename(TARGET)
+        src = origs[tgt]
+        if src.count(old) != 1:
+            print("  %-56s ANCHOR MATCHES %d TIMES" % (name[:56], src.count(old)))
             wrong.append(name + " (anchor)")
             continue
-        with open(copy_target, "w", encoding="utf-8") as f:
-            f.write(orig.replace(old, new))
+        put_all()
+        with open(os.path.join(here2, tgt), "w", encoding="utf-8") as f:
+            f.write(src.replace(old, new))
         caught, ng, _p = run_suite()
         mark = "ok" if caught == expect else "MISS"
         print("  %-56s %-8s NG=%-2d %s" % (name[:56], "caught" if caught else "survived", ng, mark))
@@ -276,14 +348,15 @@ def main():
 
     # 「戻せたか」やのうて「そもそも変わっとらんか」を聞く。この問いは、この
     # program が何をしたかを信用せんでも答えられる。
-    with open(TARGET, encoding="utf-8") as f:
-        after = hashlib.sha256(f.read().encode("utf-8")).hexdigest()
     print()
-    if after == before:
-        print("元の file   1 バイトも触っとらん (%s)" % before[:16])
-    else:
-        print("*** 元の file が変わっとる。%s -> %s。git で見比べること ***" % (before[:16], after[:16]))
-        wrong.append("元の file が変わった")
+    for n, pth in TARGETS.items():
+        with open(pth, encoding="utf-8") as f:
+            after = hashlib.sha256(f.read().encode("utf-8")).hexdigest()
+        if after == befores[n]:
+            print("元の file   %s 1 バイトも触っとらん (%s)" % (n, befores[n][:16]))
+        else:
+            print("*** 元の file %s が変わっとる。%s -> %s。git で見比べること ***" % (n, befores[n][:16], after[:16]))
+            wrong.append("元の file が変わった: " + n)
     shutil.rmtree(work, ignore_errors=True)
 
     print()

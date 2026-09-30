@@ -13,6 +13,7 @@
 // 非同期な理由。sha256 も Ed25519 も WebCrypto でやる。Worker には同期の口が無い。
 // 後から同期を非同期に直すのは書き直しやから、最初から非同期にしとく。
 import { canonicalUtf8, cmpCodePoints, num, parseStrict } from "./agreement_canonical.mjs";
+import * as KS from "./key_succession.mjs";
 
 export const VERIFIER_VERSION = "0.2.0";
 export const REPORT_SCHEMA = "a2a-agreement-verify-v0";
@@ -43,6 +44,8 @@ export class Report {
     // v1.1 で key_url が自分のドメインの下に無かった当事者。[domain, host] の組。
     // 断りやのうて所見に落とす代わりに、帰属を確かに落とすために要る。2026-09-11。
     this.off_domain = [];
+    // 鍵を引き継いだ後でも帰属が立った当事者。2026-09-30、草案 6.10。
+    this.rotated = [];
   }
   _once(code, why) {
     const k = JSON.stringify([code, why]);
@@ -418,6 +421,41 @@ function early(r, inputTextSha, est, dne) {
   };
 }
 
+// 記録に固定された鍵が、今 ku で配られとる鍵と違い、当事者が引き継ぎの鎖を出した。
+// 帰属は鎖で決める (key_succession.mjs)。署名の検算そのものには触らん。python の _succession と同じ。
+async function succession(r, record, d, ku, pub, served, chain, anchoredBlock) {
+  const V = { sha256Hex, b64Raw, publicKeyProblem, normDomain, pyRepr, ed25519Verify };
+  const [ok, why, retired] = await KS.checkChain(chain, d, pub, served, V);
+  if (!ok) {
+    r.refuse("key_url_mismatch", "the key served at " + pyStrOf(ku) + " is not the key pinned inside the signed bytes for " + d);
+    r.find("succession_broken", d + " supplied a handover chain for " + pyStrOf(ku) + ", and it does not carry this record's key to the key served now: " + why);
+    return false;
+  }
+  const blk = retired.block.toString();
+  const compromised = retired.reason === "compromise";
+  const lb = isObj(record) ? record.lower_bound : null;
+  const lbh = isObj(lb) && lb.kind === "bitcoin_block" ? KS.asInt(lb.height) : null;
+  if (lbh !== null && lbh >= retired.block) {
+    if (compromised) {
+      r.refuse("signed_after_compromise", d + " signed this record with a key it declared compromised at block " + blk + ", and the record names block " + lbh.toString() + ", so it was written after that; whoever holds a leaked key can sign anything");
+    } else {
+      r.refuse("signed_after_retirement", d + " signed this record with a key it retired at block " + blk + ", and the record names block " + lbh.toString() + ", so it was written after the handover; a retired key signing new records is the thing a handover exists to stop");
+    }
+    return false;
+  }
+  const ab = KS.asInt(anchoredBlock);
+  if (ab !== null && ab < retired.block) {
+    r.find("key_rotated_attributable", d + " signed with a key it later handed over at block " + blk + "; the record is anchored at block " + ab.toString() + ", before that, and the old and new keys both signed the handover, so the signature stays attributable to " + d + ". The anchor block was handed to this verifier and is taken as given");
+    if (compromised) {
+      r.find("key_later_compromised", d + " later declared the key that signed this record compromised, at block " + blk + "; records anchored before that block keep their attribution, records after it do not");
+    }
+    r.rotated.push(d);
+    return !r.off_domain.some((x) => x[0] === d);
+  }
+  r.find("key_rotated_time_unproven", d + " signed with a key it handed over at block " + blk + ". The signature verifies, but nothing handed to this verifier shows the record existed before that block, so it is not attributed to " + d + ". An anchor block below " + blk + " would settle it");
+  return false;
+}
+
 export async function buildReport(r, record, schema, checked, urlsChecked, perSig, inputText, can) {
   const verdict = r.refusals.length ? "refused" : (checked ? "accepted" : "incomplete");
   const selfMeasured = r.findings.some((f) => f.code === "conduct_self_measured");
@@ -475,7 +513,9 @@ export async function buildReport(r, record, schema, checked, urlsChecked, perSi
         out.establishes.push("each party pinned the counterparty's conduct as written by somebody other than the two parties");
       }
     }
-    if (urlsChecked) {
+    if (urlsChecked && r.rotated.length) {
+      out.establishes.push("each signing key is the key served at that party's own key_url, or a key that party handed over to it later through a chain signed by the old and the new key, before the record's anchor, so the signature is attributable to the domain and not only to the holder of the key");
+    } else if (urlsChecked) {
       out.establishes.push("each signing key is the key served at that party's own key_url, so the signature is attributable to the domain and not only to the holder of the key");
     }
     const lb = record && typeof record === "object" && !Array.isArray(record) ? record.lower_bound : null;
@@ -644,7 +684,8 @@ export async function ed25519Verify(pubB64, sigB64, message) {
 }
 
 export async function verify(record, opts = {}) {
-  const { keys = null, recorderDomain = null, now = null, inputText = null } = opts;
+  const { keys = null, recorderDomain = null, now = null, inputText = null,
+    successions = null, anchoredBlock = null } = opts;
   const r = new Report();
   const shaIn = async () => (inputText === null || inputText === undefined ? null : await sha256Hex(inputText));
 
@@ -1145,6 +1186,9 @@ export async function verify(record, opts = {}) {
             r.refuse("key_url_unreachable", "no public key was supplied for " + pyStrOf(ku)
               + "; offline this means the key set handed to the verifier does not contain it, and an intake would answer 503 and retry rather than judge");
             urlResults.push(false);
+          } else if (served !== pub && successions !== null && successions !== undefined
+              && Object.prototype.hasOwnProperty.call(successions, ku)) {
+            urlResults.push(await succession(r, record, d, ku, pub, served, successions[ku], anchoredBlock));
           } else if (served !== pub) {
             r.refuse("key_url_mismatch", "the key served at " + pyStrOf(ku)
               + " is not the key pinned inside the signed bytes for " + d);

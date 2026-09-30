@@ -98,7 +98,7 @@ but points at another host is a finding instead, see section 6.9), `key_url_unre
 `bad_role`, `roles_inconsistent`, `terms_contradict_roles`, `bad_consideration`, `bad_currency`, `bad_amount`,
 `unsafe_number`, `bad_recorder`, `recorder_undisclosed`, `fee_tied_to_outcome`,
 `bad_record_paid_by`, `disclaimer_missing`, `disclaimer_incomplete`, `establishes_overclaims`,
-`missing_field`.
+`missing_field`, `signed_after_retirement`, `signed_after_compromise` (section 6.10).
 
 Refusal is mechanical. No editorial step exists, and none may be added.
 
@@ -112,7 +112,9 @@ One rule is narrower under v1.1 than under v1: a cross domain key URL. Section 6
 
 `operator_is_a_party`, `conduct_self_measured`, `shared_parent_domain`, `same_conduct_record`,
 `agreed_at_in_future`, `upstream_unverified`, `punycode_domain`, `non_integer_number`,
-`key_url_off_domain`. Three more
+`key_url_off_domain`, and four that only arise when a party supplies a key handover chain
+(section 6.10): `succession_broken`, `key_rotated_attributable`, `key_rotated_time_unproven`,
+`key_later_compromised`. Three more
 belong to v1 alone, where the rule they name is advice rather than a requirement:
 `disclaimer_thin`, `paid_by_positional`, and `not_canonical`, which under v1.1 is a refusal.
 One of these findings must do more than be recorded: a cross domain key URL must also stop the
@@ -216,6 +218,42 @@ is the finding. The fix is not new machinery; it is the same rule applied twice.
 
 Found by Federico Blanco Sánchez-Llanos on 2026-09-10, reviewing the 0.4.5 attribution change and
 then reading this layer beside it.
+
+### 6.10 A rotated key keeps its attribution through a handover chain
+
+Added 2026-09-30. Without it, a party that rotates its key breaks every record it ever signed: its
+key URL now serves the new key, the key inside an old record no longer matches, and the reader
+refused the old record as `key_url_mismatch`, although it was signed honestly with the key that
+was current at the time. An open audit of x402 settlements published the same day showed the
+general shape: matched on the declared address, 0 of 357 payees were attributable; matched on the
+key that actually submitted, 73% were, and the remainder was 22 unregistered signers that look
+like rotated keys.
+
+A party MAY serve, next to its key URL, a chain of handover records (`a2a-key-succession-v0`,
+fields `schema`, `domain`, `purpose`, `old_public_key_ed25519_b64`, `new_public_key_ed25519_b64`,
+`reason`, `effective_block`, `prev_succession_sha256`, `signatures`). Each handover is signed over
+the context `a2a-key-succession-v0` followed by a newline and the canonical handover without its
+signatures. A `rotation` MUST be signed by the old key and the new key; a handover signed by the
+new key alone is somebody claiming a key, not a key being passed on. A `compromise` MUST be signed
+by the new key and need not be signed by the old one, because a signature from a leaked key proves
+nothing. Each handover names the sha256 of the canonical previous handover, each old key is the
+previous new key, `effective_block` rises strictly, no key is retired twice, and the chain ends at
+the key served now. Any break is `succession_broken`, and the record falls back to
+`key_url_mismatch` exactly as before.
+
+When the chain holds, the signature is still checked against the key inside the signed bytes, as
+always. Only attribution is decided by the chain, from the block at which the record's key was
+handed over:
+
+- the record names a `lower_bound` at or after that block: it was written after the key was
+  retired, and it is refused (`signed_after_retirement`, or `signed_after_compromise`);
+- the reader is handed the block that anchors the record, and it is below that block: the
+  signature stays attributable to the domain (`key_rotated_attributable`, plus
+  `key_later_compromised` when the handover was a compromise);
+- otherwise the record is not refused, and is not attributed (`key_rotated_time_unproven`).
+
+A reader never takes a handover time from a clock or from the parties; the block heights are the
+only time it uses, and an anchor block handed to it is taken as given and says so.
 
 ## 7. What v1.1 still does not do
 

@@ -24,7 +24,8 @@ import { pathToFileURL } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TARGET = path.join(HERE, "agreement_verify.mjs");
 const SUITE = path.join(HERE, "agreement_verify_test.mjs");
-const NEED = ["agreement_canonical.mjs", "agreement_vectors_v1.json", "agreement_pyrepr_v1.json"];
+// 2026-09-30: agreement_verify.mjs が key_succession.mjs を import するようになった。
+const NEED = ["agreement_canonical.mjs", "key_succession.mjs", "agreement_vectors_v1.json", "agreement_pyrepr_v1.json"];
 
 export const MUTANTS = [
   // 報告書の組み立て
