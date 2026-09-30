@@ -1,2 +1,3 @@
 a2a-sdk[signing]==1.2.1
-cryptography
+cryptography>=44
+rfc8785==0.1.4

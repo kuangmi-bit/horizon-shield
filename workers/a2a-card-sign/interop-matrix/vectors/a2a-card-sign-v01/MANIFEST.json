@@ -1,0 +1,187 @@
+{
+  "corpus": "a2a-card-sign-v01",
+  "suite": "a2a-agent-card-signature-conformance",
+  "specRef": "https://a2a-protocol.org/latest/specification/#841-canonicalization-requirements",
+  "layer": "signature",
+  "scope": "Layer C: which Agent Card signatures a verifier accepts. Layer A is a2a-jcs-v01 (a2a-tck#228), Layer B is a2a-jcs-rule1-v01 (a2a-tck#245). Every card carries every REQUIRED field of AgentCard, so Layer B's open point (absent REQUIRED fields) does not arise here.",
+  "open_question": "https://github.com/a2aproject/A2A/issues/2122",
+  "spec_provenance": {
+    "text": "a2aproject/A2A specification/specification.md at 173695755607 (v1.0.0), section 8.4.1",
+    "required_set": "field_behavior = REQUIRED annotations of a2a.proto as generated in a2a-sdk 1.2.1 (a2a.types.a2a_pb2); on the fields these cases touch they agree with a2aproject/A2A specification/a2a.proto at 173695755607: AgentCard.description and AgentCard.skills and AgentSkill.tags are REQUIRED, AgentCapabilities.extensions is not, AgentCapabilities.streaming and push_notifications carry the optional keyword",
+    "worked_example": "The section's own worked example keeps description \"\" and skills [] and omits capabilities.extensions [], which is the rule-1-as-written tagging of S1-001, S1-003 and S1-007."
+  },
+  "jku_note": "The jku in every protected header is an example.com placeholder and is never fetched. Resolve the key from testkey_jwks.json by kid.",
+  "readings": {
+    "rule-1-as-written": "Section 8.4.1 rule 1 on the card as served: a REQUIRED field (proto annotation) stays even at its default value, a field with the optional keyword stays when set, any other field at its default value (\"\", 0, false, [], {}) is dropped. Applied recursively through message-typed fields. Then RFC 8785.",
+    "prune-empty": "Empty strings, arrays and objects removed recursively regardless of REQUIRED (false and 0 kept). Then RFC 8785. Matches a2a-sdk 1.2.1 and @a2a-js/sdk 1.3.0 byte for byte on every card here.",
+    "served-as-is": "The served JSON with `signatures` removed, nothing else. Then RFC 8785. Matches a2a-go a2acrypto at main 534a60fc byte for byte on every card here."
+  },
+  "relation_to_rule1_corpus": "On inputs that carry every REQUIRED field, a2a-jcs-rule1-v01's presence-preserving and inject-required-defaults resolutions both give the rule-1-as-written bytes.",
+  "test_key": {
+    "kid": "hs-interop-test-v1",
+    "alg": "ES256",
+    "jwk": {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "khLaGq9LmIvsjFv8YF0N4IJwRGvldb36SwqntLYct04",
+      "y": "XCMP49DgLRfdGJKDr5MacrOCNaDXIwSvoFjID8ORkmQ",
+      "kid": "hs-interop-test-v1",
+      "alg": "ES256",
+      "use": "sig"
+    },
+    "derivation": "d = int.from_bytes(sha256(phrase), 'big') mod (n - 1) + 1 on P-256",
+    "phrase": "HORIZON SHIELD A2A card-signing interop test key v1 (public, test vectors only)",
+    "note": "Published test key, so anyone can re-create the private key and re-sign every reference vector byte for byte (RFC 6979). It signs test vectors only and is nobody's production key."
+  },
+  "protected_header": {
+    "alg": "ES256",
+    "jku": "https://example.com/a2a-card-sign-v01/testkey_jwks.json",
+    "kid": "hs-interop-test-v1",
+    "typ": "JOSE"
+  },
+  "oracles": [
+    "rfc8785 (PyPI, 0.1.4)",
+    "gowebpki/jcs (Go, v1.0.1)"
+  ],
+  "generator": "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/a2a-card-sign/interop-matrix/vectors.py",
+  "counts": {
+    "accept_any": 4,
+    "reject_any": 1,
+    "reading_dependent": 8,
+    "total": 13
+  },
+  "groups": [
+    "s0-control",
+    "s1-default-valued"
+  ],
+  "observed": {
+    "note": "Not part of the expectations. What each SDK's own verifier returned on each served card, on the date and versions below.",
+    "date": "2026-10-01",
+    "versions": {
+      "a2a-python": "a2a-sdk 1.2.1",
+      "a2a-js": "@a2a-js/sdk 1.3.0",
+      "a2a-go": "a2a-go main 534a60fc (2026-09-30)"
+    },
+    "results": {
+      "S0-001": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": true
+      },
+      "S0-002": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": true
+      },
+      "S0-003": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": true
+      },
+      "S0-004": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": true
+      },
+      "S0-REJECT-005": {
+        "a2a-python": false,
+        "a2a-js": false,
+        "a2a-go": false
+      },
+      "S1-001": {
+        "a2a-python": false,
+        "a2a-js": false,
+        "a2a-go": true
+      },
+      "S1-002": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": false
+      },
+      "S1-003": {
+        "a2a-python": false,
+        "a2a-js": false,
+        "a2a-go": true
+      },
+      "S1-004": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": false
+      },
+      "S1-005": {
+        "a2a-python": false,
+        "a2a-js": false,
+        "a2a-go": true
+      },
+      "S1-006": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": false
+      },
+      "S1-007": {
+        "a2a-python": true,
+        "a2a-js": true,
+        "a2a-go": false
+      },
+      "S1-008": {
+        "a2a-python": false,
+        "a2a-js": false,
+        "a2a-go": true
+      }
+    }
+  },
+  "vectors": [
+    {
+      "path": "s0-control/S0-001.json",
+      "sha256": "24828c6c333ae8267e2001d8e1c0768daffaeca74c3b38e227139ab074855279"
+    },
+    {
+      "path": "s0-control/S0-002.json",
+      "sha256": "bf90690841356dc26348128ef40d760db08e530ee4f5d9ce6bb016f010194d35"
+    },
+    {
+      "path": "s0-control/S0-003.json",
+      "sha256": "a3b87091d935ade89a1f1a87e12e0cfaadac6d2b8be6a47edb6e724ab3df29ce"
+    },
+    {
+      "path": "s0-control/S0-004.json",
+      "sha256": "dc35bb74b8deb1cd1ed1924f7ce11ab49735218e32135d57bfb4716ba74dcd04"
+    },
+    {
+      "path": "s0-control/S0-REJECT-005.json",
+      "sha256": "cd79714b5014cf1cb72258feb1c2d4ed07cdf1d52d4760f29d3ed3fcf09c246e"
+    },
+    {
+      "path": "s1-default-valued/S1-001.json",
+      "sha256": "72e4c1f98df9654568d893e6256ce188f0e462180f1ed27f3082f46f2afc96a5"
+    },
+    {
+      "path": "s1-default-valued/S1-002.json",
+      "sha256": "f04091e6028cfe75731e4eb19fad6acaabc9ae5b0965926f00029586d6d19d35"
+    },
+    {
+      "path": "s1-default-valued/S1-003.json",
+      "sha256": "cb06e3a634215d62853467b833baecf4f043582506a605dd76863cd55a08f828"
+    },
+    {
+      "path": "s1-default-valued/S1-004.json",
+      "sha256": "91adb902951d2b5e82e77d272d3bfa04a05db02cc956933efd76c00b5e895711"
+    },
+    {
+      "path": "s1-default-valued/S1-005.json",
+      "sha256": "7e402767b2f66a5022b950eb449bc4ddeaa0885b55ef062100da54779b5777e6"
+    },
+    {
+      "path": "s1-default-valued/S1-006.json",
+      "sha256": "1f5c60aac4973c3e48d3ccc3096971124f74bbbb6ad1670a73c0f1204659bb92"
+    },
+    {
+      "path": "s1-default-valued/S1-007.json",
+      "sha256": "7c765f513423889f5e94e0f2260408e7068da2a5feefbc83646b0ad2eb1b9836"
+    },
+    {
+      "path": "s1-default-valued/S1-008.json",
+      "sha256": "9ae36fbeb5f79800a00cdc642d9227ba5d1586bb01275735f193792a7fd7e679"
+    }
+  ]
+}

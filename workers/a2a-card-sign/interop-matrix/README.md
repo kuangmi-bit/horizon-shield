@@ -49,6 +49,19 @@ None of the three reproduces the worked example. Python and JS drop the REQUIRED
 
 `out/` receives each case, each signed card and `results.json`. This directory's `results_20261001.json` is the run above.
 
+## Signed vectors (`vectors/a2a-card-sign-v01/`)
+
+`vectors.py` turns the matrix into a language-neutral corpus: the control card signed by a reference signer and by
+each SDK, and each default-valued case signed once per distinct canonical form, tagged with the readings
+(`rule-1-as-written`, `prune-empty`, `served-as-is`) it is accepted under. It is Layer C next to a2a-jcs-v01
+(a2aproject/a2a-tck#228) and a2a-jcs-rule1-v01 (a2aproject/a2a-tck#245). Reference signatures are RFC 6979
+deterministic, so a fresh run reproduces them byte for byte. Run after `matrix.py`:
+
+    (cd jcs-go && go mod tidy && go build -o jcs .)
+    JCS_GO_BIN=$PWD/jcs-go/jcs python3 vectors.py
+
+`JCS_GO_BIN` is optional; when set, every canonical form is checked against gowebpki/jcs v1.0.1 as well.
+
 ## What this does not establish
 
 - Which canonical form is right beyond the specification text; the question of how REQUIRED fields at their default value are represented is open in a2aproject/A2A#2122.
