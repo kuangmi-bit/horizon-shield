@@ -1,0 +1,137 @@
+name: survive drill
+
+# 運営者なしで昨日の台帳を組み立て直す試験(workers/hs-ledger/nenrin/survive-v0/)。
+# keep: 台帳を kept/ に写して commit し、Software Heritage に保存を頼む(運営者に触るのはこの job だけ)。
+# drill: 運営者の名前を /etc/hosts で潰した上で、Software Heritage と GitHub の写しから組み立て直し、
+#        digest・鎖・Bitcoin の錨を検算して、結果を良し悪しに関わらず commit する。
+# 手で回す: Actions -> survive drill -> Run workflow。
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # daily 03:17 UTC, after the 00:30 UTC batch has been stamped
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: survive-drill
+  cancel-in-progress: false
+
+env:
+  SV: workers/hs-ledger/nenrin/survive-v0
+  MV: workers/hs-ledger/nenrin/mirror-v0
+
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: test the mirror (synthetic ledger on 127.0.0.1)
+        run: python3 "$MV/mirror_test.py"
+      - name: pull the ledger into kept/ (the only step that talks to the operator)
+        run: python3 "$MV/mirror.py" pull --dir "$SV/kept"
+      - name: verify the copy offline
+        run: python3 "$MV/mirror.py" verify --dir "$SV/kept"
+      - name: record (only when an entry or object changed)
+        run: |
+          git config user.name "hs-survive-drill"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add "$SV/kept"
+          NEW=$(git diff --cached --name-only -- "$SV/kept" | grep -v 'manifest.json$' || true)
+          if [ -z "$NEW" ]; then
+            git reset -q
+            git checkout -- "$SV/kept" 2>/dev/null || true
+            echo "台帳に新しい項目はありません。commit しません。" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "COMMITTED=0" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          git commit -m "survive-v0: keep $(date -u +%Y-%m-%d) ($(echo "$NEW" | wc -l | tr -d ' ') files)"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+          echo "COMMITTED=1" >> "$GITHUB_ENV"
+      - name: ask Software Heritage to archive the repository (does not fail the job)
+        if: env.COMMITTED == '1'
+        run: |
+          set +e
+          curl -sS -m 60 -X POST "https://archive.softwareheritage.org/api/1/origin/save/git/url/https://github.com/ogasurfproject-jpg/horizon-shield/" | head -c 600
+          echo
+
+  drill:
+    needs: keep
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: install the one dependency (pinned)
+        run: pip install -r "$SV/requirements.txt"
+      - name: test the drill (offline)
+        run: python3 "$SV/survive_test.py"
+      - name: fence the operator off (names resolve to 0.0.0.0)
+        run: |
+          for h in horizonshield.dev www.horizonshield.dev ledger.horizonshield.dev gate.horizonshield.dev mcp.horizonshield.dev \
+                   hearing.horizonshield.dev p001.horizonshield.dev p002.horizonshield.dev \
+                   the-horizons-innovation.com www.the-horizons-innovation.com shield.the-horizons-innovation.com; do
+            echo "0.0.0.0 $h" | sudo tee -a /etc/hosts >/dev/null
+          done
+          getent hosts ledger.horizonshield.dev || true
+      - name: drill from Software Heritage
+        run: python3 "$SV/survive.py" drill --source swh --fenced --work /tmp/sv-swh --out "$SV/drills/latest-swh.json" || true
+      - name: drill from the GitHub tarball
+        run: python3 "$SV/survive.py" drill --source github --fenced --work /tmp/sv-gh --out "$SV/drills/latest-github.json" || true
+      - name: summary and history
+        run: |
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json, os
+          sv = os.environ["SV"]
+          rows = []
+          for src in ("swh", "github"):
+              p = os.path.join(sv, "drills", "latest-%s.json" % src)
+              if not os.path.exists(p):
+                  rows.append({"source": src, "outcome": "no_report"}); continue
+              r = json.load(open(p))
+              a = r.get("anchors") or {}; c = r.get("chain") or {}
+              rows.append({"drill_at": r.get("drill_at"), "source": src, "outcome": r.get("outcome"),
+                           "entries": r.get("entries"), "range": r.get("range"), "confirmed": a.get("confirmed"),
+                           "pending": len(a.get("pending") or []), "chain_head": c.get("head"),
+                           "stamped_heads_matched": c.get("stamped_heads_matched"), "report_sha256": r.get("report_sha256"),
+                           "why": r.get("why")})
+          with open(os.path.join(sv, "drills", "history.jsonl"), "a") as f:
+              for row in rows:
+                  f.write(json.dumps(row, sort_keys=True) + "\n")
+          print("| source | outcome | entries | confirmed | pending | stamped heads matched |")
+          print("|---|---|---|---|---|---|")
+          for row in rows:
+              print("| %s | %s | %s | %s | %s | %s |" % (row["source"], row["outcome"], row.get("entries"), row.get("confirmed"), row.get("pending"), row.get("stamped_heads_matched")))
+          PY
+      - name: record the reports, whatever they say
+        run: |
+          git config user.name "hs-survive-drill"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add "$SV/drills"
+          git diff --cached --quiet && exit 0
+          git commit -m "survive-v0: drill $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+      - name: red when the copy disagrees with itself or with Bitcoin
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          sv = os.environ["SV"]; bad = []
+          for src in ("swh", "github"):
+              p = os.path.join(sv, "drills", "latest-%s.json" % src)
+              if os.path.exists(p) and json.load(open(p)).get("outcome") in ("findings", "fence_failed"):
+                  bad.append(src)
+          if bad:
+              print("findings in: " + ", ".join(bad)); sys.exit(1)
+          PY

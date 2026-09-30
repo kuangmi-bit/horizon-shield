@@ -1,0 +1,12 @@
+# Extended regular expressions over tracked paths. A match refuses the push.
+# The Shield agent (diagnosis and proposal): private since 2026-09-20, lives in hs-shield-private.
+(^|/)shield_(agent|llm|sync)[^/]*\.mjs$
+# Enrollment and outreach policy: private since 2026-09-30, lives in hs-engine-private.
+(^|/)reciprocal(/|\.py$|_test\.py$|\.yml$)
+(^|/)[^/]*recruit[^/]*$
+(^|/)outreach_candidates[^/]*$
+(^|/)ops-private/
+# Keys and local secrets.
+\.pem$
+(^|/)\.hs_[^/]*$
+(^|/)\.dev\.vars$

@@ -1,0 +1,16 @@
+name: public boundary
+
+# 公開 repo に、非公開にすべき物(Shield、相互登録と募集の方針、秘密鍵)が入っていないかを push ごとに確かめる。
+# 規則は tools/boundary/private_patterns.txt。
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+permissions:
+  contents: read
+jobs:
+  boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tools/boundary/check_public_boundary.sh
