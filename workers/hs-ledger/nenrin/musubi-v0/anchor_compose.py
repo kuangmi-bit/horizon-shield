@@ -591,6 +591,33 @@ def _selftest():
     else:
         print("[10b] skipped: run0002/ not beside this file")
 
+    # [10c] babyblueviper1's CC0 leg 1 vectors (fixtures/babyblueviper1_leg1, vendored byte for byte, sha pinned)
+    fxd = os.path.join(here, "fixtures", "babyblueviper1_leg1")
+    rx = os.path.join(here, "run0002", "exec_19c44a79.json")
+    if os.path.exists(os.path.join(fxd, "leg1_vectors.json")) and os.path.exists(rx):
+        raw_v = open(os.path.join(fxd, "leg1_vectors.json"), "rb").read()
+        assert hashlib.sha256(raw_v).hexdigest() == "3f9408a0a6292196adf13a217be937139260a309c055227369195203f18e243d", "vendored vectors changed"
+        fv = json.loads(raw_v)
+        exr = parse_strict(open(rx, encoding="utf-8").read())
+        dxr = v11.commitment_digest(exr)
+        assert dxr.hex() == fv["record_digest_hex"]
+        for vv in fv["vectors"]:
+            bb = bytes.fromhex(vv["batch_hex"])
+            assert hashlib.sha256(bb).hexdigest() == vv["batch_sha256"], vv["id"]
+            got = refused(lambda: batch_ops(dxr, bb, exr))
+            want = None if vv["expect"] == "accepted" else vv["reason"]
+            assert got == want, (vv["id"], got, want)
+            at = bb.find(dxr.hex().encode())
+            if want is None:
+                assert batch_leg_check(exr, batch_ops(dxr, bb, exr)[0]) == (True, "listed_in_records"), vv["id"]
+            elif at >= 0:
+                spliced = [{"op": "hexlify"}, {"op": "prepend", "hex": bb[:at].hex()}, {"op": "append", "hex": bb[at + 64:].hex()}, {"op": "sha256"}]
+                assert v11.run_proof(dxr, spliced) == hashlib.sha256(bb).digest(), vv["id"]
+                assert batch_leg_check(exr, spliced) == (False, want), (vv["id"], batch_leg_check(exr, spliced))
+        n += 1; print("[10c] babyblueviper1's CC0 vectors (sha 3f9408a0, %d vectors from the real entry 63): batch_ops and batch_leg_check give the expected code for each" % len(fv["vectors"]))
+    else:
+        print("[10c] skipped: fixtures/babyblueviper1_leg1 or run0002/ not beside this file")
+
     # [8] bytes written by the OpenTimestamps reference library (fixture), read by this parser
     fx_path = os.path.join(here, "anchor_compose_fixture.json")
     if os.path.exists(fx_path):

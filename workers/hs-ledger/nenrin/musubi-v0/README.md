@@ -215,6 +215,8 @@ settle v1.1 to v1.6 accept an anchor when its proof operations reach the header'
 - The walk is v1.6's walk with two lines changed: collapse uses the v1.7 validity, and a proof-valid anchor must also pass the rule, refused exactly where `anchor_proof_invalid` is. For honest anchors, a batch listing or a plain merkle path, v1.7 renders v1.6's settlement on every field except `schema`, `settled_under`, `anchor_rule` and one `establishes` line (checked on synthetic runs and on run0002).
 - The second contract says `settle under a2a-settlement-v1.6 or later`, so v1.7 is within its signed terms. run0002 settles within_grant, final under both.
 - Five mutants (the walk skipping the rule, collapse on the v1.6 validity, hexlify allowed anywhere, the rule trusting the bytes path, no guard on malformed operands) are each killed by the self test.
+- Adopted by the second contract's contractor on 2026-09-30 (horizon-shield#25): executions under the second contract settle under v1.7 from here.
+- `fixtures/babyblueviper1_leg1/` holds his CC0 leg 1 vectors, vendored byte for byte from babyblueviper1/preaction-governance-conformance@bc02683 (sha256 3f9408a0..., pinned). `anchor_compose.py --selftest` check [10c] runs all five through `batch_ops` and `batch_leg_check`.
 - Stated limits: as v1.6. A batch of a schema `anchor_compose.BATCH_RULES` does not know is refused, not guessed. Nothing here shows which ledger stamped a batch; the header and the proof show only that these bytes were committed by then.
 
 ## bond v0: the bond's teeth, without custody (2026-09-25)
