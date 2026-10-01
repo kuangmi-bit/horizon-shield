@@ -418,7 +418,63 @@ const patchS = AP.settlePendingOnAnswer(solo, "うちは創業70年です");
 ok(patchS.q_trust && patchS.q_trust.attributed === "sole", "1問だけ送った返事は sole のまま");
 
 /* ------------------------------------------------------------------ */
-const EXPECT_MIN = 234;
+console.log("\n12) ヒアリングに答え終えた店には、用紙の在り処を添えないこと");
+
+/* 実測 2026-10-02 (hs-partner-002 峰尾さま):
+     初回のヒアリングには 8 月に答え終えている。それでも毎回の問いの下に用紙の URL と
+     「1枚にまとめた用紙からご回答ください」が付いていて、「回答済みのヒアリングシートを
+     また送ってくる」と受け取られた。答え終えた店には、問いと、このトークへの返し方だけを送る。 */
+
+function doneEnv(lineUid, completed) {
+  return {
+    LINE_CHANNEL_ACCESS_TOKEN: "dummy",
+    RESEND_API_KEY: "dummy",
+    HS_HEARING_KV: {
+      async get(k) {
+        if (k.startsWith("store2line:")) return lineUid;
+        if (k.startsWith("hearing:")) return completed
+          ? { completed: true, profile: { company: "ミネオトーヨー住器", industry: "construction" } }
+          : { profile: { company: "ミネオトーヨー住器", industry: "construction" } };
+        return null;
+      },
+    },
+  };
+}
+async function sentVia(env, store, questions) {
+  let sent = null;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opt) => {
+    try {
+      const b = JSON.parse(opt.body);
+      sent = { url: String(url), text: b.messages ? b.messages[0].text : String(b.html || "") };
+    } catch (_e) { sent = null; }
+    return { ok: true, status: 200 };
+  };
+  try { await AP.sendQuestions(env, store, questions, "followup"); }
+  finally { globalThis.fetch = realFetch; }
+  return sent || { url: "", text: "" };
+}
+const minoQ = [{ qid: "q_ai_found", text: "いま、お客様は御社をどうやって見つけていますか。" }];
+
+const doneLine = await sentVia(doneEnv("U_mineo", true), cStoreTok, minoQ);
+ok(doneLine.url.includes("/message/push"), "答え終えた店にも、問いは LINE で届く");
+ok(doneLine.text.includes("どうやって見つけていますか"), "問いそのものは載る");
+ok(!doneLine.text.includes("/yakumo/register/"), "答え終えた店の LINE に、用紙の URL を載せない");
+ok(!doneLine.text.includes("ht_def456"), "答え終えた店の LINE に、登録コードも載せない");
+ok(!doneLine.text.includes("用紙"), "答え終えた店の LINE に、用紙の話を書かない");
+ok(doneLine.text.includes("このトークにそのままご返信いただければ"), "返し方(このトークへの返信)は残す");
+
+const openLine = await sentVia(doneEnv("U_mineo", false), cStoreTok, minoQ);
+ok(openLine.text.includes("/yakumo/register/?code=ht_def456"), "まだ答えていない店には、これまでどおり用紙の URL を添える");
+
+const doneMailStore = { ...cStoreTok, email: "info@example.invalid" };
+const doneMail = await sentVia(doneEnv(null, true), doneMailStore, minoQ);
+ok(doneMail.url.includes("resend"), "LINE の無い店にはメールで届く");
+ok(!doneMail.text.includes("/yakumo/register/"), "答え終えた店のメールにも、用紙の URL を載せない");
+ok(doneMail.text.includes("どうやって見つけていますか"), "メールにも問いそのものは載る");
+
+/* ------------------------------------------------------------------ */
+const EXPECT_MIN = 244;
 console.log("\n実行 " + ran + " 件 / 失敗 " + bad + " 件");
 if (ran < EXPECT_MIN) {
   console.log("検査の数が " + ran + " 件しかない (最低 " + EXPECT_MIN + " 件のはず)。検査が抜け落ちている。");

@@ -773,7 +773,14 @@ export async function sendQuestions(env, store, questions, kind) {
   //   そちらにあるため)。それ以外の業種には、業種で言葉が変わるワーカー側の用紙を出す。
   const industryNow = S(prof.industry, 40) || S(store.industry, 40) || "";
   const hearingOrigin = S(env.HEARING_PUBLIC_ORIGIN, 200) || "https://hearing.horizonshield.dev";
-  const formUrl = !store.token ? ""
+  /* 2026-10-02 用紙に答え終えた店には、用紙の在り処を添えない。
+     実測(hs-partner-002 ミネオトーヨー住器 峰尾さま): 初回のヒアリングには 8 月に答え終えている(hearing の completed が立っている)。
+     それでも毎回の問いの下に用紙の URL と「1枚にまとめた用紙からご回答ください」が付いていて、
+     ご本人には「回答済みのヒアリングシートを、また送ってくる」と見えた。文面も長くなり、
+     肝心の問いが埋もれる。答え終えた店とのやり取りは、このトークへの返信で足りる。
+     まだ用紙に答えていない店(hearing の completed が無い店)には、これまでどおり添える。 */
+  const sheetDone = !!(hrec && hrec.completed);
+  const formUrl = (!store.token || sheetDone) ? ""
     : (industryNow && industryNow !== IND.DEFAULT_INDUSTRY)
       ? (hearingOrigin + "/h/" + store.token)
       : ("https://shield.the-horizons-innovation.com/yakumo/register/?code=" + store.token);

@@ -102,7 +102,16 @@ function broadcast(message) {
   });
 }
 
+// 2026-10-02 全友だち配信を止める(LINE_BROADCAST=1 のときだけ送る)。
+//   公式LINE @172piime の友だちには、加盟店さまも入っている。broadcast は友だち全員に届くので、
+//   毎朝の補助金の話が加盟店さまのトークにも積もり、ヒアリングの文面がその下に埋もれていた。
+//   ミネオトーヨー住器 峰尾さまから「ヒアリングならヒアリングだけにしてほしい」と言われた。
+//   broadcast には、特定の友だちを外す指定が無い。だから既定で止める。
 async function main() {
+  if (process.env.LINE_BROADCAST !== '1') {
+    console.log('全友だち配信は止めてある(加盟店さまにも届くため)。送るときは LINE_BROADCAST=1。');
+    return;
+  }
   console.log('KIRA LINE broadcast 開始...');
   const message = await generateMessage();
   console.log('生成メッセージ:', message);

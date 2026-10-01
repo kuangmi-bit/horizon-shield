@@ -834,6 +834,7 @@ async function sendLine(message) {
 }
 
 async function broadcastToFollowers(theme, noteUrl) {
+  if (process.env.NOTE_BROADCAST !== '1') { console.log('ブロードキャスト: 止めてある(加盟店さまにも届くため。送るときは NOTE_BROADCAST=1)'); return; }
   const guideText = theme.guideLink
     ? `\n📖 給湯器適正価格ガイド\n${GUIDE_URL}\n`
     : '';
@@ -1136,8 +1137,13 @@ async function uploadEyecatch(page, pngPath) {
   }
 }
 
+// 2026-10-02 全友だち配信は既定で止める(NOTE_BROADCAST=1 のときだけ送る)。
+//   公式LINE の友だちには加盟店さまも入っていて、broadcast は特定の友だちを外せない。
+//   連載の告知が加盟店さまのトークに毎朝積もり、ヒアリングの文面が埋もれていた。
+function allFriendsBroadcastOn() { return process.env.NOTE_BROADCAST === '1'; }
+
 async function broadcastLine(text) {
-  if (process.env.NOTE_BROADCAST === '0') { console.log('ブロードキャスト: 止めてある(NOTE_BROADCAST=0)'); return; }
+  if (!allFriendsBroadcastOn()) { console.log('ブロードキャスト: 止めてある(加盟店さまにも届くため。送るときは NOTE_BROADCAST=1)'); return; }
   try {
     const res = await fetch('https://api.line.me/v2/bot/message/broadcast', {
       method: 'POST',
@@ -1214,7 +1220,7 @@ async function storyMain() {
       console.log('----- note の本文 -----');
       console.log(post);
       console.log('----- 本文ここまで 字数:', body.replace(/\s/g, '').length, '-----');
-      console.log('----- LINE の友だちへ -----');
+      console.log('----- LINE の友だちへ(NOTE_BROADCAST=1 のときだけ送る。いまは ' + (process.env.NOTE_BROADCAST === '1' ? '送る' : '送らない') + ') -----');
       console.log(STORY.broadcastText(outline, ep, 'https://note.com/horizon_shield/n/(公開後のURL)'));
       console.log('===== DRY_RUN 終了。投稿していない。=====');
       process.exit(0);
