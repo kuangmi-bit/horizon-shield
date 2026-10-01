@@ -1,12 +1,13 @@
 # nenrin-verify (Python)
 
 Recompute NENRIN evidence yourself, offline, in your own Python process. The Python twin of the npm package
-[`nenrin-verify`](https://www.npmjs.com/package/nenrin-verify): same input, same report (the two limits are listed
-under "Where the claim stops").
+[`nenrin-verify`](https://www.npmjs.com/package/nenrin-verify) and of the TSUGI recovery-chain verifier
+`tsugi_verify.mjs`: same input, same report (the limits are listed under "Where the claim stops").
 
     pip install nenrin-verify
-    nenrin-verify --selftest          # 31/31 frozen bundles give the same report as npm nenrin-verify
+    nenrin-verify --selftest          # 31/31 frozen bundles and 98/98 frozen TSUGI chains match the JavaScript
     nenrin-verify bundle.json         # the provenance report; exit 0 accepted, 1 refused
+    tsugi-verify chain.json --operator-key <b64>   # a TSUGI recovery chain, printed as node tsugi_verify.mjs prints it
 
 ```python
 import json, nenrin_verify as nv
@@ -18,7 +19,8 @@ print(nv.report_json(report))                 # JSON text as the JavaScript CLI 
 print(nv.report_sha256(report))               # compare with the JavaScript run, byte for byte
 ```
 
-One dependency, `cryptography`, for Ed25519. Nothing here opens a socket.
+One dependency, `cryptography`, for Ed25519. Nothing here opens a socket, except `tsugi-verify --fetch-operator-key
+<origin>`, which fetches the operator key from the origin you name.
 
 ## What it verifies
 
@@ -26,14 +28,15 @@ One dependency, `cryptography`, for Ed25519. Nothing here opens a socket.
 |---|---|---|
 | `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.2.3 (`nenrin_verify.mjs`, verifier 0.1.3): the same report, key for key |
 | `agreement_verify.verify`, `nenrin-agreement-verify` | a two-party agreement record (`a2a-agreement-v1`, `v1.1`), including key succession across a rotation | the repository's own Python verifier, unchanged but for one import line and a header comment; it and the JavaScript verifier return the same report on 5,286 frozen cases |
+| `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.0): the same stdout, byte for byte, and the same exit code |
 
 ## How "same report" is checked
 
 The JavaScript file is the reference. The port reads it line for line, and every place where Python and
 JavaScript disagree by default (`x or y` on `{}`, `==` on `True` and `1`, `Date.parse` accepting February 31st,
 Node's lenient base64, an own `__proto__` key that Object.assign turns into a prototype, the order V8's sort
-gives values a numeric comparator cannot order) goes through one file,
-`src/nenrin_verify/_js.py`, so the differences can be read in one place.
+gives values a numeric comparator cannot order, `new URL(s).host`) goes through `src/nenrin_verify/_js.py` and
+`src/nenrin_verify/_url.py`, so the differences can be read in one place.
 
 - **Frozen.** 31 bundles signed with keys derived from a public phrase, covering accepted graphs, refusals of every
   layer, witness disagreement, provider equivocation, action bindings, non-ASCII and escapes, and the date edge
@@ -48,6 +51,18 @@ gives values a numeric comparator cannot order) goes through one file,
 - **Agreement.** The packaged agreement verifier returns every one of the 5,286 frozen reports in
   `agreement-v0/agreement_vectors_v1.json`, the file the JavaScript verifier is scored against.
 - **Unchanged.** `VENDORED.json` pins the sha256 of the agreement files and their sources; a copy that drifts fails.
+- **TSUGI, frozen.** 98 cases: the repository's three real chains (incident 2 with the real operator signature,
+  12 records; the 7-record incident of the same week; that incident re-verified by a random draw of witnesses),
+  under the command lines that matter, and edits of them that reach every one of the 69 refusal codes
+  `tsugi_verify.mjs` has, plus the five inputs on which the JavaScript itself throws. Edited chains are re-sealed so
+  an edit meets the rule it targets, not only a hash mismatch. For each, `node tsugi_verify.mjs` was run and its
+  stdout and exit code frozen; they ship in the package and `nenrin-verify --selftest` re-runs them.
+- **TSUGI, live.** Every path of the real chains and of the witness pool is edited in about twenty ways, raw and
+  re-sealed: 29,326 inputs with the frozen cases. Each is run through `tsugi_verify.mjs` and through this port.
+  0 differ; 3 edits put a non-ASCII host in an endpoint, and there the port raises `NotReproduced` instead of
+  answering (see below).
+- **TSUGI semantics.** `new URL(s).host`, `toLowerCase`, `Buffer.from` on any JSON value and string conversion of
+  any JSON value, against Node directly, several thousand inputs each.
 
 `report_sha256(report)` is the sha256 of the report with keys sorted by UTF-16 code unit at every depth, no
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
@@ -63,6 +78,16 @@ whitespace, strings and numbers as JSON.stringify writes them. The JavaScript si
   guessing.
 - Where the JavaScript throws, the port raises; the CLI then prints no report and exits 2 (Node exits 1 on an
   uncaught throw).
+- **TSUGI: hosts that need UTS #46.** The verifier compares and prints URL hosts as WHATWG `new URL(s).host` gives
+  them. The port follows the standard for ASCII hosts, IPv4 in every form the standard reads, ports and userinfo,
+  and raises `NotReproduced` (no report, exit 2) for a host that is not ASCII after percent-decoding or has an
+  `xn--` label, an IPv6 literal, or a `file:` URL. Lowercasing a code point this Python's Unicode tables do not
+  assign raises the same way (Node 24 knows Unicode 16; Python 3.9 knows 13).
+- **TSUGI: one refusal text depends on the Node release.** For an Ed25519 public key that is not 32 bytes, Node 24
+  writes "Invalid keyData" and Node 22 "Ed25519 raw keys must be exactly 32-bytes". The port writes Node 24's
+  (`tsugi.KEY_LENGTH_MESSAGE`); the tests compare Node 22's output after that one substitution.
+- **TSUGI: `--fetch-operator-key`** makes the same request as the JavaScript (GET `<origin>/keys/operator.json`,
+  404 read as no key) but is not part of the comparison, which runs offline.
 
 ## What it does not establish
 
@@ -71,20 +96,20 @@ true; E1 compares a provider's signed claim to a caller's signed authorization a
 R1 proves a witness is structurally distinct from the parties, not unaffiliated with them. There is no score and
 no allow or deny anywhere in this package. The decision belongs to whoever reads the evidence.
 
-Not in this release: the TSUGI recovery-chain verifier (`tsugi_verify.mjs`) and the MUSUBI contract spine. Each
-comes in when it can carry the same guarantee as the two verifiers above: the same report as its JavaScript twin,
-checked case by case.
+Not in this release: the MUSUBI contract spine. It comes in when it can carry the same guarantee as the three
+verifiers above: the same report as its JavaScript twin, checked case by case.
 
 ## Reproduce
 
     cd workers/hs-ledger/nenrin/sdk-python
     pip install -e . pytest
     node tests/fixtures/make_fixtures.mjs --check   # the frozen fixtures re-create byte for byte
+    python tests/fixtures/make_tsugi_cases.py --check   # the frozen TSUGI cases and their JavaScript output re-create
     python tools/vendor.py --check                  # the agreement copies are their sources
-    pytest tests -q -s                              # frozen, live differential, agreement
+    pytest tests -q -s                              # frozen, live differential, agreement, TSUGI
 
 Published from GitHub Actions with PyPI Trusted Publishing and attestations
 (`.github/workflows/pypi-publish-nenrin-verify.yml`); the parity suite runs on every change to this directory,
-to the JavaScript SDK and to the agreement verifier (`.github/workflows/nenrin-verify-py.yml`).
+to the JavaScript SDK, to the agreement verifier and to the TSUGI chains (`.github/workflows/nenrin-verify-py.yml`).
 
 MIT. The HORIZONs Co., Ltd.

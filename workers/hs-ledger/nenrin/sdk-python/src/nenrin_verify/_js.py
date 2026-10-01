@@ -176,6 +176,16 @@ _JS_WS = " \t\n\v\f\r\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u200
 _DEC = re.compile(r"\A[+-]?(?:(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|Infinity)\Z")
 
 
+def _double(n):
+    """An integer as the double JavaScript holds: exact up to 2^53, rounded beyond, Infinity past the largest double."""
+    if abs(n) <= MAX_SAFE:
+        return n
+    try:
+        return float(n)
+    except OverflowError:
+        return float("inf") if n > 0 else float("-inf")
+
+
 def to_number(v):
     """ToNumber, for the values a JSON document can hold."""
     if v is UNDEF:
@@ -191,11 +201,11 @@ def to_number(v):
         if t == "":
             return 0
         if re.match(r"\A0[xX][0-9a-fA-F]+\Z", t):
-            return int(t[2:], 16)
+            return _double(int(t[2:], 16))
         if re.match(r"\A0[oO][0-7]+\Z", t):
-            return int(t[2:], 8)
+            return _double(int(t[2:], 8))
         if re.match(r"\A0[bB][01]+\Z", t):
-            return int(t[2:], 2)
+            return _double(int(t[2:], 2))
         if _DEC.match(t):
             return float(t.replace("Infinity", "inf"))
         return float("nan")
@@ -503,3 +513,129 @@ def date_parse(s):
         return None
     days = _days_from_civil(y, mo, 1) + d - 1
     return days * 86400000 + h * 3600000 + mi * 60000 + se * 1000 + ms
+
+
+# ---- added for the TSUGI port (tsugi.py) ----
+
+class NotReproduced(Exception):
+    """An input where this port does not reproduce the JavaScript and raises instead of guessing (the limits are
+    listed in the package README under "Where the claim stops")."""
+
+
+def number_to_string(v):
+    """String(n) for a JavaScript number: unlike JSON.stringify, NaN and the infinities have names."""
+    if isinstance(v, float) and math.isnan(v):
+        return "NaN"
+    if isinstance(v, float) and math.isinf(v):
+        return "Infinity" if v > 0 else "-Infinity"
+    return num_str(v)
+
+
+def to_string(v):
+    """ToString (and string concatenation) of a value JSON.parse can produce. A plain object is "[object Object]"
+    unless it has an own toString key: that one is not callable, valueOf answers the object itself, and
+    JavaScript throws TypeError: Cannot convert object to primitive value."""
+    if v is UNDEF:
+        return "undefined"
+    if v is None:
+        return "null"
+    if v is True:
+        return "true"
+    if v is False:
+        return "false"
+    if isinstance(v, str):
+        return v
+    if is_num(v):
+        return number_to_string(v)
+    if isinstance(v, list):
+        return ",".join("" if (x is None or x is UNDEF) else to_string(x) for x in v)
+    if isinstance(v, dict):
+        if "toString" in v:
+            raise JSTypeError("Cannot convert object to primitive value")
+        return "[object Object]"
+    raise JSTypeError("to_string: not a JSON value")
+
+
+def to_number_js(v):
+    """ToNumber for any JSON value, objects and arrays going through ToPrimitive (to_string's rules)."""
+    if isinstance(v, (list, dict)):
+        return to_number(to_string(v))
+    return to_number(v)
+
+
+def lower(s):
+    """String.prototype.toLowerCase. Python's str.lower() and JavaScript's agree on the default case conversion
+    (SpecialCasing included, final sigma included) for every code point both Unicode tables assign; a code point
+    this Python does not assign may have a mapping in a newer table, so it raises instead of guessing."""
+    if s.isascii():
+        return s.lower()
+    import unicodedata
+    if any(unicodedata.category(c) == "Cn" for c in s):
+        raise NotReproduced("toLowerCase of a code point this Python's Unicode tables do not assign")
+    return s.lower()
+
+
+def utf8(s):
+    """TextEncoder.encode: UTF-8, a lone surrogate written as U+FFFD."""
+    return re.sub("[\ud800-\udfff]", "�", s).encode("utf-8")
+
+
+_ARG_TYPE = ("The first argument must be of type string or an instance of Buffer, ArrayBuffer, or Array or an "
+             "Array-like Object. Received ")
+
+
+def _to_uint8(v):
+    n = to_number_js(v)
+    if isinstance(n, float) and (math.isnan(n) or math.isinf(n)):
+        return 0
+    return int(n) % 256
+
+
+def _from_array_like(xs):
+    return bytes(_to_uint8(x) for x in xs)
+
+
+def _specific_type(v):
+    """lib/internal/errors.js determineSpecificType for a plain object, as Node 22 and 24 write it."""
+    c = v["constructor"] if "constructor" in v else "<Object>"
+    if c == "<Object>":
+        return "an instance of Object"
+    if not truthy(c):
+        return "[Object]"
+    if c is True or isinstance(c, str):
+        raise JSTypeError("Cannot use 'in' operator to search for 'name' in " + to_string(c))
+    if isinstance(c, dict) and "name" in c:
+        return "an instance of " + to_string(c["name"])
+    return "[Object]"
+
+
+def buffer_from(v):
+    """Buffer.from(v, "base64") for the values JSON can hold (Node 22 and 24, lib/buffer.js): a string is
+    decoded leniently; an array is copied element by element through ToNumber modulo 256; an object goes
+    through valueOf, then an own length (a non-number gives an empty buffer), then {type: "Buffer", data: [...]},
+    and otherwise throws ERR_INVALID_ARG_TYPE."""
+    if isinstance(v, str):
+        return node_b64decode(v)
+    if isinstance(v, list):
+        return _from_array_like(v)
+    if isinstance(v, dict):
+        if "valueOf" in v:
+            vo = v["valueOf"]
+            if truthy(vo):
+                raise JSTypeError("value.valueOf is not a function")
+            if isinstance(vo, str):
+                return node_b64decode(vo)
+        if "length" in v:
+            if is_num(v["length"]):
+                raise NotReproduced("Buffer.from of an object with a numeric length")
+            return b""
+        if seq(v.get("type", UNDEF), "Buffer") and isinstance(v.get("data", UNDEF), list):
+            return _from_array_like(v["data"])
+        raise JSTypeError(_ARG_TYPE + _specific_type(v))
+    if v is True or v is False:
+        raise JSTypeError(_ARG_TYPE + "type boolean (" + ("true" if v else "false") + ")")
+    if v is None:
+        raise JSTypeError(_ARG_TYPE + "null")
+    if v is UNDEF:
+        raise JSTypeError(_ARG_TYPE + "undefined")
+    raise NotReproduced("Buffer.from of a number")

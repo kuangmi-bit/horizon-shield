@@ -5,6 +5,7 @@ name: nenrin-verify (Python) parity
 #   2. その 31 件の全経路を壊した 2 万 5 千件超を、その場の Node と Python の両方に通して一致 (両方が投げるのも一致に数える)
 #   3. 同梱した合意の検証器が、凍った 5,286 件の report を 1 件も違えずに返す (JavaScript 版も同じ file で採点済み)
 #   4. 同梱した file が元の source から作った物と同じ、fixture が作り直しても同じバイト
+#   5. TSUGI (tsugi_verify.mjs): 凍った 98 件で CLI の出力がバイトで一致、実際の連鎖の全経路を壊した 2 万 9 千件超も Node と一致
 # Node 22 と 24 の両方で回す (V8 の並べ方を写した箇所があるから)。sdk/ (JavaScript) が変わったときも走らせる。JavaScript 側が動いたら、Python がずれたことがここで分かる。
 
 on:
@@ -13,12 +14,14 @@ on:
       - "workers/hs-ledger/nenrin/sdk-python/**"
       - "workers/hs-ledger/nenrin/sdk/**"
       - "workers/hs-ledger/nenrin/agreement-v0/**"
+      - "workers/hs-ledger/nenrin/recovery-v0/**"
       - ".github/workflows/nenrin-verify-py.yml"
   pull_request:
     paths:
       - "workers/hs-ledger/nenrin/sdk-python/**"
       - "workers/hs-ledger/nenrin/sdk/**"
       - "workers/hs-ledger/nenrin/agreement-v0/**"
+      - "workers/hs-ledger/nenrin/recovery-v0/**"
       - ".github/workflows/nenrin-verify-py.yml"
   workflow_dispatch:
 
@@ -50,5 +53,6 @@ jobs:
         run: |
           python tools/vendor.py --check
           node tests/fixtures/make_fixtures.mjs --check
+          python tests/fixtures/make_tsugi_cases.py --check
       - name: Frozen, live differential, agreement
         run: python -m pytest tests -q -s

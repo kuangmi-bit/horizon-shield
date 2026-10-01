@@ -2,9 +2,11 @@
 
   nenrin-verify bundle.json            the provenance report, exit 0 accepted, 1 refused (as npm nenrin-verify)
   nenrin-verify --sha bundle.json      one line: verdict and report_sha256, for comparing with the JavaScript run
-  nenrin-verify --selftest             re-run the frozen bundles shipped in the package against the JavaScript
-                                       reports frozen with them; exit 0 only when every one matches
+  nenrin-verify --selftest             re-run the frozen cases shipped in the package against the JavaScript
+                                       output frozen with them (provenance bundles and TSUGI chains); exit 0 only
+                                       when every one matches
   nenrin-agreement-verify record.json  the agreement report (the repository's agreement_verify.py, unchanged)
+  tsugi-verify chain.json [options]    the TSUGI recovery-chain report, as `node tsugi_verify.mjs` prints it
 """
 import sys
 
@@ -35,11 +37,19 @@ def main(argv=None):
     except Exception as e:
         print("nenrin-verify: no report for this input (%s: %s)" % (type(e).__name__, e), file=sys.stderr)
         return 2
-    if sha_only:
-        print(report["verdict"] + " " + report_sha256(report))
-    else:
-        print(stringify(report, indent=2))
+    text = report["verdict"] + " " + report_sha256(report) if sha_only else stringify(report, indent=2)
+    _write_utf8(text + "\n")
     return 0 if report["verdict"] == "accepted" else 1
+
+
+def _write_utf8(text):
+    """console.log writes UTF-8 whatever the locale; so does this."""
+    if hasattr(sys.stdout, "buffer"):
+        sys.stdout.flush()
+        sys.stdout.buffer.write(text.encode("utf-8"))
+        sys.stdout.buffer.flush()
+    else:
+        sys.stdout.write(text)
 
 
 def selftest():
@@ -61,7 +71,44 @@ def selftest():
             print("DIFFERS  " + c["name"])
     n = len(doc["cases"])
     print("%d/%d frozen bundles give the same report as %s" % (ok, n, doc["reference"]))
-    return 0 if ok == n else 1
+    t_ok, t_n, t_ref = tsugi_selftest()
+    print("%d/%d frozen TSUGI chains give the same output as %s" % (t_ok, t_n, t_ref))
+    return 0 if ok == n and t_ok == t_n else 1
+
+
+def tsugi_selftest():
+    import gzip
+    import hashlib
+    import json
+    import os
+    from . import tsugi
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tsugi_selftest.json.gz")
+    with open(path, "rb") as f:
+        doc = json.loads(gzip.decompress(f.read()).decode("utf-8"))
+    ok = 0
+    for c in doc["cases"]:
+        files = c["files"]
+
+        def read(p, files=files):
+            if not isinstance(p, str) or p not in files:
+                raise OSError("no such file in the case: %r" % (p,))
+            return files[p]
+        try:
+            out, code = tsugi.run(c["args"], read_file=read)
+            same = (not c["js"]["threw"] and code == c["js"]["exit"] and tsugi.output_text(out) == c["js"]["stdout"])
+        except tsugi.NotReproduced:
+            same = False
+        except Exception:
+            same = c["js"]["threw"]
+        ok += same
+        if not same:
+            print("DIFFERS  " + c["name"])
+    return ok, len(doc["cases"]), doc["reference"]
+
+
+def tsugi_main(argv=None):
+    from . import tsugi
+    return tsugi.main(argv)
 
 
 def agreement_main(argv=None):

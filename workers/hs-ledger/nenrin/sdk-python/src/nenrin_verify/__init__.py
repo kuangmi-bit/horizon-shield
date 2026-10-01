@@ -1,11 +1,14 @@
 """nenrin-verify: recompute NENRIN evidence yourself, offline, in your own Python process.
 
-The Python twin of the npm package nenrin-verify. Two verifiers, each held to its JavaScript counterpart:
+The Python twin of the npm package nenrin-verify. Three verifiers, each held to its JavaScript counterpart:
 
   provenance   verify_provenance / consume_evidence: one A2A task's delegation chain, execution receipt,
                pre-execution intent and outcome evidence (port of nenrin_verify.mjs; same report, key for key)
   agreement    agreement_verify.verify: a two-party agreement record (a2a-agreement-v1 / v1.1), the repository's
                own Python verifier, which returns the same report as the JavaScript one on 5,286 frozen cases
+  TSUGI        tsugi.verify_chain: a recovery chain (drift, proposal, authorization, execution, verify), strict
+               operator keys, the random witness draw and its quorum (port of tsugi_verify.mjs; the same output,
+               byte for byte, as `node tsugi_verify.mjs`)
 
 No network, no clock, no score. A signature proves who asserted, not that the assertion is true; every report
 says what it does not establish.
@@ -16,13 +19,13 @@ from ._js import assign as _assign, stringify as _stringify, loads as js_loads
 from .provenance import (VERIFIER_VERSION, candidate_evidence_set, consume_evidence, did_key_resolver,
                          evidence_id, grant_ref, intent_id, posture_line, preflight_report,
                          public_key_from_did_key, receipt_id, verify_provenance)
-from . import agreement_verify
+from . import agreement_verify, tsugi
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = ["verify_provenance", "consume_evidence", "posture_line", "candidate_evidence_set", "preflight_report",
            "public_key_from_did_key", "did_key_resolver", "evidence_id", "grant_ref", "receipt_id", "intent_id",
-           "agreement_verify", "report_sha256", "report_json", "verify_bundle", "js_loads", "VERIFIER_VERSION", "__version__"]
+           "agreement_verify", "tsugi", "report_sha256", "report_json", "verify_bundle", "js_loads", "VERIFIER_VERSION", "__version__"]
 
 
 def report_sha256(report):
