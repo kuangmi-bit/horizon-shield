@@ -28,9 +28,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "22" }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: "22", package-manager-cache: false }
 
       # 1. 生成物が、データベースと一致しているか。
       #    ask を出している要件に設問文が無ければ、ここで落ちる。
@@ -70,9 +70,9 @@ jobs:
   visibility:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "22" }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: "22", package-manager-cache: false }
       # 可視性の設問が、可視性要件データベースとずれていないか
       - name: 可視性の設問
         run: python3 tools/visibility/sync_questions.py --check

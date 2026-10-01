@@ -19,14 +19,15 @@ on:
         default: ''
 jobs:
   post-to-note:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
+          package-manager-cache: false
           node-version: '20'
       - name: Google Chrome と日本語の字形
         run: |
@@ -53,7 +54,7 @@ jobs:
         run: cd note-post && node post_to_note.js
       - name: 見出し画像と画面の記録を残す
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: note-debug
           path: note-post/debug/
