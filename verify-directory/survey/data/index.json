@@ -63,9 +63,10 @@
       "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey0_v4_2026-10-01.json",
       "bytes": 2795,
       "sha256": "83d9d7db11151e6e9dea84d29492e7cc9f0bab93d3758297a9ea493cc09a8518",
-      "what": null,
-      "role": "undescribed",
-      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
+      "what": "The monthly registry count of 2026-10-01. INCOMPLETE: page 23 timed out, so it covers the first 2,200 latest-version entries only (complete: false, stop_reason in the file). It is not a count of the registry and no number from it was published. Nothing was contacted.",
+      "made_by": "tools/survey/count_registry.py",
+      "role": "population",
+      "do_not_use": true
     },
     {
       "file": "survey0_v4_endpoints_active_2026-08-19.txt",
@@ -90,9 +91,10 @@
       "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey0_v4_endpoints_active_2026-10-01.txt",
       "bytes": 70303,
       "sha256": "373cdee76538d7f75309db4ee913518c3cb63b5217671fa929caac9abe29a39d",
-      "what": null,
-      "role": "undescribed",
-      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
+      "what": "The 2,036 https endpoints declared active in the incomplete 2026-10-01 count, one per line. A partial list for the reason given on survey0_v4_2026-10-01.json. Not walked.",
+      "made_by": "tools/survey/count_registry.py",
+      "role": "population",
+      "do_not_use": true
     },
     {
       "file": "survey0_v4_progress_2026-09-01.jsonl",
@@ -110,9 +112,9 @@
       "bytes": 1304,
       "sha256": "8613972f4504f45cc23ddedfafebed1981faac1265832604a9b725ca59c7e5e7",
       "lines": 22,
-      "what": null,
-      "role": "undescribed",
-      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
+      "what": "Page by page progress of the 2026-10-01 count. It ends at page 22, which is how the count is known to be partial.",
+      "made_by": "tools/survey/count_registry.py",
+      "role": "population"
     },
     {
       "file": "survey1_report_2026-08-23.json",
@@ -178,6 +180,16 @@
       "lines": 882,
       "what": "The 882 rows that still did not answer, tried against four protocol versions in turn. 62 more answered at 2025-11-25. None needed anything older.",
       "made_by": "tools/survey3_version_ladder.py",
+      "role": "correction"
+    },
+    {
+      "file": "survey4_auth_probe_2026-10-01.jsonl",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey4_auth_probe_2026-10-01.jsonl",
+      "bytes": 4625529,
+      "sha256": "74f179776989c5e4603bd64a7b3fa0f9971956e76547b484c39188ca526db3df",
+      "lines": 3076,
+      "what": "The 3,076 addresses the 2026-08-23 walk filed as authorization_required, contacted again on 2026-10-01 with the same initialize at the registered path and at a path that cannot exist on the same host (/__nx_<random>). One row per address with both statuses, WWW-Authenticate, edge headers, body hashes and a category derived only from those fields. Read only, no credentials. Recompute: python3 tools/survey4_auth_probe.py --recompute <this file>.",
+      "made_by": "tools/survey4_auth_probe.py",
       "role": "correction"
     }
   ]

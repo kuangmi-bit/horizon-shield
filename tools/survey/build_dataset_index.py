@@ -57,6 +57,36 @@ WHAT = {
         "made_by": "tools/survey/count_registry.py",
         "role": "population",
     },
+    "survey0_v4_2026-10-01.json": {
+        "what": "The monthly registry count of 2026-10-01. INCOMPLETE: page 23 timed out, so it covers the first "
+                "2,200 latest-version entries only (complete: false, stop_reason in the file). It is not a count of "
+                "the registry and no number from it was published. Nothing was contacted.",
+        "made_by": "tools/survey/count_registry.py",
+        "role": "population",
+        "do_not_use": True,
+    },
+    "survey0_v4_endpoints_active_2026-10-01.txt": {
+        "what": "The 2,036 https endpoints declared active in the incomplete 2026-10-01 count, one per line. "
+                "A partial list for the reason given on survey0_v4_2026-10-01.json. Not walked.",
+        "made_by": "tools/survey/count_registry.py",
+        "role": "population",
+        "do_not_use": True,
+    },
+    "survey0_v4_progress_2026-10-01.jsonl": {
+        "what": "Page by page progress of the 2026-10-01 count. It ends at page 22, which is how the count is known "
+                "to be partial.",
+        "made_by": "tools/survey/count_registry.py",
+        "role": "population",
+    },
+    "survey4_auth_probe_2026-10-01.jsonl": {
+        "what": "The 3,076 addresses the 2026-08-23 walk filed as authorization_required, contacted again on "
+                "2026-10-01 with the same initialize at the registered path and at a path that cannot exist on the "
+                "same host (/__nx_<random>). One row per address with both statuses, WWW-Authenticate, edge headers, "
+                "body hashes and a category derived only from those fields. Read only, no credentials. "
+                "Recompute: python3 tools/survey4_auth_probe.py --recompute <this file>.",
+        "made_by": "tools/survey4_auth_probe.py",
+        "role": "correction",
+    },
     "build_lookup_index.py": {
         "what": "A script, not data. Builds lookup_index.json and lookup_details.json for a per address lookup page "
                 "(/verify-directory/lookup/) that is not published yet (2026-09-03). Every row it writes restates a line "
