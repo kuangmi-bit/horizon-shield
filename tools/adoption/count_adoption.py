@@ -94,7 +94,7 @@ def implementations(reg):
             "by_subject": dict(sorted(by_subject.items())), "open_calls": reg.get("open_calls", {}), "items": items}
 
 
-def ledger_witnesses(our):
+def ledger_witnesses(our, our_names=()):
     head = get_json(LEDGER + "/ledger/head")
     n = int(head["n"])
     signed, unsigned, batches, unreadable = {}, {}, 0, []
@@ -119,7 +119,7 @@ def ledger_witnesses(our):
             if d:
                 if not ours(d, our):
                     signed.setdefault(d.lower(), []).append(i)
-            elif r.get("witness_name") and not ours(r["witness_name"], our):
+            elif r.get("witness_name") and not ours(r["witness_name"], our) and not any(x in r["witness_name"].lower() for x in our_names):
                 unsigned.setdefault(r["witness_name"], []).append(i)
     return {"ledger_n": n, "ledger_head": head.get("head"), "witness_batches": batches, "unreadable_entries": unreadable,
             "signed_domains": {k: sorted(set(v)) for k, v in sorted(signed.items())},
@@ -197,7 +197,7 @@ def measure():
     m["independent_implementations"] = implementations(reg)
 
     try:
-        w = ledger_witnesses(our)
+        w = ledger_witnesses(our, [x.lower() for x in reg.get("our_names", [])])
     except Exception as e:
         w = None
         not_measured.append({"metric": "independent_witnesses", "reason": "ledger not readable: %s" % e})

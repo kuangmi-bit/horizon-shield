@@ -11,7 +11,8 @@ os.environ["NO_PROXY"] = os.environ["no_proxy"] = "127.0.0.1,localhost"
 BATCH1 = {"schema": "nenrin-witness-batch-v1", "records": [
     {"sha": "a", "signed": True, "signed_domain": "api.babyblueviper.com"},
     {"sha": "b", "signed": True, "signed_domain": "gate.horizonshield.dev"},
-    {"sha": "c", "signed": False, "witness_name": "someone-unsigned"}]}
+    {"sha": "c", "signed": False, "witness_name": "someone-unsigned"},
+    {"sha": "c2", "signed": False, "witness_name": "HORIZON SHIELD self-witness (github runner)"}]}
 BATCH2 = {"schema": "nenrin-witness-batch-v1", "records": [
     {"sha": "d", "signed": True, "signed_domain": "PIPAVLO82.github.io"},
     {"sha": "e", "signed": True, "signed_domain": "api.babyblueviper.com"}]}
@@ -52,10 +53,10 @@ def main():
         print(("ok   " if ok else "FAIL ") + name + ("" if ok else "  got %r want %r" % (got, want)))
 
     our = ["horizonshield.dev", "the-horizons-innovation.com", "ogasurfproject-jpg"]
-    w = C.ledger_witnesses(our)
+    w = C.ledger_witnesses(our, ["horizon shield", "toshikatsu oga"])
     check("outside signed domains, ours left out, case folded", sorted(w["signed_domains"]), ["api.babyblueviper.com", "pipavlo82.github.io"])
     check("a domain that filed twice is one witness", w["signed_domains"]["api.babyblueviper.com"], [2, 3])
-    check("unsigned names listed, not counted", list(w["unsigned_names"]), ["someone-unsigned"])
+    check("unsigned names listed, not counted, our own names left out", list(w["unsigned_names"]), ["someone-unsigned"])
     check("an entry that cannot be read is reported, not skipped silently", w["unreadable_entries"], [4])
     check("only witness batches are read", w["witness_batches"], 2)
     check("ours(): subdomain of ours", C.ours("gate.horizonshield.dev", our), True)

@@ -1,7 +1,19 @@
 {
   "schema": "hs-adoption-registry-v1",
   "what_this_is": "The hand-kept half of the weekly adoption count: implementations written by people who do not work for this project that reproduced our bytes or verdicts. Each row names one public place where the reproduction can be read. tools/adoption/count_adoption.py checks every link still answers and counts the rows; it adds nothing by itself. Add a row only with a link a stranger can open.",
-  "our_identities": ["horizonshield.dev", "the-horizons-innovation.com", "ogasurfproject-jpg", "ogasurfproject-jpg.github.io"],
+  "our_identities": [
+    "horizonshield.dev",
+    "the-horizons-innovation.com",
+    "ogasurfproject-jpg",
+    "ogasurfproject-jpg.github.io"
+  ],
+  "our_names": [
+    "HORIZON SHIELD",
+    "Toshikatsu Oga",
+    "The HORIZONs",
+    "The HORIZ音s",
+    "ogasurfproject"
+  ],
   "implementations": [
     {
       "who": "Kuang Mi (kuangmi-bit)",
