@@ -61,7 +61,7 @@ deterministic, so a fresh run reproduces them byte for byte. Run after `matrix.p
     JCS_GO_BIN=$PWD/jcs-go/jcs python3 vectors.py
 
 `JCS_GO_BIN` is optional; when set, every canonical form is checked against gowebpki/jcs v1.0.1 as well.
-`vectors_s2.py` (a REQUIRED field absent) and `vectors_s3.py` (fields outside the schema) add groups s2 and s3 on top,
+`vectors_s2.py` (a REQUIRED field absent), `vectors_s3.py` (fields outside the schema) and `vectors_s3_transition.py` (one card signed over both s3 forms) add groups s2 and s3 on top,
 leaving earlier files untouched; `PY1287` names a virtualenv with a2a-python at #1287 installed.
 
 ## Watch (`watch.py`, `.github/workflows/interop-matrix-watch.yml`)

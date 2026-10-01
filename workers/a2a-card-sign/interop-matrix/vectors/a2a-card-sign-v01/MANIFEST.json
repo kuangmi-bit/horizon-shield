@@ -48,9 +48,9 @@
     "accept_any": 4,
     "reject_any": 1,
     "reading_dependent": 8,
-    "total": 35,
+    "total": 37,
     "absent_required": 11,
-    "unknown_fields": 11
+    "unknown_fields": 13
   },
   "groups": [
     "s0-control",
@@ -272,6 +272,18 @@
           "a2a-js": true,
           "a2a-go": false,
           "a2a-python#1287": true
+        },
+        "S3-D-012": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": true,
+          "a2a-python#1287": true
+        },
+        "S3-D-013": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": false,
+          "a2a-python#1287": true
         }
       }
     }
@@ -416,6 +428,14 @@
     {
       "path": "s3-unknown-fields/S3-T-011.json",
       "sha256": "cfc44d55d01d2a1ec7f45e8cdb37e72262abcbd6eb3ca74ac4c52ddda9f3e691"
+    },
+    {
+      "path": "s3-unknown-fields/S3-D-012.json",
+      "sha256": "59dcb5c8070c3d12ff2e033f5cc6d85f341ba3e66c4fbd2815c5b5b757330759"
+    },
+    {
+      "path": "s3-unknown-fields/S3-D-013.json",
+      "sha256": "d967e534ab4409acf0172f87a430e7402ebb5ff29e97789db81bf6c470e34f75"
     }
   ],
   "s2_readings": {
@@ -468,7 +488,8 @@
     "unknown-retain": "Rule 1 served-scope on the fields the schema defines; every field outside the schema kept verbatim where it was served. Then RFC 8785.",
     "unknown-exclude": "Every field outside the schema removed at every depth, then rule 1 served-scope. Then RFC 8785.",
     "unknown-reject": "A card carrying any field outside the schema is refused.",
-    "note": "Scored separately from s0 to s2: an s3 vector lists only these three readings. On every s3 card the s0 to s2 readings agree on the known fields."
+    "note": "Scored separately from s0 to s2: an s3 vector lists only these three readings. On every s3 card the s0 to s2 readings agree on the known fields.",
+    "transition": "S3-D-012 and S3-D-013 carry two signatures, one per form, from the same key. Section 8.4.3: verify at least one signature; multiple signatures MAY be present. A verifier is scored on the reading it implements; a verifier that accepts either form accepts S3-D-013."
   },
   "s3_sdk_forms": {
     "note": "Which reading each SDK's own canonicalization equals on each s3 card, byte for byte. Recorded, not required.",
@@ -585,5 +606,6 @@
       }
     }
   },
-  "generator_s3": "vectors_s3.py"
+  "generator_s3": "vectors_s3.py",
+  "generator_s3_transition": "vectors_s3_transition.py"
 }
