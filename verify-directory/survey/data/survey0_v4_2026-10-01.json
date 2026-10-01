@@ -1,0 +1,190 @@
+{
+  "active": 2180,
+  "active_published_last_30_days": 777,
+  "active_published_last_90_days": 1582,
+  "active_with_https_remote": 1977,
+  "by_status": {
+    "active": 2180,
+    "deprecated": 20
+  },
+  "complete": false,
+  "endpoints_on_shared_hosts": 389,
+  "entries_returned": 2200,
+  "hosts_with_more_than_one_endpoint": 63,
+  "https_endpoints_active": 2036,
+  "measured_at": "2026-10-01T10:16:44.678655+00:00",
+  "note": "declared endpoints only. liveness not measured here. active means the registry's own status field.",
+  "pages": 22,
+  "registrations_latest_all_statuses": 2200,
+  "source": "https://registry.modelcontextprotocol.io/v0/servers?version=latest",
+  "stop_reason": "fetch failed on page 23: The read operation timed out",
+  "tool": "survey0_count_v4",
+  "top_hosts": [
+    [
+      "server.smithery.ai",
+      213
+    ],
+    [
+      "waystation.ai",
+      24
+    ],
+    [
+      "apick.app",
+      9
+    ],
+    [
+      "api.kaiv.ai",
+      8
+    ],
+    [
+      "mcp.openhelm.ai",
+      6
+    ],
+    [
+      "mcp.fodda.ai",
+      6
+    ],
+    [
+      "mana.am",
+      4
+    ],
+    [
+      "agent.thoughtspot.app",
+      4
+    ],
+    [
+      "roosteragents.ai",
+      3
+    ],
+    [
+      "api.agenticshelf.ai",
+      3
+    ],
+    [
+      "api.aislabs.ai",
+      3
+    ],
+    [
+      "hunchsheet.app",
+      3
+    ],
+    [
+      "scoreia.ai",
+      3
+    ],
+    [
+      "api.atako.ai",
+      2
+    ],
+    [
+      "mcp.oddsockets.ai",
+      2
+    ],
+    [
+      "memcell.ai",
+      2
+    ],
+    [
+      "api.mcpanalytics.ai",
+      2
+    ],
+    [
+      "mcp.cardog.io",
+      2
+    ],
+    [
+      "mcp.createprints.ai",
+      2
+    ],
+    [
+      "mcp.fiber.ai",
+      2
+    ],
+    [
+      "getdialer.app",
+      2
+    ],
+    [
+      "councilof.ai",
+      2
+    ],
+    [
+      "onesvibe.app",
+      2
+    ],
+    [
+      "api.marketintell.ai",
+      2
+    ],
+    [
+      "afmr.ai",
+      2
+    ],
+    [
+      "the-stall.intuitek.ai",
+      2
+    ],
+    [
+      "agentnexus.app",
+      2
+    ],
+    [
+      "app.feedback1.ai",
+      2
+    ],
+    [
+      "api.newzai.ai",
+      2
+    ],
+    [
+      "advisorsai.ai",
+      2
+    ],
+    [
+      "daishi.ai",
+      2
+    ],
+    [
+      "point11.ai",
+      2
+    ],
+    [
+      "dynamicfeed.ai",
+      2
+    ],
+    [
+      "mcp.selis.app",
+      2
+    ],
+    [
+      "calaf.ai",
+      2
+    ],
+    [
+      "auteng.ai",
+      2
+    ],
+    [
+      "mcp.bcited.ai",
+      2
+    ],
+    [
+      "mcp.wiv.ai",
+      2
+    ],
+    [
+      "auth.xbarry.ai",
+      2
+    ],
+    [
+      "build.chipp.ai",
+      2
+    ]
+  ],
+  "transport_types_active": {
+    "sse": 50,
+    "streamable-http": 1965
+  },
+  "unique_hosts_active": 1710,
+  "user_agent": "HorizonShieldSurvey/0.4 (+https://shield.the-horizons-innovation.com/verify-directory/survey/)"
+}
