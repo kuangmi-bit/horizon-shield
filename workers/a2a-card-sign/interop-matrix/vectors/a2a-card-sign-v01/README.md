@@ -87,13 +87,43 @@ The generator (`vectors_s2.py`) refuses a case unless `prune-empty` equals a2a-s
 `served-as-is` equals a2a-go, and `rule-1-descriptor-scope` equals a2a-python at #1287, byte for byte. The checks are
 recorded in `MANIFEST.json` under `s2_checks`.
 
+## Group s3: fields outside the AgentCard schema
+
+Added after a2aproject/A2A#2122 asked how the served-scope sentence treats a field the served JSON carries but the
+schema does not define. Section 5.7 says such fields SHOULD be ignored when parsing; it does not say whether a
+signature covers them. The s0, s1 and s2 files are unchanged byte for byte. s3 is scored on its own axis
+(`"axis": "unknown-fields"` in each vector) against three readings:
+
+| reading | what it does | matches |
+|---|---|---|
+| `unknown-retain` | served-scope rule 1 on the defined fields; every undefined field kept verbatim where it was served | a2a-go main 534a60fc |
+| `unknown-exclude` | every undefined field removed at every depth, then served-scope rule 1 | a2a-sdk 1.2.1, @a2a-js/sdk 1.3.0, a2a-python#1287 cdee28e |
+| `unknown-reject` | a card carrying any undefined field is refused | no SDK |
+
+Every s3 card is the s0 control card plus undefined fields, with no defined field at its default value, so the s0 to
+s2 readings cannot disagree on the defined fields: each pair differs only in whether the undefined fields are covered.
+
+| case | vector | accepted under |
+|---|---|---|
+| `url`, `protocolVersion`, `preferredTransport` at the top level (0.3 fields) | S3-001 / S3-002 | unknown-retain / unknown-exclude |
+| `provider.legalEntity` | S3-003 / S3-004 | as above |
+| `compensation` (an undefined object) | S3-005 / S3-006 | as above |
+| `skills[0].costHint` (inside a repeated element) | S3-007 / S3-008 | as above |
+| `x-reserved: []` (undefined and empty) | S3-009 / S3-010 | as above |
+| S3-002 with `url` replaced after signing | S3-T-011 | unknown-exclude only |
+
+S3-T-011 is the point of the group: under `unknown-exclude` the edited card still verifies, because the edited value was
+never covered. The "matches" column is recorded, not assumed: `vectors_s3.py` canonicalizes every case with each SDK
+and writes which reading its bytes equal to `MANIFEST.json` under `s3_sdk_forms`.
+
 ## Scoring a verifier
 
 `score.py` (beside the generator, no dependencies) takes a verifier's accept/reject verdicts and reports, for each
-reading, how many of the 24 vectors it gets right and how many signatures it accepts that the reading rejects. A
+reading, how many of the 24 s0 to s2 vectors it gets right and how many signatures it accepts that the reading rejects. A
 verifier that accepts under two readings at once (a transition policy) is scored the same way: on this corpus it
 cannot be conformant to any single reading, because every reading-dependent pair has one vector each reading must
 reject. A transition policy therefore has to be declared by the verifier; it cannot be inferred from conformance.
+The 11 s3 vectors are scored in a second table against `unknown-retain`, `unknown-exclude` and `unknown-reject`.
 
 ## Observed on 2026-10-01
 
@@ -112,6 +142,9 @@ The observed column follows directly from the readings table: each SDK accepts t
 reading. For s2, `MANIFEST.json` records the same three SDKs plus a2a-python at #1287 under `observed.s2`: the three
 shipping SDKs accept S2-001, 003, 005, 007 and 009 and reject the even ones; a2a-python at #1287 does the opposite; none
 accepts S2-WE-011.
+
+On 2026-10-02, `observed.s3`: a2a-sdk 1.2.1, @a2a-js/sdk 1.3.0 and a2a-python at #1287 accept S3-002, 004, 006, 008,
+010 and S3-T-011 and reject the odd ones; a2a-go accepts the odd ones and rejects the rest, S3-T-011 included.
 
 ## Key and reproduction
 

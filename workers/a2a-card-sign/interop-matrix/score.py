@@ -14,10 +14,16 @@ A verifier that accepts under more than one reading at once (a transition policy
 be conformant to any single reading on this corpus, because every reading-dependent pair has one vector each reading
 must reject. That is the point of scoring it: a transition policy has to be declared, it cannot be inferred from
 conformance.
+
+Group s3 (vectors carrying "axis": "unknown-fields") asks a different question, what a signature covers when the card
+carries fields outside the schema, and is scored in a second table against its own readings: unknown-retain,
+unknown-exclude, unknown-reject. The first table counts only s0 to s2, so its numbers are the ones published before s3
+existed. Verdict files without s3 ids print no second table.
 """
 import json, os, sys
 
 READINGS = ["rule-1-served-scope", "rule-1-descriptor-scope", "prune-empty", "served-as-is"]
+S3_READINGS = ["unknown-retain", "unknown-exclude", "unknown-reject"]
 
 
 def expected(doc, reading):
@@ -32,9 +38,9 @@ def load(corpus):
     return [json.load(open(os.path.join(corpus, v["path"]))) for v in man["vectors"]]
 
 
-def score(docs, verdicts):
+def score(docs, verdicts, readings=READINGS):
     out = {}
-    for r in READINGS:
+    for r in readings:
         right = fa = fr = n = 0
         for d in docs:
             if d["id"] not in verdicts:
@@ -50,12 +56,20 @@ def score(docs, verdicts):
 
 def main():
     corpus, files = sys.argv[1], sys.argv[2:]
-    docs = load(corpus)
-    print("%-34s" % "verifier" + "".join("%-26s" % r for r in READINGS))
-    for f in files:
-        j = json.load(open(f))
-        s = score(docs, j["verdicts"])
-        print("%-34s" % j["name"][:33] + "".join("%-26s" % ("%d/%d fa=%d" % (s[r]["right"], s[r]["of"], s[r]["false_accepts"])) for r in READINGS))
+    alldocs = load(corpus)
+    tables = [(READINGS, [d for d in alldocs if "axis" not in d]),
+              (S3_READINGS, [d for d in alldocs if d.get("axis") == "unknown-fields"])]
+    verdicts = [json.load(open(f)) for f in files]
+    for n, (readings, docs) in enumerate(tables):
+        rows = [(j["name"], score(docs, j["verdicts"], readings)) for j in verdicts]
+        rows = [(name, s) for name, s in rows if s[readings[0]]["of"]]
+        if not rows:
+            continue
+        if n:
+            print()
+        print("%-34s" % "verifier" + "".join("%-26s" % r for r in readings))
+        for name, s in rows:
+            print("%-34s" % name[:33] + "".join("%-26s" % ("%d/%d fa=%d" % (s[r]["right"], s[r]["of"], s[r]["false_accepts"])) for r in readings))
 
 
 if __name__ == "__main__":
