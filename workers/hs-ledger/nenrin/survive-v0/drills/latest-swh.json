@@ -48,7 +48,7 @@
     "that two explorers agreeing is Bitcoin consensus; check headers against your own node for that",
     "anything about entries whose proofs are still pending; they are listed, not counted"
   ],
-  "drill_at": "2026-09-30T10:07:11Z",
+  "drill_at": "2026-10-01T10:13:16Z",
   "entries": 66,
   "establishes": [
     "these ledger bytes were rebuilt from the named custodian without connecting to any operator host",
@@ -64,16 +64,16 @@
     1,
     66
   ],
-  "report_sha256": "a5fd5d2414295b948beee6edc2725afb5f8f0d117cb07d399bb66282af4f654c",
+  "report_sha256": "647e854e63e895fc34de24ca88821b7db44af36d8468e86e8ac1853a38212a5e",
   "schema": "nenrin-survive-drill-v0",
   "source": {
     "archive_sha256": "94ba2851f718f97ae299e9157903bd9a619e11cd5e19b744cd6f61911e7e70a4",
     "custodian": "software-heritage",
     "directory": "swh:1:dir:fc4d01a6b3fa3a6626446725c96396b86b4fe48d",
     "operator_controlled": false,
-    "revision": "9bf1024a66ac96cb81b5579398290b8b43383172",
-    "snapshot": "900a1acc832333b4d9db24ff872de6280a6e7735",
-    "visit_date": "2026-09-30T10:06:40.582000+00:00"
+    "revision": "b1357886d4b2d61fd74ca37ae681ca3f86ab760c",
+    "snapshot": "17bcbde657541d435cdff51adc4598c160d904ab",
+    "visit_date": "2026-09-30T22:34:25.163000+00:00"
   },
   "version": "0.1.0"
 }
