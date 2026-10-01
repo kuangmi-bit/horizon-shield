@@ -1,4 +1,4 @@
-"""Copy the repository's agreement verifier into the package, unchanged but for one import line.
+"""Copy the repository's agreement verifier and the MUSUBI contract verifier into the package.
 
 The agreement verifier (agreement-v0/agreement_verify.py and key_succession.py) is already held to its
 JavaScript twin by 5,286 frozen reports. Rewriting it for the package would throw that proof away, so the package
@@ -6,7 +6,13 @@ carries the files themselves. The only edit is `import key_succession as KS` bec
 VENDORED.json pins the sha256 of each source and of each vendored file; tests/test_vendored.py refuses a package
 whose copies drift from the pins, and, inside the repository, from the sources.
 
-  python3 tools/vendor.py          rewrite the copies and VENDORED.json from ../agreement-v0
+MUSUBI (musubi-v0) is written in Python and has no JavaScript twin; the repository's files are the reference. They
+are copied byte for byte, with no edit at all, into src/nenrin_verify/_repo/ under the same directory names
+(musubi-v0/ beside agreement-v0/), so that each module finds its siblings and ../agreement-v0 exactly as it does in
+the repository. Byte identity matters beyond the proof: correction_v0 fingerprints its own code files, and a copy
+that differed by one header line would make every correction bundle built from the repository fail here.
+
+  python3 tools/vendor.py          rewrite the copies and VENDORED.json from ../agreement-v0 and ../musubi-v0
   python3 tools/vendor.py --check  exit 1 if the copies are not what this script would write
 """
 import hashlib
@@ -20,6 +26,21 @@ SRC = os.path.normpath(os.path.join(ROOT, "..", "agreement-v0"))
 DST = os.path.join(ROOT, "src", "nenrin_verify")
 FILES = ["agreement_verify.py", "key_succession.py"]
 EDITS = {"agreement_verify.py": [("    import key_succession as KS\n", "    from . import key_succession as KS\n")]}
+REPO = os.path.normpath(os.path.join(ROOT, ".."))
+# Byte-identical copies under src/nenrin_verify/_repo/. Left out: gen_anchor_compose_fixture.py (needs the
+# opentimestamps package, it only regenerates a fixture) and header_view_fetch.py (fetches block headers over the
+# network; the package opens no socket unless asked).
+MUSUBI_MODULES = ["contract_v0.py", "settle_v1.py", "settle_v1_1.py", "settle_v1_2.py", "settle_v1_3.py", "settle_v1_4.py",
+                  "settle_v1_5.py", "settle_v1_6.py", "settle_v1_7.py", "spine_verify.py", "terms_v0.py", "independence_v0.py",
+                  "corroboration_v0.py", "offer_v0.py", "bond_v0.py", "correction_v0.py", "correction_bundle_v0.py",
+                  "anchor_compose.py"]
+MUSUBI_DATA = ["canonical_v0.mjs", "canonical_vectors.json", "anchor_compose_fixture.json", "first_contract_A.json",
+               "first_contract_AB.json", "first_contract_unsigned.json", "second_contract_A.json", "second_contract_AB.json",
+               "README.md", "run0002/README.md", "run0002/entry63.ots", "run0002/entry63.raw", "run0002/exec_19c44a79.anchored.json",
+               "run0002/exec_19c44a79.json", "run0002/settlement_walk2.json", "run0002/view.json", "run0002/walk_8bf29f1a.json",
+               "fixtures/babyblueviper1_leg1/README.md", "fixtures/babyblueviper1_leg1/SHA256SUMS",
+               "fixtures/babyblueviper1_leg1/leg1_vectors.json"]
+VERBATIM = [("musubi-v0/" + f) for f in MUSUBI_MODULES + MUSUBI_DATA] + ["agreement-v0/agreement_verify.py", "agreement-v0/key_succession.py"]
 HEADER = "# VENDORED from workers/hs-ledger/nenrin/agreement-v0/%s by tools/vendor.py. Do not edit; edit the source.\n"
 
 
@@ -44,19 +65,27 @@ def build():
         data = text.encode("utf-8")
         out[name] = data
         pins[name] = {"source": "workers/hs-ledger/nenrin/agreement-v0/" + name, "source_sha256": sha(src.encode("utf-8")), "vendored_sha256": sha(data)}
+    for rel in VERBATIM:
+        data = open(os.path.join(REPO, rel), "rb").read()
+        out["_repo/" + rel] = data
+        pins["_repo/" + rel] = {"source": "workers/hs-ledger/nenrin/" + rel, "source_sha256": sha(data), "vendored_sha256": sha(data)}
     return out, pins
 
 
 def main(argv):
     out, pins = build()
     if "--check" in argv:
-        bad = [n for n, d in out.items() if open(os.path.join(DST, n), "rb").read() != d]
+        bad = [n for n, d in out.items() if not os.path.exists(os.path.join(DST, n)) or open(os.path.join(DST, n), "rb").read() != d]
+        pinned = json.load(open(os.path.join(DST, "VENDORED.json")))
+        if pinned != pins:
+            bad.append("VENDORED.json")
         if bad:
             print("vendored copies differ from what tools/vendor.py writes: " + ", ".join(bad))
             return 1
         print("vendored copies match their sources")
         return 0
     for n, d in out.items():
+        os.makedirs(os.path.dirname(os.path.join(DST, n)), exist_ok=True)
         open(os.path.join(DST, n), "wb").write(d)
     open(os.path.join(DST, "VENDORED.json"), "w").write(json.dumps(pins, indent=2, sort_keys=True) + "\n")
     print("wrote " + ", ".join(out) + " and VENDORED.json")

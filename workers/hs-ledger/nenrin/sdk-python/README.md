@@ -2,12 +2,14 @@
 
 Recompute NENRIN evidence yourself, offline, in your own Python process. The Python twin of the npm package
 [`nenrin-verify`](https://www.npmjs.com/package/nenrin-verify) and of the TSUGI recovery-chain verifier
-`tsugi_verify.mjs`: same input, same report (the limits are listed under "Where the claim stops").
+`tsugi_verify.mjs`: same input, same report (the limits are listed under "Where the claim stops"). It also carries
+the MUSUBI contract verifier, which is written in Python, byte for byte.
 
     pip install nenrin-verify
-    nenrin-verify --selftest          # 31/31 frozen bundles and 98/98 frozen TSUGI chains match the JavaScript
+    nenrin-verify --selftest          # 31/31 frozen bundles and 98/98 TSUGI chains match the JavaScript; MUSUBI run0002 recomputes
     nenrin-verify bundle.json         # the provenance report; exit 0 accepted, 1 refused
     tsugi-verify chain.json --operator-key <b64>   # a TSUGI recovery chain, printed as node tsugi_verify.mjs prints it
+    musubi-verify contract_v0 --verify contract.json   # a MUSUBI module, run exactly as python3 contract_v0.py in the repository
 
 ```python
 import json, nenrin_verify as nv
@@ -28,6 +30,7 @@ One dependency, `cryptography`, for Ed25519. Nothing here opens a socket, except
 |---|---|---|
 | `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.2.3 (`nenrin_verify.mjs`, verifier 0.1.3): the same report, key for key |
 | `agreement_verify.verify`, `nenrin-agreement-verify` | a two-party agreement record (`a2a-agreement-v1`, `v1.1`), including key succession across a rotation | the repository's own Python verifier, unchanged but for one import line and a header comment; it and the JavaScript verifier return the same report on 5,286 frozen cases |
+| `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.7), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
 | `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.0): the same stdout, byte for byte, and the same exit code |
 
 ## How "same report" is checked
@@ -51,6 +54,14 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 - **Agreement.** The packaged agreement verifier returns every one of the 5,286 frozen reports in
   `agreement-v0/agreement_vectors_v1.json`, the file the JavaScript verifier is scored against.
 - **Unchanged.** `VENDORED.json` pins the sha256 of the agreement files and their sources; a copy that drifts fails.
+- **MUSUBI, byte for byte.** The 18 modules of `musubi-v0/` and the data their self-tests read sit in
+  `src/nenrin_verify/_repo/musubi-v0/`, beside a byte-identical `agreement-v0/`, the layout each module expects; no
+  line is edited, and `VENDORED.json` pins each to its source (the same sha256 twice). Byte identity matters beyond
+  the proof: `correction_v0` fingerprints its own code files, so a correction bundle built from the repository
+  verifies here only if the files are the same bytes. From the installed wheel, every module's own self-test
+  passes (`musubi-verify --selftest`, 18/18) and run0002 recomputes to `b13a3869...` and `11c27fcf...`
+  (`musubi-verify --run0002`). Not shipped: `gen_anchor_compose_fixture.py` (needs `opentimestamps`, regenerates a
+  fixture) and `header_view_fetch.py` (fetches block headers over the network).
 - **TSUGI, frozen.** 98 cases: the repository's three real chains (incident 2 with the real operator signature,
   12 records; the 7-record incident of the same week; that incident re-verified by a random draw of witnesses),
   under the command lines that matter, and edits of them that reach every one of the 69 refusal codes
@@ -96,8 +107,9 @@ true; E1 compares a provider's signed claim to a caller's signed authorization a
 R1 proves a witness is structurally distinct from the parties, not unaffiliated with them. There is no score and
 no allow or deny anywhere in this package. The decision belongs to whoever reads the evidence.
 
-Not in this release: the MUSUBI contract spine. It comes in when it can carry the same guarantee as the three
-verifiers above: the same report as its JavaScript twin, checked case by case.
+MUSUBI is the one part held to no second implementation, because there is none: its Python is the reference.
+`musubi.load(name)` puts the two vendored directories at the front of `sys.path`, since that is how the modules
+find each other (by bare name, as in the repository).
 
 ## Reproduce
 
@@ -105,11 +117,12 @@ verifiers above: the same report as its JavaScript twin, checked case by case.
     pip install -e . pytest
     node tests/fixtures/make_fixtures.mjs --check   # the frozen fixtures re-create byte for byte
     python tests/fixtures/make_tsugi_cases.py --check   # the frozen TSUGI cases and their JavaScript output re-create
-    python tools/vendor.py --check                  # the agreement copies are their sources
-    pytest tests -q -s                              # frozen, live differential, agreement, TSUGI
+    python tools/vendor.py --check                  # the agreement and MUSUBI copies are their sources
+    pytest tests -q -s                              # frozen, live differential, agreement, TSUGI, MUSUBI
 
 Published from GitHub Actions with PyPI Trusted Publishing and attestations
 (`.github/workflows/pypi-publish-nenrin-verify.yml`); the parity suite runs on every change to this directory,
-to the JavaScript SDK, to the agreement verifier and to the TSUGI chains (`.github/workflows/nenrin-verify-py.yml`).
+to the JavaScript SDK, to the agreement verifier, to the TSUGI chains and to MUSUBI
+(`.github/workflows/nenrin-verify-py.yml`).
 
 MIT. The HORIZONs Co., Ltd.

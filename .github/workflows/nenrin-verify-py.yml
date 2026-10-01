@@ -6,6 +6,7 @@ name: nenrin-verify (Python) parity
 #   3. 同梱した合意の検証器が、凍った 5,286 件の report を 1 件も違えずに返す (JavaScript 版も同じ file で採点済み)
 #   4. 同梱した file が元の source から作った物と同じ、fixture が作り直しても同じバイト
 #   5. TSUGI (tsugi_verify.mjs): 凍った 98 件で CLI の出力がバイトで一致、実際の連鎖の全経路を壊した 2 万 9 千件超も Node と一致
+#   6. MUSUBI (musubi-v0、Python が原本): 同梱した 18 本がバイト一致、各自の selftest が通り、run0002 が公開の hash に再計算される
 # Node 22 と 24 の両方で回す (V8 の並べ方を写した箇所があるから)。sdk/ (JavaScript) が変わったときも走らせる。JavaScript 側が動いたら、Python がずれたことがここで分かる。
 
 on:
@@ -15,6 +16,7 @@ on:
       - "workers/hs-ledger/nenrin/sdk/**"
       - "workers/hs-ledger/nenrin/agreement-v0/**"
       - "workers/hs-ledger/nenrin/recovery-v0/**"
+      - "workers/hs-ledger/nenrin/musubi-v0/**"
       - ".github/workflows/nenrin-verify-py.yml"
   pull_request:
     paths:
@@ -22,6 +24,7 @@ on:
       - "workers/hs-ledger/nenrin/sdk/**"
       - "workers/hs-ledger/nenrin/agreement-v0/**"
       - "workers/hs-ledger/nenrin/recovery-v0/**"
+      - "workers/hs-ledger/nenrin/musubi-v0/**"
       - ".github/workflows/nenrin-verify-py.yml"
   workflow_dispatch:
 

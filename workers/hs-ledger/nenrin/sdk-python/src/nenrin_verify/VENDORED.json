@@ -1,4 +1,204 @@
 {
+  "_repo/agreement-v0/agreement_verify.py": {
+    "source": "workers/hs-ledger/nenrin/agreement-v0/agreement_verify.py",
+    "source_sha256": "563887cf0b5c111a37f1ad676c946ecedfe27a42058befd1e819795689f9f691",
+    "vendored_sha256": "563887cf0b5c111a37f1ad676c946ecedfe27a42058befd1e819795689f9f691"
+  },
+  "_repo/agreement-v0/key_succession.py": {
+    "source": "workers/hs-ledger/nenrin/agreement-v0/key_succession.py",
+    "source_sha256": "0d0209b318f654d0995ac6ca40f5194064cd6e8b49459d1bbbcfdb957b61452d",
+    "vendored_sha256": "0d0209b318f654d0995ac6ca40f5194064cd6e8b49459d1bbbcfdb957b61452d"
+  },
+  "_repo/musubi-v0/README.md": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/README.md",
+    "source_sha256": "4c86d544b124109b57ab31950123cef828a7aa650dc25ad703eed671f00732a5",
+    "vendored_sha256": "4c86d544b124109b57ab31950123cef828a7aa650dc25ad703eed671f00732a5"
+  },
+  "_repo/musubi-v0/anchor_compose.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/anchor_compose.py",
+    "source_sha256": "a661f673c05dbe6e05ffc0ca4bf4b859f5fa6b0f198ba3a5f199ffa90ae4b1f0",
+    "vendored_sha256": "a661f673c05dbe6e05ffc0ca4bf4b859f5fa6b0f198ba3a5f199ffa90ae4b1f0"
+  },
+  "_repo/musubi-v0/anchor_compose_fixture.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/anchor_compose_fixture.json",
+    "source_sha256": "002d53c838a099c2ae74dc09b4b8054812ca8bd119c503edc1c3a75031cfa6b2",
+    "vendored_sha256": "002d53c838a099c2ae74dc09b4b8054812ca8bd119c503edc1c3a75031cfa6b2"
+  },
+  "_repo/musubi-v0/bond_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/bond_v0.py",
+    "source_sha256": "62d2577f03870652d72a8f66d1be777088d4ec5c905fea8f2fb043b3ce6313a4",
+    "vendored_sha256": "62d2577f03870652d72a8f66d1be777088d4ec5c905fea8f2fb043b3ce6313a4"
+  },
+  "_repo/musubi-v0/canonical_v0.mjs": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/canonical_v0.mjs",
+    "source_sha256": "a9c72e3e44d45d8c44fa884269699a90f5464a93b9ddb6deeeef16f1ca25d2a3",
+    "vendored_sha256": "a9c72e3e44d45d8c44fa884269699a90f5464a93b9ddb6deeeef16f1ca25d2a3"
+  },
+  "_repo/musubi-v0/canonical_vectors.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/canonical_vectors.json",
+    "source_sha256": "f442eae1dfe3c340dedd483bde2654609efdf806c502e2f798ec302db9452bf1",
+    "vendored_sha256": "f442eae1dfe3c340dedd483bde2654609efdf806c502e2f798ec302db9452bf1"
+  },
+  "_repo/musubi-v0/contract_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/contract_v0.py",
+    "source_sha256": "72da27310c7e743760e612f0484eceafae759d04f995df758798e06a624c50fe",
+    "vendored_sha256": "72da27310c7e743760e612f0484eceafae759d04f995df758798e06a624c50fe"
+  },
+  "_repo/musubi-v0/correction_bundle_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/correction_bundle_v0.py",
+    "source_sha256": "2ca27cb37a5bb1e698d49950411208659000eeddf545c46d6a8e77470f419808",
+    "vendored_sha256": "2ca27cb37a5bb1e698d49950411208659000eeddf545c46d6a8e77470f419808"
+  },
+  "_repo/musubi-v0/correction_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/correction_v0.py",
+    "source_sha256": "4ab0c29319628eca71f747ec29a9544a85bfbbcc9a8ed8c8954e971de0cb3e44",
+    "vendored_sha256": "4ab0c29319628eca71f747ec29a9544a85bfbbcc9a8ed8c8954e971de0cb3e44"
+  },
+  "_repo/musubi-v0/corroboration_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/corroboration_v0.py",
+    "source_sha256": "62ae1d6c27a9222863f81f6669ad706c99388091a1fc0a34ec56db63c60f2587",
+    "vendored_sha256": "62ae1d6c27a9222863f81f6669ad706c99388091a1fc0a34ec56db63c60f2587"
+  },
+  "_repo/musubi-v0/first_contract_A.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/first_contract_A.json",
+    "source_sha256": "8891e69d26aff8a6722d9a8868b4bc34de3ca8291c06456c9e84ed01effd4e6c",
+    "vendored_sha256": "8891e69d26aff8a6722d9a8868b4bc34de3ca8291c06456c9e84ed01effd4e6c"
+  },
+  "_repo/musubi-v0/first_contract_AB.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/first_contract_AB.json",
+    "source_sha256": "58aad749ada9b00dc6da19acdb4aada410a863adc964c29ad8f73fbb802610df",
+    "vendored_sha256": "58aad749ada9b00dc6da19acdb4aada410a863adc964c29ad8f73fbb802610df"
+  },
+  "_repo/musubi-v0/first_contract_unsigned.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/first_contract_unsigned.json",
+    "source_sha256": "4aba21a628f013a496f92c708292ec98c5792fca80bf77ceb639224eaa6a44d1",
+    "vendored_sha256": "4aba21a628f013a496f92c708292ec98c5792fca80bf77ceb639224eaa6a44d1"
+  },
+  "_repo/musubi-v0/fixtures/babyblueviper1_leg1/README.md": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_leg1/README.md",
+    "source_sha256": "47ee07e40039dffe35e4acc8cfb17b9fe0e3636d893e34a30c34fdb2ba9a8d53",
+    "vendored_sha256": "47ee07e40039dffe35e4acc8cfb17b9fe0e3636d893e34a30c34fdb2ba9a8d53"
+  },
+  "_repo/musubi-v0/fixtures/babyblueviper1_leg1/SHA256SUMS": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_leg1/SHA256SUMS",
+    "source_sha256": "db4e6ba4ad1f988ab14ab2de2cab2d64d8c26d4ee6a3ef82a959dfeedcdaea5b",
+    "vendored_sha256": "db4e6ba4ad1f988ab14ab2de2cab2d64d8c26d4ee6a3ef82a959dfeedcdaea5b"
+  },
+  "_repo/musubi-v0/fixtures/babyblueviper1_leg1/leg1_vectors.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_leg1/leg1_vectors.json",
+    "source_sha256": "3f9408a0a6292196adf13a217be937139260a309c055227369195203f18e243d",
+    "vendored_sha256": "3f9408a0a6292196adf13a217be937139260a309c055227369195203f18e243d"
+  },
+  "_repo/musubi-v0/independence_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/independence_v0.py",
+    "source_sha256": "50964883c27896de4723c323b57c244736a8e4e9e776f04f91c5d83499e8bf3a",
+    "vendored_sha256": "50964883c27896de4723c323b57c244736a8e4e9e776f04f91c5d83499e8bf3a"
+  },
+  "_repo/musubi-v0/offer_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/offer_v0.py",
+    "source_sha256": "7ee79eb6ee3796af9cc542a9d24da1fb3390a43c5bcc7ca9ceb250b0624c77f6",
+    "vendored_sha256": "7ee79eb6ee3796af9cc542a9d24da1fb3390a43c5bcc7ca9ceb250b0624c77f6"
+  },
+  "_repo/musubi-v0/run0002/README.md": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/README.md",
+    "source_sha256": "ce4d0ac5e8a146a9800a895b2d3c68bb897be202a06311543b7ad011e6c8b475",
+    "vendored_sha256": "ce4d0ac5e8a146a9800a895b2d3c68bb897be202a06311543b7ad011e6c8b475"
+  },
+  "_repo/musubi-v0/run0002/entry63.ots": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/entry63.ots",
+    "source_sha256": "4b33f9d5529ceed86a9f01f7f41d6744ea05e7adff2d3787a30315f58ffcf77a",
+    "vendored_sha256": "4b33f9d5529ceed86a9f01f7f41d6744ea05e7adff2d3787a30315f58ffcf77a"
+  },
+  "_repo/musubi-v0/run0002/entry63.raw": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/entry63.raw",
+    "source_sha256": "368f319616f80fd155c0d89b35cafec0094c5041a4ce1a8f99371299f61a5e75",
+    "vendored_sha256": "368f319616f80fd155c0d89b35cafec0094c5041a4ce1a8f99371299f61a5e75"
+  },
+  "_repo/musubi-v0/run0002/exec_19c44a79.anchored.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/exec_19c44a79.anchored.json",
+    "source_sha256": "b13a38692a9b170199d26618f52afe773c0c7d6a90eb73def2736a9abd9b0221",
+    "vendored_sha256": "b13a38692a9b170199d26618f52afe773c0c7d6a90eb73def2736a9abd9b0221"
+  },
+  "_repo/musubi-v0/run0002/exec_19c44a79.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/exec_19c44a79.json",
+    "source_sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53",
+    "vendored_sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53"
+  },
+  "_repo/musubi-v0/run0002/settlement_walk2.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/settlement_walk2.json",
+    "source_sha256": "11c27fcfe18895cef09f9683136984a50ffdf2bea10f0d9a44566653f052243f",
+    "vendored_sha256": "11c27fcfe18895cef09f9683136984a50ffdf2bea10f0d9a44566653f052243f"
+  },
+  "_repo/musubi-v0/run0002/view.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/view.json",
+    "source_sha256": "0720f48c1ca9e3139959063e7a782f6a2085180a20aee1e3ebbcc8e8d6884a15",
+    "vendored_sha256": "0720f48c1ca9e3139959063e7a782f6a2085180a20aee1e3ebbcc8e8d6884a15"
+  },
+  "_repo/musubi-v0/run0002/walk_8bf29f1a.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/run0002/walk_8bf29f1a.json",
+    "source_sha256": "8bf29f1ad15165b970b508703a5b49cbd816cbfcc4a3fb6f77a9f80a4cb69771",
+    "vendored_sha256": "8bf29f1ad15165b970b508703a5b49cbd816cbfcc4a3fb6f77a9f80a4cb69771"
+  },
+  "_repo/musubi-v0/second_contract_A.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/second_contract_A.json",
+    "source_sha256": "fedbd9a44ec2c81a0721fbf37b660dc725ffb4707cc92b7ef40dddd285f2a2ba",
+    "vendored_sha256": "fedbd9a44ec2c81a0721fbf37b660dc725ffb4707cc92b7ef40dddd285f2a2ba"
+  },
+  "_repo/musubi-v0/second_contract_AB.json": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/second_contract_AB.json",
+    "source_sha256": "cf31fe816140345526e3c0b1822833625c93906a09d30630f44bfa6aa7390b41",
+    "vendored_sha256": "cf31fe816140345526e3c0b1822833625c93906a09d30630f44bfa6aa7390b41"
+  },
+  "_repo/musubi-v0/settle_v1.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1.py",
+    "source_sha256": "0e51350331c8931c639d4acb95cdf9d07deff2e4c4e231f6df254cd1ee4412ba",
+    "vendored_sha256": "0e51350331c8931c639d4acb95cdf9d07deff2e4c4e231f6df254cd1ee4412ba"
+  },
+  "_repo/musubi-v0/settle_v1_1.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_1.py",
+    "source_sha256": "a2391a5db199bcdaafed31ff0a3c8a93d1cd6794f4f55bfc42a82a478d7ad558",
+    "vendored_sha256": "a2391a5db199bcdaafed31ff0a3c8a93d1cd6794f4f55bfc42a82a478d7ad558"
+  },
+  "_repo/musubi-v0/settle_v1_2.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_2.py",
+    "source_sha256": "6c674fd54a1a5c89a300d88f638dd61dd0b4a75d16174756560e33d1f4ee5cbf",
+    "vendored_sha256": "6c674fd54a1a5c89a300d88f638dd61dd0b4a75d16174756560e33d1f4ee5cbf"
+  },
+  "_repo/musubi-v0/settle_v1_3.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_3.py",
+    "source_sha256": "17119bbc7802647fed09bafee650107f0cf905451e621e048a5ee150c2dca787",
+    "vendored_sha256": "17119bbc7802647fed09bafee650107f0cf905451e621e048a5ee150c2dca787"
+  },
+  "_repo/musubi-v0/settle_v1_4.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_4.py",
+    "source_sha256": "ef3779d05fc98e4000d6f75d81a9346f1033506543953e3049745087b75ddac5",
+    "vendored_sha256": "ef3779d05fc98e4000d6f75d81a9346f1033506543953e3049745087b75ddac5"
+  },
+  "_repo/musubi-v0/settle_v1_5.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_5.py",
+    "source_sha256": "f9b313566713cdc412afb072c0e1ed0d5acf29059aa7ded9d83e24ae2a62e0f6",
+    "vendored_sha256": "f9b313566713cdc412afb072c0e1ed0d5acf29059aa7ded9d83e24ae2a62e0f6"
+  },
+  "_repo/musubi-v0/settle_v1_6.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_6.py",
+    "source_sha256": "6752a748ed7b6e3bb1447f1bd52fb83802b076bd46bccafd03c41cc8abb4ad8d",
+    "vendored_sha256": "6752a748ed7b6e3bb1447f1bd52fb83802b076bd46bccafd03c41cc8abb4ad8d"
+  },
+  "_repo/musubi-v0/settle_v1_7.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_7.py",
+    "source_sha256": "878a3a3697775d3a1567d3271e90d21c4fed34dd7954dbb87efc64dead24c41d",
+    "vendored_sha256": "878a3a3697775d3a1567d3271e90d21c4fed34dd7954dbb87efc64dead24c41d"
+  },
+  "_repo/musubi-v0/spine_verify.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/spine_verify.py",
+    "source_sha256": "ad2076d49be6763ec708f4c1db1a607043fc6cb8a9116346b75cabfddd71359a",
+    "vendored_sha256": "ad2076d49be6763ec708f4c1db1a607043fc6cb8a9116346b75cabfddd71359a"
+  },
+  "_repo/musubi-v0/terms_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/terms_v0.py",
+    "source_sha256": "6532d5c6160a3974673f4b70d744e7aa5f19176a34e12a81f75f4abe0a2aad21",
+    "vendored_sha256": "6532d5c6160a3974673f4b70d744e7aa5f19176a34e12a81f75f4abe0a2aad21"
+  },
   "agreement_verify.py": {
     "source": "workers/hs-ledger/nenrin/agreement-v0/agreement_verify.py",
     "source_sha256": "563887cf0b5c111a37f1ad676c946ecedfe27a42058befd1e819795689f9f691",

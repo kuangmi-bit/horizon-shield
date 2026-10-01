@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nenrin-verify"
-version = "0.2.0"
-description = "Recompute NENRIN evidence yourself, offline: A2A task provenance, two-party agreement records and TSUGI recovery chains. Same reports as the JavaScript verifiers."
+version = "0.3.0"
+description = "Recompute NENRIN evidence yourself, offline: A2A task provenance, two-party agreement records, TSUGI recovery chains and MUSUBI contracts. The same reports as the reference verifiers."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.9"
 authors = [{ name = "The HORIZONs Co., Ltd." }]
 dependencies = ["cryptography>=41"]
-keywords = ["a2a", "provenance", "verification", "did-key", "ed25519", "nenrin", "agent", "evidence", "horizon-shield", "tsugi", "recovery"]
+keywords = ["a2a", "provenance", "verification", "did-key", "ed25519", "nenrin", "agent", "evidence", "horizon-shield", "tsugi", "recovery", "musubi", "contract"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",
@@ -29,9 +29,12 @@ Source = "https://github.com/ogasurfproject-jpg/horizon-shield"
 nenrin-verify = "nenrin_verify.cli:main"
 nenrin-agreement-verify = "nenrin_verify.cli:agreement_main"
 tsugi-verify = "nenrin_verify.cli:tsugi_main"
+musubi-verify = "nenrin_verify.musubi:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-nenrin_verify = ["VENDORED.json", "py.typed", "selftest.json", "tsugi_selftest.json.gz"]
+nenrin_verify = ["VENDORED.json", "py.typed", "selftest.json", "tsugi_selftest.json.gz",
+                 "_repo/agreement-v0/*.py", "_repo/musubi-v0/*.py", "_repo/musubi-v0/*.json", "_repo/musubi-v0/*.mjs",
+                 "_repo/musubi-v0/*.md", "_repo/musubi-v0/run0002/*", "_repo/musubi-v0/fixtures/babyblueviper1_leg1/*"]

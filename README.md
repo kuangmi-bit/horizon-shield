@@ -57,6 +57,8 @@ Breaking a parser, a signature or a chain is the attack this repository was buil
 
 One verifier threads the contract rows together: [`spine_verify.py`](https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/spine_verify.py) reads a contract from what it was agreed to mean (`terms_sha256`), through who agreed and who did it, to who measured done, in entities, inside a block window. The first three rows share a limit worth naming once: the verifiers exist and are tested against their own attacks, but a verifier nobody's contract invokes proves only that it would work. The next contract that pays for real work is the one that has to state an independence quorum, name its deliverables from a vocabulary and require corroboration.
 
+All of MUSUBI also installs without a clone: `pip install nenrin-verify` (0.3.0) carries `musubi-v0/` byte for byte, and `musubi-verify spine_verify --selftest` or `musubi-verify --run0002` runs the same files.
+
 ## NENRIN: tree rings for AI facing services
 
 > A tree adds one ring a year. Nobody can paint one in afterwards. NENRIN gives that property to software services.

@@ -3,10 +3,11 @@
   nenrin-verify bundle.json            the provenance report, exit 0 accepted, 1 refused (as npm nenrin-verify)
   nenrin-verify --sha bundle.json      one line: verdict and report_sha256, for comparing with the JavaScript run
   nenrin-verify --selftest             re-run the frozen cases shipped in the package against the JavaScript
-                                       output frozen with them (provenance bundles and TSUGI chains); exit 0 only
-                                       when every one matches
+                                       output frozen with them (provenance bundles and TSUGI chains), and recompute
+                                       MUSUBI run0002 offline; exit 0 only when every one matches
   nenrin-agreement-verify record.json  the agreement report (the repository's agreement_verify.py, unchanged)
   tsugi-verify chain.json [options]    the TSUGI recovery-chain report, as `node tsugi_verify.mjs` prints it
+  musubi-verify <module> [args]        a MUSUBI module, as python3 <module>.py in musubi-v0 (see musubi.py)
 """
 import sys
 
@@ -73,7 +74,11 @@ def selftest():
     print("%d/%d frozen bundles give the same report as %s" % (ok, n, doc["reference"]))
     t_ok, t_n, t_ref = tsugi_selftest()
     print("%d/%d frozen TSUGI chains give the same output as %s" % (t_ok, t_n, t_ref))
-    return 0 if ok == n and t_ok == t_n else 1
+    from . import musubi
+    m = musubi.recompute_run0002()
+    print("MUSUBI run0002 %s: anchored %s, settlement %s" % ("recomputes" if m["ok"] else "DOES NOT recompute",
+                                                          (m.get("got") or {}).get("anchored", "-")[:16], (m.get("got") or {}).get("settlement", "-")[:16]))
+    return 0 if ok == n and t_ok == t_n and m["ok"] else 1
 
 
 def tsugi_selftest():
