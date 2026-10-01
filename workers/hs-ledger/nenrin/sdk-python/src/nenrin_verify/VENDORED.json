@@ -1,0 +1,12 @@
+{
+  "agreement_verify.py": {
+    "source": "workers/hs-ledger/nenrin/agreement-v0/agreement_verify.py",
+    "source_sha256": "563887cf0b5c111a37f1ad676c946ecedfe27a42058befd1e819795689f9f691",
+    "vendored_sha256": "5a143e177ee055d4e0da9c83ea5ad3901bcf9fec0a5c4cbdb7d83901247697e3"
+  },
+  "key_succession.py": {
+    "source": "workers/hs-ledger/nenrin/agreement-v0/key_succession.py",
+    "source_sha256": "0d0209b318f654d0995ac6ca40f5194064cd6e8b49459d1bbbcfdb957b61452d",
+    "vendored_sha256": "fd3601681733cc3a5a9b30a2a459f5c6e49ada7167055775283493084c48178a"
+  }
+}

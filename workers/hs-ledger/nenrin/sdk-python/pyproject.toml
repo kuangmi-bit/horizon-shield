@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nenrin-verify"
+version = "0.1.0"
+description = "Recompute NENRIN evidence yourself, offline: A2A task provenance and two-party agreement records. Same reports as the npm nenrin-verify."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "The HORIZONs Co., Ltd." }]
+dependencies = ["cryptography>=41"]
+keywords = ["a2a", "provenance", "verification", "did-key", "ed25519", "nenrin", "agent", "evidence", "horizon-shield"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Security :: Cryptography",
+  "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://github.com/ogasurfproject-jpg/horizon-shield/tree/main/workers/hs-ledger/nenrin/sdk-python"
+Source = "https://github.com/ogasurfproject-jpg/horizon-shield"
+"JavaScript twin" = "https://www.npmjs.com/package/nenrin-verify"
+
+[project.scripts]
+nenrin-verify = "nenrin_verify.cli:main"
+nenrin-agreement-verify = "nenrin_verify.cli:agreement_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nenrin_verify = ["VENDORED.json", "py.typed", "selftest.json"]
