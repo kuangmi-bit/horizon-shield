@@ -1042,24 +1042,75 @@ async function findByTexts(page, texts, sel) {
 }
 
 // 見出し画像を付ける。note の画面が変わっていても投稿を止めないよう、失敗は結果として返すだけ。
+// 2026-10-01 第1話で「Node is either not clickable or not an Element」で落ちた。page.$() は最初に一致した要素を
+// 返すが、それが見えていない要素(大きさ 0、画面外、隠れた浮きメニューの中)だと puppeteer の click() はこの例外を
+// 投げる。直し: 一致した要素を全部集め、見えている物だけから選び(見出し画像の口は題より上なので一番上の物)、
+// 画面の中に寄せてから座標で押す。押せなければ DOM の click()。
+async function visibleBox(el) {
+  try {
+    const ok = await el.evaluate((e) => {
+      const r = e.getBoundingClientRect();
+      const s = getComputedStyle(e);
+      return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) !== 0;
+    });
+    return ok ? await el.boundingBox() : null;
+  } catch (_e) { return null; }
+}
+
+async function clickEl(page, el) {
+  try { await el.evaluate((e) => e.scrollIntoView({ block: 'center', inline: 'center' })); } catch (_e) { /* 何もしない */ }
+  const box = await visibleBox(el);
+  if (box) {
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    return 'mouse';
+  }
+  await el.evaluate((e) => e.click());
+  return 'dom';
+}
+
+async function candidates(page, sels, texts, textSel) {
+  const out = [];
+  for (const sel of sels) out.push(...(await page.$$(sel)));
+  if (texts && texts.length) {
+    for (const el of await page.$$(textSel)) {
+      let tx = '';
+      try { tx = await el.evaluate((e) => (e.textContent || '').trim()); } catch (_e) { tx = ''; }
+      if (texts.includes(tx)) out.push(el);
+    }
+  }
+  const vis = [];
+  for (const el of out) {
+    const b = await visibleBox(el);
+    if (b) vis.push({ el, b });
+  }
+  vis.sort((p, q) => p.b.y - q.b.y);
+  return { all: out.length, visible: vis.map((v) => v.el) };
+}
+
 async function uploadEyecatch(page, pngPath) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const BTN_SELS = ['button[aria-label="画像を追加"]', 'button[aria-label*="見出し画像"]', 'button[aria-label*="画像"]'];
+  const BTN_TEXTS = ['見出し画像を追加', '画像を追加'];
   try {
     await snap(page, '1-editor');
-    let btn = null;
-    for (const sel of ['button[aria-label="画像を追加"]', 'button[aria-label*="見出し画像"]', 'button[aria-label*="画像"]']) {
-      btn = await page.$(sel);
-      if (btn) break;
+    let found = { all: 0, visible: [] };
+    for (let i = 0; i < 16 && !found.visible.length; i++) {
+      found = await candidates(page, BTN_SELS, BTN_TEXTS, 'button, [role="button"]');
+      if (!found.visible.length) await sleep(500);
     }
-    if (!btn) btn = await findByTexts(page, ['見出し画像を追加', '画像を追加'], 'button, [role="button"]');
-    if (!btn) { await snap(page, '1-no-button'); return { ok: false, why: '見出し画像のボタンが見つからない' }; }
-    await btn.click();
+    if (!found.visible.length) {
+      await snap(page, '1-no-button');
+      return { ok: false, why: found.all ? '見出し画像のボタンは在るが見えていない(' + found.all + ' 個)' : '見出し画像のボタンが見つからない' };
+    }
+    const how = await clickEl(page, found.visible[0]);
+    console.log('見出し画像のボタン: 候補 ' + found.all + ' 個、見えている ' + found.visible.length + ' 個、押し方 ' + how);
     await sleep(1200);
     await snap(page, '2-menu');
-    let item = await findByTexts(page, ['画像をアップロード', 'パソコンからアップロード', 'アップロード'], 'button, [role="button"], [role="menuitem"], li, label');
-    if (!item) item = await findByTexts(page, ['画像をアップロード', 'アップロード'], 'div, span');
-    if (item) {
-      const [fc] = await Promise.all([page.waitForFileChooser({ timeout: 8000 }), item.click()]);
+
+    const items = await candidates(page, [], ['画像をアップロード', 'パソコンからアップロード', 'アップロード'],
+      'button, [role="button"], [role="menuitem"], li, label, div, span');
+    if (items.visible.length) {
+      const [fc] = await Promise.all([page.waitForFileChooser({ timeout: 8000 }), clickEl(page, items.visible[0])]);
       await fc.accept([pngPath]);
     } else {
       const input = await page.$('input[type="file"]');
@@ -1068,10 +1119,10 @@ async function uploadEyecatch(page, pngPath) {
     }
     await sleep(3000);
     await snap(page, '3-crop');
-    let save = await findByTexts(page, ['保存', '適用', '完了', '決定'],
-      '[role="dialog"] button, .ReactModal__Content button, [class*="Modal"] button, [class*="modal"] button');
-    if (!save) save = await findByTexts(page, ['保存', '適用'], 'button');
-    if (save) { await save.click(); await sleep(3000); }
+    let save = (await candidates(page, [], ['保存', '適用', '完了', '決定'],
+      '[role="dialog"] button, .ReactModal__Content button, [class*="Modal"] button, [class*="modal"] button')).visible[0];
+    if (!save) save = (await candidates(page, [], ['保存', '適用'], 'button')).visible[0];
+    if (save) { await clickEl(page, save); await sleep(3000); }
     await snap(page, '4-after');
     const still = await page.evaluate(() => Array.from(document.querySelectorAll('[role="dialog"], .ReactModal__Content'))
       .some((d) => { const r = d.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(d).visibility !== 'hidden'; }));
