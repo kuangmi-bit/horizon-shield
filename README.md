@@ -37,6 +37,21 @@ What people who do not work for this project have measured, signed or reproduced
 | Outside operators who used the gate to measure their own servers | 5 real hosts in the 30 days to 2026-09-28 (the counter lists 6; one is a test name that does not resolve), none since 2026-09-24 | `curl -s https://gate.horizonshield.dev/usage` |
 | Rows on the public register that are not ours | 1 of 9, still pending | `curl -s https://gate.horizonshield.dev/register` |
 
+<!-- adoption-count:start -->
+Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_adoption.py), last on 2026-10-01. Every number comes from a source you can read; one that could not be read says so instead of counting zero. The whole count: [`ops/adoption/latest.json`](ops/adoption/latest.json).
+
+| What | Count | From |
+|---|---|---|
+| Independent implementations that reproduced our bytes or verdicts | 5 rows by 4 authors (a2a-card-canonical-form 1, a2a-card-sign-v01 3, agent-card-signature 1) | [`tools/adoption/registry.json`](tools/adoption/registry.json), each row with its public link |
+| Outside domains that signed a walk and filed it to the ledger | 2 (`api.babyblueviper.com`, `pipavlo82.github.io`) | every `nenrin-witness-batch-v1` entry on the ledger |
+| Re-verification pool | 1 control cluster(s), 2 needed for a quorum | `workers/hs-ledger/nenrin/recovery-v0/pool_report.json` |
+| MUSUBI contracts signed with an outside party | 2 (with no party from this project: 0) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/` |
+| Outside identities that signed evidence (walk, contract or agreement) | 2 | the three rows above and the agreement records |
+| Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | 0 | GitHub API |
+
+Open: A second verifier of NENRIN provenance bundles, by another author in any language, that reproduces the five verdict signatures in interop-v0/expected.json. None yet: workers/hs-ledger/nenrin/interop-v0/INTEROP.md
+<!-- adoption-count:end -->
+
 One external witness is a start, not a network. The re-verification pool below counts it as one control cluster, and a quorum of two independent controls is not met yet. [Issue #27](https://github.com/ogasurfproject-jpg/horizon-shield/issues/27) is the open call for the second.
 
 ## When every signature verifies: what can still deceive this system

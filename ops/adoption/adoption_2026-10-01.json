@@ -1,0 +1,190 @@
+{
+  "schema": "hs-adoption-count-v1",
+  "measured_at": "2026-10-01T22:34:25Z",
+  "metrics": {
+    "independent_implementations": {
+      "count": 5,
+      "distinct_authors": 4,
+      "links_answering": 5,
+      "by_subject": {
+        "a2a-card-canonical-form": 1,
+        "a2a-card-sign-v01": 3,
+        "agent-card-signature": 1
+      },
+      "open_calls": {
+        "nenrin-provenance": "A second verifier of NENRIN provenance bundles, by another author in any language, that reproduces the five verdict signatures in interop-v0/expected.json. None yet: workers/hs-ledger/nenrin/interop-v0/INTEROP.md"
+      },
+      "items": [
+        {
+          "who": "Kuang Mi (kuangmi-bit)",
+          "subject": "a2a-card-canonical-form",
+          "what": "An independent Go implementation reproduced the @a2a-js/sdk canonical form of the pinned HORIZON SHIELD gate card byte for byte (6410 bytes), offline from the committed fixture",
+          "evidence": "https://github.com/a2aproject/a2a-go/issues/445#issuecomment-5879965988",
+          "date": "2026-09-28",
+          "link_status": 200,
+          "link_ok": true
+        },
+        {
+          "who": "Kuang Mi (kuangmi-bit)",
+          "subject": "a2a-card-sign-v01",
+          "what": "Scored a2a-sdk and a2a-python#1287 against the 24 signed vectors with an own harness that verifies the ES256 signatures directly against testkey_jwks.json, after reproducing MANIFEST.observed",
+          "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5937659218",
+          "date": "2026-10-01",
+          "link_status": 200,
+          "link_ok": true
+        },
+        {
+          "who": "Sankalp Gilda (astrogilda)",
+          "subject": "a2a-card-sign-v01",
+          "what": "A verifier written only from A2A section 8.4.1 and the proto markings, sharing no code with the generator or the scorer: all 24 vectors come out as labelled, no false accepts",
+          "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5936546281",
+          "date": "2026-10-01",
+          "link_status": 200,
+          "link_ok": true
+        },
+        {
+          "who": "aeoess",
+          "subject": "a2a-card-sign-v01",
+          "what": "Reproduced the s3 unknown-field results with an own harness at f427e46, including an experimental retain variant that scores 11/11 and rejects S3-T-011",
+          "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5940903881",
+          "date": "2026-10-01",
+          "link_status": 200,
+          "link_ok": true
+        },
+        {
+          "who": "Agenstry",
+          "subject": "agent-card-signature",
+          "what": "Re-verified the gate's agent card signature with their own verifier, 10/10, recording the digest our signing tool printed",
+          "evidence": "https://agenstry.com/agents/gate.horizonshield.dev",
+          "date": "2026-09-28",
+          "link_status": 200,
+          "link_ok": true
+        }
+      ]
+    },
+    "independent_witnesses": {
+      "count": 2,
+      "ledger": {
+        "ledger_n": 66,
+        "ledger_head": "955780842e368df7232cc27ad1d47e224c5b9264ad9092c40ed234f4ba21011e",
+        "witness_batches": 13,
+        "unreadable_entries": [],
+        "signed_domains": {
+          "api.babyblueviper.com": [
+            57,
+            61
+          ],
+          "pipavlo82.github.io": [
+            65
+          ]
+        },
+        "unsigned_names": {
+          "Baby Blue Viper (invinoveritas)": [
+            38
+          ],
+          "Federico Blanco Sanchez-Llanos (invinoveritas operator, babyblueviper1)": [
+            35
+          ],
+          "HORIZON SHIELD": [
+            53
+          ],
+          "HORIZON SHIELD (The HORIZ音s株式会社)": [
+            41,
+            54
+          ],
+          "HORIZON SHIELD self-witness (github runner)": [
+            43
+          ],
+          "Toshikatsu Oga (The HORIZONs Co., Ltd.) ORCID 0009-0000-9180-903X": [
+            35
+          ],
+          "pipavlo82": [
+            58
+          ]
+        }
+      },
+      "reverification_pool": {
+        "admitted": [
+          "api.babyblueviper.com"
+        ],
+        "file": "workers/hs-ledger/nenrin/recovery-v0/pool_report.json",
+        "generated_at": "2026-09-23T03:47:38Z",
+        "quorum_of_independent_controls_needed": 2
+      }
+    },
+    "external_contracts": {
+      "count": 2,
+      "signed_by_both": 2,
+      "with_an_outside_party": 2,
+      "with_no_party_from_us": 0,
+      "items": [
+        {
+          "contract_id": "4e392387a71a2dcf59fbc43314231d4c",
+          "file": "workers/hs-ledger/nenrin/musubi-v0/first_contract_AB.json",
+          "parties": [
+            "horizonshield.dev",
+            "api.babyblueviper.com"
+          ],
+          "outside_parties": [
+            "api.babyblueviper.com"
+          ]
+        },
+        {
+          "contract_id": "8f113a3ea64a109085de8a83f47121eb",
+          "file": "workers/hs-ledger/nenrin/musubi-v0/second_contract_AB.json",
+          "parties": [
+            "horizonshield.dev",
+            "api.babyblueviper.com"
+          ],
+          "outside_parties": [
+            "api.babyblueviper.com"
+          ]
+        }
+      ]
+    },
+    "external_evidence_producers": {
+      "count": 2,
+      "identities": [
+        {
+          "id": "api.babyblueviper.com",
+          "via": [
+            "MUSUBI contract",
+            "agreement record",
+            "ledger witness walk"
+          ]
+        },
+        {
+          "id": "pipavlo82.github.io",
+          "via": [
+            "ledger witness walk"
+          ]
+        }
+      ],
+      "agreements_signed_by_both": [
+        {
+          "file": "workers/hs-ledger/nenrin/agreement-v0/first_agreement_record.json",
+          "parties": [
+            "horizonshield.dev",
+            "api.babyblueviper.com"
+          ],
+          "outside_parties": [
+            "api.babyblueviper.com"
+          ]
+        }
+      ]
+    },
+    "third_party_ci_reproductions": {
+      "count": 0,
+      "from_template": 0,
+      "repos": [],
+      "method": "GitHub search for repositories named like conduct-witness, kept when template_repository is ogasurfproject-jpg/conduct-witness-template and reproduce.yml has a successful run in the last 30 days"
+    }
+  },
+  "not_measured": [],
+  "how_to_recompute": "python3 tools/adoption/count_adoption.py",
+  "does_not_establish": [
+    "a count is not a score or an endorsement",
+    "an implementation that reproduced bytes did not thereby adopt or approve anything",
+    "absent from these sources is not absent from the world"
+  ]
+}
