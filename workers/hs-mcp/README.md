@@ -88,6 +88,7 @@ curl -X POST https://mcp.horizonshield.dev \
 ## Add it to your AI
 - **Claude / ChatGPT / Gemini:** Settings -> Connectors / Custom apps -> add the remote URL above.
 - **Programmatic:** any MCP client that speaks streamable HTTP JSON-RPC (stateless).
+- **stdio clients and registry crawlers:** `node workers/hs-mcp/stdio.js` (from the repository root) relays stdio JSON-RPC to the remote endpoint above. It holds no server code and has no dependencies (Node 18 or later); `HS_MCP_URL` points it elsewhere. Behind an HTTPS proxy, run it with `NODE_USE_ENV_PROXY=1`.
 
 ## Deploy (maintainer)
 The server source is not in this repository. The maintainer deploys from a private working tree with this folder's `wrangler.jsonc` (bindings: `RL_KV`, `HEARING_SVC`, `JCCDB_SVC`); this folder holds the listing metadata and the conformance tests.
