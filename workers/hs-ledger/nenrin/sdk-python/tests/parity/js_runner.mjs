@@ -1,13 +1,14 @@
 // js_runner.mjs <path to nenrin_verify.mjs> : read one bundle per line (JSON text) on stdin, write one result per
 // line on stdout: the report and the consume projection in the shared sorted-key form, or that the verifier threw.
 // Each bundle is parsed with JSON.parse and verified with did:key resolution, exactly as the CLI does.
-import { createInterface } from "node:readline";
+// Lines are split on "\n" only. node:readline is not used: from Node 24 it also breaks lines at U+2028 and
+// U+2029, which the corpus carries raw inside strings.
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { jsCanon } from "./js_canon.mjs";
 
 const N = await import(pathToFileURL(process.argv[2]).href);
-const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
-for await (const line of rl) {
+for (const line of readFileSync(0, "utf8").split("\n")) {
   if (!line) continue;
   let out;
   try {
