@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""Count, once a week, how far NENRIN has moved from "people check HORIZON SHIELD" to "people use it without us".
+
+Five numbers, each from a source a stranger can read, none typed by hand:
+
+  independent_implementations  implementations by other authors that reproduced our bytes or verdicts.
+                               Source: tools/adoption/registry.json (hand-kept rows, each with a public link);
+                               this script checks every link still answers and counts rows and distinct authors.
+  independent_witnesses        domains outside this project that signed a walk and filed it to the ledger.
+                               Source: every nenrin-witness-batch-v1 entry on https://ledger.horizonshield.dev,
+                               field signed_domain. Unsigned walks are listed by name and not counted. The TSUGI
+                               re-verification pool (recovery-v0/pool_report.json) is reported beside it.
+  external_contracts           MUSUBI contracts signed by both sides with a party that is not this project, and
+                               separately those with no party from this project at all.
+                               Source: the signed contracts committed under workers/hs-ledger/nenrin/musubi-v0.
+  external_evidence_producers  distinct outside identities that signed anything the evidence layer keeps: a
+                               ledger witness walk, a contract, an agreement record. The union of the above.
+  third_party_ci_reproductions public repositories, not owned by this project, created from
+                               conduct-witness-template whose weekly reproduce workflow succeeded in the last 30
+                               days. Source: the GitHub REST API (search, repository, workflow runs).
+
+A source that cannot be read is reported as not measured, with the reason, and its number is null. It is never
+counted as zero: an outage of ours is not a finding about anyone.
+
+    python3 tools/adoption/count_adoption.py            # print the count
+    python3 tools/adoption/count_adoption.py --write    # also write ops/adoption/ and the README block
+    python3 tools/adoption/count_adoption.py --check    # exit 1 if the README block differs from latest.json
+
+GITHUB_TOKEN, when set, is sent to api.github.com only (higher rate limit). Standard library only.
+"""
+import argparse, datetime, glob, io, json, os, subprocess, sys, urllib.error, urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REG = os.path.join(ROOT, "tools", "adoption", "registry.json")
+OUT_DIR = os.path.join(ROOT, "ops", "adoption")
+README = os.path.join(ROOT, "README.md")
+LEDGER = os.environ.get("HS_LEDGER", "https://ledger.horizonshield.dev")
+POOL = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "recovery-v0", "pool_report.json")
+MUSUBI = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "musubi-v0")
+AGREEMENT = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "agreement-v0")
+TEMPLATE = "ogasurfproject-jpg/conduct-witness-template"
+OWNER = "ogasurfproject-jpg"
+UA = "HORIZON-SHIELD-adoption-count/1.0 (+https://github.com/ogasurfproject-jpg/horizon-shield/tree/main/tools/adoption)"
+START, END = "<!-- adoption-count:start -->", "<!-- adoption-count:end -->"
+
+
+def tracked(pattern_dir, recursive):
+    """Files git tracks under a directory: a draft left in a working tree is not evidence anyone signed."""
+    try:
+        out = subprocess.run(["git", "-C", ROOT, "ls-files", "--", os.path.relpath(pattern_dir, ROOT)],
+                             capture_output=True, text=True, check=True).stdout.split()
+        files = [os.path.join(ROOT, f) for f in out if f.endswith(".json")]
+        return sorted(f for f in files if recursive or os.path.dirname(f) == pattern_dir)
+    except Exception:
+        pat = os.path.join(pattern_dir, "**", "*.json") if recursive else os.path.join(pattern_dir, "*.json")
+        return sorted(glob.glob(pat, recursive=recursive))
+
+
+def get(url, accept="application/json", timeout=20):
+    headers = {"user-agent": UA, "accept": accept}
+    if url.startswith("https://api.github.com/") and os.environ.get("GITHUB_TOKEN"):
+        headers["authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.status, r.read()
+
+
+def get_json(url):
+    status, body = get(url)
+    return json.loads(body.decode("utf-8"))
+
+
+def ours(identity, our):
+    s = (identity or "").lower()
+    return any(s == o or s.endswith("." + o) for o in our)
+
+
+def implementations(reg):
+    items, alive = [], 0
+    for row in reg["implementations"]:
+        try:
+            status, _ = get(row["evidence"], accept="text/html,application/json")
+            ok = 200 <= status < 400
+        except urllib.error.HTTPError as e:
+            ok, status = False, e.code
+        except Exception as e:
+            ok, status = None, type(e).__name__
+        alive += ok is True
+        items.append({**row, "link_status": status, "link_ok": ok})
+    by_subject = {}
+    for r in items:
+        by_subject[r["subject"]] = by_subject.get(r["subject"], 0) + 1
+    return {"count": len(items), "distinct_authors": len({r["who"] for r in items}), "links_answering": alive,
+            "by_subject": dict(sorted(by_subject.items())), "open_calls": reg.get("open_calls", {}), "items": items}
+
+
+def ledger_witnesses(our):
+    head = get_json(LEDGER + "/ledger/head")
+    n = int(head["n"])
+    signed, unsigned, batches, unreadable = {}, {}, 0, []
+    for i in range(1, n + 1):
+        try:
+            e = get_json("%s/ledger/%d" % (LEDGER, i))
+        except Exception as ex:
+            unreadable.append(i)
+            continue
+        rc = e.get("record_canonical")
+        if not isinstance(rc, str) or "nenrin-witness-batch-v1" not in rc:
+            continue
+        try:
+            b = json.loads(rc)
+        except Exception:
+            continue
+        if b.get("schema") != "nenrin-witness-batch-v1":
+            continue
+        batches += 1
+        for r in b.get("records") or []:
+            d = r.get("signed_domain")
+            if d:
+                if not ours(d, our):
+                    signed.setdefault(d.lower(), []).append(i)
+            elif r.get("witness_name") and not ours(r["witness_name"], our):
+                unsigned.setdefault(r["witness_name"], []).append(i)
+    return {"ledger_n": n, "ledger_head": head.get("head"), "witness_batches": batches, "unreadable_entries": unreadable,
+            "signed_domains": {k: sorted(set(v)) for k, v in sorted(signed.items())},
+            "unsigned_names": {k: sorted(set(v)) for k, v in sorted(unsigned.items())}}
+
+
+def contracts(our):
+    out = []
+    for p in tracked(MUSUBI, True):
+        try:
+            d = json.load(io.open(p, encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(d, dict) or not isinstance(d.get("parties"), list) or "contract_id" not in d:
+            continue
+        sigs = d.get("signatures") if isinstance(d.get("signatures"), (list, dict)) else None
+        if not sigs or len(sigs) < 2:
+            continue   # only contracts both sides signed
+        domains = [str(x.get("domain") or "").lower() for x in d["parties"] if isinstance(x, dict)]
+        cid = d["contract_id"]
+        if any(o["contract_id"] == cid for o in out):
+            continue
+        out.append({"contract_id": cid, "file": os.path.relpath(p, ROOT), "parties": domains,
+                    "outside_parties": [x for x in domains if x and not ours(x, our)]})
+    with_outside = [c for c in out if c["outside_parties"]]
+    without_us = [c for c in out if c["parties"] and not any(ours(x, our) for x in c["parties"])]
+    return {"signed_by_both": len(out), "with_an_outside_party": len(with_outside), "with_no_party_from_us": len(without_us),
+            "items": out}
+
+
+def agreements(our):
+    out = []
+    for p in tracked(AGREEMENT, False):
+        try:
+            d = json.load(io.open(p, encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(d, dict) or not str(d.get("schema", "")).startswith("a2a-agreement-v1"):
+            continue
+        sigs = d.get("signatures") or []
+        if len(sigs) < 2:
+            continue
+        parties = [str((x or {}).get("domain") or "").lower() for x in d.get("parties") or []]
+        out.append({"file": os.path.relpath(p, ROOT), "parties": parties,
+                    "outside_parties": [x for x in parties if x and not ours(x, our)]})
+    return out
+
+
+def ci_reproductions():
+    since = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+    cands = get_json("https://api.github.com/search/repositories?q=conduct-witness+in:name&per_page=100")
+    repos = []
+    for r in cands.get("items", []):
+        full = r["full_name"]
+        if full.split("/")[0].lower() == OWNER:
+            continue
+        meta = get_json("https://api.github.com/repos/" + full)
+        tpl = (meta.get("template_repository") or {}).get("full_name")
+        if tpl != TEMPLATE:
+            continue
+        runs = get_json("https://api.github.com/repos/%s/actions/workflows/reproduce.yml/runs?status=success&created=%%3E%%3D%s&per_page=1" % (full, since))
+        last = (runs.get("workflow_runs") or [{}])[0].get("created_at")
+        repos.append({"repo": full, "created_from_template": True, "reproduce_success_last_30_days": bool(last), "last_success": last})
+    return {"count": sum(r["reproduce_success_last_30_days"] for r in repos), "from_template": len(repos), "repos": repos,
+            "method": "GitHub search for repositories named like conduct-witness, kept when template_repository is " + TEMPLATE
+                      + " and reproduce.yml has a successful run in the last 30 days"}
+
+
+def measure():
+    reg = json.load(io.open(REG, encoding="utf-8"))
+    our = [o.lower() for o in reg["our_identities"]]
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    m, not_measured = {}, []
+
+    m["independent_implementations"] = implementations(reg)
+
+    try:
+        w = ledger_witnesses(our)
+    except Exception as e:
+        w = None
+        not_measured.append({"metric": "independent_witnesses", "reason": "ledger not readable: %s" % e})
+    pool = json.load(io.open(POOL, encoding="utf-8")) if os.path.exists(POOL) else {}
+    m["independent_witnesses"] = {
+        "count": None if w is None else len(w["signed_domains"]),
+        "ledger": w,
+        "reverification_pool": {"admitted": pool.get("admitted", []), "file": os.path.relpath(POOL, ROOT),
+                                "generated_at": pool.get("generated_at"), "quorum_of_independent_controls_needed": 2},
+    }
+
+    c = contracts(our)
+    m["external_contracts"] = {"count": c["with_an_outside_party"], **c}
+
+    ag = agreements(our)
+    producers = {}
+    for d, entries in ((w or {}).get("signed_domains") or {}).items():
+        producers.setdefault(d, set()).add("ledger witness walk")
+    for it in c["items"]:
+        for d in it["outside_parties"]:
+            producers.setdefault(d, set()).add("MUSUBI contract")
+    for it in ag:
+        for d in it["outside_parties"]:
+            producers.setdefault(d, set()).add("agreement record")
+    m["external_evidence_producers"] = {
+        "count": len(producers) if w is not None else None,
+        "identities": [{"id": k, "via": sorted(v)} for k, v in sorted(producers.items())],
+        "agreements_signed_by_both": ag,
+    }
+    if w is None:
+        not_measured.append({"metric": "external_evidence_producers", "reason": "depends on the ledger, which was not readable"})
+
+    try:
+        m["third_party_ci_reproductions"] = ci_reproductions()
+    except Exception as e:
+        m["third_party_ci_reproductions"] = {"count": None}
+        not_measured.append({"metric": "third_party_ci_reproductions", "reason": "GitHub API not readable: %s" % e})
+
+    return {"schema": "hs-adoption-count-v1", "measured_at": now, "metrics": m, "not_measured": not_measured,
+            "how_to_recompute": "python3 tools/adoption/count_adoption.py",
+            "does_not_establish": ["a count is not a score or an endorsement",
+                                   "an implementation that reproduced bytes did not thereby adopt or approve anything",
+                                   "absent from these sources is not absent from the world"]}
+
+
+def fmt(v):
+    return "not measured" if v is None else str(v)
+
+
+def readme_block(d):
+    m = d["metrics"]
+    imp, wit, con, pro, ci = (m["independent_implementations"], m["independent_witnesses"], m["external_contracts"],
+                              m["external_evidence_producers"], m["third_party_ci_reproductions"])
+    wl = wit.get("ledger") or {}
+    doms = ", ".join("`%s`" % k for k in (wl.get("signed_domains") or {})) or "none"
+    pool = wit["reverification_pool"]
+    lines = [
+        START,
+        "Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_adoption.py), last on %s. "
+        "Every number comes from a source you can read; one that could not be read says so instead of counting zero. "
+        "The whole count: [`ops/adoption/latest.json`](ops/adoption/latest.json)." % d["measured_at"][:10],
+        "",
+        "| What | Count | From |",
+        "|---|---|---|",
+        "| Independent implementations that reproduced our bytes or verdicts | %s rows by %s authors (%s) | [`tools/adoption/registry.json`](tools/adoption/registry.json), each row with its public link |"
+        % (imp["count"], imp["distinct_authors"], ", ".join("%s %d" % kv for kv in imp["by_subject"].items())),
+        "| Outside domains that signed a walk and filed it to the ledger | %s | every `nenrin-witness-batch-v1` entry on the ledger |"
+        % (fmt(wit["count"]) if wit["count"] is None else "%d (%s)" % (wit["count"], doms)),
+        "| Re-verification pool | %d control cluster(s), %d needed for a quorum | `%s` |" % (len(pool["admitted"]), pool["quorum_of_independent_controls_needed"], pool["file"]),
+        "| MUSUBI contracts signed with an outside party | %d (with no party from this project: %d) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/` |" % (con["with_an_outside_party"], con["with_no_party_from_us"]),
+        "| Outside identities that signed evidence (walk, contract or agreement) | %s | the three rows above and the agreement records |" % fmt(pro["count"]),
+        "| Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | %s | GitHub API |" % fmt(ci.get("count")),
+        "",
+        "Open: %s" % "; ".join(imp["open_calls"].values()) if imp.get("open_calls") else "",
+        END,
+    ]
+    return "\n".join(l for l in lines if l is not None)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--write", action="store_true")
+    ap.add_argument("--check", action="store_true")
+    a = ap.parse_args()
+    if a.check:
+        d = json.load(io.open(os.path.join(OUT_DIR, "latest.json"), encoding="utf-8"))
+        s = io.open(README, encoding="utf-8").read()
+        have = s[s.index(START):s.index(END) + len(END)] if START in s and END in s else ""
+        if have != readme_block(d):
+            print("README adoption block differs from ops/adoption/latest.json; run --write")
+            return 1
+        print("README adoption block matches ops/adoption/latest.json")
+        return 0
+    d = measure()
+    text = json.dumps(d, ensure_ascii=False, indent=2) + "\n"
+    print(readme_block(d))
+    if d["not_measured"]:
+        print("\nnot measured: " + "; ".join("%s (%s)" % (x["metric"], x["reason"]) for x in d["not_measured"]))
+    if a.write:
+        os.makedirs(OUT_DIR, exist_ok=True)
+        io.open(os.path.join(OUT_DIR, "adoption_%s.json" % d["measured_at"][:10]), "w", encoding="utf-8").write(text)
+        io.open(os.path.join(OUT_DIR, "latest.json"), "w", encoding="utf-8").write(text)
+        s = io.open(README, encoding="utf-8").read()
+        block = readme_block(d)
+        if START in s and END in s:
+            s = s[:s.index(START)] + block + s[s.index(END) + len(END):]
+        else:
+            anchor = "\nOne external witness is a start, not a network."
+            if anchor not in s:
+                raise SystemExit("README anchor not found; place the markers by hand")
+            s = s.replace(anchor, "\n" + block + "\n" + anchor, 1)
+        io.open(README, "w", encoding="utf-8").write(s)
+        print("\nwrote ops/adoption/latest.json and the README block")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

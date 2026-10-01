@@ -1,0 +1,45 @@
+{
+  "schema": "hs-adoption-registry-v1",
+  "what_this_is": "The hand-kept half of the weekly adoption count: implementations written by people who do not work for this project that reproduced our bytes or verdicts. Each row names one public place where the reproduction can be read. tools/adoption/count_adoption.py checks every link still answers and counts the rows; it adds nothing by itself. Add a row only with a link a stranger can open.",
+  "our_identities": ["horizonshield.dev", "the-horizons-innovation.com", "ogasurfproject-jpg", "ogasurfproject-jpg.github.io"],
+  "implementations": [
+    {
+      "who": "Kuang Mi (kuangmi-bit)",
+      "subject": "a2a-card-canonical-form",
+      "what": "An independent Go implementation reproduced the @a2a-js/sdk canonical form of the pinned HORIZON SHIELD gate card byte for byte (6410 bytes), offline from the committed fixture",
+      "evidence": "https://github.com/a2aproject/a2a-go/issues/445#issuecomment-5879965988",
+      "date": "2026-09-28"
+    },
+    {
+      "who": "Kuang Mi (kuangmi-bit)",
+      "subject": "a2a-card-sign-v01",
+      "what": "Scored a2a-sdk and a2a-python#1287 against the 24 signed vectors with an own harness that verifies the ES256 signatures directly against testkey_jwks.json, after reproducing MANIFEST.observed",
+      "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5937659218",
+      "date": "2026-10-01"
+    },
+    {
+      "who": "Sankalp Gilda (astrogilda)",
+      "subject": "a2a-card-sign-v01",
+      "what": "A verifier written only from A2A section 8.4.1 and the proto markings, sharing no code with the generator or the scorer: all 24 vectors come out as labelled, no false accepts",
+      "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5936546281",
+      "date": "2026-10-01"
+    },
+    {
+      "who": "aeoess",
+      "subject": "a2a-card-sign-v01",
+      "what": "Reproduced the s3 unknown-field results with an own harness at f427e46, including an experimental retain variant that scores 11/11 and rejects S3-T-011",
+      "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5940903881",
+      "date": "2026-10-01"
+    },
+    {
+      "who": "Agenstry",
+      "subject": "agent-card-signature",
+      "what": "Re-verified the gate's agent card signature with their own verifier, 10/10, recording the digest our signing tool printed",
+      "evidence": "https://agenstry.com/agents/gate.horizonshield.dev",
+      "date": "2026-09-28"
+    }
+  ],
+  "open_calls": {
+    "nenrin-provenance": "A second verifier of NENRIN provenance bundles, by another author in any language, that reproduces the five verdict signatures in interop-v0/expected.json. None yet: workers/hs-ledger/nenrin/interop-v0/INTEROP.md"
+  }
+}

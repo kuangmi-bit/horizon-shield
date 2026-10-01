@@ -1,25 +1,31 @@
 {
   "name": "nenrin-verify",
-  "version": "0.2.3",
-  "description": "Single-file, zero-dependency, consumer-runnable verifiers for NENRIN evidence: a provenance bundle (nenrin_verify.mjs) and a TSUGI recovery chain with its random witness draw (tsugi_verify.mjs). Verify yourself, offline, with no trust in the operator.",
+  "version": "0.3.0",
+  "description": "Zero-dependency, consumer-runnable verifiers for NENRIN evidence: a provenance bundle (nenrin_verify.mjs), a two-party agreement record (nenrin-agreement-verify) and a TSUGI recovery chain with its random witness draw (tsugi_verify.mjs). The same reports as the Python package nenrin-verify. Verify yourself, offline, with no trust in the operator.",
   "type": "module",
   "main": "nenrin_verify.mjs",
   "exports": {
     ".": "./nenrin_verify.mjs",
-    "./tsugi": "./tsugi_verify.mjs"
+    "./tsugi": "./tsugi_verify.mjs",
+    "./agreement": "./agreement_verify.mjs"
   },
   "bin": {
     "nenrin-verify": "nenrin_verify.mjs",
-    "tsugi-verify": "tsugi_verify.mjs"
+    "tsugi-verify": "tsugi_verify.mjs",
+    "nenrin-agreement-verify": "agreement_cli.mjs"
   },
   "files": [
     "nenrin_verify.mjs",
     "tsugi_verify.mjs",
+    "agreement_verify.mjs",
+    "agreement_canonical.mjs",
+    "key_succession.mjs",
+    "agreement_cli.mjs",
     "SDK.md",
     "LICENSE"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "keywords": [
     "a2a",
@@ -37,7 +43,9 @@
     "tsugi",
     "witness",
     "random-draw",
-    "commit-reveal"
+    "commit-reveal",
+    "agreement",
+    "key-succession"
   ],
   "repository": {
     "type": "git",

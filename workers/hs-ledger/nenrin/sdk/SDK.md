@@ -72,6 +72,43 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.3.0 (2026-10-02): the agreement verifier, and one version number with the Python package
+npm and PyPI now carry the same version number for the same verifiers. Until this release the Python package was
+0.3.0 and this one 0.2.3, with different contents under one name, which made "nenrin-verify 0.3.0" ambiguous in
+someone else's CI. What each package holds at 0.3.0:
+
+| verifier | npm nenrin-verify 0.3.0 | PyPI nenrin-verify 0.3.0 | how the two are tied |
+|---|---|---|---|
+| provenance bundle (R1 to R4, E1 to E3, evidence, preflight) | `nenrin-verify`, `nenrin_verify.mjs` (verifier 0.1.3) | `nenrin-verify` | the Python port returns this file's report key for key on 31 frozen bundles and 27,062 inputs |
+| agreement record (`a2a-agreement-v1`, `v1.1`, key succession) | `nenrin-agreement-verify`, `nenrin-verify/agreement` (new) | `nenrin-agreement-verify` | the JavaScript verifier returns the Python verifier's report byte for byte on all 5,286 frozen cases; the two commands print the same output (below) |
+| TSUGI recovery chain and witness draw | `tsugi-verify`, `nenrin-verify/tsugi` | `tsugi-verify` | 98 frozen chains, same report |
+| MUSUBI contracts (a2a-contract-v0) | not here | `musubi-verify` | MUSUBI is written in Python and has no JavaScript implementation; `pip install nenrin-verify` |
+
+New in this package:
+
+    npx nenrin-agreement-verify record.json                     # the agreement report; exit 0 accepted, 1 refused, 2 incomplete
+    npx nenrin-agreement-verify record.json --keys keys.json --now 2026-10-02T00:00:00Z --quiet
+    import { verify } from "nenrin-verify/agreement";           # the library, async (WebCrypto)
+
+`agreement_verify.mjs`, `agreement_canonical.mjs` and `key_succession.mjs` are the files in ../agreement-v0 byte for
+byte, where agreement_verify_test.mjs scores them against the 5,286 frozen Python reports. `agreement_cli.mjs` is the
+command; it takes the Python command's flags (`--keys`, `--recorder-domain`, `--now`, `--anchored-block`, `--quiet`)
+and prints the report as Python's `json.dumps(report, ensure_ascii=False, indent=2)` prints it.
+
+How that is checked: `agreement_cli_parity.py` runs both commands on the same files and compares stdout and the exit
+code byte for byte. On 2026-10-02 it ran on the agreement records committed in ../agreement-v0 (plain, `--quiet`,
+`--now`), three broken files, and every frozen case that can be written as a UTF-8 file (5,104 of them, with their
+keys, recorder domain and time as flags): all equal. `agreement.test.mjs` replays 86 of those inputs against the
+Python command's stdout hashes stored in `agreement_cli_expected.json`, so the check runs without Python, and it
+fails on a one-space change to the output.
+
+Two behaviours carried over from the Python command on purpose, so both print the same report for the same file: a
+file whose content is `null` is reported as too_deep, and `--example` is not here (the templates live in the Python
+package). One known difference: when a file is not JSON at all, the refusal's code, the verdict, the exit code and
+input_sha256 are the same, but its "why" is this reader's message rather than the text of Python's json module.
+
+Node 20 or later (the agreement verifier uses the global WebCrypto); 0.2.x said 18.
+
 ## 0.2.3 (2026-09-30): one receipt set, and no fact from a refused preflight
 Both fixes come from horizon-shield#26, reported by Poke-nushi with a reproduction against 0.2.2 (verifier_version
 0.1.3, consume_version 0.1.1):

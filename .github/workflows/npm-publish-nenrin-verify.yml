@@ -58,6 +58,7 @@ jobs:
         run: |
           node nenrin_verify.test.mjs
           node tsugi_verify.test.mjs
+          node agreement.test.mjs
 
       - name: Publish with provenance (Trusted Publishing, GitHub OIDC)
         run: npm publish --provenance --access public

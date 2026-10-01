@@ -1,0 +1,52 @@
+# Once a week, count how far NENRIN has moved from "people check HORIZON SHIELD" to "people use it without us".
+#
+# Five numbers (tools/adoption/count_adoption.py): independent implementations, independent witnesses, external
+# contracts, external evidence producers, third-party CI reproductions. Each comes from a source anyone can read:
+# the hand-kept registry with its public links, the ledger's witness batches, the signed contracts in this repository,
+# and the GitHub API. The count is written to ops/adoption/ and into the block between the adoption-count markers in
+# README.md.
+#
+# A source that cannot be read is written as "not measured" with the reason, never as zero, and the run stays green:
+# an outage of ours is not a finding about anyone. Only a broken tool (the offline test fails, python crashes) is red.
+name: adoption-weekly
+
+on:
+  schedule:
+    - cron: "17 0 * * 1"      # Mondays 00:17 UTC (09:17 JST)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: adoption-weekly
+  cancel-in-progress: false
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: The counting rules, offline (fake ledger, no network)
+        run: python3 tools/adoption/count_adoption_test.py
+
+      - name: Count
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/adoption/count_adoption.py --write | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the count
+        run: |
+          git config user.name "horizon-shield-adoption-count"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add ops/adoption/ README.md
+          if git diff --cached --quiet; then
+            echo "nothing changed" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "adoption: weekly count $(date -u +%Y-%m-%d)"
+          git push

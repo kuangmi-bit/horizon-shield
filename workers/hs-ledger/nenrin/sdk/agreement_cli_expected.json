@@ -1,0 +1,982 @@
+{
+ "cases": {
+  "bad_json": {
+   "args": [
+    "bad.json"
+   ],
+   "exit": 1,
+   "stdout_sha256": "b9596af0222f20bab5267db0eb76418b0f7bed88ed0cc923b7b30dbf48675af0"
+  },
+  "case 0 (from record)": {
+   "exit": 0,
+   "flags": [],
+   "keys": {
+    "https://attacker.example/keys/agreement.json": "11l5O7wTooGagnx2rbb7qKSa7gB/SfLQmS2ZuCWtLEg=",
+    "https://party-a.example/keys/agreement.json": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=",
+    "https://party-b.example/keys/agreement.json": "oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=",
+    "https://party-c.example/keys/agreement.json": "F8t5+ytBIPKx7GXkGY1uCLKOgT/rAeSkAIObheGAgM4="
+   },
+   "stdout_sha256": "1cbf5a83adf3b153f8eeaea3d1e6f45411594c41326938a61a8ca6d85d6d43b0",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1056 (from record)": {
+   "exit": 2,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "d106af12054839e9069e51e88921a12aa9f7d0ada6a17ed377ead7fd4d8abd1c",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\":\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1122 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "dc2245013e2dd70e0aafe08de0502d3c1992c5991ad65a22875779fb6675222d",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": 1.5, \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1188 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "323a077a7cad4eb5456a298b9769c2ac3a0c3d9fdc365994500848ba466e3a11",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", 1.5], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1254 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "0ed64ad6548eae25dce2098f2feaee39c24592cc48c7bf103525be3be6633aae",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": {}, \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": 1.5, \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 132 (from record)": {
+   "exit": 1,
+   "flags": [],
+   "keys": null,
+   "stdout_sha256": "9b9804239031f296ecc6d25563e94d7731cdba5aa9885de4f514b921672bcf1c",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 1320 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "e992576a322c599163a96276ae991b61e15d8e91c4e2be0625ac65a6e60ae84d",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [1180591620717411303424, \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": 1.5, \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": -1, \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": \"HTTP://x\", \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1386 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "b18ade8ec3a1559628308fc293931d026663f79dff367f9a2e69b26a27c1345a",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": 1.5, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1452 (from record)": {
+   "exit": 2,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "7847d7da3cf64d66dc61c160e1911ff824c465922eb165109fcfbb7341129762",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": {}, \"currency\": \"x\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1518 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "6f9a673e84371946ad5ac3068130b17fbbd24fa64c7175a533c02da020ab115d",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": 1.5, \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": false, \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"HTTP://x\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1584 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "ba5030dc173265b84ce2181e8f74422dc4e51b1a224deaafb0abf70aade5753a",
+   "text": "{\"agreed_at\": \":\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"https://x\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1650 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "7a65ba008209b74b017f9d5e1fea4e457be2e345a3afb089870214bb0980259f",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": {}, \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1716 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "33cbdee1461df52f802b133bf85e70965618f0e79de10f5f9227d89b44df72f8",
+   "text": "[{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [[1, 2], \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}]"
+  },
+  "case 1782 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "c88d23f79ecd7ed66360dcf14b873a0cb7ea0694ae021990cf998483b7791b9a",
+   "text": "{\"agreed_at\": false, \"does_not_establish\": [\"that either party performed\", \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1848 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "ff90785dd9e91282ca5114d6819dfe8952988b6216ec45389e760ec4d73664c2",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [0, \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [\"\", {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"https://x\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 1914 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "fce53ebacba5116d90cdf11967d0b1c16aa91fb8af96113df257263257581e3d",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": true, \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}}"
+  },
+  "case 198 (from record)": {
+   "exit": 1,
+   "flags": [],
+   "keys": null,
+   "stdout_sha256": "18b75218581e442a7377d61304fc7b51a1dfc4677fcfe9e229ddba31494acbc3",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"localhost\", \"key_url\": \"https://localhost/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 1980 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "780d005089ef566221c42d17e748a7e4755ad1089b23e301b92f015765aee907",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [1.5, \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2046 (from record)": {
+   "exit": 2,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "da74539d89807e7a5c8f84bfe0f447831e7b87cee42c16bff08fffa88ab96b15",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"HTTP://x\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2112 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "b982e8348fe6349c2532466dafeecc9be42ac692af3451b49f14df90811fe7a2",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": \"HTTP://x\", \"parties\": [1.5, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": null}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2178 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "cc53662c981a2b07a80be239969de80620a3ff06d0f58ea814e18aa09fda9850",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [null, \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2244 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "5e511dca3919f1b11c42043cdfb94235fd55be21daf85bbdfef938e3f2adf3ac",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"x.y.z\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2310 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "16eaab0270611d7b4089a739ac73953e32ee82261e749c04ebada43d5b86872b",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": \"x.y.z\", \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"https://x\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": [1, 2], \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2376 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "6d2ebced66fec153255e18b826725dd5a76283fb196f97009d4595b5596e69af",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": 0, \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": 1180591620717411303424}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"x.y.z\"}}"
+  },
+  "case 2442 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "10856538478d4e4485ef1347f08b1c0c48650accf716ae10e09d28aa62ee48e3",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2508 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "aa1db6358401d9b887ca5b9dd83165e068ea5a0548b3b0063cfabb50cd918c68",
+   "text": "[{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", -1], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": false, \"conduct_record_sha256\": false, \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": [1, 2], \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}]"
+  },
+  "case 2574 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "983d41c91f89821e15cf9a4d9d7609e60c644dc534132373d0cc975d5594b2d0",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \":\"], \"establishes\": [null, \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, 1180591620717411303424], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 264 (from record)": {
+   "exit": 1,
+   "flags": [],
+   "keys": {
+    "https://party-a.example/keys/agreement.json": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=",
+    "https://party-b.example/keys/agreement.json": "oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA="
+   },
+   "stdout_sha256": "4959cacfc7527444618de10dfb034a8ae7712e12214cb8ef87b75fcc268f3b87",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one\\taudit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 2640 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "5e79f6a602b38d171fde663328ed6fc555ef95347517111c8e050d50fa498ae5",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"x\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2706 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "91913291f72b6471845a9869e8230acddfacbbf0bfb18d0f08ee8665209e86fe",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", 0, \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"a\": 1}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 2772 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "a9b56acf6b54cadaf94fd94866827a8cd6df316711e95f013cfa999fe94164fe",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"a2a-agreement-v1.1\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 2904 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "62139e0be0b8b5b3190d269d4930c47292be33ba4ada9cd8863632418a6eed8f",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": \"a2a-agreement-v1\", \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 2970 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "dba6eb47507aebe4c0aef293202e470701b1ff2a769a8bf32d90275cd9c7da70",
+   "text": "{\"agreed_at\": \"x\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", 0, \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3036 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "fd8e33ac315c891a6babb2c1ee6746034f6d2337e10efba47dddf69f968db85b",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": \"x\\u001b[31m\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": true, \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": -1, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3102 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "fd2859a4de8c4f1cfdff367f7626861e03f2f28edeb00b4e5b1a2efc578e4091",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"x\", \"signatures\": [[], {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": \":\", \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3168 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "0489a0dad2792c9e00b87c017ae29d9865aab2e89428c26a5bdc9315eaafe960",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 330 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "7d3adfbc06f8077572238aa0999815cc6d510085d09f96ff6a0ed9558b0e0e05",
+   "text": "[{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": \":\", \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}]"
+  },
+  "case 3300 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "22f12fe366e9080f00d6efb55cac3c706caabba02ce5c46490cfb10b7dc4c18e",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": {\"from\": \"party-a.example\"}, \"agent_card_sha256\": \"..\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": null, \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3366 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "b55d8d9e92ebd3f84fd0e71b9d4b8e9d264efff44bb28fd688dac52c5f167185",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": 0, \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3432 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "b1ccfe1e45e3e5454910d05f6659229c61132ea35521c73b0d858d8ffe09c40a",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": 0, \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": {\"kind\": \"bitcoin_block\"}, \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3498 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "d59bf475278dce1b0af0c2f00abcf32e8c78f376bdb00d0e18634d55222c1179",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, \"jpy\"], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": 1180591620717411303424}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": {\"from\": \"party-a.example\"}, \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3564 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "c8e38e783c5b11e8a9dd2ce4b1d44667cfd138707ce1ca41d9f0cab3272f3e4a",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"JPY\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": -1, \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3630 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "f7538c5bf0585d7b48aa12bdc1c8c2d24aaf40e4e71c1fc2239e734839516e0f",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"HTTP://x\", \"signatures\": 0, \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": \"a2a-agreement-v1\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3696 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "9a32f41015a9bcb0e88a911e8bea47451d034cbc3ebf120c183659d78925cd56",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"a2a-agreement-v1\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"JPY\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": [1, 2], \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3762 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "1463fd7aa87059e82ca31d6089d4485ae99e46d34ec257a3302157f57bbe8670",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": {\"kind\": \"bitcoin_block\"}, \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3828 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "e01b8dfdef8c07b63100f0e8cd7200e93eda3819e95700a191700c2d550d8b18",
+   "text": "{\"agreed_at\": \"00112233445566778899aabbccddeeff\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": null, \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"x.y.z\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 3894 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "fd5d89797fcdb448edebaf2fb662228a914ccf2a82a6aad20848c4ac6b5992c2",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"a2a-agreement-v1\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"x\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"x.y.z\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 396 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "9736807a2232d6ac30001a8c36d0ad9043aa81ee6efd96cb9ce69912e16f2f44",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 3960 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "47e9a80438ae6bb21fa3d6503ac32c4121adbff4ca603f5c3faa5a738bee246b",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": [1, 2]}"
+  },
+  "case 4026 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "9f3333cdd0177f45adf0982019da60e4f2048c6459f09a3be5a1c5fa0e99982a",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": \"..\", \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"a\": 1}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"HTTP://x\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4092 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "6eac26e12d49f163709a6bff59168480d39513cd14c4c464815ec79edd07b911",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"party-a.example\", \"that this record is a contract\", \"party-a.example\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": {\"a\": 1}, \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": true, \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4158 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "f233c2c2e77922e12c2dfa2d7df8c5862d9ab73251f49205dcc93b49b5cbe495",
+   "text": "{\"agreed_at\": false, \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", {\"from\": \"party-a.example\"}], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": true, \"subject_domain\": true, \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4224 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "d2d02aa41d9b1d374b3b6c950facafdefcec9797ad9aae8cc6628cc60d5b4955",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": \"a2a-agreement-v1\"}"
+  },
+  "case 4290 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "5666c128e9f2f647d49d674fa076de812ea11a40384b4aa62adc09f7345da584",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"a2a-agreement-v1.1\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4356 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "5b871572f5ab8a92f96efc9d248b1cf0074c83e8ca47867ebbe7f32117e888a3",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"x\\u001b[31m\", \"role\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": true, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4422 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "853a3cb1e96e81225b9f390dfe094b2fc2d919c554256e7ce334782abfa41c96",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": 1.5, \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4554 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "0923db5ff79440a919bb1d2c46da52d2de9c838787ecce9b53dbc83b503ce2f1",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://x\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": true, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 462 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "e7b72e81d9bc2d6bb721a0359a2eae08552cd8be652ffe7b7d19e41207f476e2",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": {}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 4686 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "e8ab9431b306191d3792e707e234fd091508414c906c94972e682110bc079fb8",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": true}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"a2a-agreement-v1.1\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4752 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "231beb13cb76d245f6b8d6cac117ade1cd25657172955ce9c56fc674e8accc42",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"00112233445566778899aabbccddeeff\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4818 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "bf2640263666e8f246b2d4a0a400ae7e0a063fb8d4bf4b363f5ddd1feca4a0e1",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": true, \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4884 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "332d48db61920770d7bd5a5a9a282aa83f2447852d8a0a3e9a4652e9f2f6317c",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \":\"], \"parties\": [{\"agent_card\": \"jpy\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": 0}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 4950 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "059aa7e001b2d6f6696af9f4be2d7f7d906a598420077472b021ff37a9614a75",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": \"JPY\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 5016 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "8b4c5ab14c5dc43a1113e6db60ca31a7d1a667402eb50960c8b0f4c428221e01",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, true], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 5082 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "637122e2821bc6da75fd4ed32b0c9ccf6373c6fe30ae75fb5fd89977da2068c6",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [null, \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, \"HTTP://x\"], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 5148 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "174493a352bba8103d271aa354f3a6caf0a0ccaf59f05c275fad29e3766237c3",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": null, \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"x\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"party-a.example\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 5214 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "522c18dd2a685841ea192430c4a034d8b77a26ed6f04762dd180fc16878adf01",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"party-a.example\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", []], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"https://gate.example/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"HTTP://x\"}}}"
+  },
+  "case 528 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "1098347782cdf710a6a8035adf13cb62cbd4a8baa9a173b3d2b89ad6cf610189",
+   "text": "{\"agreed_at\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"HTTP://x\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": [], \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 5280 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "063f25776d7ec59e59f030e88dd1b621eceaf6744ed7c832230c12502885f273",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"agreement_id\": \"00112233445566778899aabbccddeeff\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that money moved\", \"that the conduct record each side pinned is accurate\", \"that the terms are lawful or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the counterparty's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"905bdde1579caef60d04bd33a8a175a51fd12ba6c1625e8731728af3066b806c\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"subject_domain\": \"party-b.example\", \"url\": \"00112233445566778899aabbccddeeff\"}, \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc=\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"agent_card_sha256\": \"8ecfc79a07aff6cd1fc8ace5c5e24ab9a4af333164bf4fca7ef029d1cd735992\", \"conduct_record\": {\"measured_by_domain\": \"gate.example\", \"sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"subject_domain\": \"party-a.example\", \"url\": \"https://gate.example/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"public_key_ed25519_b64\": \"oJql9HpnWYAv+VX43C0qFKXJnSO+l/hkEn/5ODRVpPA=\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder\": {\"domain\": \"recorder.example\", \"fee\": {\"amount_minor_units\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"is_a_party\": false}, \"schema\": \"a2a-agreement-v1.1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"signature\": \"9xnnsKDTIQtwwiPEFKa/7FhTzBrPj2m5pRnoho8dD9czhGs5cDy8tvI6+HSsitiRs8HdEVBLYBPwPysNSHxCCQ==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"signature\": \"hx8OdKCdR6QPjOT45TB/wfS0Tf4BNz4l8LptGhksq149tSUW/unvtAeDBRrFiLXm+SWdyNjhBu+bgbnarwQgDA==\"}], \"terms\": {\"amount_minor_units\": 10000, \"consideration\": \"money\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"minor_unit_scale\": 0, \"what\": \"one audit of one estimate\", \"who_pays_whom\": {\"from\": \"party-a.example\", \"to\": \"party-b.example\"}}}"
+  },
+  "case 594 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "71b610c7577ab3f8a53b8460d2fb6f1c0d9af9a19816439c74872cdb0218c854",
+   "text": "{\"agreed_at\": {\"a\": 1}, \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", {\"a\": 1}], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 66 (from record)": {
+   "exit": 1,
+   "flags": [],
+   "keys": null,
+   "stdout_sha256": "1a2131d601f4432f3afa56e7183ace6d340fc6434d58d8efade9aa0ced17781b",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://PARTY-A.EXAMPLE./.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"PARTY-A.EXAMPLE.\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 660 (from record)": {
+   "exit": 2,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "a598cfd5a452599c0f8a8a4d06502eb0f40f87ec2f4cfa6f115322348e9f8c47",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 726 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "c7b671fc77122c38ec66399aeed1e1f768474b60dea4de1ee07adf7272c3a698",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": -1, \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": -1}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": \"x\", \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 792 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "bccf6194e30fe8643fc733a3ea62978f8dfcda6a9e5ffd8d1e1b174642341dfb",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", 0, \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"x\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 858 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "d3607b3f419006b3531e5909a05fb004a0f44dad8f2a4bc8b90a061fb89e39fa",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", {\"a\": 1}, \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", {}], \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 924 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "d6a28b1027e4e80135cb772db69c6bdb5ccf1f6b3b5778687a91e3d9894684aa",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": false, \"parties\": [{\"agent_card\": \"https://party-a.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://x\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": null, \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": \"ed25519\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": [1, 2], \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": \"JPY\", \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "case 990 (from record)": {
+   "exit": 1,
+   "flags": [
+    "--recorder-domain",
+    "party-b.example",
+    "--now",
+    "2026-09-11T00:00:00Z"
+   ],
+   "keys": null,
+   "stdout_sha256": "43e0c642a5cbb7ada157a165799998bb5be8dd258eff1510336b43a573192cca",
+   "text": "{\"agreed_at\": \"2026-09-10T00:00:00Z\", \"does_not_establish\": [\"that either party performed\", \"that this record is a contract\", \"that the terms are lawful, fair or complete\"], \"establishes\": [\"that both parties signed these bytes at the stated time\", \"that each party named the other's conduct record by sha256 at that moment\"], \"parties\": [{\"agent_card\": 1180591620717411303424, \"conduct_record_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"conduct_record_url\": \"https://gate.horizonshield.dev/record/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"role\": \"payer\"}, {\"agent_card\": \"https://party-b.example/.well-known/agent-card.json\", \"conduct_record_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"conduct_record_url\": 1.5, \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"role\": \"payee\"}], \"record_paid_by\": \"both\", \"recorder_fee\": {\"amount\": 0, \"basis\": \"per_record\", \"currency\": \"JPY\"}, \"schema\": \"a2a-agreement-v1\", \"signatures\": [{\"alg\": [], \"domain\": \"party-a.example\", \"key_url\": \"https://party-a.example/keys/agreement.json\", \"signature\": \"QBrS0nWehaOciNpq4MeYWvKvWTWIkEAkTzFJdBgffMx1q7ZrSzsSrD5ZfE+pILtqVlaYsg7IkzJ9YHFaASwSAw==\"}, {\"alg\": \"ed25519\", \"domain\": \"party-b.example\", \"key_url\": \"https://party-b.example/keys/agreement.json\", \"signature\": \"8MmMtxFD0RkAMpVBW7MrFBrTSOsocg2+j24QQoUAXk0Jg2+BAa/lML7e3vBk9mln6UmLUkLWYb8CnsVvw8OuCA==\"}], \"terms\": {\"amount\": 10000, \"currency\": 1.5, \"disclosure_url\": \"https://party-b.example/pricing\", \"what\": \"one audit of one estimate\", \"who_pays_whom\": \"party-a.example pays party-b.example\"}}"
+  },
+  "duplicate_key": {
+   "args": [
+    "dup.json"
+   ],
+   "exit": 1,
+   "stdout_sha256": "9da182655ad88b0cd23ce1e04296914afb8bc8ec5bf4dc9a2c96cc703030d4f6"
+  },
+  "first_agreement_record.json": {
+   "args": [
+    "first_agreement_record.json"
+   ],
+   "exit": 0,
+   "stdout_sha256": "6fbd33f9163d73da8c0eb1efc3f63152c955a9280bf6aa2e3f560621fa16d106"
+  },
+  "first_agreement_record.json --now": {
+   "args": [
+    "first_agreement_record.json",
+    "--now",
+    "2030-01-01T00:00:00Z"
+   ],
+   "exit": 0,
+   "stdout_sha256": "6fbd33f9163d73da8c0eb1efc3f63152c955a9280bf6aa2e3f560621fa16d106"
+  },
+  "first_agreement_record.json --quiet": {
+   "args": [
+    "first_agreement_record.json",
+    "--quiet"
+   ],
+   "exit": 0,
+   "stdout_sha256": "054895cafacd70a3957233e3d306a26b4b9561005496b1145166ca984143bfdd"
+  },
+  "second_record_A.json": {
+   "args": [
+    "second_record_A.json"
+   ],
+   "exit": 1,
+   "stdout_sha256": "9c9fe0aa23d09f26a6e3cccfedab2a55fc6308471aaadd726bb72285ff3103ea"
+  },
+  "second_record_A.json --now": {
+   "args": [
+    "second_record_A.json",
+    "--now",
+    "2030-01-01T00:00:00Z"
+   ],
+   "exit": 1,
+   "stdout_sha256": "9c9fe0aa23d09f26a6e3cccfedab2a55fc6308471aaadd726bb72285ff3103ea"
+  },
+  "second_record_A.json --quiet": {
+   "args": [
+    "second_record_A.json",
+    "--quiet"
+   ],
+   "exit": 1,
+   "stdout_sha256": "2a91db76d14fa87c4d1168c407ccac11cb63f4b799b17bb65ae5886da5e9e710"
+  },
+  "top_level_array": {
+   "args": [
+    "array.json"
+   ],
+   "exit": 1,
+   "stdout_sha256": "8fe6d9b3de9b7c65d7c9001b7392b49e7561c200fdd253afe4b5134b22d6b0d5"
+  }
+ },
+ "count": 86,
+ "note": "sha256 of the Python CLI's stdout per input; agreement.test.mjs checks the JS CLI against it"
+}
