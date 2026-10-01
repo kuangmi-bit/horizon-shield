@@ -1,0 +1,44 @@
+{
+  "schema": "nenrin-a2a-python-e2e-expected-v0",
+  "note": "per case: the verdict signature and report sha256 with the evidence lookup (the receipt evidence is checked against the artifact the server served, from the transcript), and without it (what nenrin-verify bundle.json prints). The same from Python and JavaScript. Without the lookup the lying provider is accepted: its receipt is a validly signed claim, the witness fail is surfaced in layers.delegation.hop_verdicts, and only resolving the evidence refuses it.",
+  "cases": {
+    "honest": {
+      "signature": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": []
+      },
+      "report_sha256": "058b6cf76c091890b348dbf0d1cf3c01184ec76183c74ae8bd329ad401079bec",
+      "without_lookup": {
+        "signature": {
+          "verdict": "accepted",
+          "refusals": [],
+          "findings": [
+            "evidence_bound_unchecked"
+          ]
+        },
+        "report_sha256": "2608f1c69b0cc80d8d718845a5460b0163fc303f16fafd174e601711bc5ea44f"
+      }
+    },
+    "lying_provider": {
+      "signature": {
+        "verdict": "refused",
+        "refusals": [
+          "evidence_invalid"
+        ],
+        "findings": []
+      },
+      "report_sha256": "96bf3f41b36f3af6e186de88af6443badd116462ca96dfb61203b6146f02b135",
+      "without_lookup": {
+        "signature": {
+          "verdict": "accepted",
+          "refusals": [],
+          "findings": [
+            "evidence_bound_unchecked"
+          ]
+        },
+        "report_sha256": "57ba49066264862ff40c6c5c7a9320b72d27714aeebe8cb8998b41a918857ed8"
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "note": "the GetTask response the witness fetched through the official A2A Python SDK, as proto JSON",
+  "a2a_sdk": "a2a-sdk 1.2.1",
+  "server": "http://127.0.0.1:59807/",
+  "witness_checks": {
+    "skill_recomputes": true,
+    "receipt_result_is_served": false,
+    "receipt_evidence_is_served": false,
+    "same_task": true
+  },
+  "task": {
+    "id": "4c60bb75-523e-4b69-bca9-8fd6cfcf88c1",
+    "contextId": "9083b46e-71c0-468f-9411-dafc2f2b8935",
+    "status": {
+      "state": "TASK_STATE_COMPLETED",
+      "timestamp": "2026-10-01T12:25:36.579918Z"
+    },
+    "artifacts": [
+      {
+        "artifactId": "e6ce1adf-57fe-4244-a6e6-9bb4179f83f6",
+        "name": "sha256-of-text",
+        "parts": [
+          {
+            "text": "32ee4ada72b3a4eb5ebd12c97bc0661aa43f1fc273706c0a07898d10b78034d5"
+          }
+        ],
+        "metadata": {
+          "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/intent": {
+            "schema": "task-execution-bind-v0/intent",
+            "proposed_action": {
+              "tool": "a2a.SendMessage",
+              "target": "http://127.0.0.1:59807/#skill=sha256-of-text",
+              "args_sha256": "def9fe020e33e0601f6aa7433d23d9ac8b560d4f74aa5bd9ddcf9e4d958a872d"
+            },
+            "declared_at": "2026-10-01T12:25:36Z",
+            "intent_id": "7d40222bdacf7c0273e96fb7e81fc14549326bc2d09b419b97767d36b72159b2",
+            "grant_ref": "4fd2586b1e07e2c18d4d35a56eda085c40cf638fea4dad030dcd241e84129f2c",
+            "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+            "task_id": "a2a-context:9083b46e-71c0-468f-9411-dafc2f2b8935",
+            "intent_sig": "gqpPrrdzhEIRENP0aHhzuUo9VQ5rIIjZtNkAlKrpkb+H9quQL4+95IoNjNaHAi9Hql30ROpVEurChXFNdQ7kDw=="
+          },
+          "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/receipt": {
+            "schema": "task-execution-bind-v0/receipt",
+            "provider_sig": "8bNmNmeK6BpwGO1v5ak2WESLQkYvG5m9mRdZCey7NHb+4GzyjHYro0HUqYPC9TD7NhhieIonz9B1LDadiLnTCA==",
+            "executed_at": "2026-10-01T12:25:36Z",
+            "executed_action": {
+              "tool": "a2a.SendMessage",
+              "target": "http://127.0.0.1:59807/#skill=sha256-of-text",
+              "args_sha256": "def9fe020e33e0601f6aa7433d23d9ac8b560d4f74aa5bd9ddcf9e4d958a872d"
+            },
+            "grant_ref": "4fd2586b1e07e2c18d4d35a56eda085c40cf638fea4dad030dcd241e84129f2c",
+            "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+            "task_id": "a2a-context:9083b46e-71c0-468f-9411-dafc2f2b8935",
+            "outcome": {
+              "status": "completed",
+              "result_sha256": "909ca4daf04a334984896e70628443a728acf837b0ef59ba5bc22f11a857d5cb",
+              "evidence": {
+                "ref": "909ca4daf04a334984896e70628443a728acf837b0ef59ba5bc22f11a857d5cb",
+                "system": "a2a GetTask http://127.0.0.1:59807/ task 4c60bb75-523e-4b69-bca9-8fd6cfcf88c1 artifact sha256-of-text (sha256 of the artifact text)",
+                "kind": "document_sha256"
+              }
+            },
+            "receipt_id": "a7f871e75c3a632e4354acd8d09230da3653b96178eef6e0bc1ba920e7f9ade0"
+          }
+        }
+      }
+    ],
+    "history": [
+      {
+        "messageId": "4f55ef88-6b2b-432c-a64b-402b5b20bb9c",
+        "contextId": "9083b46e-71c0-468f-9411-dafc2f2b8935",
+        "taskId": "4c60bb75-523e-4b69-bca9-8fd6cfcf88c1",
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "a2a-python-e2e-v0 lying_provider 2fca426bbe344324bbcb86b9c974b36c"
+          }
+        ],
+        "metadata": {
+          "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/grant": {
+            "not_before": "2026-10-01T12:24:36Z",
+            "not_after": "2026-10-01T12:35:36Z",
+            "caller_id": "did:key:z6MkevZb8Fa54gtJ9BEiVvhckH7JLhz5H76WmDSeh7uHFYCs",
+            "schema": "task-execution-bind-v0/grant",
+            "action": {
+              "tool": "a2a.SendMessage",
+              "target": "http://127.0.0.1:59807/#skill=sha256-of-text",
+              "args_sha256": "def9fe020e33e0601f6aa7433d23d9ac8b560d4f74aa5bd9ddcf9e4d958a872d"
+            },
+            "grant_ref": "4fd2586b1e07e2c18d4d35a56eda085c40cf638fea4dad030dcd241e84129f2c",
+            "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+            "task_id": "a2a-context:9083b46e-71c0-468f-9411-dafc2f2b8935",
+            "caller_sig": "www1bM947t7jwXBsAy4SD0hwmxH+cw90mlEzo9+PLf7v8V+wkSCj0moJPxpA+yPOy5raN4q2bKQhaeZJgDZ8BA==",
+            "nonce": "e1b8427c41704b3e9bdca2dfa38d180f"
+          }
+        }
+      }
+    ]
+  }
+}

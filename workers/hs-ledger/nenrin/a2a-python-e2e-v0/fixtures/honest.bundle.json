@@ -1,0 +1,76 @@
+{
+  "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
+  "observations": [
+    {
+      "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
+      "hop": {
+        "seq": 0,
+        "from": "did:key:z6MkevZb8Fa54gtJ9BEiVvhckH7JLhz5H76WmDSeh7uHFYCs",
+        "to": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK"
+      },
+      "prev_evidence_id": null,
+      "conduct": {
+        "verdict": "pass",
+        "detail_ref": "nenrin-exec://a50b8cf26d1723582c0daae2aac4dd6556cffd1a69a0fd12cc9b60aa747cb487"
+      },
+      "witness_id": "did:key:z6MkwHt6Ag7DrhEMj2taQPmQjADEreLcGrYFRVJ6ytv9wjJj",
+      "observed_at": "2026-10-01T12:25:35Z",
+      "evidence_id": "93101e525e54985a41ab9fe7e9ff03657688247703a66e94d0deeee80226c5a3",
+      "witness_sig": "8c4UGywnsD6JmdUW5/lAU1ECZyod9ynCBuR+7FPCdQm1LI7zLN13ULLz/4AzcHSRFXZ9N5+cGx/wEC10nUUrBA==",
+      "edge_sig": "epwb+aw4+80FiLBhsu4Ju4NyEQMf/R7KPkb3DKsSC1oWlLALrHt40KzuxtGP52JO9WfHBJYS4ed8cXFOD8v/BA=="
+    }
+  ],
+  "grant": {
+    "schema": "task-execution-bind-v0/grant",
+    "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
+    "action": {
+      "tool": "a2a.SendMessage",
+      "target": "http://127.0.0.1:54751/#skill=sha256-of-text",
+      "args_sha256": "fcdcc62bcf1f436697af7eeb05b13695fd0537542accc9a3e74d0627bf2d7261"
+    },
+    "caller_id": "did:key:z6MkevZb8Fa54gtJ9BEiVvhckH7JLhz5H76WmDSeh7uHFYCs",
+    "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+    "nonce": "540af0f1971b4019a443429454c78278",
+    "not_before": "2026-10-01T12:24:35Z",
+    "not_after": "2026-10-01T12:35:35Z",
+    "grant_ref": "0e1890fa84c82df9d0af585fd913451cb95f76a4430c512035a266354ba1452a",
+    "caller_sig": "52Cz2DXdTOeMP2tATPQXQ4SdXIqZz6FTosYLy/PomNIxxSAYPgcKuUVdgCpRzP4SE8kjLjgG4v72/zGl6osJAw=="
+  },
+  "intent": {
+    "schema": "task-execution-bind-v0/intent",
+    "proposed_action": {
+      "tool": "a2a.SendMessage",
+      "target": "http://127.0.0.1:54751/#skill=sha256-of-text",
+      "args_sha256": "fcdcc62bcf1f436697af7eeb05b13695fd0537542accc9a3e74d0627bf2d7261"
+    },
+    "declared_at": "2026-10-01T12:25:35Z",
+    "intent_id": "d44835c3cf735b0fba7c141d0acba93e19fb2a04045c0e7a8dc37e336d095f5d",
+    "grant_ref": "0e1890fa84c82df9d0af585fd913451cb95f76a4430c512035a266354ba1452a",
+    "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+    "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
+    "intent_sig": "KJPY8wZbI5vEb4fEv7xBNAS7oVuyYuXPjVKMVxY6d9it3ljweYXdPKGRvje5LHyovC8KYGhfHsasCZvrpwxMAQ=="
+  },
+  "receipt": {
+    "schema": "task-execution-bind-v0/receipt",
+    "provider_sig": "inP0ABn7xpXKCBrvjPlpMP99rYHndB9E34M8ZJhz7EJmq+lUeHzIFt5gKUDMqy6/2o5XnMDMOszIQcfiv6STCA==",
+    "executed_at": "2026-10-01T12:25:35Z",
+    "executed_action": {
+      "tool": "a2a.SendMessage",
+      "target": "http://127.0.0.1:54751/#skill=sha256-of-text",
+      "args_sha256": "fcdcc62bcf1f436697af7eeb05b13695fd0537542accc9a3e74d0627bf2d7261"
+    },
+    "grant_ref": "0e1890fa84c82df9d0af585fd913451cb95f76a4430c512035a266354ba1452a",
+    "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+    "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
+    "outcome": {
+      "status": "completed",
+      "result_sha256": "46f6a1b458019e5400e8c81e0f8a5bc6c294129345463b9e74835984cf53e2bb",
+      "evidence": {
+        "ref": "46f6a1b458019e5400e8c81e0f8a5bc6c294129345463b9e74835984cf53e2bb",
+        "system": "a2a GetTask http://127.0.0.1:54751/ task 79c849d4-fc2c-45c2-8f2a-38307d93dd58 artifact sha256-of-text (sha256 of the artifact text)",
+        "kind": "document_sha256"
+      }
+    },
+    "receipt_id": "a50b8cf26d1723582c0daae2aac4dd6556cffd1a69a0fd12cc9b60aa747cb487"
+  }
+}
