@@ -1,0 +1,130 @@
+name: interop matrix watch
+
+# 公式 3 SDK (a2a-sdk / @a2a-js/sdk / a2a-go main) に新しい版が出たら、Agent Card 署名の相互検証表と
+# 署名つき見本集 a2a-card-sign-v01 をその版で測り直し、結果を公開の Issue (label interop-watch) に 1 件ずつ残す。
+#   毎朝、3 つの最新版を見る。前回の記録と同じなら何もしない (workflow_dispatch の force で強制可)。
+#   違えば、その版を入れて matrix.py と watch.py を回し、2026-10-01 の凍った結果から動いた所だけを書く。
+#   a2a-go は upstream の a2acrypto をその commit のまま取り直して build する (go/refresh_upstream.sh)。
+# 何が正しい読み方かは決めない (a2aproject/A2A#2122)。各 SDK の検証器が今どの読み方に従うかを事実として残す。
+# repo には書かない。書くのは Issue の comment だけ。
+
+on:
+  schedule:
+    - cron: "23 21 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "前回と同じ版でも測り直して記録する"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: interop-matrix-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/a2a-card-sign/interop-matrix
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: "Interop watch: A2A Agent Card signing across the official SDKs"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.24"
+          cache: false
+
+      - name: Latest versions, and the issue that keeps the record
+        id: probe
+        run: |
+          PYV=$(curl -sf https://pypi.org/pypi/a2a-sdk/json | python3 -c 'import json,sys;print(json.load(sys.stdin)["info"]["version"])')
+          JSV=$(npm view @a2a-js/sdk version)
+          GOC=$(git ls-remote https://github.com/a2aproject/a2a-go refs/heads/main | cut -c1-40)
+          NOW="a2a-sdk $PYV|@a2a-js/sdk $JSV|a2a-go main ${GOC:0:8}"
+          gh label create interop-watch --color 0e8a16 --description "Interop matrix re-measured on new SDK versions" --force >/dev/null
+          NUM=$(gh issue list --label interop-watch --state all --limit 1 --json number --jq '.[0].number // empty')
+          LAST=""
+          if [ -n "$NUM" ]; then
+            LAST=$(gh issue view "$NUM" --json comments --jq '[.comments[].body | select(contains("<!-- watch-state "))] | last // ""' \
+              | python3 -c 'import json,re,sys;t=sys.stdin.read();m=re.search(r"<!-- watch-state (\{.*\}) -->",t);v=json.loads(m.group(1))["versions"] if m else None;print("|".join([v["a2a-python"],v["a2a-js"],v["a2a-go"]]) if v else "")')
+          fi
+          echo "now:  $NOW"; echo "last: $LAST"; echo "issue: ${NUM:-none}"
+          {
+            echo "pyv=$PYV"; echo "jsv=$JSV"; echo "goc=$GOC"; echo "issue=$NUM"
+            if [ "$NOW" = "$LAST" ] && [ "${{ github.event.inputs.force }}" != "true" ]; then echo "run=no"; else echo "run=yes"; fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install exactly those versions
+        if: steps.probe.outputs.run == 'yes'
+        run: |
+          python3 -m pip install "a2a-sdk[signing]==${{ steps.probe.outputs.pyv }}" cryptography rfc8785==0.1.4
+          npm install --no-save "@a2a-js/sdk@${{ steps.probe.outputs.jsv }}"
+          bash go/refresh_upstream.sh "${{ steps.probe.outputs.goc }}"
+          (cd go && go build -o interop-go .) 2>&1 | tee out_go_build.txt || true
+
+      - name: Measure
+        id: measure
+        if: steps.probe.outputs.run == 'yes'
+        run: |
+          set +e
+          GOC="${{ steps.probe.outputs.goc }}"
+          if [ -x go/interop-go ]; then
+            A2A_GO_COMMIT="a2a-go main ${GOC:0:8}" python3 matrix.py > out_matrix.txt 2>&1
+            M=$?
+          else
+            echo "a2a-go did not build at ${GOC:0:8}; see the go build output above" > out_matrix.txt
+            M=9
+          fi
+          W=1
+          if [ $M -eq 0 ]; then python3 watch.py > out_watch.txt 2>&1; W=$?; fi
+          echo "matrix=$M" >> "$GITHUB_OUTPUT"; echo "watch=$W" >> "$GITHUB_OUTPUT"
+          tail -40 out_matrix.txt; tail -40 out_watch.txt 2>/dev/null
+          exit 0
+
+      - name: Record on the issue
+        if: steps.probe.outputs.run == 'yes'
+        run: |
+          GOC="${{ steps.probe.outputs.goc }}"
+          if [ "${{ steps.measure.outputs.matrix }}" = "0" ] && [ "${{ steps.measure.outputs.watch }}" = "0" ]; then
+            cp out/watch_report.md body.md
+          else
+            {
+              echo "### Interop matrix could not be measured on these versions"
+              echo
+              echo "a2a-sdk ${{ steps.probe.outputs.pyv }}, @a2a-js/sdk ${{ steps.probe.outputs.jsv }}, a2a-go main ${GOC:0:8}."
+              echo "A tool broke against the new release (the run log is linked below); nothing about the signatures is concluded."
+              echo
+              echo '```'; tail -25 out_go_build.txt 2>/dev/null; tail -25 out_matrix.txt 2>/dev/null; tail -25 out_watch.txt 2>/dev/null; echo '```'
+              echo
+              echo "<!-- watch-state {\"versions\": {\"a2a-python\": \"a2a-sdk ${{ steps.probe.outputs.pyv }}\", \"a2a-js\": \"@a2a-js/sdk ${{ steps.probe.outputs.jsv }}\", \"a2a-go\": \"a2a-go main ${GOC:0:8}\"}, \"measured\": false} -->"
+            } > body.md
+          fi
+          echo >> body.md
+          echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} . Tools: workers/a2a-card-sign/interop-matrix (matrix.py, watch.py)." >> body.md
+          NUM="${{ steps.probe.outputs.issue }}"
+          if [ -z "$NUM" ]; then
+            printf '%s\n' \
+              "Each time a new version of an official A2A SDK appears (a2a-sdk on PyPI, @a2a-js/sdk on npm, a2a-go main), the Agent Card signing interop matrix and the signed corpus a2a-card-sign-v01 are re-measured on it, and the result is recorded here as one comment." \
+              "" \
+              "It records facts: which signer/verifier pairs pass, whether each SDK reproduces the section 8.4.1 worked example, and which canonical reading each verifier follows on the corpus. Which reading is normative is a2aproject/A2A#2122; nothing here decides it." \
+              "" \
+              "Baseline: workers/a2a-card-sign/interop-matrix/results_20261001.json. Corpus: a2aproject/a2a-tck#246." > intro.md
+            URL=$(gh issue create --title "$TITLE" --label interop-watch --body-file intro.md)
+            NUM="${URL##*/}"
+          fi
+          gh issue comment "$NUM" --body-file body.md

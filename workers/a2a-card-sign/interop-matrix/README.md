@@ -62,6 +62,19 @@ deterministic, so a fresh run reproduces them byte for byte. Run after `matrix.p
 
 `JCS_GO_BIN` is optional; when set, every canonical form is checked against gowebpki/jcs v1.0.1 as well.
 
+## Watch (`watch.py`, `.github/workflows/interop-matrix-watch.yml`)
+
+Every morning the workflow looks up the newest a2a-sdk on PyPI, @a2a-js/sdk on npm and a2a-go `main`. When any of
+them differs from the last recorded run, it installs exactly those versions, takes a2a-go's `a2acrypto` afresh at
+that commit (`go/refresh_upstream.sh`, unchanged apart from one import path), runs `matrix.py` and `watch.py`, and
+records the result as one comment on the public issue labelled `interop-watch`. Each comment says which matrix
+cells moved since `results_20261001.json`, whether each SDK reproduces the section 8.4.1 example, whether the frozen
+production card still verifies, and which reading (`rule-1-as-written`, `prune-empty`, `served-as-is`) each
+verifier follows on the signed corpus. A release that breaks one of the tools is recorded as not measured, with the
+log, and nothing is concluded from it. The workflow writes nothing to the repository.
+
+    python3 matrix.py && python3 watch.py      # the same, locally, for the installed versions
+
 ## What this does not establish
 
 - Which canonical form is right beyond the specification text; the question of how REQUIRED fields at their default value are represented is open in a2aproject/A2A#2122.
