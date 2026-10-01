@@ -3,7 +3,7 @@
   "suite": "a2a-agent-card-signature-conformance",
   "specRef": "https://a2a-protocol.org/latest/specification/#841-canonicalization-requirements",
   "layer": "signature",
-  "scope": "Layer C: which Agent Card signatures a verifier accepts. Layer A is a2a-jcs-v01 (a2a-tck#228), Layer B is a2a-jcs-rule1-v01 (a2a-tck#245). Every card carries every REQUIRED field of AgentCard, so Layer B's open point (absent REQUIRED fields) does not arise here.",
+  "scope": "Layer C: which Agent Card signatures a verifier accepts. Layer A is a2a-jcs-v01 (a2a-tck#228), Layer B is a2a-jcs-rule1-v01 (a2a-tck#245). In s0 and s1 every card carries every REQUIRED field of AgentCard; s2 is the group where a REQUIRED field is absent from the served JSON (Layer B's open point).",
   "open_question": "https://github.com/a2aproject/A2A/issues/2122",
   "spec_provenance": {
     "text": "a2aproject/A2A specification/specification.md at 173695755607 (v1.0.0), section 8.4.1",
@@ -48,11 +48,13 @@
     "accept_any": 4,
     "reject_any": 1,
     "reading_dependent": 8,
-    "total": 13
+    "total": 24,
+    "absent_required": 11
   },
   "groups": [
     "s0-control",
-    "s1-default-valued"
+    "s1-default-valued",
+    "s2-absent-required"
   ],
   "observed": {
     "note": "Not part of the expectations. What each SDK's own verifier returned on each served card, on the date and versions below.",
@@ -128,6 +130,77 @@
         "a2a-js": false,
         "a2a-go": true
       }
+    },
+    "s2": {
+      "note": "Same meaning as observed.results. a2a-python#1287 is the PR head cdee28e installed from source.",
+      "results": {
+        "S2-001": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": true,
+          "a2a-python#1287": false
+        },
+        "S2-002": {
+          "a2a-python": false,
+          "a2a-js": false,
+          "a2a-go": false,
+          "a2a-python#1287": true
+        },
+        "S2-003": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": true,
+          "a2a-python#1287": false
+        },
+        "S2-004": {
+          "a2a-python": false,
+          "a2a-js": false,
+          "a2a-go": false,
+          "a2a-python#1287": true
+        },
+        "S2-005": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": true,
+          "a2a-python#1287": false
+        },
+        "S2-006": {
+          "a2a-python": false,
+          "a2a-js": false,
+          "a2a-go": false,
+          "a2a-python#1287": true
+        },
+        "S2-007": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": true,
+          "a2a-python#1287": false
+        },
+        "S2-008": {
+          "a2a-python": false,
+          "a2a-js": false,
+          "a2a-go": false,
+          "a2a-python#1287": true
+        },
+        "S2-009": {
+          "a2a-python": true,
+          "a2a-js": true,
+          "a2a-go": true,
+          "a2a-python#1287": false
+        },
+        "S2-010": {
+          "a2a-python": false,
+          "a2a-js": false,
+          "a2a-go": false,
+          "a2a-python#1287": true
+        },
+        "S2-WE-011": {
+          "a2a-python": false,
+          "a2a-js": false,
+          "a2a-go": false,
+          "a2a-python#1287": false
+        }
+      }
     }
   },
   "vectors": [
@@ -182,6 +255,95 @@
     {
       "path": "s1-default-valued/S1-008.json",
       "sha256": "9ae36fbeb5f79800a00cdc642d9227ba5d1586bb01275735f193792a7fd7e679"
+    },
+    {
+      "path": "s2-absent-required/S2-001.json",
+      "sha256": "6926485fe96b20872eb2d67a9a750c3ae387a311fdf319c611f3f89c95c236ef"
+    },
+    {
+      "path": "s2-absent-required/S2-002.json",
+      "sha256": "c9bf173d563dca46047be33b5cbb201d7957a0b442a6ba243fec54edc8cefbe0"
+    },
+    {
+      "path": "s2-absent-required/S2-003.json",
+      "sha256": "2c2c3a59eaa1295ba8795b7c2ffc7cc1e2f279eab315c2a2f8ffeafc7a3cb3b4"
+    },
+    {
+      "path": "s2-absent-required/S2-004.json",
+      "sha256": "d1adeca3cdff2c1261c68b0a4df07ec27abafc8eefff8215706d5c80ab026935"
+    },
+    {
+      "path": "s2-absent-required/S2-005.json",
+      "sha256": "2c532b01886ac112827153cb48e1c5303af8be9e9183226d6f90879d7006846c"
+    },
+    {
+      "path": "s2-absent-required/S2-006.json",
+      "sha256": "95d63457e7880d1a650b1ff7f9a836dc3019d51e048aa0a5f1f2f81d4eb4b23b"
+    },
+    {
+      "path": "s2-absent-required/S2-007.json",
+      "sha256": "1f35e7cf8835227f41409ce36cdd4025b6372722da6e43a15857fb40c567061d"
+    },
+    {
+      "path": "s2-absent-required/S2-008.json",
+      "sha256": "cbeef370cc6fa588017f7bc7d25bdcb7e648f38f453313a2b87daa7f1a3a38aa"
+    },
+    {
+      "path": "s2-absent-required/S2-009.json",
+      "sha256": "8a241de1aac019f335cc50d6434eefb143e30ff4f0bd0f0a8bd7d3d328c5ce5f"
+    },
+    {
+      "path": "s2-absent-required/S2-010.json",
+      "sha256": "863339e0881cfeae66e66a33836637745390a78ad70ac2524a26bbc41b53be48"
+    },
+    {
+      "path": "s2-absent-required/S2-WE-011.json",
+      "sha256": "118e4d13ae93f4ca88922f2786e9c2cbd9bd806686c7864afb95324fb5bff63c"
     }
-  ]
+  ],
+  "s2_readings": {
+    "rule-1-served-scope": "Rule 1 applied to the fields present in the served JSON. A field the served JSON does not carry stays absent. Then RFC 8785.",
+    "rule-1-descriptor-scope": "Rule 1 applied by walking the AgentCard descriptor: a REQUIRED field absent from the served JSON is emitted at its default (\"\" for a string, [] for a repeated field, {} for a message). Then RFC 8785. Matches a2a-python at a2aproject/a2a-python#1287 head cdee28e byte for byte on every s2 card.",
+    "note": "On s0 and s1 both scopes give the rule-1-as-written bytes. Only s2 separates them."
+  },
+  "s2_checks": {
+    "absent_description": {
+      "prune-empty=a2a-python-1.2.1": true,
+      "prune-empty=a2a-js-1.3.0": true,
+      "served-as-is=a2a-go": true,
+      "descriptor-scope=a2a-python#1287": true
+    },
+    "absent_version": {
+      "prune-empty=a2a-python-1.2.1": true,
+      "prune-empty=a2a-js-1.3.0": true,
+      "served-as-is=a2a-go": true,
+      "descriptor-scope=a2a-python#1287": true
+    },
+    "absent_skills": {
+      "prune-empty=a2a-python-1.2.1": true,
+      "prune-empty=a2a-js-1.3.0": true,
+      "served-as-is=a2a-go": true,
+      "descriptor-scope=a2a-python#1287": true
+    },
+    "absent_skill_tags": {
+      "prune-empty=a2a-python-1.2.1": true,
+      "prune-empty=a2a-js-1.3.0": true,
+      "served-as-is=a2a-go": true,
+      "descriptor-scope=a2a-python#1287": true
+    },
+    "absent_default_input_modes": {
+      "prune-empty=a2a-python-1.2.1": true,
+      "prune-empty=a2a-js-1.3.0": true,
+      "served-as-is=a2a-go": true,
+      "descriptor-scope=a2a-python#1287": true
+    },
+    "worked_example": {
+      "rule-1-served-scope": true,
+      "rule-1-descriptor-scope": false,
+      "prune-empty": false,
+      "served-as-is": false
+    }
+  },
+  "generator_s2": "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/a2a-card-sign/interop-matrix/vectors_s2.py",
+  "scorer": "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/a2a-card-sign/interop-matrix/score.py"
 }

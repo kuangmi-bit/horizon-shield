@@ -25,9 +25,9 @@ The generator refuses to write a vector unless `prune-empty` equals the a2a-pyth
 and `served-as-is` equals a2a-go's, case by case, so the second and third rows describe the SDKs, not a guess about
 them.
 
-Every card here carries every REQUIRED field of `AgentCard`. Layer B's open point (a REQUIRED field absent from the
-input) therefore does not arise, and on these inputs its `presence-preserving` and `inject-required-defaults`
-resolutions both give the `rule-1-as-written` bytes.
+In s0 and s1 every card carries every REQUIRED field of `AgentCard`, so Layer B's open point (a REQUIRED field absent
+from the input) does not arise there, and on those inputs its `presence-preserving` and `inject-required-defaults`
+resolutions both give the `rule-1-as-written` bytes. Group s2 is where it does arise.
 
 ## Groups
 
@@ -60,6 +60,41 @@ signature per distinct canonical form. Under any one reading exactly one vector 
 A nested empty value (`securityRequirements: [{}]`) is left out on purpose: whether an element that becomes empty
 collapses is itself part of the #2122 question, and a vector would have to assume the answer.
 
+## Group s2: a REQUIRED field absent from the served JSON
+
+Added after the first sweep. The s0 and s1 files are unchanged byte for byte, so a sweep over those 13 vectors stays
+valid. Rule 1 says a REQUIRED field "MUST always be present"; for a field the signer never served, that sentence can be
+scoped two ways, and s2 makes the two scopes testable against each other:
+
+| reading | what it does | matches |
+|---|---|---|
+| `rule-1-served-scope` | rule 1 applied to the fields present in the served JSON; an absent field stays absent | the section's worked example (S2-WE-011), and no SDK as shipped |
+| `rule-1-descriptor-scope` | rule 1 applied by walking the AgentCard descriptor; an absent REQUIRED field is emitted at its default (`""`, `[]`, `{}`) | a2a-python at a2aproject/a2a-python#1287 head cdee28e |
+
+On s0 and s1 both scopes give the `rule-1-as-written` bytes. `prune-empty` and `served-as-is` keep their meaning.
+
+| case | vector | accepted under |
+|---|---|---|
+| `description` absent | S2-001 | rule-1-served-scope, prune-empty, served-as-is |
+| | S2-002 | rule-1-descriptor-scope |
+| `version` absent | S2-003 / S2-004 | as above |
+| `skills` absent | S2-005 / S2-006 | as above |
+| `skills[0].tags` absent | S2-007 / S2-008 | as above |
+| `defaultInputModes` absent | S2-009 / S2-010 | as above |
+| the worked example, served as printed | S2-WE-011 | rule-1-served-scope only |
+
+The generator (`vectors_s2.py`) refuses a case unless `prune-empty` equals a2a-sdk 1.2.1 and @a2a-js/sdk 1.3.0,
+`served-as-is` equals a2a-go, and `rule-1-descriptor-scope` equals a2a-python at #1287, byte for byte. The checks are
+recorded in `MANIFEST.json` under `s2_checks`.
+
+## Scoring a verifier
+
+`score.py` (beside the generator, no dependencies) takes a verifier's accept/reject verdicts and reports, for each
+reading, how many of the 24 vectors it gets right and how many signatures it accepts that the reading rejects. A
+verifier that accepts under two readings at once (a transition policy) is scored the same way: on this corpus it
+cannot be conformant to any single reading, because every reading-dependent pair has one vector each reading must
+reject. A transition policy therefore has to be declared by the verifier; it cannot be inferred from conformance.
+
 ## Observed on 2026-10-01
 
 Not part of the expectations; recorded in `MANIFEST.json` under `observed`. Each SDK's own verifier on each served card:
@@ -74,7 +109,9 @@ Not part of the expectations; recorded in `MANIFEST.json` under `observed`. Each
 | S1-008 | reject | reject | accept |
 
 The observed column follows directly from the readings table: each SDK accepts the vectors tagged with its own
-reading.
+reading. For s2, `MANIFEST.json` records the same three SDKs plus a2a-python at #1287 under `observed.s2`: the three
+shipping SDKs accept S2-001, 003, 005, 007 and 009 and reject the even ones; a2a-python at #1287 does the opposite; none
+accepts S2-WE-011.
 
 ## Key and reproduction
 
