@@ -1587,6 +1587,26 @@ async function lineReply(env, replyToken, text) {
 }
 // メール/LINE共通: 回答テキストを取り込み、構造化->マージ->関所->生成トリガー。source で経路を区別。
 // AUTOPILOT: 既存プロフィールに統合(上書きしない)、pending質問の消込、フォーカス判定、完成度再計算、活動記録。
+/* AI の構造化を、AI に渡したのと同じ文に照らす(2026-10-01)。照らし合わせの本体は非公開の worker にあり、
+   service binding(env.GROUND)で呼ぶ。返るのは、文に無かった項目を落とした後の形と、落とした項目の名前と、
+   人が見るまで公開ページを作らない印(hold)だけ。
+   口が無い・落ちたとき: GROUND_REQUIRED が "1" なら取り込みは続けて公開ページの生成だけ止める(作り話を公開しない側に倒す)。
+   "1" でなければ今まで通り(試験と手元)。 */
+async function groundHearing(env, text, raw, store) {
+  const required = String((env && env.GROUND_REQUIRED) || "") === "1";
+  const pass = (decision) => ({ raw, hold: required, decision, dropped: [], flagged: [], sha256: null });
+  if (!env || !env.GROUND || typeof env.GROUND.fetch !== "function") return pass(required ? "unavailable" : "absent");
+  try {
+    const r = await env.GROUND.fetch("https://hs-ground/v1/hearing-profile", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text, raw, known: { company: (store && store.company) || "", areas: (store && Array.isArray(store.areas)) ? store.areas : [] } }),
+    });
+    if (!r.ok) return pass("unavailable");
+    const j = await r.json();
+    if (!j || !j.raw || typeof j.raw !== "object" || Array.isArray(j.raw)) return pass("unavailable");
+    return { raw: j.raw, hold: !!j.hold, decision: String(j.decision || ""), dropped: Array.isArray(j.dropped) ? j.dropped : [], flagged: Array.isArray(j.flagged) ? j.flagged : [], sha256: j.sha256 || null };
+  } catch (_e) { return pass("unavailable"); }
+}
 async function ingestHearingAnswer(env, store_id, store, text, source, rawForLog) {
   // 2026-09-30 返事のログには生の全文(貼った設問ごと)を残す。構造化と欄への当て込みは text(答えの部分)で行う。
   await env.HS_HEARING_KV.put(source + "reply:" + store_id + ":" + Date.now(),
@@ -1595,7 +1615,10 @@ async function ingestHearingAnswer(env, store_id, store, text, source, rawForLog
   text = PII.scrubNames(String(text));
   const structured = await llmStructure(env, text, store);
   if (!structured.ok) return { ok: false, reason: structured.reason };
-  const incoming = normalizeProfile(store || { store_id }, structured.raw);
+  // 文に無い番号・数・名前・地域は profile に入れない(照らし合わせ)。値は残さず、項目の名前だけ記録する。
+  const tz = await groundHearing(env, text, structured.raw, store);
+  const tzRec = { decision: tz.decision, hold: tz.hold, dropped: tz.dropped.map((d) => String(d.field || "") + ":" + String(d.why || "")).slice(0, 30), flagged: tz.flagged.map((d) => String(d.field || "") + ":" + String(d.why || "")).slice(0, 30), sha256: tz.sha256 };
+  const incoming = normalizeProfile(store || { store_id }, tz.raw);
   const prev = await env.HS_HEARING_KV.get("hearing:" + store_id, "json");
   // pending質問の消込(回答の生文を extra[qid] に紐づけ、ペナルティ即回復)
   const extraPatch = store ? AP.settlePendingOnAnswer(store, text) : {};
@@ -1605,7 +1628,7 @@ async function ingestHearingAnswer(env, store_id, store, text, source, rawForLog
     return { ok: false, reason: "missing-required" };
   }
   const now = new Date().toISOString();
-  await env.HS_HEARING_KV.put("hearing:" + store_id, JSON.stringify({ store_id, profile, answered_at: now, completed: true, source }));
+  await env.HS_HEARING_KV.put("hearing:" + store_id, JSON.stringify({ store_id, profile, answered_at: now, completed: true, source, ground: tzRec }));
   if (store) {
     store.status = store.status === "published" ? "published" : "hearing_done";
     store.hearing_done_at = now;
@@ -1628,8 +1651,13 @@ async function ingestHearingAnswer(env, store_id, store, text, source, rawForLog
     await notify(env, "[Yakumo] 回答を取り込み。完成度" + compNow + "%が基準" + genMin + "%未満のため生成を保留。追撃質問で補完する。store=" + store_id);
     return { ok: true, gen: { triggered: false, held: true, completeness: compNow, min: genMin } };
   }
+  if (tz.hold) {
+    await notify(env, "[Yakumo] 回答を取り込み。照らし合わせで止めたため生成を保留(" + tz.decision + (tzRec.flagged.length ? " " + tzRec.flagged.join(",") : "") + ")。確認後に管理の生成で出す。store=" + store_id);
+    return { ok: true, gen: { triggered: false, held: true, reason: "ground:" + tz.decision }, ground: tzRec };
+  }
+  if (tzRec.dropped.length) await notify(env, "[Yakumo] 回答の取り込みで、文に無かった項目を落とした: " + tzRec.dropped.join(",") + " store=" + store_id);
   const gen = await triggerGeneration(env, profile, store);
-  return { ok: true, gen };
+  return { ok: true, gen, ground: tzRec };
 }
 async function handleLineWebhook(env, bodyText) {
   let body; try { body = JSON.parse(bodyText); } catch (_e) { return; }

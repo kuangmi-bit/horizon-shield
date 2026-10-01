@@ -336,6 +336,7 @@ const API='https://hs-kira-proxy.oga-surf-project.workers.dev';
 let TOKEN=null,USER=null;
 let FILE=null,FILE_B64=null,FILE_MEDIA=null,TYPE_HINT='';
 let CARD=null; // KIRA解剖結果
+let ANALYSIS_ID=''; // 読み取り結果の控えの番号(投稿で送る。金額やジャンルは運営側の控えの値が使われる)
 
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function yen(a){if(a===''||a==null)return '';const n=Number(String(a).replace(/[^0-9]/g,''));if(!n)return '';return '\u00a5'+n.toLocaleString('ja-JP');}
@@ -412,7 +413,7 @@ function showStep(id){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function backToUpload(){showStep('stepUpload');}
-function resetAll(){clearFile();CARD=null;document.querySelectorAll('.tchip').forEach(c=>c.classList.remove('on'));TYPE_HINT='';showStep('stepUpload');}
+function resetAll(){clearFile();CARD=null;ANALYSIS_ID='';document.querySelectorAll('.tchip').forEach(c=>c.classList.remove('on'));TYPE_HINT='';showStep('stepUpload');}
 
 /* ===== 解剖ログ演出 ===== */
 let anaTimer=null;
@@ -445,7 +446,7 @@ async function analyze(){
     stopAnaLog();
     if(r.status===401){toast('ログインの有効期限が切れました');setTimeout(()=>{logout();},1500);return;}
     if(!d.ok||!d.card){toast(d.error||'解剖に失敗しました。もう一度お試しください');showStep('stepUpload');return;}
-    CARD=d.card;renderPreview();showStep('stepPreview');
+    CARD=d.card;ANALYSIS_ID=d.analysis_id||'';renderPreview();showStep('stepPreview');
   }catch(e){
     clearTimeout(_to);stopAnaLog();
     if(e&&e.name==='AbortError'){toast('解剖に時間がかかっています。通信の良い場所でもう一度お試しください');}
@@ -506,7 +507,7 @@ async function submitCard(){
     const r=await fetch(API+'/hacker/submit-card',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
-      body:JSON.stringify({card:CARD,region:(document.getElementById('regionSelect')||{}).value||'',phase:(document.getElementById('phaseSelect')||{}).value||'archive',agreed:true})
+      body:JSON.stringify({analysis_id:ANALYSIS_ID,card:CARD,region:(document.getElementById('regionSelect')||{}).value||'',phase:(document.getElementById('phaseSelect')||{}).value||'archive',agreed:true})
     });
     const d=await r.json();
     if(d.ok){showStep('stepDone');}

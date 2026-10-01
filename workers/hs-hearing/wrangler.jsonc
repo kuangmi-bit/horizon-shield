@@ -34,7 +34,12 @@
   "ai": { "binding": "AI" },
   // AUTOPILOT: 日次巡回cron(21:17 UTC = 06:17 JST)。追撃質問・注意喚起・ニュース更新を自動実行。
   "triggers": { "crons": ["17 21 * * *"] },
+  // 照らし合わせの口(非公開の worker、2026-10-01)。AI が構造化した返信を、元の文に照らす。
+  "services": [
+    { "binding": "GROUND", "service": "hs-ground" }
+  ],
   "vars": {
+    "GROUND_REQUIRED": "1",
     "PUBLIC_DATA_URL": "https://shield.the-horizons-innovation.com/data/yakumo-contractors.json",
     "GH_DISPATCH_REPO": "ogasurfproject-jpg/horizon-shield",
     "HEARING_FROM": "Yakumo <hearing@the-horizons-innovation.com>"
