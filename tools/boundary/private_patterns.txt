@@ -6,6 +6,10 @@
 (^|/)[^/]*recruit[^/]*$
 (^|/)outreach_candidates[^/]*$
 (^|/)ops-private/
+# TATSUMAKI (the verification gate, トルネードの実装) and the gates built on it: private since 2026-10-01, lives in hs-engine-private.
+(^|/)tatsumaki(/|[^/]*\.(js|mjs|md)$)
+(^|/)_shared/tornado/
+(^|/)workers/hs-ehn-verify/
 # Keys and local secrets.
 \.pem$
 (^|/)\.hs_[^/]*$

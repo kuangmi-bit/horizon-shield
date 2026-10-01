@@ -1,8 +1,0 @@
-{
-  // 2026-08-09 live照合済み。デプロイ可。
-  // live に compatibility_flags は無い。付けると挙動が変わるので付けない。
-  "name": "hs-ehn-verify",
-  "main": "src/verify.js",
-  "compatibility_date": "2026-06-01",
-  "ai": { "binding": "AI" }
-}
