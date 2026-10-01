@@ -571,8 +571,24 @@ export function nextQuestions(profile, autopilot, maxN = 2) {
       ? LAST_RESORT_TEXT[m.qid] : q.text;
     flat.push({ qid: m.qid, w: m.w, text: text });
   }
+  /* 2026-10-02 望みの頁が空のままの目的を、先に訊く。
+     実測(hs-partner-002 峰尾さま): 望みは施主からの受注と従業員の募集の二つ。だが採用の設問は
+     重み 3〜4 で、可視性(7〜9)と業種の設問(6〜7)の後ろに並び、一度も届いていなかった。
+     頁に載るのは目的別の答えのほうなので、答えが一つも無い目的は、その設問を前に出す。
+     前に出すのは可視性と業種の設問の前までで、基本の欄(地域・強み・FAQ・見積もり・信頼、重み10以上)は
+     越えない。そちらは全部の頁の土台だからである。重みを 9.5 と見なし、目的の中では元の重みの順。
+     一つ答えが入れば頁が立つので、残りはこれまでどおり重みの順に戻る。 */
+  const extraNow = (profile && profile.extra) || {};
+  const emptyFocus = new Set();
+  for (const fk of focusList) {
+    const bank = QUESTION_BANK[fk];
+    if (!bank || typeof bank !== "object" || bank.text) continue;
+    const bq = Object.keys(bank);
+    if (!bq.some((q) => answered(extraNow, q))) for (const q of bq) emptyFocus.add(q);
+  }
+  const effW = (q) => (emptyFocus.has(q.qid) ? 9.5 + q.w / 100 : q.w);
   // フォーカス未判明なら q_focus を最優先に押し上げ
-  flat.sort((a, b) => (a.qid === "q_focus" ? -1 : b.qid === "q_focus" ? 1 : b.w - a.w));
+  flat.sort((a, b) => (a.qid === "q_focus" ? -1 : b.qid === "q_focus" ? 1 : effW(b) - effW(a)));
   const picked = flat.slice(0, maxN);
   // 2026-08-23: 毎回1枠を、算定要件データベースを厚くする設問に空けておく。
   //   重みだけで並べると、集客の設問(w15)と実績の設問(w10)が前に立ち続け、

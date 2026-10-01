@@ -774,6 +774,9 @@ async function triggerGeneration(env, profile, store, opts) {
   const indDef = indKey ? IND.industryOf(indKey) : null;
   const autopilot = {
     focus_primary: ap.focus_primary || null,
+    // 2026-10-02 望みが二つ以上ある店(峰尾さま: 施主からの受注と従業員の募集)のため、全部を渡す。
+    //   これまで主軸しか渡しておらず、生成側は二つ目の望みの頁を作れなかった。
+    focus_all: Array.isArray(ap.focus_all) ? ap.focus_all.filter((k) => AP.FOCUS_KEYS.includes(k)) : [],
     completeness: ap.completeness || 0,
     news: (news.items || []).slice(0, 5),
     // 業種と、生成の配分。受け手(GitHub Action)はこれを見て型を選ぶ。

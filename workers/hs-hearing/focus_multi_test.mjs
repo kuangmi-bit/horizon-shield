@@ -91,8 +91,30 @@ const askDirty = askableQids(profile, apDirty);
 for (const q of [...HOME_QIDS, ...RECRUIT_QIDS]) ok(askDirty.has(q), "無効キー混在でも " + q + " は出る");
 ok(!askDirty.has("bogus"), "無効キー bogus は設問に化けない");
 
+/* 8) 望みの頁が空の目的は、その設問を先に出す (2026-10-02)
+   峰尾様: 施主側(homeowners)には答えがあるが、採用(recruit)には一つも無い。
+   採用の設問は重み 3〜4 で、可視性(7〜9)の後ろに並んで一度も届いていなかった。 */
+const profHomeDone = { ...profile, extra: { q_home_cases: { text: "内窓9箇所の事例", attributed: "sole" } } };
+const pool8 = AP.nextQuestions(profHomeDone, apMulti, 99);
+const order8 = pool8.map((x) => x.qid);
+const firstRec = order8.findIndex((q) => RECRUIT_QIDS.includes(q));
+const BASIC = new Set(Object.keys(AP.QUESTION_BANK).filter((k) => AP.QUESTION_BANK[k] && AP.QUESTION_BANK[k].text));
+ok(firstRec >= 0 && pool8.slice(0, firstRec).every((x) => BASIC.has(x.qid) && x.w >= 10),
+   "採用の頁が空なら、採用の設問は基本の欄(重み10以上)のすぐ後 (前にあるもの " + order8.slice(0, firstRec).join(",") + ")");
+ok(order8.indexOf("q_recruit_roles") < order8.indexOf("q_ai_found"),
+   "採用の設問が、重みの大きい可視性の設問より前");
+// 採用に一つ答えが入れば頁が立つので、残りは重みの順に戻る
+const profBoth = { ...profHomeDone, extra: { ...profHomeDone.extra, q_recruit_roles: { text: "施工スタッフ1名", attributed: "sole" } } };
+const pool9 = AP.nextQuestions(profBoth, apMulti, 99);
+const maxW = Math.max(...pool9.map((x) => x.w));
+ok(pool9[0].w === maxW, "両方の頁に答えがあれば、重みの順 (先頭 " + pool9[0].qid + " w" + pool9[0].w + ")");
+// 曖昧な当て込み(ambiguous)は答えと数えない。頁は空のまま、先に訊く
+const profAmb = { ...profHomeDone, extra: { ...profHomeDone.extra, q_recruit_roles: { text: "x", attributed: "ambiguous" } } };
+{ const o = AP.nextQuestions(profAmb, apMulti, 99).map((x) => x.qid);
+  ok(o.indexOf("q_recruit_terms") >= 0 && o.indexOf("q_recruit_terms") < o.indexOf("q_ai_found"), "ambiguous しか無い目的は、まだ空として先に訊く"); }
+
 console.log("");
-const EXPECT = 5 * (HOME_QIDS.length + RECRUIT_QIDS.length) + 7;
+const EXPECT = 5 * (HOME_QIDS.length + RECRUIT_QIDS.length) + 7 + 4;
 console.log("確かめた数:", checks, "/ 失敗", fails, "件  (EXPECT " + EXPECT + ")");
 if (fails > 0) { console.log("複数フォーカスの検査 失敗あり"); process.exit(1); }
 if (checks !== EXPECT) { console.log("EXPECT と実数が違う。走った数=" + checks); process.exit(1); }

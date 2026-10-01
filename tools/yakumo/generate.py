@@ -674,6 +674,24 @@ def news_section(news):
     return ('<div class="section"><h2>業界の動き(出典リンク)</h2><ul class="tip-list">' + "".join(items) +
             '</ul><p class="note">見出しは出典元の表記のまま。内容の評価はリンク先でご確認ください。</p></div>')
 
+def focus_keys(autopilot):
+    """主軸を先頭に、望みを重複なく並べる。FOCUS_DEF に無い名前は捨てる。"""
+    ap = autopilot or {}
+    out = []
+    for fk in [ap.get("focus_primary")] + list(ap.get("focus_all") or []):
+        if fk in FOCUS_DEF and fk not in out:
+            out.append(fk)
+    return out
+
+def focus_has_answer(profile, focus):
+    """その目的の頁に載せる設問に、公開できる答えが一つでもあるか。"""
+    extra = profile.get("extra") or {}
+    for qid in FOCUS_DEF[focus]["qids"]:
+        ans = extra.get(qid)
+        if isinstance(ans, dict) and safe_pub(ans.get("text") or "").strip():
+            return True
+    return False
+
 def focus_page(profile, focus, news):
     fd = FOCUS_DEF[focus]
     company = profile.get("company") or "検証済み加盟店"
@@ -1113,12 +1131,21 @@ def plan_pages(profile, autopilot=None):
     # 集客のみの店は rec=None で一切生成されない(既存パターンに影響なし)。
     rec = recruit_data(profile)
 
-    # FOCUS 1: 加盟店の「求めるもの」(人材確保/案件獲得/施主集客/加盟店募集/認知)に合わせた1枚。
+    # FOCUS: 加盟店の「求めるもの」(人材確保/案件獲得/施主集客/加盟店募集/認知)ごとに1枚。
     # recruit フォーカスかつ構造化採用データがある時は、汎用フォーカス頁ではなく下の採用トラック(より詳細)に委ねる。
+    # 2026-10-02 望みが二つ以上ある店にも、主軸の1枚しか作っていなかった。
+    #   峰尾さま(No.002)の望みは、施主からの受注(homeowners)と従業員の募集(recruit)の二つ。
+    #   ここは focus_primary しか読まず、hs-hearing も focus_all を渡していなかったので、
+    #   採用の頁は一度も作られなかった。
+    #   主軸は、これまでどおり答えが無くても1枚(ヒアリング中と明示する)。
+    #   二つ目以降は、その目的の設問に答えが一つでも入ってから出す。中身の無い頁は増やさない。
     ap = autopilot or {}
-    focus = ap.get("focus_primary")
-    if focus in FOCUS_DEF and not (focus == "recruit" and rec):
-        pages.append(("focus",) + focus_page(profile, focus, ap.get("news") or []))
+    for i, fk in enumerate(focus_keys(ap)):
+        if fk == "recruit" and rec:
+            continue
+        if i > 0 and not focus_has_answer(profile, fk):
+            continue
+        pages.append(("focus",) + focus_page(profile, fk, ap.get("news") or []))
 
     if rec:
         pages += recruit_pages(profile, rec)
