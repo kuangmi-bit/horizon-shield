@@ -133,8 +133,9 @@ received JSON keeps both members. The specification at `173695755607` does not a
 This group is labelled against that proposal, as s3 is labelled against its readings (issuecomment-5947250034). The
 specification does not yet require refusal, so accepting a dual-name card shows divergence from the proposal, not
 failure against the current text. If the sentence is adopted, the results get pinned to the revision that carries it.
-`score.py` prints the group in its own table, and the proposal column counts divergences (`div=`) rather than false
-accepts.
+`score.py` prints the group in its own table, and in the proposal column accepting a dual-name card counts as a
+divergence (`div=`), not a false accept. S4-REJECT-005 is rejected under every reading, so accepting it is a false
+accept (`fa=`) in both columns.
 
 | reading | what it does | matches |
 |---|---|---|
@@ -163,6 +164,13 @@ verifier that accepts under two readings at once (a transition policy) is scored
 cannot be conformant to any single reading, because every reading-dependent pair has one vector each reading must
 reject. A transition policy therefore has to be declared by the verifier; it cannot be inferred from conformance.
 The 13 s3 vectors are scored in a second table against `unknown-retain`, `unknown-exclude` and `unknown-reject`.
+
+In a2aproject/a2a-tck, `tck/conformance/card_sign.py` does the same scoring in TCK style and also runs a verifier
+directly: `uv run python -m tck.conformance.card_sign --verifier "node verify.mjs {card} {jwks}"` runs the command once
+per vector (exit status 0 is an accept), and `--require READING` exits 1 unless the verifier gets every vector of that
+reading right with no false accepts, for an SDK's own CI. Without `--verifier` it checks the corpus itself: every file
+against `MANIFEST.json`, every recorded canonical form as RFC 8785 output, and every signature over its recorded bytes,
+with no third-party package. `make unit-test` runs those checks.
 
 ## Observed on 2026-10-01
 

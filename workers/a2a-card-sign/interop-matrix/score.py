@@ -23,7 +23,8 @@ existed. Verdict files without s3 ids print no second table.
 Group s4 (vectors carrying "axis": "dual-name") is labelled against a proposed sentence, not against the specification:
 dual-name-tolerate is the specification text at 173695755607, dual-name-refuse is the sentence proposed on
 a2aproject/A2A#2122. It prints in a third table. Accepting a dual-name vector shows divergence from the proposal, not a
-failure against the current text, so that column prints div= (divergences) instead of fa=.
+failure against the current text, so that column prints div= (divergences) beside fa=. S4-REJECT-005 is rejected under
+every reading, so accepting it counts as fa= in both columns, never as div=.
 """
 import json, os, sys
 
@@ -47,16 +48,20 @@ def load(corpus):
 def score(docs, verdicts, readings=READINGS):
     out = {}
     for r in readings:
-        right = fa = fr = n = 0
+        right = fa = div = fr = n = 0
         for d in docs:
             if d["id"] not in verdicts:
                 continue
             n += 1
             want, got = expected(d, r), bool(verdicts[d["id"]])
             right += want == got
-            fa += got and not want
+            # 提案に対する読みで、提案だけが拒否する札の受理は食い違い(div)。全読みが拒否する札(MUST-REJECT)の受理は誤受理(fa)
+            if got and not want and r == "dual-name-refuse" and d["disposition"] != "MUST-REJECT":
+                div += 1
+            else:
+                fa += got and not want
             fr += want and not got
-        out[r] = {"right": right, "of": n, "false_accepts": fa, "false_rejects": fr}
+        out[r] = {"right": right, "of": n, "false_accepts": fa, "divergences": div, "false_rejects": fr}
     return out
 
 
@@ -76,9 +81,9 @@ def main():
             print()
         print("%-34s" % "verifier" + "".join("%-26s" % r for r in readings))
         for name, s in rows:
-            # 提案に対する読み(dual-name-refuse)では、受理は誤りでなく提案との食い違い(div)として数える
-            lab = lambda r: "div" if r == "dual-name-refuse" else "fa"
-            print("%-34s" % name[:33] + "".join("%-26s" % ("%d/%d %s=%d" % (s[r]["right"], s[r]["of"], lab(r), s[r]["false_accepts"])) for r in readings))
+            # 提案に対する読み(dual-name-refuse)では、dual-name 札の受理を誤りでなく提案との食い違い(div)として別に数える
+            cell = lambda r: "%d/%d fa=%d" % (s[r]["right"], s[r]["of"], s[r]["false_accepts"]) + (" div=%d" % s[r]["divergences"] if r == "dual-name-refuse" else "")
+            print("%-34s" % name[:33] + "".join("%-26s" % cell(r) for r in readings))
 
 
 if __name__ == "__main__":
