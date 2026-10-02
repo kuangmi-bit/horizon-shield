@@ -1,6 +1,6 @@
 {
   "schema": "hs-adoption-count-v1",
-  "measured_at": "2026-10-02T01:22:51Z",
+  "measured_at": "2026-10-02T01:36:25Z",
   "metrics": {
     "independent_implementations": {
       "count": 6,
@@ -136,7 +136,8 @@
             "api.babyblueviper.com"
           ]
         }
-      ]
+      ],
+      "published_not_counted": []
     },
     "external_evidence_producers": {
       "count": 2,
