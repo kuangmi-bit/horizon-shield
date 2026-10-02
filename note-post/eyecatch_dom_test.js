@@ -1,0 +1,103 @@
+// 見出し画像を付ける手順(uploadEyecatch)を、note のエディタを真似た小さな画面で確かめる(2026-10-02)。
+// ネットワークにも note にも出ない。Chrome だけ要る(CHROME_PATH)。
+//
+// なぜ要るか: 第1話は「Node is either not clickable」、第2話は「見出し画像のボタンは在るが見えていない(1 個)」で、
+//   どちらも見出し画像が付かないまま公開された。note のエディタは、見出し画像のボタンを題の上に
+//   マウスが来たときだけ見せる作りとみられる。題の上をなぞってから探す、見えないままでも題より上の口なら押す、
+//   題より下の「画像を追加」(本文に画像を入れる口)は押さない、付いたかを題の上の画像で確かめる、を見る。
+//
+// 走らせ方: CHROME_PATH=/usr/bin/google-chrome-stable node note-post/eyecatch_dom_test.js
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { uploadEyecatch } = require('./post_to_note.js');
+
+const CHROME = process.env.CHROME_PATH || '/usr/bin/google-chrome-stable';
+const PNG1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const pngPath = path.join(os.tmpdir(), 'eyecatch-test.png');
+fs.writeFileSync(pngPath, Buffer.from(PNG1, 'base64'));
+
+let ran = 0, bad = 0;
+const ok = (c, label) => { ran++; if (!c) { bad++; console.log('  NG ', label); } };
+
+function page(hdrCss, opts) {
+  const o = opts || {};
+  return `<!doctype html><meta charset="utf-8"><style>
+body{margin:0;font-family:sans-serif} .hdr{min-height:120px;position:relative;padding:8px}
+${hdrCss}
+textarea{display:block;width:700px;height:60px;margin:8px} [contenteditable]{min-height:300px;margin:8px;border:1px solid #ccc}
+.bodybar{margin:8px}
+</style>
+<div class="hdr">${o.noHeaderButton ? '' : '<button class="eb" aria-label="画像を追加">＋</button>'}</div>
+<textarea placeholder="記事タイトル"></textarea>
+<div class="bodybar">${o.bodyButton ? '<button class="bb" aria-label="画像を追加">本文に画像</button>' : ''}</div>
+<div contenteditable="true">本文</div>
+<input type="file" id="f" accept="image/*" style="display:none">
+<script>
+const f = document.getElementById('f');
+const direct = ${o.direct ? 'true' : 'false'};
+const eb = document.querySelector('.eb');
+if (eb) eb.addEventListener('click', () => {
+  if (direct) { f.dataset.to = 'header'; f.click(); return; }
+  const m = document.createElement('div'); m.id = 'menu';
+  m.innerHTML = '<div role="menuitem" id="up" style="padding:8px;background:#fff">画像をアップロード</div>';
+  document.querySelector('.hdr').appendChild(m);
+  document.getElementById('up').onclick = () => { f.dataset.to = 'header'; f.click(); };
+});
+const bb = document.querySelector('.bb');
+if (bb) bb.addEventListener('click', () => { f.dataset.to = 'body'; f.click(); });
+f.addEventListener('change', () => {
+  const to = f.dataset.to || 'header';
+  if (to === 'body') { window.__body = (window.__body || 0) + 1; const im = new Image(); im.style.cssText = 'width:600px;height:200px;display:block'; im.src = 'data:image/png;base64,${PNG1}'; document.querySelector('[contenteditable]').appendChild(im); return; }
+  const mm = document.getElementById('menu'); if (mm) mm.remove();
+  const d = document.createElement('div'); d.setAttribute('role', 'dialog');
+  d.style.cssText = 'position:fixed;top:100px;left:100px;width:600px;height:400px;background:#eee';
+  d.innerHTML = '<button id="save">保存</button>';
+  document.body.appendChild(d);
+  document.getElementById('save').onclick = () => {
+    d.remove();
+    let im;
+    if (${o.asBackground ? 'true' : 'false'}) { im = document.createElement('div'); im.style.cssText = 'width:800px;height:300px;background-image:url(data:image/png;base64,${PNG1});background-size:cover'; }
+    else { im = new Image(); im.style.cssText = 'width:800px;height:300px;display:block'; im.src = 'data:image/png;base64,${PNG1}'; }
+    document.querySelector('.hdr').prepend(im); window.__header = f.files[0] && f.files[0].name;
+  };
+});
+</script>`;
+}
+
+const CASES = [
+  { name: 'A 題の上に来たときだけ見える(透明)', css: '.hdr .eb{opacity:0}.hdr:hover .eb{opacity:1}', want: true },
+  { name: 'B 題の上に来たときだけ現れる(display)', css: '.hdr .eb{display:none}.hdr:hover .eb{display:inline-block}', want: true },
+  { name: 'C いつも見えている', css: '', want: true },
+  { name: 'D 押すとすぐファイルを選ぶ画面', css: '.hdr .eb{opacity:0}.hdr:hover .eb{opacity:1}', opts: { direct: true }, want: true },
+  { name: 'E ずっと透明(なぞっても出ない)', css: '.hdr .eb{opacity:0}', want: true },
+  { name: 'F 題より下の本文の口しか無い', css: '', opts: { noHeaderButton: true, bodyButton: true }, want: false },
+  { name: 'G 見出しの口と本文の口が両方ある', css: '.hdr .eb{opacity:0}.hdr:hover .eb{opacity:1}', opts: { bodyButton: true }, want: true },
+  { name: 'H 付いた画像を背景として敷く作り', css: '.hdr .eb{opacity:0}.hdr:hover .eb{opacity:1}', opts: { asBackground: true }, want: true },
+];
+
+(async () => {
+  if (!fs.existsSync(CHROME)) { console.log('Chrome が無い: ' + CHROME); process.exit(2); }
+  const browser = await require('puppeteer-core').launch({ executablePath: CHROME, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  process.env.NOTE_DEBUG_SHOTS = '0';
+  try {
+    for (const c of CASES) {
+      console.log(c.name);
+      const p = await browser.newPage();
+      await p.setViewport({ width: 1280, height: 900 });
+      await p.setContent(page(c.css, c.opts), { waitUntil: 'load' });
+      await p.mouse.move(1200, 880);
+      const r = await uploadEyecatch(p, pngPath);
+      const st = await p.evaluate(() => ({ header: window.__header || null, body: window.__body || 0 }));
+      ok(!!r.ok === c.want, c.name + ': 結果 ' + JSON.stringify(r));
+      if (c.want) ok(st.header === 'eyecatch-test.png', c.name + ': 見出しに付いた画像 ' + st.header);
+      ok(st.body === 0, c.name + ': 本文に画像を入れていない (' + st.body + ')');
+      await p.close();
+    }
+  } finally { await browser.close(); }
+  const EXPECT = CASES.reduce((n, c) => n + (c.want ? 3 : 2), 0);
+  console.log('\n実行 ' + ran + ' 件 / 失敗 ' + bad + ' 件');
+  if (ran !== EXPECT) { console.log('検査の数が違う(' + EXPECT + ' 件のはず)'); process.exit(2); }
+  if (bad) { console.log('見出し画像の手順の検査に失敗がある'); process.exit(1); }
+  console.log('見出し画像の手順の検査 すべて通過');
+})().catch((e) => { console.error(e); process.exit(1); });

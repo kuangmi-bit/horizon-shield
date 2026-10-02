@@ -902,6 +902,7 @@ function savePostedTitle(title) {
 // main
 // ========================================
 async function main() {
+  if (NOTE_MODE === 'eigo') return eigoMain();
   if (NOTE_MODE !== 'explainer') return storyMain();
   console.log('=== HORIZON SHIELD note自動投稿 v11 開始 ===');
   try {
@@ -1085,34 +1086,166 @@ async function candidates(page, sels, texts, textSel) {
     if (b) vis.push({ el, b });
   }
   vis.sort((p, q) => p.b.y - q.b.y);
-  return { all: out.length, visible: vis.map((v) => v.el) };
+  return { all: out.length, visible: vis.map((v) => v.el), els: out };
+}
+
+// 見出し画像の口を探す前に、題の上をなぞる。note のエディタは、見出し画像のボタンを
+// 題の上にマウスが来たときだけ見せる(2026-10-02 第2話で「ボタンは在るが見えていない(1 個)」)。
+async function hoverHeader(page) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const pts = [];
+  try {
+    const t = await page.$('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
+    const b = t ? await t.boundingBox() : null;
+    if (b) pts.push([b.x + 24, b.y - 32], [b.x + b.width / 2, b.y - 56], [b.x + 24, b.y + b.height / 2], [b.x + b.width / 2, b.y - 120]);
+  } catch (_e) { /* 何もしない */ }
+  pts.push([960, 160], [960, 260], [640, 200]);
+  for (const [x, y] of pts) {
+    try { await page.mouse.move(Math.max(1, x), Math.max(1, y)); } catch (_e) { /* 何もしない */ }
+    await sleep(200);
+  }
+}
+
+// 題の上端(見出し画像の口はこれより上にある。下にある「画像を追加」は本文に画像を入れる口なので押さない)。
+async function titleTop(page) {
+  try {
+    return await page.evaluate(() => {
+      const t = document.querySelector('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
+      return t ? t.getBoundingClientRect().top : null;
+    });
+  } catch (_e) { return null; }
+}
+
+// うまくいかなかったとき、次に直すための材料。要素と、その上の 3 段の見え方をログに出す。
+async function describeEl(el) {
+  try {
+    return await el.evaluate((e) => {
+      const one = (n) => {
+        const r = n.getBoundingClientRect();
+        const s = getComputedStyle(n);
+        return n.tagName.toLowerCase() + (n.getAttribute('aria-label') ? '[' + n.getAttribute('aria-label') + ']' : '')
+          + ' ' + Math.round(r.x) + ',' + Math.round(r.y) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)
+          + ' op' + s.opacity + ' ' + s.visibility + ' ' + s.display + ' pe:' + s.pointerEvents;
+      };
+      const out = [one(e)];
+      let p = e.parentElement;
+      for (let i = 0; i < 3 && p; i++, p = p.parentElement) out.push(one(p));
+      return out.join(' < ');
+    });
+  } catch (_e) { return '(読めない)'; }
+}
+
+// 隠れている口を、見える所に出す。自分か親の場所にマウスを置く。
+async function hoverOver(page, el) {
+  try {
+    const box = await el.evaluate((e) => {
+      for (let n = e; n; n = n.parentElement) {
+        const r = n.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) return { x: r.x + r.width / 2, y: r.y + Math.min(r.height / 2, 40) };
+      }
+      return null;
+    });
+    if (box) { await page.mouse.move(box.x, box.y); await new Promise((r) => setTimeout(r, 300)); }
+  } catch (_e) { /* 何もしない */ }
+}
+
+// 押したあと、ファイルを選ぶ画面が直接開く作りにも、メニューが開く作りにも合わせる。
+async function clickExpectingChooser(page, el, timeoutMs) {
+  const wait = page.waitForFileChooser({ timeout: timeoutMs }).catch(() => null);
+  const how = await clickEl(page, el);
+  return { how, chooser: await wait };
+}
+
+// 題より上に、幅のある画像が出ているか(見出し画像が付いたことの確かめ)。
+async function headerImageShown(page) {
+  try {
+    return await page.evaluate(() => {
+      const t = document.querySelector('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
+      const top = t ? t.getBoundingClientRect().top : null;
+      const above = (el) => { const r = el.getBoundingClientRect(); return r.width >= 200 && r.height >= 80 && (top == null || r.bottom <= top + 4); };
+      if (Array.from(document.querySelectorAll('img, canvas, picture')).some(above)) return true;
+      // 画像を背景として敷く作りにも合わせる。
+      return Array.from(document.querySelectorAll('div, figure, section, header')).some((el) => {
+        const bg = getComputedStyle(el).backgroundImage;
+        return bg && bg !== 'none' && /url\(/.test(bg) && above(el);
+      });
+    });
+  } catch (_e) { return false; }
 }
 
 async function uploadEyecatch(page, pngPath) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const BTN_SELS = ['button[aria-label="画像を追加"]', 'button[aria-label*="見出し画像"]', 'button[aria-label*="画像"]'];
-  const BTN_TEXTS = ['見出し画像を追加', '画像を追加'];
+  const BTN_SELS = ['button[aria-label="画像を追加"]', 'button[aria-label*="見出し画像"]', 'button[aria-label*="画像"]', '[role="button"][aria-label*="画像"]'];
+  const BTN_TEXTS = ['見出し画像を追加', '画像を追加', '見出し画像'];
   try {
     await snap(page, '1-editor');
-    let found = { all: 0, visible: [] };
-    for (let i = 0; i < 16 && !found.visible.length; i++) {
+    const top = await titleTop(page);
+    const aboveTitle = async (el) => {
+      if (top == null) return true;
+      try {
+        const y = await el.evaluate((e) => {
+          for (let n = e; n; n = n.parentElement) {
+            const r = n.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) return r.top;
+          }
+          return null;
+        });
+        return y == null || y < top;
+      } catch (_e) { return true; }
+    };
+
+    let found = { all: 0, visible: [], els: [] };
+    for (let i = 0; i < 12 && !found.visible.length; i++) {
+      await hoverHeader(page);
       found = await candidates(page, BTN_SELS, BTN_TEXTS, 'button, [role="button"]');
+      if (!found.visible.length) {
+        for (const el of found.els) await hoverOver(page, el);
+        found = await candidates(page, BTN_SELS, BTN_TEXTS, 'button, [role="button"]');
+      }
       if (!found.visible.length) await sleep(500);
     }
-    if (!found.visible.length) {
-      await snap(page, '1-no-button');
-      return { ok: false, why: found.all ? '見出し画像のボタンは在るが見えていない(' + found.all + ' 個)' : '見出し画像のボタンが見つからない' };
+    const visHeader = [];
+    for (const el of found.visible) if (await aboveTitle(el)) visHeader.push(el);
+    let target = visHeader[0] || null;
+    let forced = false;
+    if (!target) {
+      // 見えないままなら、題より上にある口を DOM のまま押す(押せば中身の動きは同じ)。題より下の口は押さない。
+      for (const el of found.els) {
+        console.log('見出し画像の口(見えていない):', await describeEl(el));
+        if (!target && (await aboveTitle(el))) { target = el; forced = true; }
+      }
     }
-    const how = await clickEl(page, found.visible[0]);
-    console.log('見出し画像のボタン: 候補 ' + found.all + ' 個、見えている ' + found.visible.length + ' 個、押し方 ' + how);
-    await sleep(1200);
+    if (!target) {
+      await snap(page, '1-no-button');
+      return { ok: false, why: found.all ? '見出し画像のボタンが題より上に無い(候補 ' + found.all + ' 個)' : '見出し画像のボタンが見つからない' };
+    }
+    console.log('見出し画像のボタン:', await describeEl(target), forced ? '(見えないまま押す)' : '');
+    let first;
+    if (forced) {
+      // 透明なだけで大きさがあるなら、その場所をマウスで押す(人が押したのと同じ扱いになり、ファイルを選ぶ画面も開ける)。
+      const r = await target.evaluate((e) => { const b = e.getBoundingClientRect(); const st = getComputedStyle(e);
+        return (b.width > 0 && b.height > 0 && st.display !== 'none' && st.visibility !== 'hidden') ? { x: b.x + b.width / 2, y: b.y + b.height / 2 } : null; });
+      const wait = page.waitForFileChooser({ timeout: 2500 }).catch(() => null);
+      if (r) { await page.mouse.click(r.x, r.y); first = { how: 'mouse-forced', chooser: await wait }; }
+      else { await target.evaluate((e) => e.click()); first = { how: 'dom-forced', chooser: await wait }; }
+    } else {
+      first = await clickExpectingChooser(page, target, 2500);
+    }
+    console.log('見出し画像のボタン: 候補 ' + found.all + ' 個、見えている ' + found.visible.length + ' 個、押し方 ' + first.how);
+    await sleep(800);
     await snap(page, '2-menu');
 
-    const items = await candidates(page, [], ['画像をアップロード', 'パソコンからアップロード', 'アップロード'],
-      'button, [role="button"], [role="menuitem"], li, label, div, span');
-    if (items.visible.length) {
-      const [fc] = await Promise.all([page.waitForFileChooser({ timeout: 8000 }), clickEl(page, items.visible[0])]);
-      await fc.accept([pngPath]);
+    let chooser = first.chooser;
+    if (!chooser) {
+      const items = await candidates(page, [], ['画像をアップロード', 'パソコンからアップロード', 'アップロード'],
+        'button, [role="button"], [role="menuitem"], li, label, div, span');
+      if (items.visible.length) {
+        const r = await clickExpectingChooser(page, items.visible[0], 8000);
+        chooser = r.chooser;
+      }
+    }
+    if (chooser) {
+      await chooser.accept([pngPath]);
     } else {
       const input = await page.$('input[type="file"]');
       if (!input) { await snap(page, '2-no-upload'); await page.keyboard.press('Escape'); return { ok: false, why: 'アップロードの項目が見つからない' }; }
@@ -1129,7 +1262,10 @@ async function uploadEyecatch(page, pngPath) {
       .some((d) => { const r = d.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(d).visibility !== 'hidden'; }));
     if (still) { await page.keyboard.press('Escape'); await sleep(600); }
     if (!save) return { ok: false, why: '切り抜き画面の保存ボタンが見つからない' };
-    return still ? { ok: false, why: '保存のあとも画面が残った' } : { ok: true };
+    if (still) return { ok: false, why: '保存のあとも画面が残った' };
+    const shown = await headerImageShown(page);
+    if (!shown) { await snap(page, '5-not-shown'); return { ok: false, why: '保存したが、題の上に画像が出ていない' }; }
+    return { ok: true, how: forced ? 'forced' : 'visible' };
   } catch (e) {
     try { await page.keyboard.press('Escape'); } catch (_e) { /* 何もしない */ }
     await snap(page, '9-error');
@@ -1238,7 +1374,7 @@ async function storyMain() {
     let notice = STORY.ownerNotice(outline, ep, noteUrl, rem, source);
     if (!artUrl) notice += '\n\n絵は描けず、文字だけの見出し画像にした(' + String(artNote).slice(0, 200) + ')';
     if (eyecatch && !(LAST_EYECATCH && LAST_EYECATCH.ok)) {
-      notice += '\n\n見出し画像は付けられなかった(' + ((LAST_EYECATCH && LAST_EYECATCH.why) || '画像なし') + ')。記事は公開済み。画面の記録は Actions の成果物 note-debug にある。';
+      notice += '\n\n見出し画像は付けられなかった(' + ((LAST_EYECATCH && LAST_EYECATCH.why) || '画像なし') + ')。記事は公開済み。画面の記録は Actions の成果物 note-debug にある。' + manualEyecatchHint(ep.key);
     }
     await sendLine(notice);
     await broadcastLine(STORY.broadcastText(outline, ep, noteUrl));
@@ -1252,4 +1388,83 @@ async function storyMain() {
 }
 
 
-main();
+// ========================================
+// 週に一回の連載『大賀が教える 現場から英語』(NOTE_MODE=eigo、.github/workflows/note-eigo.yml)
+//   中身は eigo.js と eigo/。書き置きの回だけを出す。全友だちへの LINE 配信はしない。TOshi に知らせるだけ。
+// ========================================
+// 見出し画像を付けられなかったとき、手で付けるための画像の取り出し方(TOshi のターミナル用)。
+function manualEyecatchHint(key) {
+  const run = process.env.GITHUB_RUN_ID;
+  return run ? ('\n手で付けるなら、この画像を note の見出し画像に: gh run download ' + run + ' -n note-debug -D ~/Desktop/note-' + key + ' のあと eyecatch-' + key + '.png') : '';
+}
+
+async function eigoMain() {
+  console.log('=== note 現場から英語 開始 ===');
+  const EIGO = require('./eigo');
+  const dry = process.env.DRY_RUN === '1';
+  let ep = null;
+  try {
+    const eps = EIGO.loadEpisodes();
+    const state = EIGO.loadState();
+    const now = new Date();
+    if (!dry && process.env.NOTE_FORCE !== '1' && EIGO.postedThisWeek(state, now)) {
+      console.log('今週の回は公開済み。二度は出さない(出すときは NOTE_FORCE=1)。');
+      process.exit(0);
+    }
+    const want = (process.env.EIGO_KEY || '').trim();
+    ep = (dry && want) ? eps.find((e) => e.key === want) : EIGO.nextEpisode(eps, state);
+    if (!ep) {
+      console.log('書き置きの在庫が無い。出さない。');
+      if (!dry) await sendLine('⏭ note 現場から英語: 書き置きの回が尽きた。今週は出していない。note-post/eigo/episodes/ に次の回を足すこと。');
+      process.exit(0);
+    }
+    console.log('今週の回:', ep.key, ep.title);
+    const g = EIGO.gateBody(ep, ep.body);
+    if (!g.ok) throw new Error('書き置きの回が門を通らない: ' + g.reasons.join(' / '));
+    const story = EIGO.anecdote(ep);
+    const idx = eps.indexOf(ep);
+    const next = idx >= 0 ? (eps[idx + 1] || null) : null;
+    const post = EIGO.composePost(ep, ep.body, story, next);
+    const title = EIGO.fullTitle(ep);
+    const tags = EIGO.hashtagsFor(ep);
+    if (STORY.DASH_TEST.test(post + title) || STORY.MACHINE_RE.test(post + title)) throw new Error('最後の確かめで、ダッシュか機械の名前が見つかった');
+
+    const png = path.join(__dirname, 'debug', 'eyecatch-' + ep.key + '.png');
+    let eyecatch = null;
+    try { eyecatch = await renderEyecatchPng(EIGO.eyecatchHtml(ep), png); console.log('見出し画像を作った:', png); }
+    catch (e) { console.log('見出し画像を作れなかった(投稿は続ける):', e.message); }
+
+    if (dry) {
+      console.log('===== DRY_RUN 現場から英語のプレビュー(投稿しない) =====');
+      console.log('題:', title);
+      console.log('タグ:', tags.map((t) => '#' + t).join(' '));
+      console.log('見出し画像:', eyecatch || '(なし)', '/ 体験談:', story ? 'あり' : 'なし');
+      console.log('----- note の本文 -----');
+      console.log(post);
+      console.log('----- 本文ここまで -----');
+      process.exit(0);
+    }
+    for (const k of ['NOTE_SESSION', 'LINE_CHANNEL_TOKEN', 'LINE_USER_ID']) {
+      if (!process.env[k]) throw new Error('環境変数未設定: ' + k);
+    }
+    const noteUrl = await postToNote({ title, hashtags: tags }, post, { eyecatchPng: eyecatch });
+    console.log('投稿URL:', noteUrl);
+    const st = EIGO.savePosted(ep, post, noteUrl, now);
+    const left = eps.filter((e) => !(st.posted || []).some((p) => p.key === e.key)).length;
+    let notice = EIGO.ownerNotice(ep, noteUrl, left, !!story);
+    if (eyecatch && !(LAST_EYECATCH && LAST_EYECATCH.ok)) {
+      notice += '\n\n見出し画像は付けられなかった(' + ((LAST_EYECATCH && LAST_EYECATCH.why) || '画像なし') + ')。記事は公開済み。' + manualEyecatchHint(ep.key);
+    }
+    await sendLine(notice);
+    console.log('=== 完了 ===');
+    process.exit(0);
+  } catch (e) {
+    console.error('エラー:', e.message);
+    await sendLine('❌ note 現場から英語の投稿を止めた' + (ep ? '(' + ep.key + ')' : '') + '\n' + e.message).catch(() => {});
+    process.exit(1);
+  }
+}
+
+// 2026-10-02 検査から関数だけを読めるように、直に走らせたときだけ main を呼ぶ。
+if (require.main === module) main();
+module.exports = { uploadEyecatch, candidates, visibleBox, headerImageShown };

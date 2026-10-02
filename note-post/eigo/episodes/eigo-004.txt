@@ -1,0 +1,40 @@
+題: サッシは窓枠のことじゃない
+一語: サッシ
+誤: sash
+正: window frame
+タグ: 窓, 内窓, 断熱
+---
+窓の工事で毎日のように使う「サッシ」。英語から来た言葉ですが、英語の sash と日本のサッシは、指しているものが少し違います。
+
+■ 今週の一語
+
+サッシ。
+
+英語の sash は、窓の中で動く部分のことです。上下に開け閉めする窓を sash window と言い、その動く枠が sash です。
+
+日本でいう「サッシ」、つまり窓の枠全体は、英語では window frame です。アルミのサッシなら aluminum window frame。イギリス英語では aluminium と書きます。
+
+■ 国で違う
+
+網戸: アメリカは screen、または window screen。イギリスやオーストラリアは fly screen。
+ペアガラス: アメリカは double-pane window。イギリスやオーストラリアは double glazing。
+
+ペアガラスも和製英語です。pair glass と言っても通じません。
+
+■ 現場で使う一文
+
+The window frame is warped.(サッシが歪んでいます)
+We'll replace the screen.(網戸を張り替えます)
+Condensation forms on the glass every morning.(毎朝ガラスに結露します)
+
+■ 見積書ではこう書く
+
+内窓は、イギリスやオーストラリアでは secondary glazing、アメリカでは interior storm window と言います。今ある窓の内側に、もう一つ窓を付ける工事です。
+
+窓の工事は、同じ「内窓」でも、ガラスと枠の性能で値段も効き目も変わります。見積書に窓の製品名と性能が書かれているかを、必ず見てください。英語ならこう聞きます。
+
+What's the product name and performance rating of this window?(この窓の製品名と性能は何ですか)
+
+■ 今週のまとめ
+
+サッシは window frame。網戸は screen。ペアガラスは double glazing。

@@ -1,0 +1,78 @@
+name: note 現場から英語(週に一回)
+# 2026-10-02 TOshi「大賀が教える建設現場から英語を教えよう、1週間に1回」。
+#   毎週日曜の朝(予定は 06:00 JST、GitHub の定時実行は数時間遅れることがある)に一回。
+#   中身は note-post/eigo.js と note-post/eigo/episodes/ の書き置きだけ。在庫が切れたら出さずに LINE で知らせる。
+#   体験談の段は note-post/eigo/anecdotes/<回>.txt に大賀さん本人が書いたときだけ載る。
+#   全友だちへの LINE 配信はしない。大賀さんへの知らせだけ。
+#   ドライラン: Run workflow で dry_run を入れる。eigo_key に eigo-003 などを入れると、その回を先に見られる。
+on:
+  schedule:
+    - cron: '0 21 * * 6'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '投稿せず中身だけ確かめる(true=ドライラン)'
+        type: boolean
+        default: false
+      eigo_key:
+        description: 'ドライランで見る回(例 eigo-003)。空なら次の回'
+        type: string
+        default: ''
+concurrency:
+  group: note-eigo
+  cancel-in-progress: false
+jobs:
+  post-eigo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          package-manager-cache: false
+          node-version: '20'
+      - name: Google Chrome と日本語の字形
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable fonts-noto-cjk
+      - name: 依存インストール
+        run: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install --no-package-lock
+      - name: 中身の検査
+        run: |
+          node note-post/test_eigo.js
+          CHROME_PATH=/usr/bin/google-chrome-stable node note-post/eyecatch_dom_test.js
+      - name: note投稿実行
+        env:
+          NOTE_SESSION: ${{ secrets.NOTE_SESSION }}
+          LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          NOTE_MODE: eigo
+          DRY_RUN: ${{ (github.event.inputs.dry_run == 'true') && '1' || '0' }}
+          EIGO_KEY: ${{ github.event.inputs.eigo_key || '' }}
+        run: cd note-post && node post_to_note.js
+      - name: 見出し画像と画面の記録を残す
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: note-debug
+          path: note-post/debug/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: 公開の記録をコミット
+        if: always()
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          for f in note-post/eigo/state.json note-post/eigo/posted; do
+            if [ -e "$f" ]; then git add "$f"; fi
+          done
+          if git diff --staged --quiet; then echo "記録の変化なし"; exit 0; fi
+          git commit -m "chore: note 現場から英語の公開記録"
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then exit 0; fi
+            sleep 5
+          done
+          echo "::warning::公開の記録を push できなかった。来週同じ回がもう一度出るおそれがある"
+          exit 1
