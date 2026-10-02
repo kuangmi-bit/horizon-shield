@@ -1,0 +1,42 @@
+name: Plugin mirror drift
+
+# The HORIZON SHIELD plugin lives in plugin/ here (the Claude directory reads it from main) and is
+# mirrored byte for byte in ogasurfproject-jpg/horizon-shield-plugin (the Grok Build marketplace
+# clones that repo, pinned by sha; xAI's bot advances the pin only when plugin.json's version changes).
+# This job fails red when the two copies differ, or when they differ in content but carry the same
+# version, so a change to plugin/ cannot silently miss Grok users.
+# Fix: copy plugin/ into horizon-shield-plugin, bump "version" in .claude-plugin/plugin.json in both, push both.
+
+on:
+  schedule:
+    - cron: "41 3 * * *"   # daily 03:41 UTC
+  push:
+    branches: [main]
+    paths: ["plugin/**"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-mirror-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: compare plugin/ with horizon-shield-plugin
+        run: |
+          set -euo pipefail
+          git clone --quiet --depth 1 https://github.com/ogasurfproject-jpg/horizon-shield-plugin.git "$RUNNER_TEMP/mirror"
+          if diff -r -q --exclude=.git plugin "$RUNNER_TEMP/mirror"; then
+            echo "plugin/ and horizon-shield-plugin are identical ($(git -C "$RUNNER_TEMP/mirror" rev-parse --short HEAD))"
+            exit 0
+          fi
+          here=$(python3 -c 'import json;print(json.load(open("plugin/.claude-plugin/plugin.json"))["version"])')
+          there=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"])' "$RUNNER_TEMP/mirror/.claude-plugin/plugin.json")
+          echo "::error::plugin/ (version $here) differs from horizon-shield-plugin (version $there). Copy plugin/ into horizon-shield-plugin, bump the version if it is still $there, and push."
+          diff -r --exclude=.git plugin "$RUNNER_TEMP/mirror" | head -80 || true
+          exit 1
