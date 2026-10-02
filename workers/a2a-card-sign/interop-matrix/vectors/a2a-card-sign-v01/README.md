@@ -152,6 +152,12 @@ On 2026-10-02, `observed.s3`: a2a-sdk 1.2.1, @a2a-js/sdk 1.3.0 and a2a-python at
 010 and S3-T-011 and reject the odd ones; a2a-go accepts the odd ones and rejects the rest, S3-T-011 included.
 All four accept S3-D-012; a2a-go rejects S3-D-013 and the other three accept it.
 
+The a2a-python#1287 column records commit cdee28e, the descriptor-scope commit, and nothing later. On 2026-10-02 the
+PR head moved to a091c83, which reverts that commit; kuangmi-bit re-measured it as byte-identical to base fad0482 on
+all 37 vectors, so at a091c83 every row reads exactly like the a2a-python (a2a-sdk 1.2.1) column
+(a2aproject/a2a-python#1287). The column stays as the record of the descriptor reading. It is not the PR's current
+behaviour; for the PR head, cite the a2a-python column.
+
 ## Key and reproduction
 
 `testkey_jwks.json` holds the public half of a published test key (kid `hs-interop-test-v1`, ES256). The `jku` in
