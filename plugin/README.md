@@ -6,11 +6,12 @@ Listed in the Claude directory (Claude Code, Cowork, Claude apps).
 
 ## What is inside
 
-Two remote MCP servers, no API key:
+Three remote MCP servers, no API key:
 
 | server | what it answers |
 |---|---|
-| `horizon-shield` (https://mcp.horizonshield.dev) | Japanese fair-price checks (JCCDB), red flags in estimates, recomputable receipts, U.S. public construction-cost data (USCCDB). 30 tools |
+| `horizon-shield` (https://mcp.horizonshield.dev) | Japanese fair-price checks (JCCDB), red flags in estimates, recomputable receipts. 15 tools |
+| `construction-cost-data` (https://ccdb.horizonshield.dev/mcp) | public construction-cost data, JCCDB for Japan and USCCDB for the United States, every row with its source URL. 15 tools, all read only |
 | `yakumo-contractors` (https://hearing.horizonshield.dev/mcp) | contractors in Japan that passed the fair-price check, and checks on a contractor the user names |
 
 Two skills that tell Claude when to use them: `horizon-shield` (estimates) and `find-contractor`.

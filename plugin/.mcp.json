@@ -7,6 +7,10 @@
     "yakumo-contractors": {
       "type": "http",
       "url": "https://hearing.horizonshield.dev/mcp"
+    },
+    "construction-cost-data": {
+      "type": "http",
+      "url": "https://ccdb.horizonshield.dev/mcp"
     }
   }
 }
