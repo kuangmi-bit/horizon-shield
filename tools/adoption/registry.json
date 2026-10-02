@@ -63,6 +63,13 @@
       "what": "Published a served-scope verifier entry point for a2a-python that canonicalizes the received JSON and keeps members outside the schema (canonicalize_served_agent_card, create_served_card_signature_verifier, candidate/served-scope-1278 at 2491248); pinned as its own MANIFEST.observed column, all 37 vectors as labelled under rule-1-served-scope and unknown-retain, no false accepts",
       "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5946262435",
       "date": "2026-10-02"
+    },
+    {
+      "who": "Sankalp Gilda (astrogilda), Probity AI",
+      "subject": "a2a-card-sign-v01",
+      "what": "A separately implemented received-JSON consumer, run against all five s4-dual-name cases under both dual-name-tolerate and dual-name-refuse: every outcome as labelled, including S4-REJECT-005 refused under both, with the corpus digests checked before execution",
+      "evidence": "https://github.com/probityai/agent-evidence-vectors/pull/42",
+      "date": "2026-10-02"
     }
   ],
   "open_calls": {
