@@ -28,9 +28,10 @@ ${hdrCss}
 textarea{display:block;width:700px;height:60px;margin:8px} [contenteditable]{min-height:300px;margin:8px;border:1px solid #ccc}
 .bodybar{margin:8px}
 </style>
-<div class="hdr">${o.noHeaderButton ? '' : '<button class="eb" aria-label="画像を追加">＋</button>'}</div>
+<div class="bar" style="height:56px;display:flex;justify-content:flex-end;gap:8px;align-items:center;padding:0 12px"><button>閉じる</button><button>下書き保存</button><button>公開に進む</button></div>
+<div class="hdr">${o.noHeaderButton ? '' : (o.noLabel ? '<button class="eb"><svg width="20" height="20"><rect width="20" height="20"/></svg></button>' : '<button class="eb" aria-label="画像を追加">＋</button>')}</div>
 <textarea placeholder="記事タイトル"></textarea>
-<div class="bodybar">${o.bodyButton ? '<button class="bb" aria-label="画像を追加">本文に画像</button>' : ''}</div>
+<div class="bodybar">${o.bodyButton ? '<button class="bb" aria-label="画像を追加">本文に画像</button>' : ''}${o.hiddenMenu ? '<div style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none"><div style="width:0;height:0;overflow:hidden"><button class="hm" aria-label="画像を追加">画像</button></div></div>' : ''}</div>
 <div contenteditable="true">本文</div>
 <input type="file" id="f" accept="image/*" style="display:none">
 <script>
@@ -46,9 +47,12 @@ if (eb) eb.addEventListener('click', () => {
 });
 const bb = document.querySelector('.bb');
 if (bb) bb.addEventListener('click', () => { f.dataset.to = 'body'; f.click(); });
+const hm = document.querySelector('.hm');
+if (hm) hm.addEventListener('click', () => { f.dataset.to = 'body'; f.click(); });
 f.addEventListener('change', () => {
-  const to = f.dataset.to || 'header';
-  if (to === 'body') { window.__body = (window.__body || 0) + 1; const im = new Image(); im.style.cssText = 'width:600px;height:200px;display:block'; im.src = 'data:image/png;base64,${PNG1}'; document.querySelector('[contenteditable]').appendChild(im); return; }
+  // どの口も押さずにファイル欄へ直に入れた画像は、本物の画面では本文に入るかもしれない。見出しに付いたとは数えない。
+  const to = f.dataset.to || 'stray';
+  if (to !== 'header') { window.__body = (window.__body || 0) + 1; const im = new Image(); im.style.cssText = 'width:600px;height:200px;display:block'; im.src = 'data:image/png;base64,${PNG1}'; document.querySelector('[contenteditable]').appendChild(im); return; }
   const mm = document.getElementById('menu'); if (mm) mm.remove();
   const d = document.createElement('div'); d.setAttribute('role', 'dialog');
   d.style.cssText = 'position:fixed;top:100px;left:100px;width:600px;height:400px;background:#eee';
@@ -74,6 +78,9 @@ const CASES = [
   { name: 'F 題より下の本文の口しか無い', css: '', opts: { noHeaderButton: true, bodyButton: true }, want: false },
   { name: 'G 見出しの口と本文の口が両方ある', css: '.hdr .eb{opacity:0}.hdr:hover .eb{opacity:1}', opts: { bodyButton: true }, want: true },
   { name: 'H 付いた画像を背景として敷く作り', css: '.hdr .eb{opacity:0}.hdr:hover .eb{opacity:1}', opts: { asBackground: true }, want: true },
+  // 本物の画面(2026-10-02 第2話の 1-editor.png)に近い形: 見出しの口は名札の無い丸いボタンでいつも見えている。
+  // 名札「画像を追加」を持つのは、大きさ 0 の入れ物の中の本文用の口だけ。本文の「+」も題の下にある。
+  { name: 'I 本物に近い形(名札の無い見出しの口、隠れた本文の口)', css: '', opts: { noLabel: true, hiddenMenu: true, bodyButton: true }, want: true },
 ];
 
 (async () => {

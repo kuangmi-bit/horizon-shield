@@ -1093,13 +1093,13 @@ async function candidates(page, sels, texts, textSel) {
 // 題の上にマウスが来たときだけ見せる(2026-10-02 第2話で「ボタンは在るが見えていない(1 個)」)。
 async function hoverHeader(page) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const pts = [];
+  // 最後に題のすぐ上で止める(そこを離れると隠れる作りでも、探すときに見えているように)。
+  const pts = [[960, 160], [960, 260], [640, 200]];
   try {
     const t = await page.$('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
     const b = t ? await t.boundingBox() : null;
-    if (b) pts.push([b.x + 24, b.y - 32], [b.x + b.width / 2, b.y - 56], [b.x + 24, b.y + b.height / 2], [b.x + b.width / 2, b.y - 120]);
+    if (b) pts.push([b.x + b.width / 2, b.y - 120], [b.x + 24, b.y + b.height / 2], [b.x + b.width / 2, b.y - 56], [b.x + 24, b.y - 32]);
   } catch (_e) { /* 何もしない */ }
-  pts.push([960, 160], [960, 260], [640, 200]);
   for (const [x, y] of pts) {
     try { await page.mouse.move(Math.max(1, x), Math.max(1, y)); } catch (_e) { /* 何もしない */ }
     await sleep(200);
@@ -1179,45 +1179,60 @@ async function uploadEyecatch(page, pngPath) {
   const BTN_TEXTS = ['見出し画像を追加', '画像を追加', '見出し画像'];
   try {
     await snap(page, '1-editor');
-    const top = await titleTop(page);
-    const aboveTitle = async (el) => {
-      if (top == null) return true;
+    /* 2026-10-02 本物の画面(第2話の 1-editor.png)で確かめた形: 見出し画像の口は、題「記事タイトル」の
+       すぐ上、題と左端をそろえた丸いボタン(画像に + の印)で、いつも見えている。上の帯(閉じる・下書き保存・
+       公開に進む)より下、題より上の帯にある。題より下の「+」は本文に画像などを入れる口。
+       その丸いボタンは「画像」という名札を持たないとみられ、名札で探すと別の隠れた口(1 個)しか見つからなかった。
+       だから場所で探す。題の上の帯にあって、左端が題とそろっているボタンが見出し画像の口。 */
+    const zone = async () => {
       try {
-        const y = await el.evaluate((e) => {
-          for (let n = e; n; n = n.parentElement) {
-            const r = n.getBoundingClientRect();
-            if (r.width > 0 && r.height > 0) return r.top;
-          }
-          return null;
+        return await page.evaluate(() => {
+          const t = document.querySelector('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
+          if (!t) return null;
+          const r = t.getBoundingClientRect();
+          return { top: r.top, left: r.left };
         });
-        return y == null || y < top;
-      } catch (_e) { return true; }
+      } catch (_e) { return null; }
     };
+    const inZone = async (el, z) => {
+      if (!z) return false;
+      try {
+        return await el.evaluate((e, zz) => {
+          const r = e.getBoundingClientRect();
+          if (!(r.width > 0 && r.height > 0)) return false;
+          return r.top >= 56 && r.bottom <= zz.top + 2 && r.left >= zz.left - 140 && r.left <= zz.left + 420;
+        }, z);
+      } catch (_e) { return false; }
+    };
+    let z = await zone();
 
     let found = { all: 0, visible: [], els: [] };
-    for (let i = 0; i < 12 && !found.visible.length; i++) {
-      await hoverHeader(page);
-      found = await candidates(page, BTN_SELS, BTN_TEXTS, 'button, [role="button"]');
-      if (!found.visible.length) {
-        for (const el of found.els) await hoverOver(page, el);
-        found = await candidates(page, BTN_SELS, BTN_TEXTS, 'button, [role="button"]');
-      }
-      if (!found.visible.length) await sleep(500);
-    }
-    const visHeader = [];
-    for (const el of found.visible) if (await aboveTitle(el)) visHeader.push(el);
-    let target = visHeader[0] || null;
+    let target = null;
     let forced = false;
+    for (let i = 0; i < 6 && !target; i++) {
+      await hoverHeader(page);
+      z = (await zone()) || z;
+      // 1) 場所で探す: 題の上の帯の、見えているボタン
+      const all = await candidates(page, ['button', '[role="button"]'], [], 'button');
+      for (const el of all.visible) if (await inZone(el, z)) { target = el; break; }
+      if (target) break;
+      // 2) 名札で探す: 見えていて、題の上の帯にあるもの
+      found = await candidates(page, BTN_SELS, BTN_TEXTS, 'button, [role="button"]');
+      for (const el of found.visible) if (await inZone(el, z)) { target = el; break; }
+      if (target) break;
+      for (const el of found.els) await hoverOver(page, el);
+      await sleep(500);
+    }
     if (!target) {
-      // 見えないままなら、題より上にある口を DOM のまま押す(押せば中身の動きは同じ)。題より下の口は押さない。
+      // 3) 見えないままでも、自分の大きさがあって題の上の帯にある口だけは押す。帯の外(本文側など)の口は押さない。
       for (const el of found.els) {
         console.log('見出し画像の口(見えていない):', await describeEl(el));
-        if (!target && (await aboveTitle(el))) { target = el; forced = true; }
+        if (!target && (await inZone(el, z))) { target = el; forced = true; }
       }
     }
     if (!target) {
       await snap(page, '1-no-button');
-      return { ok: false, why: found.all ? '見出し画像のボタンが題より上に無い(候補 ' + found.all + ' 個)' : '見出し画像のボタンが見つからない' };
+      return { ok: false, why: z ? ('題の上の帯に見出し画像のボタンが無い(名札の候補 ' + found.all + ' 個)') : '題の欄が見つからない' };
     }
     console.log('見出し画像のボタン:', await describeEl(target), forced ? '(見えないまま押す)' : '');
     let first;
@@ -1231,7 +1246,7 @@ async function uploadEyecatch(page, pngPath) {
     } else {
       first = await clickExpectingChooser(page, target, 2500);
     }
-    console.log('見出し画像のボタン: 候補 ' + found.all + ' 個、見えている ' + found.visible.length + ' 個、押し方 ' + first.how);
+    console.log('見出し画像のボタン: 押し方 ' + first.how + (first.chooser ? '、すぐにファイルを選ぶ画面' : ''));
     await sleep(800);
     await snap(page, '2-menu');
 
