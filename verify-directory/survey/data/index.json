@@ -191,6 +191,16 @@
       "what": "The 3,076 addresses the 2026-08-23 walk filed as authorization_required, contacted again on 2026-10-01 with the same initialize at the registered path and at a path that cannot exist on the same host (/__nx_<random>). One row per address with both statuses, WWW-Authenticate, edge headers, body hashes and a category derived only from those fields. Read only, no credentials. Recompute: python3 tools/survey4_auth_probe.py --recompute <this file>.",
       "made_by": "tools/survey4_auth_probe.py",
       "role": "correction"
+    },
+    {
+      "file": "survey5_prm_probe_2026-10-02.jsonl",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey5_prm_probe_2026-10-02.jsonl",
+      "bytes": 1750529,
+      "sha256": "b3fc5fc86e15cbd74abf8820d8cb8cb1faa0fc156cbbae8fce47e6c07097de1a",
+      "lines": 2063,
+      "what": "The 2,063 addresses that probe 4 found walled on the registered path only, contacted again on 2026-10-02 with one GET of their RFC 9728 protected resource metadata: the URL their challenge named, or the default /.well-known/oauth-protected-resource location when it named none. One row per address with status, whether the body is a JSON object, its resource (credential-looking query values redacted) and the number of authorization servers, and a category derived only from those fields. Read only, no credentials. Recompute: python3 tools/survey5_prm_probe.py --recompute <this file>.",
+      "made_by": "tools/survey5_prm_probe.py",
+      "role": "correction"
     }
   ]
 }

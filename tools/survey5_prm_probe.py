@@ -48,7 +48,7 @@ Usage:
 Standard library only.
 """
 
-import argparse, collections, hashlib, io, json, os, sys, threading, time
+import argparse, collections, hashlib, io, json, os, re, sys, threading, time
 import urllib.error, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -111,6 +111,23 @@ def fetch(url):
     return out
 
 
+SECRET_KEY = re.compile(r"(?i)^(api[_-]?key|apikey|key|token|access[_-]?token|auth|secret|client[_-]?secret|sig|signature|password)$")
+
+
+def redact_url(u):
+    """Credential-looking query values are replaced by REDACTED before a row is stored. Templates like {apiKey} stay."""
+    if not isinstance(u, str) or "?" not in u:
+        return u
+    base, _, q = u.partition("?")
+    out = []
+    for part in q.split("&"):
+        k, eq, v = part.partition("=")
+        if eq and v and SECRET_KEY.match(urllib.parse.unquote(k)) and not (v.startswith("{") or v.startswith("%7B")):
+            v = "REDACTED"
+        out.append(k + eq + v)
+    return base + "?" + "&".join(out)
+
+
 def categorize(row):
     if row.get("robots_skipped"):
         return "skipped_robots"
@@ -151,6 +168,10 @@ def measure(t):
         row["get"] = fetch(url) if ok else None
     row["measured_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     row["category"] = categorize(row)
+    # stored after the category is fixed: redaction keeps the query, so the category would not change either way
+    row["metadata_url"] = redact_url(row["metadata_url"])
+    if row.get("get") and row["get"].get("resource"):
+        row["get"]["resource"] = redact_url(row["get"]["resource"])
     return row
 
 

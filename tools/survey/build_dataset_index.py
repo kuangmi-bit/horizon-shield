@@ -87,6 +87,16 @@ WHAT = {
         "made_by": "tools/survey4_auth_probe.py",
         "role": "correction",
     },
+    "survey5_prm_probe_2026-10-02.jsonl": {
+        "what": "The 2,063 addresses that probe 4 found walled on the registered path only, contacted again on "
+                "2026-10-02 with one GET of their RFC 9728 protected resource metadata: the URL their challenge named, "
+                "or the default /.well-known/oauth-protected-resource location when it named none. One row per address "
+                "with status, whether the body is a JSON object, its resource (credential-looking query values "
+                "redacted) and the number of authorization servers, and a category derived only from those fields. "
+                "Read only, no credentials. Recompute: python3 tools/survey5_prm_probe.py --recompute <this file>.",
+        "made_by": "tools/survey5_prm_probe.py",
+        "role": "correction",
+    },
     "build_lookup_index.py": {
         "what": "A script, not data. Builds lookup_index.json and lookup_details.json for a per address lookup page "
                 "(/verify-directory/lookup/) that is not published yet (2026-09-03). Every row it writes restates a line "
