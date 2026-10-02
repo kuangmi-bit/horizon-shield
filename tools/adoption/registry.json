@@ -56,6 +56,13 @@
       "what": "A separately implemented retained-field consumer, run against all 13 s3-unknown-fields cases: every outcome matches the a2a-go column of MANIFEST.observed, S3-D-012 accepted through its retained-form signature, S3-T-011 and S3-D-013 refused",
       "evidence": "https://github.com/probityai/agent-evidence-vectors/pull/34",
       "date": "2026-10-02"
+    },
+    {
+      "who": "aeoess",
+      "subject": "a2a-card-sign-v01",
+      "what": "Published a served-scope verifier entry point for a2a-python that canonicalizes the received JSON and keeps members outside the schema (canonicalize_served_agent_card, create_served_card_signature_verifier, candidate/served-scope-1278 at 2491248); pinned as its own MANIFEST.observed column, all 37 vectors as labelled under rule-1-served-scope and unknown-retain, no false accepts",
+      "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5946262435",
+      "date": "2026-10-02"
     }
   ],
   "open_calls": {

@@ -68,7 +68,7 @@ scoped two ways, and s2 makes the two scopes testable against each other:
 
 | reading | what it does | matches |
 |---|---|---|
-| `rule-1-served-scope` | rule 1 applied to the fields present in the served JSON; an absent field stays absent | the section's worked example (S2-WE-011), and no SDK as shipped |
+| `rule-1-served-scope` | rule 1 applied to the fields present in the served JSON; an absent field stays absent | the section's worked example (S2-WE-011), and no SDK as shipped; the aeoess/a2a-python candidate at 2491248 (not a release) |
 | `rule-1-descriptor-scope` | rule 1 applied by walking the AgentCard descriptor; an absent REQUIRED field is emitted at its default (`""`, `[]`, `{}`) | a2a-python at a2aproject/a2a-python#1287 head cdee28e |
 
 On s0 and s1 both scopes give the `rule-1-as-written` bytes. `prune-empty` and `served-as-is` keep their meaning.
@@ -96,7 +96,7 @@ signature covers them. The s0, s1 and s2 files are unchanged byte for byte. s3 i
 
 | reading | what it does | matches |
 |---|---|---|
-| `unknown-retain` | served-scope rule 1 on the defined fields; every undefined field kept verbatim where it was served | a2a-go main 534a60fc |
+| `unknown-retain` | served-scope rule 1 on the defined fields; every undefined field kept verbatim where it was served | a2a-go main 534a60fc; the aeoess/a2a-python candidate at 2491248 (not a release) |
 | `unknown-exclude` | every undefined field removed at every depth, then served-scope rule 1 | a2a-sdk 1.2.1, @a2a-js/sdk 1.3.0, a2a-python#1287 cdee28e |
 | `unknown-reject` | a card carrying any undefined field is refused | no SDK |
 
@@ -157,6 +157,32 @@ PR head moved to a091c83, which reverts that commit; kuangmi-bit re-measured it 
 all 37 vectors, so at a091c83 every row reads exactly like the a2a-python (a2a-sdk 1.2.1) column
 (a2aproject/a2a-python#1287). The column stays as the record of the descriptor reading. It is not the PR's current
 behaviour; for the PR head, cite the a2a-python column.
+
+## Pinned candidates
+
+A candidate that is not a release can be added as its own column without regenerating any vector:
+`observe_pinned.py` runs inside a virtualenv where the candidate is installed from source, refuses to run unless the
+source is at the pinned commit with no local change, passes each served card unmodified to the candidate's verifier,
+and writes the verdicts beside the SDK columns in `MANIFEST.json` (`observed.results`, `observed.s2`, `observed.s3`),
+the pin under `observed.pinned`, and which reading its canonical bytes equal under `s3_sdk_forms`. `--check` reruns and
+compares without writing. The verdicts are also in `verdicts_20261002/` for `score.py`.
+
+`aeoess/a2a-python@2491248` (branch `candidate/served-scope-1278`, a candidate for a2aproject/A2A#2122): the new entry
+point `create_served_card_signature_verifier` takes the received JSON and canonicalizes it with
+`canonicalize_served_agent_card`; the existing `create_signature_verifier` is unchanged. Measured on 2026-10-02:
+
+| group | reading | right | false accepts |
+|---|---|---|---|
+| s0 | every reading | 5/5 | 0 |
+| s1 | rule-1-as-written | 8/8 | 0 |
+| s2 | rule-1-served-scope | 11/11 | 0 |
+| s3 | unknown-retain | 13/13 | 0 |
+
+S3-D-012 is accepted through its retained-form signature, S3-T-011 and S3-D-013 are refused. On every vector it
+accepts, its canonical bytes equal the bytes the signature covers, and on all five s3 cases they equal the
+`unknown-retain` form. It differs from the a2a-go column only on S1-007, S1-008 (`capabilities.extensions = []`,
+not REQUIRED, dropped) and S2-WE-011. In the same install, the unchanged `create_signature_verifier` reads exactly
+like the a2a-python (a2a-sdk 1.2.1) column on all 37.
 
 ## Key and reproduction
 
