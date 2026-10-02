@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ogasurfproject-jpg/construction-cost-data",
+  "title": "HORIZON SHIELD Construction Cost Data: JCCDB (Japan) and USCCDB (United States)",
+  "description": "Public construction cost data for Japan and the U.S., each row with its source URL and licence.",
+  "version": "1.0.0",
+  "websiteUrl": "https://ccdb.horizonshield.dev/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/icon.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/ogasurfproject-jpg/horizon-shield",
+    "source": "github",
+    "subfolder": "workers/hs-ccdb-mcp"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://ccdb.horizonshield.dev/mcp"
+    }
+  ]
+}

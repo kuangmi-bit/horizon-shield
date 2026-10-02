@@ -42,9 +42,10 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
     chk("instructions に " + w, ins.includes(w));
   }
   chk("instructions にダッシュ無し", !DASH.test(ins));
-  chk("serverInfo.version は 1.0.11", r.serverInfo && r.serverInfo.version === "1.0.11", JSON.stringify(r.serverInfo));
+  chk("serverInfo.version は 1.1.0", r.serverInfo && r.serverInfo.version === "1.1.0", JSON.stringify(r.serverInfo));
   // 1.0.11: 案内文が建設費のデータ 15 本(日本 JCCDB、米国 USCCDB)を案内し、「Japan only」は適正価格の判定に限る
-  for (const w of ["JCCDB", "USCCDB", "United States Construction Cost Database", "search_jccdb_items", "get_jccdb_coverage", "get_us_construction_prices", "get_us_price_chain", "get_us_contract_discounts", "computed:true", "not renovation quotes", "fair-price verdicts are for Japan only", "適正価格の判定は日本限定"]) {
+  // 1.1.0: 建設費のデータの道具は専用の口へ。案内文はその口の URL を示し、道具の名前は並べない
+  for (const w of ["JCCDB", "USCCDB", "United States Construction Cost Database", "https://ccdb.horizonshield.dev/mcp", "get_jccdb_dataset_info", "not renovation quotes", "fair-price verdicts are for Japan only", "適正価格の判定は日本限定"]) {
     chk("instructions に " + w, ins.includes(w));
   }
   chk("instructions に素の「Scope and honesty: Japan only」が残っていない", !ins.includes("Scope and honesty: Japan only"));
@@ -59,8 +60,11 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   const JCCDB_V2 = ["search_jccdb_items", "get_jccdb_observations", "get_jccdb_labor_rate", "compare_jccdb_regions", "get_jccdb_work_unit_price", "get_jccdb_index_series", "get_us_construction_prices", "get_jccdb_coverage", "get_us_prevailing_wage", "get_us_permits", "get_us_area_factor"];
   const KAKE_V3 = ["get_us_price_chain", "get_us_import_landed_cost", "get_us_trade_margins", "get_us_contract_discounts"];
   const missing = [...BASE, ...JCCDB_V2, ...KAKE_V3].filter(n => !by[n]);
-  chk("tools は 30 本(従来の 15 + JCCDB v2 の 11 + 米国の掛け率 v3 の 4)", r.tools.length === 30, r.tools.length);
-  chk("従来の 15 本と JCCDB の 15 本が名前で全部そろう", missing.length === 0, missing.join(","));
+  // 1.1.0: 建設費のデータの 15 本は hs-ccdb-mcp に移った。tools/list は適正価格の 15 本だけ、移った 15 本は呼べば答える
+  chk("tools は 15 本(適正価格の道具だけ)", r.tools.length === 15, r.tools.length);
+  chk("適正価格の 15 本が名前で全部そろう", BASE.every(n => by[n]), BASE.filter(n => !by[n]).join(","));
+  chk("建設費のデータの 15 本は一覧に出ない", [...JCCDB_V2, ...KAKE_V3].every(n => !by[n]), [...JCCDB_V2, ...KAKE_V3].filter(n => by[n]).join(","));
+  void missing;
   chk("get_price_range description に 相場", /相場/.test(by.get_price_range.description));
   chk("get_price_range description に 'is this price normal'", /is this price normal/.test(by.get_price_range.description));
   chk("audit_estimate description に ぼったくり", /ぼったくり/.test(by.audit_estimate.description));
@@ -124,7 +128,8 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   chk("計算の層はファイルで配らないと明記", ol && /not distributed as files/.test(ol.united_states.computed_layer.note));
   const names = new Set((await rpc("tools/list", {})).tools.map(t => t.name));
   const listed = ol ? [...ol.japan.tools, ...ol.united_states.tools, ...ol.united_states.computed_layer.tools] : [];
-  chk("観測層に書いた道具は全部 tools/list にある", listed.length >= 15 && listed.every(n => names.has(n)), listed.filter(n => !names.has(n)).join(","));
+  chk("観測層は served_by で専用の口を示す", ol && ol.served_by === "https://ccdb.horizonshield.dev/mcp");
+  chk("観測層に書いた道具は 15 本で、ここの一覧には出ない(専用の口にある)", listed.length >= 15 && listed.every(n => !names.has(n)), listed.filter(n => names.has(n)).join(","));
   chk("品目の目録の既存の欄は変わらない", o.items === 95403 && o.license === "CC BY 4.0" && o.links && o.links.dataset_doi === "https://doi.org/10.5281/zenodo.22980284");
   chk("v5.0: 全部の版・v4.0・USCCDB の DOI と Hugging Face", /^v5\.0 /.test(o.version) && o.links.dataset_doi_all_versions === "https://doi.org/10.5281/zenodo.22127751" && o.links.dataset_doi_v4 === "https://doi.org/10.5281/zenodo.22127752" && o.links.usccdb_doi === "https://doi.org/10.5281/zenodo.22979157" && o.links.huggingface_observations === "https://huggingface.co/datasets/ogasurfproject/jccdb-observations" && o.links.usccdb_huggingface === "https://huggingface.co/datasets/ogasurfproject/usccdb");
   chk("品目の目録は v4.0 のまま(catalogue)", o.catalogue && o.catalogue.version === "v4.0 (2026-08-28)" && o.catalogue.dataset_doi === "https://doi.org/10.5281/zenodo.22127752");
@@ -133,7 +138,7 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   chk("links・note・catalogue にダッシュ無し", !DASH.test(JSON.stringify(o.links) + o.note + JSON.stringify(o.catalogue)));
   chk("観測層にダッシュ無し", !DASH.test(JSON.stringify(ol)));
   const tl = (await rpc("tools/list", {})).tools;
-  chk("道具は 30 本で、全部に title と readOnlyHint の注記", tl.length === 30 && tl.every(t => t.title && t.annotations && typeof t.annotations.readOnlyHint === "boolean"), tl.length);
+  chk("道具は 15 本で、全部に title と readOnlyHint の注記", tl.length === 15 && tl.every(t => t.title && t.annotations && typeof t.annotations.readOnlyHint === "boolean"), tl.length);
   const writers = tl.filter(t => t.annotations.readOnlyHint === false).map(t => t.name).sort();
   chk("台帳に記録を足す 2 本だけが readOnlyHint:false(verify_fair_price と create_ap2)", writers.join(",") === "create_ap2_fairness_attestation,verify_fair_price", writers.join(","));
   chk("書く 2 本も destructiveHint:false", tl.filter(t => writers.includes(t.name)).every(t => t.annotations.destructiveHint === false));

@@ -1,0 +1,6 @@
+{
+  "name": "hs-ccdb-mcp",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node test/ccdb.test.mjs" }
+}

@@ -1,0 +1,17 @@
+{
+  // hs-ccdb-mcp: HORIZON SHIELD Construction Cost Data (JCCDB + USCCDB). 2026-10-02.
+  // The 15 data tools moved out of hs-mcp. Every call goes to hs-jccdb-obs over the service binding below
+  // (same zone Worker to Worker calls must use a service binding, not the public hostname).
+  "name": "hs-ccdb-mcp",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-05-18",
+  "account_id": "c15ff64aba400e541853dec1fbe5e76a",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "services": [
+    { "binding": "JCCDB_SVC", "service": "hs-jccdb-obs" }
+  ],
+  "routes": [
+    { "pattern": "ccdb.horizonshield.dev", "custom_domain": true }
+  ]
+}
