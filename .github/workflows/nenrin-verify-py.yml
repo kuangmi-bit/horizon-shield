@@ -53,6 +53,9 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install
         run: python -m pip install -e . pytest
+      - name: Official A2A SDK, for the recorder's live test (a2a-sdk needs Python 3.10+; on 3.9 that test is skipped)
+        if: matrix.python != '3.9'
+        run: python -m pip install "a2a-sdk[http-server]==1.2.1" uvicorn
       - name: Vendored files and fixtures reproduce
         run: |
           python tools/vendor.py --check

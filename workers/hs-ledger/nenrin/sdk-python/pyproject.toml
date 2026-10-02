@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nenrin-verify"
-version = "0.3.0"
-description = "Recompute NENRIN evidence yourself, offline: A2A task provenance, two-party agreement records, TSUGI recovery chains and MUSUBI contracts. The same reports as the reference verifiers."
+version = "0.4.0"
+description = "Recompute NENRIN evidence yourself, offline: A2A task provenance, two-party agreement records, TSUGI recovery chains and MUSUBI contracts. Record every A2A call your agent makes as a signed witness record (two lines, official A2A SDK), and apply your own rule to a resume."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.9"
 authors = [{ name = "The HORIZONs Co., Ltd." }]
 dependencies = ["cryptography>=41"]
-keywords = ["a2a", "provenance", "verification", "did-key", "ed25519", "nenrin", "agent", "evidence", "horizon-shield", "tsugi", "recovery", "musubi", "contract"]
+keywords = ["a2a", "provenance", "verification", "did-key", "ed25519", "nenrin", "agent", "evidence", "horizon-shield", "tsugi", "recovery", "musubi", "contract", "a2a-sdk", "interceptor", "witness", "policy"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",
@@ -25,11 +25,16 @@ Homepage = "https://github.com/ogasurfproject-jpg/horizon-shield/tree/main/worke
 Source = "https://github.com/ogasurfproject-jpg/horizon-shield"
 "JavaScript twin" = "https://www.npmjs.com/package/nenrin-verify"
 
+[project.optional-dependencies]
+a2a = ["a2a-sdk>=1.0"]
+
 [project.scripts]
 nenrin-verify = "nenrin_verify.cli:main"
 nenrin-agreement-verify = "nenrin_verify.cli:agreement_main"
 tsugi-verify = "nenrin_verify.cli:tsugi_main"
 musubi-verify = "nenrin_verify.musubi:main"
+nenrin-a2a-record = "nenrin_verify.a2a_recorder:main"
+nenrin-policy = "nenrin_verify.policy:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

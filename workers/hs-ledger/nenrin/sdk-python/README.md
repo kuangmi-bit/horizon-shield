@@ -22,7 +22,54 @@ print(nv.report_sha256(report))               # compare with the JavaScript run,
 ```
 
 One dependency, `cryptography`, for Ed25519. Nothing here opens a socket, except `tsugi-verify --fetch-operator-key
-<origin>`, which fetches the operator key from the origin you name.
+<origin>`, which fetches the operator key from the origin you name, and the two opt-in calls below
+(`nenrin-a2a-record submit` / `flush(submit=True)`, and `policy.fetch_resume`).
+
+## Record every A2A call your agent makes (0.4, `a2a_recorder`)
+
+Two lines with the official A2A Python SDK (`pip install "nenrin-verify[a2a]"`):
+
+```python
+from nenrin_verify.a2a_recorder import Recorder
+client = ClientFactory(config).create(card, interceptors=[Recorder(witness_name="acme-billing", key="witness.pem")])
+```
+
+From then on every outgoing call (send, stream, get_task, cancel, ...) is logged on your machine: method, time, the
+salted sha256 of the request and of every response event, the final task state, and whether any result came back.
+At exit (or `rec.flush()`) the calls become one Ed25519-signed `jidec-path-v1` record per agent endpoint, in
+`nenrin-records/records/` (the exact body the NENRIN witness intake accepts), with the salt and the full log kept in
+`nenrin-records/private/` (mode 600). Nothing is sent unless you file it. Content never leaves your machine; a
+counterparty you show the private file to can match any call to its own logs (`a2a_recorder.matches`).
+
+Each record lists what it establishes and what it does not, names the previous record for the same endpoint
+(`prev_path_refs`, so a dropped day is a visible gap), and is checked against the ledger's own intake rules and the
+resume assembler before it is written. A record says what came back from an agent you actually used, not whether
+it was right; an unanswered call may be your own network, and the record says so.
+
+    nenrin-a2a-record keygen witness.pem       # serve the public key at https://<your domain>/... and pass key_url=
+    nenrin-a2a-record show                     # the records in ./nenrin-records
+    nenrin-a2a-record verify nenrin-records/records/<sha>.json --private nenrin-records/private/<sha>.json
+    nenrin-a2a-record submit nenrin-records/records/<sha>.json     # opt-in: file it at the public ledger
+
+## Your rule, your decision (0.4, `policy`)
+
+NENRIN never says whether to trust an agent. `policy.evaluate` applies a rule you write to a resume and returns a
+decision anyone recomputes from (resume, rule, time). No score; every record counted or not counted is listed with
+the reason, and the resume's own sha256 is recomputed rather than trusted.
+
+```python
+from nenrin_verify import policy
+rule = {"min_independent_witnesses": 2, "within_days": 30, "max_fail": 0, "exclude_domains": ["mycompany.example"]}
+d = policy.evaluate(policy.fetch_resume("https://agent.example/a2a"), rule)
+print(d["allow"], d["reasons"])
+```
+
+By default a witness counts only by the domain its signing key is served from (`independence: "signed_domain"`),
+and the measured agent's own domain never counts. `nenrin-policy <endpoint or resume.json> --rule rule.json` does
+the same from a shell (exit 0 allow, 1 deny).
+
+Snippets for LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI and Claude (the verification gate as an MCP tool,
+the recorder and the policy together): [integrations/FRAMEWORKS.md](https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/sdk-python/integrations/FRAMEWORKS.md).
 
 ## What it verifies
 

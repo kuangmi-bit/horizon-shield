@@ -1591,6 +1591,9 @@ async function handle(request, env) {
       const stored = {
         sha, record_canonical: b.record_canonical, signed,
         public_key_ed25519_b64: signed ? b.public_key_ed25519_b64 : null,
+        // 2026-10-02. The signature is kept with the record so a reader can verify it without trusting this intake
+        // (GET /witness/{sha} returns it). It is not in the batch bytes, so batches stay byte identical.
+        signature_ed25519_b64: signed ? b.signature_ed25519_b64 : null,
         signed_domain: signedDomain, key_url: v.key_url || null,
         mode: v.mode, v11: v.v11, disclaimer_present: v.disclaimer_present,
         endpoint: v.endpoint, counted, count_reason: countReason,
