@@ -126,7 +126,44 @@ def ledger_witnesses(our, our_names=()):
             "unsigned_names": {k: sorted(set(v)) for k, v in sorted(unsigned.items())}}
 
 
-def contracts(our):
+def published_contracts(reg, our):
+    """Contracts the parties keep in their own repositories, listed in registry.json under published_contracts as
+    {"contract_url", "contract_sha256"?, "settlement_url"?, "note"?}. A row counts only when the bytes at the URL are a
+    contract both sides signed and contract_v0.verify_contract accepts the signatures; a pinned contract_sha256 must
+    match. Rows that cannot be fetched or checked are listed with the reason and not counted."""
+    out, problems = [], []
+    rows = reg.get("published_contracts") or []
+    if not rows:
+        return out, problems
+    try:
+        sys.path.insert(0, MUSUBI)
+        import contract_v0 as v0
+    except Exception as e:
+        return out, [{"contract_url": r.get("contract_url"), "why": "contract_v0 not importable: %s" % e} for r in rows]
+    for r in rows:
+        url = r.get("contract_url")
+        try:
+            status, body = get(url)
+            d = json.loads(body.decode("utf-8"))
+        except Exception as e:
+            problems.append({"contract_url": url, "why": "not readable: %s" % e}); continue
+        try:
+            v = v0.verify_contract(d)
+        except SystemExit as e:
+            problems.append({"contract_url": url, "why": "signatures not checked here: %s" % e}); continue
+        csha = v.get("contract_sha256")
+        if r.get("contract_sha256") and r["contract_sha256"] != csha:
+            problems.append({"contract_url": url, "why": "the bytes hash to %s, the registry pins %s" % (csha, r["contract_sha256"])}); continue
+        if v.get("verdict") != "accepted":
+            problems.append({"contract_url": url, "why": "verify_contract: %s" % v.get("verdict")}); continue
+        domains = [str(x.get("domain") or "").lower() for x in d.get("parties") or [] if isinstance(x, dict)]
+        out.append({"contract_id": d.get("contract_id"), "file": url, "contract_sha256": csha, "parties": domains,
+                    "outside_parties": [x for x in domains if x and not ours(x, our)], "published_by_the_parties": True,
+                    "settlement_url": r.get("settlement_url")})
+    return out, problems
+
+
+def contracts(our, published=(), published_problems=()):
     out = []
     for p in tracked(MUSUBI, True):
         try:
@@ -144,10 +181,13 @@ def contracts(our):
             continue
         out.append({"contract_id": cid, "file": os.path.relpath(p, ROOT), "parties": domains,
                     "outside_parties": [x for x in domains if x and not ours(x, our)]})
+    for c in published:
+        if not any(o["contract_id"] == c["contract_id"] for o in out):
+            out.append(c)
     with_outside = [c for c in out if c["outside_parties"]]
     without_us = [c for c in out if c["parties"] and not any(ours(x, our) for x in c["parties"])]
     return {"signed_by_both": len(out), "with_an_outside_party": len(with_outside), "with_no_party_from_us": len(without_us),
-            "items": out}
+            "items": out, "published_not_counted": list(published_problems)}
 
 
 def agreements(our):
@@ -209,7 +249,8 @@ def measure():
                                 "generated_at": pool.get("generated_at"), "quorum_of_independent_controls_needed": 2},
     }
 
-    c = contracts(our)
+    pub, pub_problems = published_contracts(reg, our)
+    c = contracts(our, pub, pub_problems)
     m["external_contracts"] = {"count": c["with_an_outside_party"], **c}
 
     ag = agreements(our)
@@ -267,7 +308,7 @@ def readme_block(d):
         "| Outside domains that signed a walk and filed it to the ledger | %s | every `nenrin-witness-batch-v1` entry on the ledger |"
         % (fmt(wit["count"]) if wit["count"] is None else "%d (%s)" % (wit["count"], doms)),
         "| Re-verification pool | %d control cluster(s), %d needed for a quorum | `%s` |" % (len(pool["admitted"]), pool["quorum_of_independent_controls_needed"], pool["file"]),
-        "| MUSUBI contracts signed with an outside party | %d (with no party from this project: %d) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/` |" % (con["with_an_outside_party"], con["with_no_party_from_us"]),
+        "| MUSUBI contracts signed with an outside party | %d (with no party from this project: %d) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |" % (con["with_an_outside_party"], con["with_no_party_from_us"]),
         "| Outside identities that signed evidence (walk, contract or agreement) | %s | the three rows above and the agreement records |" % fmt(pro["count"]),
         "| Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | %s | GitHub API |" % fmt(ci.get("count")),
         "",

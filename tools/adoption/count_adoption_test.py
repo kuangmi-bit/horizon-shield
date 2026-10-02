@@ -64,6 +64,49 @@ def main():
     c = C.contracts(our)
     check("committed contracts both sides signed have an outside party", c["with_an_outside_party"] >= 1, True)
     check("no contract without us is invented", c["with_no_party_from_us"], 0)
+    # a contract two outside parties keep in their own repository, listed in the registry by URL
+    try:
+        import base64, tempfile
+        sys.path.insert(0, C.MUSUBI)
+        import contract_v0 as v0
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        have_crypto = True
+    except Exception:
+        have_crypto = False
+    if have_crypto:
+        def nk():
+            k = Ed25519PrivateKey.generate()
+            return k, base64.b64encode(k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
+        ka, pa = nk(); kb, pb = nk()
+        lb = {"kind": "bitcoin_block", "height": 969500, "hash": "0" * 64}
+        g = {"authorized_actions": ["read"], "prohibited_actions": ["delete"], "conditional": [], "delegation": {"allowed": []},
+             "revocation": {"effective_at": "anchor"}, "finality": {"depth": 6, "max_target_bits": "17080000"}, "witnesses": []}
+        dne = ["that anyone enforced any of this at runtime", "that the contractor obeyed the grant, only that its recorded acts match or deviate from it",
+               "that anyone judges liability or fault; the verdict is a function anyone recomputes",
+               "that a prohibited action was impossible, only that performing one is a provable deviation",
+               "that this is a legal contract or determines legal responsibility"]
+        ct = v0.build_contract({"domain": "a.example", "key_url": "https://a.example/k.json", "public_key_ed25519_b64": pa},
+                               {"domain": "b.example", "key_url": "https://b.example/k.json", "public_key_ed25519_b64": pb},
+                               {"purpose": "p", "payload_digest": "a" * 64}, g, ["that both parties signed these grant bytes at the stated time"], dne,
+                               lower_bound=lb, contract_id="0123456789abcdef0123456789abcdef", nonce="2" * 32, agreed_at="2026-10-02T00:00:00Z")
+        v0.sign_contract(ct, ka, pa, "a.example")
+        tdir = tempfile.mkdtemp()
+        one = os.path.join(tdir, "one.json"); open(one, "w").write(json.dumps(ct))
+        v0.sign_contract(ct, kb, pb, "b.example")
+        both = os.path.join(tdir, "both.json"); open(both, "w").write(json.dumps(ct))
+        forged = json.loads(json.dumps(ct)); forged["grant"]["authorized_actions"] = ["read", "delete"]
+        fg = os.path.join(tdir, "forged.json"); open(fg, "w").write(json.dumps(forged))
+        reg = {"published_contracts": [{"contract_url": "file://" + both}, {"contract_url": "file://" + one},
+                                       {"contract_url": "file://" + fg}, {"contract_url": "file://" + both, "contract_sha256": "f" * 64},
+                                       {"contract_url": "file://" + os.path.join(tdir, "missing.json")}]}
+        pub, probs = C.published_contracts(reg, our)
+        check("a published contract both outside parties signed is counted once", [p["parties"] for p in pub], [["a.example", "b.example"]])
+        check("one signature, an edited grant, a wrong pin, a missing file: each listed, none counted", len(probs), 4)
+        c2 = C.contracts(our, pub, probs)
+        check("with it, a contract with no party from this project", c2["with_no_party_from_us"], 1)
+    else:
+        print("skip  published contracts (the cryptography package is not installed, signatures cannot be checked)")
     d = {"measured_at": "2026-10-02T00:00:00Z", "metrics": {
         "independent_implementations": {"count": 1, "distinct_authors": 1, "by_subject": {"x": 1}, "open_calls": {}},
         "independent_witnesses": {"count": None, "ledger": None, "reverification_pool": {"admitted": [], "file": "p", "quorum_of_independent_controls_needed": 2}},

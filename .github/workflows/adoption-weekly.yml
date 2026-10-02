@@ -31,6 +31,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Signature checking for contracts the parties publish themselves
+        run: python -m pip install --disable-pip-version-check "cryptography==46.0.7"
+
       - name: The counting rules, offline (fake ledger, no network)
         run: python3 tools/adoption/count_adoption_test.py
 
