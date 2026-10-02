@@ -49,6 +49,13 @@
       "what": "Re-verified the gate's agent card signature with their own verifier, 10/10, recording the digest our signing tool printed",
       "evidence": "https://agenstry.com/agents/gate.horizonshield.dev",
       "date": "2026-09-28"
+    },
+    {
+      "who": "Sankalp Gilda (astrogilda), Probity AI",
+      "subject": "a2a-card-sign-v01",
+      "what": "A separately implemented retained-field consumer, run against all 13 s3-unknown-fields cases: every outcome matches the a2a-go column of MANIFEST.observed, S3-D-012 accepted through its retained-form signature, S3-T-011 and S3-D-013 refused",
+      "evidence": "https://github.com/probityai/agent-evidence-vectors/pull/34",
+      "date": "2026-10-02"
     }
   ],
   "open_calls": {
