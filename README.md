@@ -38,11 +38,11 @@ What people who do not work for this project have measured, signed or reproduced
 | Rows on the public register that are not ours | 1 of 9, still pending | `curl -s https://gate.horizonshield.dev/register` |
 
 <!-- adoption-count:start -->
-Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_adoption.py), last on 2026-10-01. Every number comes from a source you can read; one that could not be read says so instead of counting zero. The whole count: [`ops/adoption/latest.json`](ops/adoption/latest.json).
+Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_adoption.py), last on 2026-10-02. Every number comes from a source you can read; one that could not be read says so instead of counting zero. The whole count: [`ops/adoption/latest.json`](ops/adoption/latest.json).
 
 | What | Count | From |
 |---|---|---|
-| Independent implementations that reproduced our bytes or verdicts | 5 rows by 4 authors (a2a-card-canonical-form 1, a2a-card-sign-v01 3, agent-card-signature 1) | [`tools/adoption/registry.json`](tools/adoption/registry.json), each row with its public link |
+| Independent implementations that reproduced our bytes or verdicts | 6 rows by 5 authors (a2a-card-canonical-form 1, a2a-card-sign-v01 4, agent-card-signature 1) | [`tools/adoption/registry.json`](tools/adoption/registry.json), each row with its public link |
 | Outside domains that signed a walk and filed it to the ledger | 2 (`api.babyblueviper.com`, `pipavlo82.github.io`) | every `nenrin-witness-batch-v1` entry on the ledger |
 | Re-verification pool | 1 control cluster(s), 2 needed for a quorum | `workers/hs-ledger/nenrin/recovery-v0/pool_report.json` |
 | MUSUBI contracts signed with an outside party | 2 (with no party from this project: 0) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/` |
