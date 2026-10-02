@@ -74,6 +74,12 @@ One verifier threads the contract rows together: [`spine_verify.py`](https://git
 
 All of MUSUBI also installs without a clone: `pip install nenrin-verify` (0.3.0) carries `musubi-v0/` byte for byte, and `musubi-verify spine_verify --selftest` or `musubi-verify --run0002` runs the same files.
 
+## Price ranges you can recompute
+
+Every `get_price_range` answer carries a `recompute` block: the URL and SHA-256 of the `souba-db.json` bytes it used (the same file is in this repository at [`data/souba-db.json`](data/souba-db.json)), the entry `id` of each row, and the formula: the table value, or the table value times the regional multiplier in the same file, rounded half up. [`tools/recompute_price_range.py`](tools/recompute_price_range.py) checks an answer end to end with the Python standard library, and fails on any byte or row that differs.
+
+What it shows is that the answer equals the published table. It does not show that the table is right: the values are curated by a named curator against the sources listed in the file, not computed from those sources by a published formula.
+
 ## NENRIN: tree rings for AI facing services
 
 > A tree adds one ring a year. Nobody can paint one in afterwards. NENRIN gives that property to software services.
