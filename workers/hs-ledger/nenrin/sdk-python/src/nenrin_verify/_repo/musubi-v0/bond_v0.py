@@ -4,7 +4,7 @@
 MUSUBI bond v0: the bond's teeth, without custody (a2a-bond-resolution-v0).
 
 Why this file exists. The contract carries an optional bond, and every settlement since v0 computes
-bond_outcome (held / forfeited / pending_finality / undetermined / n/a) as a pure function of the
+bond_outcome (held / forfeited / pending_finality / pending_spine / undetermined / n/a) as a pure function of the
 contract and the records. What was missing is the step after the verdict: who actually held the
 money, and what they did with it once the outcome was final. An outside review (2026-09-25) put it
 plainly: the bond had a verdict but no coded consequence.
@@ -144,7 +144,7 @@ def verify_bond_resolution(resolution, contract, settlement):
     if problems:
         return {"verdict": "unsettleable", "problems": sorted(problems, key=canonical), "findings": findings}
 
-    if outcome in ("pending_finality", "undetermined"):
+    if outcome in ("pending_finality", "pending_spine", "undetermined"):   # pending_spine: settle v1.8, the contract's spine gate is not met
         findings.append({"code": "disposition_before_final",
                          "why": "the settlement's bond_outcome is %s; a disposition now is the holder's own risk, on the record" % outcome})
         return {"verdict": "premature", "problems": [], "findings": findings}

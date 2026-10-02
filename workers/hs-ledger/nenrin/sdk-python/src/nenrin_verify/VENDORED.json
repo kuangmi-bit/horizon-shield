@@ -11,8 +11,8 @@
   },
   "_repo/musubi-v0/README.md": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/README.md",
-    "source_sha256": "4c86d544b124109b57ab31950123cef828a7aa650dc25ad703eed671f00732a5",
-    "vendored_sha256": "4c86d544b124109b57ab31950123cef828a7aa650dc25ad703eed671f00732a5"
+    "source_sha256": "82c8e515bcea14fbb2025e4890267a011b1fbc5ec5f074648dfc72447d86bfbf",
+    "vendored_sha256": "82c8e515bcea14fbb2025e4890267a011b1fbc5ec5f074648dfc72447d86bfbf"
   },
   "_repo/musubi-v0/anchor_compose.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/anchor_compose.py",
@@ -26,8 +26,8 @@
   },
   "_repo/musubi-v0/bond_v0.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/bond_v0.py",
-    "source_sha256": "62d2577f03870652d72a8f66d1be777088d4ec5c905fea8f2fb043b3ce6313a4",
-    "vendored_sha256": "62d2577f03870652d72a8f66d1be777088d4ec5c905fea8f2fb043b3ce6313a4"
+    "source_sha256": "e15c4355f762f08bf7ea070613e4572e2f72d7786bd44866d961ca59a25c181c",
+    "vendored_sha256": "e15c4355f762f08bf7ea070613e4572e2f72d7786bd44866d961ca59a25c181c"
   },
   "_repo/musubi-v0/canonical_v0.mjs": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/canonical_v0.mjs",
