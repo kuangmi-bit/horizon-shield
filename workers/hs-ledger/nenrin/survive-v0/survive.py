@@ -129,7 +129,7 @@ def copy_from_github(work):
                "note": "the operator can delete this account; this source proves the copy's form, not its survival"}
 
 
-def copy_from_swh(work, wait_s=900):
+def copy_from_swh(work, wait_s=1800):  # 2026-10-02: 900 s ran out once while the vault queue was busy
     api = "https://archive.softwareheritage.org/api/1"
     o = urllib.parse.quote(REPO_ORIGIN, safe="")
     st, b = http_get("%s/origin/%s/visit/latest/?require_snapshot=true" % (api, o))

@@ -1,0 +1,50 @@
+name: pending mirror
+
+# 台帳が受け取ってまだ束ねていない記録(証人の歩き、合意)を、毎時この公開 repo に写す。
+# なぜ: 受け取ってから 00:30 UTC の束ねに入るまで(最長 1 日)、記録は Cloudflare KV にしか無かった (2026-10-02)。
+# 束ねた後は mirror-v0 / survive-v0 が写す。この job はその前の窓を 1 時間に縮める。鍵は要らん(公開の読みだけ)。
+# 新しい記録が無い時は commit せん。手で回す: Actions -> pending mirror -> Run workflow。
+# 本体と試験: workers/hs-ledger/nenrin/pending-v0/ (pending_mirror.py、pending_mirror_test.py)。
+
+on:
+  schedule:
+    - cron: "23 * * * *"   # hourly at :23
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pending-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: test the mirror (fake ledger on 127.0.0.1)
+        run: python3 workers/hs-ledger/nenrin/pending-v0/pending_mirror_test.py
+      - name: copy pending records as served
+        run: python3 workers/hs-ledger/nenrin/pending-v0/pending_mirror.py --out workers/hs-ledger/nenrin/pending-v0 | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: record (only when a new pending record was copied)
+        if: always()
+        run: |
+          git config user.name "hs-pending-mirror"
+          git config user.email "contact@the-horizons-innovation.com"
+          D=workers/hs-ledger/nenrin/pending-v0
+          git add "$D/snapshots" "$D/log.jsonl" 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "新しい記録はありません。commit しません。" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          N=$(git diff --cached --name-only | wc -l | tr -d ' ')
+          git commit -m "pending-v0: $(date -u +%Y-%m-%dT%H:%MZ) ($N files, as served)"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && break
+            sleep 5
+          done
