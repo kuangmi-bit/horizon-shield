@@ -4,7 +4,7 @@ The candidate is installed from source at an exact commit in its own virtualenv,
 virtualenv. It refuses to run if the installed source is not at the pinned commit. Each of the 37 served cards goes,
 unmodified, to the candidate's verifier; the verdicts are written to observed.results (s0, s1), observed.s2.results and
 observed.s3.results under the column name, the version line to observed.versions, and for each s3 case which reading
-the candidate's canonical bytes equal (matched by sha256 against the forms already recorded) to s3_sdk_forms.
+the candidate's canonical bytes equal (matched by sha256 against the forms already recorded) to s3_sdk_forms and s4_sdk_forms.
 
   /path/to/candidate-venv/bin/python observe_pinned.py aeoess-2491248          write
   /path/to/candidate-venv/bin/python observe_pinned.py aeoess-2491248 --check  recompute and compare, write nothing
@@ -24,6 +24,13 @@ PINNED = {
                    "create_served_card_signature_verifier on the served JSON; a candidate for a2aproject/A2A#2122, "
                    "not a release and not a PR",
         "source": "https://github.com/aeoess/a2a-python/tree/2491248cf4435bb3125fd02f7bee077a2ca82fb7",
+    },
+    "aeoess-5f9e52c": {
+        "column": "aeoess/a2a-python@5f9e52c",
+        "commit": "5f9e52c1005693104e9f41be9a2097f5b34e105c",
+        "version": "aeoess/a2a-python branch candidate/served-scope-1278 at 5f9e52c (2026-10-02), create_served_card_signature_verifier on the served JSON, "
+                   "refusing a field given under both its JSON name and its protobuf name; a candidate for a2aproject/A2A#2122, not a release and not a PR",
+        "source": "https://github.com/aeoess/a2a-python/tree/5f9e52c1005693104e9f41be9a2097f5b34e105c",
     },
 }
 
@@ -58,11 +65,15 @@ def run(pin):
             verdicts[d["id"]] = False
         if given != card:
             raise SystemExit("verifier changed its input on " + d["id"])
-        if d.get("axis") == "unknown-fields" and d["case"] in man["s3_sdk_forms"]["cases"] and d["case"] not in forms:
-            b = signing.canonicalize_served_agent_card(copy.deepcopy(card)).encode()
-            sha = hashlib.sha256(b).hexdigest()
-            known = {e["sha256"]: e["equals"] for e in man["s3_sdk_forms"]["cases"][d["case"]].values() if e["equals"] != "neither"}
-            forms[d["case"]] = {"equals": known.get(sha, "neither"), "sha256": sha, "len": len(b)}
+        table = {"unknown-fields": "s3_sdk_forms", "dual-name": "s4_sdk_forms"}.get(d.get("axis"))
+        if table and table in man and d["case"] in man[table]["cases"] and (table, d["case"]) not in forms:
+            try:
+                b = signing.canonicalize_served_agent_card(copy.deepcopy(card)).encode()
+                sha = hashlib.sha256(b).hexdigest()
+                known = {e["sha256"]: e["equals"] for e in man[table]["cases"][d["case"]].values() if e.get("equals") not in ("neither", "refused") and "sha256" in e}
+                forms[(table, d["case"])] = {"equals": known.get(sha, "neither"), "sha256": sha, "len": len(b)}
+            except Exception as e:
+                forms[(table, d["case"])] = {"equals": "refused", "error": type(e).__name__}
     return man, verdicts, forms
 
 
@@ -76,8 +87,8 @@ def apply(man, pin, verdicts, forms):
         g = vid.split("-")[0]
         table = obs["results"] if g in ("S0", "S1") else obs[g.lower()]["results"]
         table[vid][col] = ok
-    for case, f in forms.items():
-        man["s3_sdk_forms"]["cases"][case][col] = f
+    for (table, case), f in forms.items():
+        man[table]["cases"][case][col] = f
     return man
 
 
@@ -94,13 +105,12 @@ def main():
         bad = [p for p, body in ((path, want), (vpath, vbody)) if not os.path.exists(p) or open(p).read() != body]
         print("check: " + ("FAIL " + ", ".join(bad) if bad else "MANIFEST and verdicts match the pinned run"))
         sys.exit(1 if bad else 0)
-    if pin["column"] in man["observed"]["versions"]:
-        raise SystemExit("column already present; use --check")
+    # 既に列があれば、同じ固定で走らせ直して上書きする(新しい群が足された時のため)
     open(path, "w").write(want)
     os.makedirs(out_dir, exist_ok=True)
     open(vpath, "w").write(vbody)
     print("%s: %d accepted of %d" % (pin["column"], sum(verdicts.values()), len(verdicts)))
-    print("s3 forms: " + json.dumps({c: f["equals"] for c, f in forms.items()}))
+    print("forms: " + json.dumps({t + ":" + c: f["equals"] for (t, c), f in forms.items()}))
 
 
 if __name__ == "__main__":

@@ -19,11 +19,17 @@ Group s3 (vectors carrying "axis": "unknown-fields") asks a different question, 
 carries fields outside the schema, and is scored in a second table against its own readings: unknown-retain,
 unknown-exclude, unknown-reject. The first table counts only s0 to s2, so its numbers are the ones published before s3
 existed. Verdict files without s3 ids print no second table.
+
+Group s4 (vectors carrying "axis": "dual-name") is labelled against a proposed sentence, not against the specification:
+dual-name-tolerate is the specification text at 173695755607, dual-name-refuse is the sentence proposed on
+a2aproject/A2A#2122. It prints in a third table. Accepting a dual-name vector shows divergence from the proposal, not a
+failure against the current text, so that column prints div= (divergences) instead of fa=.
 """
 import json, os, sys
 
 READINGS = ["rule-1-served-scope", "rule-1-descriptor-scope", "prune-empty", "served-as-is"]
 S3_READINGS = ["unknown-retain", "unknown-exclude", "unknown-reject"]
+S4_READINGS = ["dual-name-tolerate", "dual-name-refuse"]
 
 
 def expected(doc, reading):
@@ -58,7 +64,8 @@ def main():
     corpus, files = sys.argv[1], sys.argv[2:]
     alldocs = load(corpus)
     tables = [(READINGS, [d for d in alldocs if "axis" not in d]),
-              (S3_READINGS, [d for d in alldocs if d.get("axis") == "unknown-fields"])]
+              (S3_READINGS, [d for d in alldocs if d.get("axis") == "unknown-fields"]),
+              (S4_READINGS, [d for d in alldocs if d.get("axis") == "dual-name"])]
     verdicts = [json.load(open(f)) for f in files]
     for n, (readings, docs) in enumerate(tables):
         rows = [(j["name"], score(docs, j["verdicts"], readings)) for j in verdicts]
@@ -69,7 +76,9 @@ def main():
             print()
         print("%-34s" % "verifier" + "".join("%-26s" % r for r in readings))
         for name, s in rows:
-            print("%-34s" % name[:33] + "".join("%-26s" % ("%d/%d fa=%d" % (s[r]["right"], s[r]["of"], s[r]["false_accepts"])) for r in readings))
+            # 提案に対する読み(dual-name-refuse)では、受理は誤りでなく提案との食い違い(div)として数える
+            lab = lambda r: "div" if r == "dual-name-refuse" else "fa"
+            print("%-34s" % name[:33] + "".join("%-26s" % ("%d/%d %s=%d" % (s[r]["right"], s[r]["of"], lab(r), s[r]["false_accepts"])) for r in readings))
 
 
 if __name__ == "__main__":

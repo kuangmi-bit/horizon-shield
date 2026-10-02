@@ -121,6 +121,40 @@ above already accepts S3-D-012. S3-D-013 shows the limit: a verifier that accept
 accepts the edited card too, so the transition belongs on the signer's side, not the verifier's. The "matches" column is recorded, not assumed: `vectors_s3.py` canonicalizes every case with each SDK
 and writes which reading its bytes equal to `MANIFEST.json` under `s3_sdk_forms`.
 
+## Group s4: one field under both its JSON name and its protobuf name
+
+Added after a2aproject/A2A#2122 found that a card can carry one schema field twice, for example `defaultInputModes`
+and `default_input_modes`. A parser that accepts both spellings keeps one value; a verifier that canonicalizes the
+received JSON keeps both members. The specification at `173695755607` does not address it. A sentence was proposed on
+#2122 (issuecomment-5946904114, supported in issuecomment-5947101219):
+
+> A verifier MUST refuse a card in which the same schema field appears under both its JSON name and its protobuf name.
+
+This group is labelled against that proposal, as s3 is labelled against its readings (issuecomment-5947250034). The
+specification does not yet require refusal, so accepting a dual-name card shows divergence from the proposal, not
+failure against the current text. If the sentence is adopted, the results get pinned to the revision that carries it.
+`score.py` prints the group in its own table, and the proposal column counts divergences (`div=`) rather than false
+accepts.
+
+| reading | what it does | matches |
+|---|---|---|
+| `dual-name-tolerate` | the specification text at 173695755607: canonicalize the received JSON under served scope, both spellings kept as served | a2a-go main 534a60fc; aeoess/a2a-python@2491248 |
+| `dual-name-refuse` | the proposed sentence: a card carrying both spellings of one field is refused | aeoess/a2a-python@5f9e52c |
+
+| case | vector | accepted under |
+|---|---|---|
+| `defaultInputModes` and `default_input_modes` at the top level | S4-001 | dual-name-tolerate |
+| `skills[0].inputModes` and `skills[0].input_modes` | S4-002 | dual-name-tolerate |
+| `bearerFormat` and `bearer_format` inside a `securitySchemes` map value | S4-003 | dual-name-tolerate |
+| the same scheme with one spelling (control) | S4-004 | both |
+| the s0 control signed, then `default_input_modes` added after signing | S4-REJECT-005 | neither |
+
+S4-001 to S4-003 are signed over the received JSON with both members. S4-REJECT-005 is the point of the group: under
+either reading the added member must break the signature or be refused. A verifier that drops the snake_case spelling
+before canonicalizing still verifies it, while a parser that keeps the snake_case value reads `image/png` from a card
+whose signature covered `text/plain`. Which form each SDK's canonicalization equals on each case is recorded in
+`MANIFEST.json` under `s4_sdk_forms`.
+
 ## Scoring a verifier
 
 `score.py` (beside the generator, no dependencies) takes a verifier's accept/reject verdicts and reports, for each
@@ -158,6 +192,20 @@ all 37 vectors, so at a091c83 every row reads exactly like the a2a-python (a2a-s
 (a2aproject/a2a-python#1287). The column stays as the record of the descriptor reading. It is not the PR's current
 behaviour; for the PR head, cite the a2a-python column.
 
+On 2026-10-02, `observed.s4`:
+
+| vector | a2a-python (1.2.1) | a2a-js (1.3.0) | a2a-go | aeoess@2491248 | aeoess@5f9e52c |
+|---|---|---|---|---|---|
+| S4-001 to S4-003 | reject | reject | accept | accept | reject |
+| S4-004 | accept | accept | accept | accept | accept |
+| S4-REJECT-005 | reject | **accept** | reject | reject | reject |
+
+a2a-python 1.2.1 and @a2a-js/sdk 1.3.0 reject S4-001 to S4-003 because they canonicalize another form, not because they
+refuse the card, and they do not agree with each other on that form: a2a-python takes the snake_case value, @a2a-js/sdk
+keeps the camelCase member and drops the other (`s4_sdk_forms`). S4-REJECT-005 separates the two: @a2a-js/sdk 1.3.0
+accepts a card whose snake_case member was added after signing, and a parser that takes that member then reads a value
+the signature never covered.
+
 ## Pinned candidates
 
 A candidate that is not a release can be added as its own column without regenerating any vector:
@@ -166,6 +214,10 @@ source is at the pinned commit with no local change, passes each served card unm
 and writes the verdicts beside the SDK columns in `MANIFEST.json` (`observed.results`, `observed.s2`, `observed.s3`),
 the pin under `observed.pinned`, and which reading its canonical bytes equal under `s3_sdk_forms`. `--check` reruns and
 compares without writing. The verdicts are also in `verdicts_20261002/` for `score.py`.
+
+`aeoess/a2a-python@5f9e52c` (same branch) adds the refusal of a field given under both spellings. On s0 to s3 its 37
+verdicts are identical to 2491248; on s4 it is the `dual-name-refuse` column. 2491248 stays the pin for the s0 to s3
+numbers published on #2122.
 
 `aeoess/a2a-python@2491248` (branch `candidate/served-scope-1278`, a candidate for a2aproject/A2A#2122): the new entry
 point `create_served_card_signature_verifier` takes the received JSON and canonicalizes it with
