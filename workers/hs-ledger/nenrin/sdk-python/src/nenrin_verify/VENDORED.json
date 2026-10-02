@@ -11,8 +11,8 @@
   },
   "_repo/musubi-v0/README.md": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/README.md",
-    "source_sha256": "1f3b0d95700268964af5e32c58f4e3f4f0b2e04a76d329e10dda3456a597329c",
-    "vendored_sha256": "1f3b0d95700268964af5e32c58f4e3f4f0b2e04a76d329e10dda3456a597329c"
+    "source_sha256": "f41ade559a41e44ecff1cf91cad6688d4d596c23b54649d656fb842f9e7a1d40",
+    "vendored_sha256": "f41ade559a41e44ecff1cf91cad6688d4d596c23b54649d656fb842f9e7a1d40"
   },
   "_repo/musubi-v0/anchor_compose.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/anchor_compose.py",

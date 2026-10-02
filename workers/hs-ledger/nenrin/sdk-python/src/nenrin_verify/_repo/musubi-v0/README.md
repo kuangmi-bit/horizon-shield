@@ -250,6 +250,16 @@ corroboration counts legal entities that measured "done", but the contractor can
 - Nine mutants are each killed by the self tests (counting measurers nobody drew, measurements before the draw, ignoring the method count, counting a party's company, skipping the pool pin, allowing a beacon seen at signing, ignoring the history link, v1.9 not holding finality back, convergence without the spine gate), on top of the eight that settle v1.8 kills.
 - Stated limits: drawn measurers can still collude after the draw. The draw stops the parties choosing them, the method rule makes a lie pass several directions, and the history graph drops measurers already tied to a party; what remains is how many independent entities would have to lie together, and the report counts them. A settler older than v1.9 ignores the block. The pool's fairness rests on both parties having signed its hash.
 
+## peer_kit and anchor_direct: a contract with nobody from this project in it (2026-10-02)
+Every MUSUBI contract so far had this project as a party, and every execution reached Bitcoin through its ledger. The adoption count reports both: contracts with an outside party 2, contracts with no party from this project 0. These two files are the whole path for two other parties, with no account, key, server or ledger of ours.
+
+    python3 anchor_direct.py --selftest     # expect: ALL PASS (anchor_direct: 4 checks)
+    python3 peer_kit.py selftest            # expect: ALL PASS (peer_kit: 4 checks)
+
+- `anchor_direct.py`: `--stampable` writes canonical(record without "anchor"), whose sha256 is exactly the digest settle starts from; the parties run `ots stamp` on it themselves (OpenTimestamps, public calendars). Once the stamp confirms, `compose_direct` follows the .ots to the header at the attested height and returns a settle anchor with no hexlify, so it is an ordinary merkle path and settle v1.7's batch-leg rule does not apply. The self test settles a signed execution anchored this way: within_grant, final.
+- `peer_kit.py`: `keygen` (Ed25519 PEM, mode 600, never overwrites), `contract` (from a small params JSON, including any of the requirements above), `sign` (refuses a key the contract does not pin), `verify`, `exec` (the contractor signs an execution naming the contract by contract_sha256), `stampable`, `anchor`, `settle` (v1.9). Block headers come from any explorer; `header_view_fetch.py` builds a view from two and checks they agree.
+- Stated limits: the kit uses these verification files, so the parties run code this project wrote; the code is the protocol, every step is reproducible, and nothing it does talks to us. Publishing each party's public key at its key_url is the parties' job.
+
 ## bond v0: the bond's teeth, without custody (2026-09-25)
 Every settlement since v0 computes `bond_outcome`, but nothing recorded what the holder actually did with the money, and an outside review said so plainly. HS will not answer that with custody (refused at every layer). `bond_v0.py` makes the consequence a record: `a2a-bond-resolution-v0`, in which the party that `bond.holder` names states, over its own signature with the key pinned in the signed contract, what it did with the bond (`released` or `forfeited_to_principal`), pinned to `contract_sha256` and to the exact settlement bytes (`settlement_sha256`).
 
