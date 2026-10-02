@@ -53,5 +53,8 @@ ok(r.isError && /NOT a statement/.test(r.content[0].text), "503 is an error, nev
 r = await call("nenrin_ledger_entry", { n: 0 });
 ok(r.isError, "n=0 refused");
 const card = await (await worker.fetch(new Request("https://jidec.horizonshield.dev/.well-known/agent-card.json"), env)).json();
-ok(card.version === "1.2.1", "signed card version unchanged (1.2.1)");
+ok(card.version === "1.2.2", "signed card version 1.2.2");
+ok(card.provider && card.provider.legalEntity && card.provider.legalEntity.id === "7021001075279", "provider.legalEntity houjin-bango");
+ok((card.capabilities.extensions || []).some((e) => e.uri === "https://gate.horizonshield.dev/ext/legal-entity/v1" && e.params && e.params.id === card.provider.legalEntity.id && e.params.name === card.provider.legalEntity.name), "legal-entity-v1 params mirror provider.legalEntity");
+ok(Array.isArray(card.securityRequirements) && card.securityRequirements.length === 1 && Object.keys(card.securityRequirements[0]).length === 0 && !card.securitySchemes, "securityRequirements [{}] and no invented scheme");
 console.log("ALL PASS (hs-jidec-mcp 1.3.0 NENRIN tools: " + n + " checks)");

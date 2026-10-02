@@ -56,7 +56,7 @@ const HEX64 = /^[0-9a-f]{64}$/i;
 // 1.3.0 (2026-09-30): NENRIN read tools. The A2A card keeps its own version (CARD_VERSION) because its bytes are
 // signed and its A2A face did not change; re-signing is a separate step, not a side effect of adding MCP tools.
 const VERSION = "1.3.0";
-const CARD_VERSION = "1.2.1";
+const CARD_VERSION = "1.2.2";
 const PROTOCOL_VERSION = "2025-11-25";
 
 /* ------------------------------ origin policy ------------------------------ */
@@ -586,6 +586,13 @@ const SERVER_INFO = {
 // 誰が払うか、行儀の記録(第三者が書いた物)がどこか、繋いだ相手が自分の観測をどこに出せるか。
 // card の capabilities.extensions[] に置く(A2A 1.0 の正規の場所)。仕様は URI そのもの。点数も判定も無い。
 const CONDUCT_EXT_URI = "https://gate.horizonshield.dev/ext/conduct/v1";
+// 2026-10-02 legal-entity-v1: 扉と同じ定数と拡張。provider.legalEntity は proto に欄が無く署名の前に落ちるので、同じ値を拡張の params にも置く(params は署名に入る)。
+const LEGAL_ENTITY_EXT_URI = "https://gate.horizonshield.dev/ext/legal-entity/v1";
+const LEGAL_ENTITY = { registry: "JP", scheme: "houjin-bango", id: "7021001075279", name: "The HORIZ\u97f3s Co., Ltd." };
+const LEGAL_ENTITY_LOOKUP_URL = "https://www.houjin-bangou.nta.go.jp/henkorireki-johoto.html?selHouzinNo=" + LEGAL_ENTITY.id;
+function legalEntityExtension() {
+  return { uri: LEGAL_ENTITY_EXT_URI, description: "The legal entity that answers for this agent, declared inside the signed bytes. The specification is served at the URI.", required: false, params: Object.assign({}, LEGAL_ENTITY, { lookup_url: LEGAL_ENTITY_LOOKUP_URL }) };
+}
 // 0.4.3 (2026-09-09). w3id.org の永続識別子。perma-id/w3id.org#6653 merge、302 で上の URI へ。
 // A2A の拡張ガイダンスが perma-id を推しとるので、その綴りで活性化してくる client は出る。
 // 識別子は 1 本のまま。読むのは閉じた 2 本の一覧、完全一致だけ。redirect は叩かん。
@@ -607,10 +614,10 @@ const CARD_SIGNATURE = {
   "jku": "https://jidec.horizonshield.dev/.well-known/jwks.json",
   "alg": "ES256",
   "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJocy0yMDI2LTA5Iiwiamt1IjoiaHR0cHM6Ly9qaWRlYy5ob3Jpem9uc2hpZWxkLmRldi8ud2VsbC1rbm93bi9qd2tzLmpzb24ifQ",
-  "signature": "oeGTF8IvUuKyPcZ8hqd-LQB8nyQ5mUCya1w44Pa4EAzQbJ47SXkTVyKDj0Eupn-pVGzEFZcYlQmaRKerRsnxsA",
+  "signature": "5Thg1m0AkJYAaXCICKFseMhEmOBGtrA80LHuQOgixkygNvDjlXU04wf7IYecTxMEztT_Sjpu1jSL_343qTCFOA",
   "plain": {
     "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpPU0UiLCJraWQiOiJocy0yMDI2LTA5Iiwiamt1IjoiaHR0cHM6Ly9qaWRlYy5ob3Jpem9uc2hpZWxkLmRldi8ud2VsbC1rbm93bi9qd2tzLmpzb24ifQ",
-    "signature": "-1C3aFCm0-_ITKfZL6ci9VnJS78XgP6s0y636w4XixaxTgetiw5y78Jt0rfAn7ivUJc1aKUAtNUwnsuuMwJ7EA"
+    "signature": "CRk_sQ8lcXUz_8mtN9Qv8K2rTUj6ZomX68LJ8LkcIajZXMDDDLF2cNEGv7hKXxwb1DCvIM0f_vqEY1KpnDM8HQ"
   },
   "jwk": {
     "kty": "EC",
@@ -621,8 +628,8 @@ const CARD_SIGNATURE = {
     "alg": "ES256",
     "use": "sig"
   },
-  "canonical_sha256": "783af2deb16ac0176700df9429f884cee7da8ca2024347968c9d5106ee5c67d1",
-  "jcs_sha256": "898c50cd14cc5360f83b66e3d60c34144d67b9a65c1a708b8cec9228af98be7c"
+  "canonical_sha256": "f5025430c717fc30473f61f3d3d4e91730db2349e862967759382029847042fe",
+  "jcs_sha256": "c805bd4e5f72015c0e316240b3742b5a92315191b6c158520e4ee0cd580f0117"
 };
 /* @@CARD_SIGNATURE_END */
 const CARD_CANONICAL_ORIGIN = "https://jidec.horizonshield.dev";
@@ -790,11 +797,14 @@ const AGENT_CARD = {
   description: "Read-only MCP interface to JIDEC / NENRIN, a Bitcoin-anchored public verification ledger. Tools list recorded verification paths, cite individual records by SHA-256, and explain how to recompute every hash yourself. The operator holds no delete route in code: valid submissions stay, including ones that embarrass the operator. Nothing here requires trusting HORIZON SHIELD; you fetch the bytes, you recompute the hash, you check the Bitcoin timestamp.",
   url: A2A_URL,
   preferredTransport: "JSONRPC",
-  provider: { organization: "The HORIZONs\u682a\u5f0f\u4f1a\u793e", url: "https://shield.the-horizons-innovation.com" },
+  provider: { organization: "The HORIZONs\u682a\u5f0f\u4f1a\u793e", url: "https://shield.the-horizons-innovation.com", legalEntity: LEGAL_ENTITY },
   version: CARD_VERSION,
-  capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extensions: [conductExtension()] },
+  capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false, extensions: [conductExtension(), legalEntityExtension()] },
   defaultInputModes: ["application/json", "text/plain"],
   defaultOutputModes: ["application/json", "text/plain"],
+  // 2026-10-02 Security declaration: この worker に認証の口は無い(読み取り専用、運営の口も無い)。[{}] は「匿名で呼べる」の明示(OpenAPI と同じ読み方)。
+  // 無い scheme は宣言せん。[{}] は公式 SDK の canonicalizer が空として落とすので署名の対象には入らん(扉と同じ)。
+  securityRequirements: [{}],
   // top-level は旧読者のため。extension の params.compensation と同じ物(扉 0.3.2 は一致を要求する)。
   compensation: CONDUCT_COMPENSATION,
   skills: [
