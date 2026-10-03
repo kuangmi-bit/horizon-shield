@@ -8,9 +8,19 @@ Features: measured on the page files in this repository, the same family as grav
 (a page answers many queries), plus where the page sits (section, core or archive sitemap) and how many of our own
 pages link to it.
 
-Two fits, both ridge-regularised on standardised features, with bootstrap 90% intervals:
+Three fits, all ridge-regularised on standardised features, with bootstrap 90% intervals:
   1. P(cited at all): logistic regression
   2. log(1 + citations) among all pages: linear regression
+  3. The GRAVITY-v0 formula itself: G_i = sum_k w_k f_ik, and each citation lands on page i with probability
+     softmax(G)_i = exp(G_i) / sum_j exp(G_j). The softmax over pages, fitted on citation counts, has the same weights
+     as a Poisson log-linear model with an intercept (Baker 1994, the multinomial-Poisson transformation), so it is
+     fitted that way. These w are the gravity weights learned from Bing, and they feed gravity_margin.py --weights bing
+     through iasf/gravity/weights_bing.json (all features, and a content-only refit that can score any page).
+     Levers: for each of our pages, the expected extra citations from one concrete change (相場 or 適正 in the title,
+     one more table, FAQPage JSON-LD): E_i x (exp(dG) - 1), where E_i is the page's expected share of the citations.
+     dG is given twice: with the fitted w, and with the cautious w (the bootstrap 5th percentile of each positive
+     weight, floored at 0). Levers are ranked by the cautious gain, because the softmax weights lean on the most cited
+     pages and the data are observational: a lever is where to try first, then measure, not a promise.
 This is observational: a coefficient says what Bing's AI rewarded across our pages, not what causes a citation.
 Pages differ in age and in how long Bing has known them, which the fits cannot separate from content.
 
@@ -19,7 +29,11 @@ is predicted by a model that never saw it; reported are R2 on log(1+citations), 
 P(cited), each with the min..max over repeats, against a baseline that knows only the section and sitemap. Sign
 stability: the share of bootstrap fits in which each coefficient is positive.
 
+For the softmax fit the cross-validation also reports capture@10%: the share of held-out citations that falls on the
+10% of held-out pages the model ranks highest (10% by chance).
+
 Usage: python3 tools/gravity/gravity_fit_bing.py <AIPageStatsReport.csv> [--boot 300] [--repeats 10] [--folds 5]
+       python3 tools/gravity/gravity_fit_bing.py --selftest
 Writes iasf/gravity/bing_fit_<date>.json and .md. Needs numpy.
 """
 import csv, collections, datetime, html, io, json, math, os, re, sys, urllib.parse
@@ -71,29 +85,16 @@ def inbound_links(pages):
 def features(p, tag, inbound, now):
     h = io.open(os.path.join(ROOT, local(p)), encoding="utf-8", errors="replace").read()
     title = " ".join(G.tags(h, "title"))
-    raw = G.raw_features(title, h, now=now)
-    m = raw["_meta"]
     sec = p.strip("/").split("/")[0] if p != "/" else "top"
     sec = sec.split(".")[0] if "." in sec else sec
-    return {
-        "yen_amounts": math.log1p(m["yen"]),
-        "quantities": math.log1p(m["qty"]),
-        "tables": math.log1p(m["tables"]),
-        "ordered_steps": math.log1p(m["ol_items"]),
-        "self_check_steps": math.log1p(m["woven_items"]),
-        "faq_jsonld": float(m["faq"]),
-        "raw_proof_terms": math.log1p(m["raw_proof"]),
-        "text_chars": math.log1p(m["text_chars"]),
-        "age_days": min(-raw["F"], 730.0) / 30.0,
-        "title_has_tekisei": 1.0 if "適正" in title else 0.0,
-        "title_has_souba": 1.0 if "相場" in title else 0.0,
-        "title_has_question": 1.0 if re.search(r"[?？]|高い|妥当|いくら", title) else 0.0,
-        "title_has_number": 1.0 if re.search(r"[0-9０-９]", title) else 0.0,
+    f = G.content_features(title, h, now=now)
+    f.update({
         "in_core_sitemap": 1.0 if tag == "core" else 0.0,
         "section_aeo": 1.0 if sec == "aeo" else 0.0,
         "section_souba": 1.0 if sec == "souba" else 0.0,
         "internal_inbound_links": math.log1p(inbound.get(p, 0)),
-    }
+    })
+    return f
 
 
 def ridge_logistic(X, y, lam=1.0, iters=3000, lr=0.2):
@@ -113,6 +114,115 @@ def ridge_linear(X, y, lam=1.0):
     R = lam * np.eye(k + 1); R[-1, -1] = 0
     beta = np.linalg.solve(Xa.T @ Xa + R, Xa.T @ y)
     return beta[:-1], beta[-1]
+
+
+def ridge_poisson(X, y, lam=1.0, iters=100):
+    """log E[y] = X w + b, Newton with step halving on the penalised log-likelihood. Same w as softmax over rows."""
+    n, k = X.shape
+    Xa = np.hstack([X, np.ones((n, 1))])
+    R = lam * np.eye(k + 1); R[-1, -1] = 0
+    beta = np.zeros(k + 1); beta[-1] = math.log(max(y.mean(), 1e-9))
+
+    def ll(b):
+        eta = np.clip(Xa @ b, -30, 30)
+        return float(np.sum(y * eta - np.exp(eta)) - 0.5 * b @ R @ b)
+    cur = ll(beta)
+    for _ in range(iters):
+        mu = np.exp(np.clip(Xa @ beta, -30, 30))
+        g = Xa.T @ (y - mu) - R @ beta
+        H = Xa.T @ (Xa * mu[:, None]) + R + 1e-9 * np.eye(k + 1)
+        step = np.linalg.solve(H, g)
+        t = 1.0
+        while t > 1e-6:
+            nb = beta + t * step; nl = ll(nb)
+            if nl >= cur - 1e-12:
+                break
+            t /= 2
+        if abs(nl - cur) < 1e-9 * (1 + abs(cur)):
+            beta, cur = nb, nl
+            break
+        beta, cur = nb, nl
+    return beta[:-1], beta[-1]
+
+
+def softmax_cv(Z, counts, cols, repeats, folds, seed=20261004):
+    """held-out pages scored by a softmax fitted without them; Spearman, capture@10%, out-of-sample deviance explained"""
+    rng = np.random.default_rng(seed)
+    n = len(counts); res = {"spearman": [], "capture_at_10pct": [], "deviance_explained": []}
+    for _ in range(repeats):
+        perm = rng.permutation(n); g = np.zeros(n)
+        for f in range(folds):
+            te = perm[f::folds]; tr = np.setdiff1d(perm, te)
+            w, b = ridge_poisson(Z[tr][:, cols], counts[tr])
+            g[te] = Z[te][:, cols] @ w + b
+        res["spearman"].append(spearman(g, counts))
+        top = np.argsort(-g)[:max(1, n // 10)]
+        res["capture_at_10pct"].append(float(counts[top].sum() / max(counts.sum(), 1)))
+        mu = np.exp(np.clip(g, -30, 30)); mu *= counts.sum() / mu.sum()
+        dev = 2 * np.sum(np.where(counts > 0, counts * np.log(np.where(counts > 0, counts, 1) / mu), 0) - (counts - mu))
+        m0 = counts.mean()
+        dev0 = 2 * np.sum(np.where(counts > 0, counts * np.log(np.where(counts > 0, counts, 1) / m0), 0) - (counts - m0))
+        res["deviance_explained"].append(1 - float(dev / dev0))
+    return {k: {"mean": round(float(np.mean(v)), 3), "min": round(float(np.min(v)), 3), "max": round(float(np.max(v)), 3)} for k, v in res.items()}
+
+
+LEVERS = {
+    "title_souba": ("相場 in the title", lambda f: dict(f, title_has_souba=1.0) if f["title_has_souba"] == 0 else None),
+    "title_tekisei": ("適正 in the title", lambda f: dict(f, title_has_tekisei=1.0) if f["title_has_tekisei"] == 0 else None),
+    "one_more_table": ("one more table", lambda f: dict(f, tables=math.log1p(math.expm1(f["tables"]) + 1))),
+    "faq_jsonld": ("FAQPage JSON-LD", lambda f: dict(f, faq_jsonld=1.0) if f["faq_jsonld"] == 0 else None),
+}
+
+
+def levers(rows, names, mu, sd, w, b, total, w_low=None):
+    """expected extra citations per page and change: E_i (exp(dG) - 1), E_i = total x softmax(G)_i.
+    w_low: cautious weights; the ranking uses them when given"""
+    w_low = w if w_low is None else w_low
+    Zs = np.array([[(f[n] - mu[j]) / sd[j] for j, n in enumerate(names)] for _, f, _ in rows])
+    g = Zs @ w + b
+    e = np.exp(g - g.max()); e = total * e / e.sum()
+    out = []
+    for i, (p, f, c) in enumerate(rows):
+        combo = dict(f); applied = []
+        for key, (label, fn) in LEVERS.items():
+            nf = fn(f)
+            if nf is None:
+                continue
+            dg = sum(w[j] * (nf[n] - f[n]) / sd[j] for j, n in enumerate(names))
+            dl = sum(w_low[j] * (nf[n] - f[n]) / sd[j] for j, n in enumerate(names))
+            out.append({"page": p, "lever": key, "label": label, "citations_now": c, "expected_now": round(float(e[i]), 2),
+                        "dG": round(float(dg), 3), "expected_gain": round(float(e[i] * (math.exp(dg) - 1)), 2),
+                        "dG_cautious": round(float(dl), 3), "expected_gain_cautious": round(float(e[i] * (math.exp(dl) - 1)), 2)})
+            combo = fn(combo) or combo; applied.append(key)
+        if len(applied) > 1:
+            dg = sum(w[j] * (combo[n] - f[n]) / sd[j] for j, n in enumerate(names))
+            dl = sum(w_low[j] * (combo[n] - f[n]) / sd[j] for j, n in enumerate(names))
+            out.append({"page": p, "lever": "+".join(applied), "label": "all of: " + ", ".join(LEVERS[a][0] for a in applied),
+                        "citations_now": c, "expected_now": round(float(e[i]), 2), "dG": round(float(dg), 3),
+                        "expected_gain": round(float(e[i] * (math.exp(dg) - 1)), 2),
+                        "dG_cautious": round(float(dl), 3), "expected_gain_cautious": round(float(e[i] * (math.exp(dl) - 1)), 2)})
+    return sorted(out, key=lambda x: -x["expected_gain_cautious"])
+
+
+def selftest():
+    rng = np.random.default_rng(1)
+    n, true = 600, np.array([0.8, -0.5, 0.0])
+    X = rng.normal(size=(n, 3)); y = rng.poisson(np.exp(X @ true + 1.0)).astype(float)
+    w, b = ridge_poisson(X, y)
+    ok1 = np.max(np.abs(w - true)) < 0.12
+    cv = softmax_cv(X, y, [0, 1, 2], 2, 5)
+    ok2 = cv["spearman"]["mean"] > 0.4 and cv["capture_at_10pct"]["mean"] > 0.2
+    names = ["title_has_souba", "tables", "title_has_tekisei", "faq_jsonld"]
+    rows = [("/a/", {"title_has_souba": 0.0, "tables": 0.0, "title_has_tekisei": 1.0, "faq_jsonld": 1.0}, 0),
+            ("/b/", {"title_has_souba": 1.0, "tables": math.log1p(2), "title_has_tekisei": 1.0, "faq_jsonld": 1.0}, 10)]
+    lv = levers(rows, names, np.zeros(4), np.ones(4), np.array([0.5, 0.5, 0.1, 0.4]), 0.0, 10)
+    ok3 = lv[0]["page"] in ("/a/", "/b/") and all(x["expected_gain"] >= 0 for x in lv) and not any(x["lever"] == "title_souba" and x["page"] == "/b/" for x in lv)
+    res = [("softmax (Poisson) fit recovers known weights", ok1), ("cross-validation ranks held-out pages", ok2),
+           ("levers apply only where the page lacks them and never lose citations at positive weights", ok3)]
+    for name, r in res:
+        print(("  ok   " if r else "  NG   ") + name)
+    print("selftest:", "ALL PASS (%d)" % len(res) if all(r for _, r in res) else "FAIL")
+    return 0 if all(r for _, r in res) else 1
 
 
 def rank(a):
@@ -155,6 +265,8 @@ def cross_validate(Z, yc, yl, cols, repeats, folds, seed=20261004):
 
 
 def main():
+    if "--selftest" in sys.argv:
+        return selftest()
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     path = sys.argv[1]
@@ -192,6 +304,38 @@ def main():
            "export_pages_not_in_sitemaps": sorted(set(cites) - set(pages))[:50], "r2_log_citations": round(1 - ss_res / ss_tot, 3),
            "coefficients": []}
     base_cols = [i for i, n in enumerate(names) if n.startswith("section_") or n == "in_core_sitemap"]
+    counts = np.array([float(c) for *_, c in rows])
+    ws, bs = ridge_poisson(Z, counts)
+    content = [i for i, n in enumerate(names) if n in G.CONTENT_LABEL]
+    wc, bc = ridge_poisson(Z[:, content], counts)
+    BS = np.array([ridge_poisson(Z[idx], counts[idx])[0] for idx in (rng.integers(0, len(rows), len(rows)) for _ in range(min(boot, 200)))])
+    out["softmax_gravity"] = {
+        "formula": "G_i = sum_k w_k z_ik ; share_i = exp(G_i) / sum_j exp(G_j) ; fitted as Poisson log-linear with intercept",
+        "weights": [{"feature": n, "w": round(float(ws[i]), 3), "w_90": [round(float(np.percentile(BS[:, i], 5)), 3), round(float(np.percentile(BS[:, i], 95)), 3)],
+                     "positive_share": round(float(np.mean(BS[:, i] > 0)), 2)} for i, n in enumerate(names)],
+        "cross_validation": softmax_cv(Z, counts, list(range(len(names))), repeats, folds),
+        "cross_validation_baseline_section_and_sitemap_only": softmax_cv(Z, counts, [i for i, n in enumerate(names) if n.startswith("section_") or n == "in_core_sitemap"], repeats, folds),
+        "cross_validation_content_only": softmax_cv(Z, counts, content, repeats, folds),
+    }
+    out["softmax_gravity"]["weights"].sort(key=lambda c: -abs(c["w"]))
+    p5, p95 = np.percentile(BS, 5, axis=0), np.percentile(BS, 95, axis=0)
+    w_low = np.where(ws > 0, np.maximum(p5, 0), np.minimum(p95, 0))
+    out["softmax_gravity"]["multiplier_per_lever"] = {
+        k: {"fitted": round(math.exp(sum(ws[j] * (fn(dict(zip(names, [0.0] * len(names))))[n] - 0.0) / sd[j] for j, n in enumerate(names))), 2),
+            "cautious": round(math.exp(sum(w_low[j] * (fn(dict(zip(names, [0.0] * len(names))))[n] - 0.0) / sd[j] for j, n in enumerate(names))), 2)}
+        for k, (_, fn) in LEVERS.items()}
+    out["levers"] = levers(rows, names, mu, sd, ws, bs, counts.sum(), w_low)[:40]
+    g_all = Z @ ws + bs; e_all = np.exp(g_all - g_all.max()); e_all = counts.sum() * e_all / e_all.sum()
+    out["discovery_gaps"] = sorted([{"page": p, "citations_now": int(c), "expected_from_content": round(float(e_all[i]), 1)}
+                                    for i, (p, _, c) in enumerate(rows) if e_all[i] >= 20 and c < 0.1 * e_all[i]],
+                                   key=lambda x: -(x["expected_from_content"] - x["citations_now"]))[:25]
+    wpath = os.path.join(ROOT, "iasf", "gravity", "weights_bing.json"); os.makedirs(os.path.dirname(wpath), exist_ok=True)
+    json.dump({"schema": "gravity-weights-bing-v0", "export": os.path.basename(path), "date": now.isoformat(), "pages": len(rows),
+               "all": {"features": names, "mu": dict(zip(names, map(float, mu))), "sd": dict(zip(names, map(float, sd))),
+                       "w": dict(zip(names, map(float, ws))), "b": float(bs)},
+               "content": {"features": [names[i] for i in content], "mu": {names[i]: float(mu[i]) for i in content},
+                           "sd": {names[i]: float(sd[i]) for i in content}, "w": {names[i]: float(wc[j]) for j, i in enumerate(content)}, "b": float(bc)}},
+              io.open(wpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     out["cross_validation"] = {"repeats": repeats, "folds": folds,
                                "model": cross_validate(Z, yc, yl, list(range(len(names))), repeats, folds),
                                "baseline_section_and_sitemap_only": cross_validate(Z, yc, yl, base_cols, repeats, folds)}
@@ -219,6 +363,31 @@ def main():
     for c in out["coefficients"]:
         L.append("| %s | %+.3f | %+.3f..%+.3f | %.2f | %+.3f | %+.3f..%+.3f |" % (c["feature"], c["log_citations"], c["log_citations_90"][0], c["log_citations_90"][1],
                  c["log_citations_positive_share"], c["cited_logit"], c["cited_logit_90"][0], c["cited_logit_90"][1]))
+    sg = out["softmax_gravity"]
+    L += ["", "## The GRAVITY-v0 formula learned from Bing: share_i = exp(G_i) / sum_j exp(G_j)", "",
+          "Out of sample (%d x %d-fold): Spearman, capture@10%% (chance 0.10), deviance explained" % (repeats, folds), "",
+          "| | Spearman | capture@10% | deviance explained |", "|---|---|---|---|"]
+    for lab, key in (("all features", "cross_validation"), ("content only (any page)", "cross_validation_content_only"),
+                     ("baseline: section + sitemap only", "cross_validation_baseline_section_and_sitemap_only")):
+        cv = sg[key]
+        L.append("| %s | %s | %s | %s |" % (lab, *["%.3f (%.3f..%.3f)" % (cv[m]["mean"], cv[m]["min"], cv[m]["max"]) for m in ("spearman", "capture_at_10pct", "deviance_explained")]))
+    L += ["", "| feature | w (per 1 sd) | 90% | share > 0 |", "|---|---|---|---|"]
+    for c in sg["weights"]:
+        L.append("| %s | %+.3f | %+.3f..%+.3f | %.2f |" % (c["feature"], c["w"], c["w_90"][0], c["w_90"][1], c["positive_share"]))
+    L += ["", "Multiplier on a page's expected citations from one change made on a page that lacks it (from zero tables for the table):", "",
+          "| change | fitted | cautious (5th percentile) |", "|---|---|---|"]
+    for k, v in sg["multiplier_per_lever"].items():
+        L.append("| %s | x%.2f | x%.2f |" % (LEVERS[k][0], v["fitted"], v["cautious"]))
+    L += ["", "## Levers: expected extra citations from one change, E_i x (exp(dG) - 1), ranked by the cautious gain", "",
+          "| page | change | citations now | expected now | cautious gain | fitted gain |", "|---|---|---|---|---|---|"]
+    for x in out["levers"][:25]:
+        L.append("| %s | %s | %d | %.1f | %+.1f | %+.1f |" % (x["page"], x["label"], x["citations_now"], x["expected_now"],
+                 x["expected_gain_cautious"], x["expected_gain"]))
+    L += ["", "## Discovery gaps: the formula expects citations from the page itself, Bing gives under 10% of that", "",
+          "The content is there, so the next stage is discovery (indexing, internal and external links, IndexNow), not rewriting.", "",
+          "| page | citations now | expected from the page |", "|---|---|---|"]
+    for x in out["discovery_gaps"]:
+        L.append("| %s | %d | %.1f |" % (x["page"], x["citations_now"], x["expected_from_content"]))
     io.open(stem + ".md", "w", encoding="utf-8").write("\n".join(L) + "\n")
     print("\n".join(L))
     if out["export_pages_not_in_sitemaps"]:

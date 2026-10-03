@@ -34,9 +34,17 @@ Stage model (the pipeline in the GRAVITY-v0 proposal: discover, retrieve, select
   Marginal effect of one more unit on each stage: dP/dP_D = P_S, dP/dP_S = P_D. The report names the stage with the
   larger marginal effect per question, and orders the questions by expected gain, so effort goes where it pays.
 
+Learned weights (--weights bing): the same G and softmax, with the weights learned from Bing's real AI citations of
+our 616 pages by tools/gravity/gravity_fit_bing.py (softmax over pages fitted as its Poisson equivalent, out-of-sample
+checked). Only the content features that can be measured on any page are used here (title words, tables, quantities,
+FAQ structure, freshness, length ...), not where a page sits in our site. The report then shows P(ours) under both the
+prior weights and the learned weights, and the next fix is ranked by the learned weights. Needs
+iasf/gravity/weights_bing.json, written by gravity_fit_bing.py.
+
 Run on a machine that can reach the sites (TOshi's Mac):
   python3 tools/gravity/gravity_margin.py --obs iasf/discovery_runs/2026-10-04-monitor/observations.jsonl
   python3 tools/gravity/gravity_margin.py --obs ... --provider openai --qid p002
+  python3 tools/gravity/gravity_margin.py --obs ... --weights bing
   python3 tools/gravity/gravity_margin.py --selftest
 Writes iasf/gravity/<run>/margin.json and margin.md and rows.jsonl (features + cited label, for --fit later).
 Standard library only. Read only: one GET per page, robots.txt honoured, 1 s between requests to one host.
@@ -115,6 +123,63 @@ def raw_features(question, h, headers=None, now=None):
             "V": math.log1p(raw_proof), "_meta": {"modified": d, "bytes": len(h), "text_chars": len(body), "yen": yen, "qty": qty,
                                                  "tables": tables, "ol_items": ol_items, "woven_items": woven, "faq": faq, "raw_proof": raw_proof,
                                                  "q_core": q_core[:40]}}
+
+
+CONTENT_LABEL = {"yen_amounts": "yen amounts in the text", "quantities": "㎡/坪/号 quantities", "tables": "tables",
+                 "ordered_steps": "ordered-list steps", "self_check_steps": "self-check steps", "faq_jsonld": "FAQPage JSON-LD",
+                 "raw_proof_terms": "hashes, signatures, curl in the text", "text_chars": "text length", "age_days": "age since last modified",
+                 "title_has_tekisei": "適正 in the title", "title_has_souba": "相場 in the title",
+                 "title_has_question": "question form in the title", "title_has_number": "a number in the title"}
+
+
+def content_features(title, h, headers=None, now=None):
+    """query-free page features, the same definitions gravity_fit_bing.py learns its weights on"""
+    raw = raw_features(title, h, headers, now=now)
+    m = raw["_meta"]
+    return {
+        "yen_amounts": math.log1p(m["yen"]),
+        "quantities": math.log1p(m["qty"]),
+        "tables": math.log1p(m["tables"]),
+        "ordered_steps": math.log1p(m["ol_items"]),
+        "self_check_steps": math.log1p(m["woven_items"]),
+        "faq_jsonld": float(m["faq"]),
+        "raw_proof_terms": math.log1p(m["raw_proof"]),
+        "text_chars": math.log1p(m["text_chars"]),
+        "age_days": min(-raw["F"], 730.0) / 30.0,
+        "title_has_tekisei": 1.0 if "適正" in title else 0.0,
+        "title_has_souba": 1.0 if "相場" in title else 0.0,
+        "title_has_question": 1.0 if re.search(r"[?？]|高い|妥当|いくら", title) else 0.0,
+        "title_has_number": 1.0 if re.search(r"[0-9０-９]", title) else 0.0,
+    }
+
+
+def load_bing_weights(path=None):
+    path = path or os.path.join(ROOT, "iasf", "gravity", "weights_bing.json")
+    d = json.load(io.open(path, encoding="utf-8"))
+    return d["content"]
+
+
+def judge_bing(question, pages, bw):
+    """G = sum_k w_k (x_k - mu_k) / sd_k with weights learned from Bing citations, softmax over the compared pages"""
+    names = bw["features"]
+    for p in pages:
+        cf = p["cf"]
+        z = {k: (cf[k] - bw["mu"][k]) / bw["sd"][k] for k in names}
+        p["zb"] = z
+        p["Gb"] = round(sum(bw["w"][k] * z[k] for k in names), 4)
+    ours = [p for p in pages if p["ours"]]
+    comps = [p for p in pages if not p["ours"]]
+    if not ours or not comps:
+        return {"error": "need our page and at least one cited competitor page"}
+    o = ours[0]
+    best = max(comps, key=lambda p: p["Gb"])
+    mx = max(p["Gb"] for p in pages)
+    z = [math.exp(p["Gb"] - mx) for p in pages]
+    p_ours = math.exp(o["Gb"] - mx) / sum(z)
+    gaps = sorted(((bw["w"][k] * (best["zb"][k] - o["zb"][k]), k) for k in names), reverse=True)
+    return {"G_ours_bing": o["Gb"], "G_best_bing": best["Gb"], "best_competitor_bing": best["url"],
+            "margin_bing": round(o["Gb"] - best["Gb"], 4), "p_ours_bing": round(p_ours, 4),
+            "next_fix_bing": [{"feature": k, "label": CONTENT_LABEL.get(k, k), "weighted_gap": round(g, 3)} for g, k in gaps if g > 0][:3]}
 
 
 def scale(rows):
@@ -204,12 +269,12 @@ def discovery_rates(obs_paths, claims):
     return {q: {"seen": seen[q], "n": n[q], "p_d": (seen[q] + 1.0) / (n[q] + 2.0)} for q in n}
 
 
-def stages(reports, disc):
+def stages(reports, disc, key="p_ours_softmax"):
     rows = []
     by_q = collections.defaultdict(list)
     for rep in reports:
-        if "p_ours_softmax" in rep:
-            by_q[rep["qid"]].append(rep["p_ours_softmax"])
+        if key in rep:
+            by_q[rep["qid"]].append(rep[key])
     for q, ps in by_q.items():
         p_s = sum(ps) / len(ps)
         d = disc.get(q, {"seen": 0, "n": 0, "p_d": 0.5})
@@ -223,8 +288,9 @@ def stages(reports, disc):
     return rows
 
 
-def run(obs_path, provider=None, qid=None, max_comp=5, extra_obs=()):
+def run(obs_path, provider=None, qid=None, max_comp=5, extra_obs=(), weights="prior"):
     claims = load_claims()
+    bw = load_bing_weights() if weights == "bing" else None
     recs = {}
     for line in io.open(obs_path, encoding="utf-8"):
         r = json.loads(line)
@@ -251,8 +317,11 @@ def run(obs_path, provider=None, qid=None, max_comp=5, extra_obs=()):
             if h is None:
                 print("  skip %s (%s)" % (u, err))
                 continue
-            pages.append({"url": u, "ours": is_ours, "raw": raw_features(c["question"], h, hd)})
+            pages.append({"url": u, "ours": is_ours, "raw": raw_features(c["question"], h, hd),
+                          "cf": content_features(" ".join(tags(h, "title")), h, hd)})
         rep = judge(c["question"], pages)
+        if bw and "margin" in rep:
+            rep.update(judge_bing(c["question"], pages, bw))
         rep.update({"provider": prov, "qid": q, "hs_cited": r.get("hs_cited"), "hs_seen": r.get("hs_seen")})
         reports.append(rep)
         for p in rep.get("pages", []):
@@ -261,26 +330,31 @@ def run(obs_path, provider=None, qid=None, max_comp=5, extra_obs=()):
         if "margin" in rep:
             print("%-10s %-5s margin %+6.2f  P(ours) %.2f  next: %s" % (prov, q, rep["margin"], rep["p_ours_softmax"],
                   ", ".join(f["feature"] for f in rep["next_fix"]) or "none"))
+        if "margin_bing" in rep:
+            print("%-10s %-5s learned(bing) margin %+6.2f  P(ours) %.2f  next: %s" % (prov, q, rep["margin_bing"], rep["p_ours_bing"],
+                  ", ".join(f["feature"] for f in rep["next_fix_bing"]) or "none"))
     disc = discovery_rates([obs_path] + list(extra_obs), claims)
-    st = stages(reports, disc)
+    st = stages(reports, disc, "p_ours_bing" if bw else "p_ours_softmax")
     ccr = sum(x["p_capture"] for x in st) / len(st) if st else 0.0
-    print("\nstage model  P_capture = P_D x P_S   (P_C, P_A unmeasured, set to 1)")
+    print("\nstage model  P_capture = P_D x P_S   (P_S from %s weights; P_C, P_A unmeasured, set to 1)" % ("learned Bing" if bw else "prior"))
     for x in st:
         print("  %-5s P_D %.2f (seen %d/%d)  P_S %.2f  P_capture %.3f  next: %-9s  dP/dP_D %.2f  dP/dP_S %.2f" % (
             x["qid"], x["p_d"], x["seen"], x["n_obs"], x["p_s"], x["p_capture"], x["next_stage"], x["dP_dPD"], x["dP_dPS"]))
     print("  expected capture over these questions (CCR estimate): %.3f" % ccr)
-    json.dump({"schema": "gravity-margin-v0", "weights": WEIGHTS, "tau": TAU, "obs": obs_path, "extra_obs": list(extra_obs),
+    json.dump({"schema": "gravity-margin-v0", "weights": WEIGHTS, "tau": TAU, "learned_weights": bw, "obs": obs_path, "extra_obs": list(extra_obs),
                "stages": st, "ccr_estimate": round(ccr, 4), "reports": reports},
               io.open(os.path.join(out_dir, "margin.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     with io.open(os.path.join(out_dir, "rows.jsonl"), "w", encoding="utf-8") as fh:
         for x in rows:
             fh.write(json.dumps(x, ensure_ascii=False) + "\n")
     L = ["# Gravity margin  run %s" % run_id, "", "weights (priors) %s" % WEIGHTS, "",
-         "| engine | q | question | margin | P(ours) | next fix |", "|---|---|---|---|---|---|"]
+         "| engine | q | question | margin | P(ours) | next fix | P(ours) learned | next fix learned |", "|---|---|---|---|---|---|---|---|"]
     for rep in reports:
         if "margin" in rep:
-            L.append("| %s | %s | %s | %+.2f | %.2f | %s |" % (rep["provider"], rep["qid"], rep["question"], rep["margin"], rep["p_ours_softmax"],
-                     "; ".join(f["label"] for f in rep["next_fix"]) or "none"))
+            L.append("| %s | %s | %s | %+.2f | %.2f | %s | %s | %s |" % (rep["provider"], rep["qid"], rep["question"], rep["margin"], rep["p_ours_softmax"],
+                     "; ".join(f["label"] for f in rep["next_fix"]) or "none",
+                     "%.2f" % rep["p_ours_bing"] if "p_ours_bing" in rep else "",
+                     "; ".join(f["label"] for f in rep.get("next_fix_bing", [])) or ("none" if "p_ours_bing" in rep else "")))
     L += ["", "## Stage model  P_capture = P_D x P_S  (P_C, P_A unmeasured)", "",
           "| q | P_D (seen/n) | P_S | P_capture | next stage | dP/dP_D | dP/dP_S |", "|---|---|---|---|---|---|---|"]
     for x in st:
@@ -344,7 +418,17 @@ def selftest():
                 {"a": {"seen": 0, "n": 8, "p_d": 0.1}, "b": {"seen": 8, "n": 8, "p_d": 0.9}})
     sa = {x["qid"]: x for x in st}
     ok5 = sa["a"]["next_stage"] == "discovery" and sa["b"]["next_stage"] == "selection" and abs(sa["a"]["p_capture"] - 0.09) < 1e-9
-    res = [("stage model: unseen strong page needs discovery, seen weak page needs selection", ok5),
+    bw = {"features": ["title_has_souba", "tables", "text_chars"], "mu": {"title_has_souba": 0.3, "tables": 0.5, "text_chars": 7.0},
+          "sd": {"title_has_souba": 0.45, "tables": 0.6, "text_chars": 1.0}, "w": {"title_has_souba": 0.5, "tables": 0.5, "text_chars": -0.1}}
+    sp = "<title>給湯器交換の相場</title><table><tr><td>20号</td></tr></table><p>" + "本文。" * 100 + "</p>"
+    ns = "<title>給湯器交換で20万円は高い？</title><p>" + "本文。" * 400 + "</p>"
+    pg = [{"url": "ours", "ours": True, "cf": content_features("給湯器交換で20万円は高い？", ns, now=now)},
+          {"url": "comp", "ours": False, "cf": content_features("給湯器交換の相場", sp, now=now)}]
+    rb = judge_bing(q, pg, bw)
+    ok6 = (rb["margin_bing"] < 0 and rb["next_fix_bing"][0]["feature"] in ("title_has_souba", "tables")
+           and set(content_features("t", good, now=now)) == set(CONTENT_LABEL))
+    res = [("learned weights: a 相場 title with a table beats a question title without, and that is the next fix", ok6),
+           ("stage model: unseen strong page needs discovery, seen weak page needs selection", ok5),
            ("strong page beats weak page", ok), ("weak page gets negative margin and a content fix first", ok2),
            ("raw proof is detected and never weighted up", ok3), ("woven self-check steps detected only where present", ok4)]
     for name, r in res:
@@ -361,6 +445,8 @@ def main():
     ap.add_argument("--max-comp", type=int, default=5)
     ap.add_argument("--more-obs", nargs="*", default=[], help="more observation files, used only for P_D")
     ap.add_argument("--fit", nargs="+", metavar="ROWS_JSONL")
+    ap.add_argument("--weights", choices=["prior", "bing"], default="prior",
+                    help="bing: also score with the weights learned from Bing citations (iasf/gravity/weights_bing.json)")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -369,7 +455,7 @@ def main():
         sys.exit(fit(a.fit))
     if not a.obs:
         ap.error("--obs is required")
-    sys.exit(run(a.obs, a.provider, a.qid, a.max_comp, a.more_obs))
+    sys.exit(run(a.obs, a.provider, a.qid, a.max_comp, a.more_obs, a.weights))
 
 
 if __name__ == "__main__":
