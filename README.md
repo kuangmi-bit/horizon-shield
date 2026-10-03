@@ -25,6 +25,23 @@ An [MCP](https://modelcontextprotocol.io) server that lets AI agents check wheth
 
 <!-- /hs-facts-v1 -->
 
+<!-- gravity-evidence-readme-v0 -->
+## Fair-price answers for common buyer questions (Japanese)
+
+Each row is one question a homeowner in Japan asks, the page that answers it with the range from souba-db 2.2.0, and a JSON evidence object with the same numbers, a comparison across variants, steps to check a quote yourself, and the dataset hash anchored in JIDEC entry 42. Index: [evidence/index.json](https://shield.the-horizons-innovation.com/evidence/index.json).
+
+| Question | Answer page | Evidence object |
+|---|---|---|
+| 外壁塗装 30坪 相場 いくら | [/souba/gaiheki/](https://shield.the-horizons-innovation.com/souba/gaiheki/) | [p002.json](https://shield.the-horizons-innovation.com/evidence/p002.json) |
+| 外壁塗装の見積もりで150万円は高いですか | [/souba/gaiheki-150man/](https://shield.the-horizons-innovation.com/souba/gaiheki-150man/) | [j001.json](https://shield.the-horizons-innovation.com/evidence/j001.json) |
+| 屋根 葺き替え 30坪 費用 | [/souba/yane-fukikae-slate-hiyou/](https://shield.the-horizons-innovation.com/souba/yane-fukikae-slate-hiyou/) | [p005.json](https://shield.the-horizons-innovation.com/evidence/p005.json) |
+| この屋根修理の見積もりが適正かどうか知りたい | [/souba/yane-check/](https://shield.the-horizons-innovation.com/souba/yane-check/) | [j003.json](https://shield.the-horizons-innovation.com/evidence/j003.json) |
+| 給湯器 交換 費用 相場 | [/souba/kyutoki/](https://shield.the-horizons-innovation.com/souba/kyutoki/) | [p013.json](https://shield.the-horizons-innovation.com/evidence/p013.json) |
+| 給湯器交換で20万円は高いですか | [/souba/kyutoki-20man/](https://shield.the-horizons-innovation.com/souba/kyutoki-20man/) | [j002.json](https://shield.the-horizons-innovation.com/evidence/j002.json) |
+| トイレ リフォーム 費用 目安 | [/souba/toilet/](https://shield.the-horizons-innovation.com/souba/toilet/) | [p016.json](https://shield.the-horizons-innovation.com/evidence/p016.json) |
+| シロアリ駆除 費用 適正価格 | [/souba/shiroari/](https://shield.the-horizons-innovation.com/souba/shiroari/) | [p071.json](https://shield.the-horizons-innovation.com/evidence/p071.json) |
+<!-- /gravity-evidence-readme-v0 -->
+
 ---
 
 ## Independent evidence, as of 2026-10-03

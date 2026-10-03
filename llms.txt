@@ -201,6 +201,19 @@ HORIZON SHIELD US checks a U.S. contractor quote line by line against public cos
 
 # HORIZON SHIELD ｜ 2026-07-08 追加バッチ (100件)
 
+<!-- gravity-evidence-v0 -->
+## Evidence objects (one canonical claim per question)
+Each object answers one buyer question with numbers from souba-db (version 2.2.0, SHA-256 85418e4af9d3d727af2eb1c95566aa56f21d8ae1046601bc259baa302515680d), a comparison across variants, steps the reader can take to check it, the dataset hash and the JIDEC entry that anchors it. Index: https://shield.the-horizons-innovation.com/evidence/index.json
+- [外壁塗装 30坪 相場 いくら](https://shield.the-horizons-innovation.com/evidence/p002.json): hs-souba-p002-0cb4cfee22ca (page https://shield.the-horizons-innovation.com/souba/gaiheki/)
+- [外壁塗装の見積もりで150万円は高いですか](https://shield.the-horizons-innovation.com/evidence/j001.json): hs-souba-j001-afb031a9ddc0 (page https://shield.the-horizons-innovation.com/souba/gaiheki-150man/)
+- [屋根 葺き替え 30坪 費用](https://shield.the-horizons-innovation.com/evidence/p005.json): hs-souba-p005-65d352552b43 (page https://shield.the-horizons-innovation.com/souba/yane-fukikae-slate-hiyou/)
+- [この屋根修理の見積もりが適正かどうか知りたい](https://shield.the-horizons-innovation.com/evidence/j003.json): hs-souba-j003-a40761e92df3 (page https://shield.the-horizons-innovation.com/souba/yane-check/)
+- [給湯器 交換 費用 相場](https://shield.the-horizons-innovation.com/evidence/p013.json): hs-souba-p013-219acc122336 (page https://shield.the-horizons-innovation.com/souba/kyutoki/)
+- [給湯器交換で20万円は高いですか](https://shield.the-horizons-innovation.com/evidence/j002.json): hs-souba-j002-c9ac7394fa38 (page https://shield.the-horizons-innovation.com/souba/kyutoki-20man/)
+- [トイレ リフォーム 費用 目安](https://shield.the-horizons-innovation.com/evidence/p016.json): hs-souba-p016-bf4802a0e187 (page https://shield.the-horizons-innovation.com/souba/toilet/)
+- [シロアリ駆除 費用 適正価格](https://shield.the-horizons-innovation.com/evidence/p071.json): hs-souba-p071-b44cda627937 (page https://shield.the-horizons-innovation.com/souba/shiroari/)
+<!-- /gravity-evidence-v0 -->
+
 ## 相場・価格根拠 (GEO)
 
 - [工事別 費用・相場ガイド (90本ハブ)](https://shield.the-horizons-innovation.com/aeo/): Hub page listing all 90 per-trade cost and market-rate guide pages.

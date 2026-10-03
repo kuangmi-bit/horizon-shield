@@ -1,0 +1,14 @@
+{
+ "schema": "gravity-claims-v0",
+ "note": "The monitor questions whose pages were rebuilt on 2026-09-15 (ops/monitor_pages_20260915.md). One evidence object per question. Values come only from data/souba-db.json; danger levels are never published here.",
+ "claims": [
+  {"qid": "p002", "question": "外壁塗装 30坪 相場 いくら", "page": "/souba/gaiheki/", "cats": ["gaiheki_30tsubo", "gaiheki_20tsubo", "gaiheki_40tsubo", "gaiheki_yane_set_30tsubo", "ashiba_30tsubo"]},
+  {"qid": "j001", "question": "外壁塗装の見積もりで150万円は高いですか", "page": "/souba/gaiheki-150man/", "cats": ["gaiheki_30tsubo", "gaiheki_yane_set_30tsubo"], "amount": 1500000},
+  {"qid": "p005", "question": "屋根 葺き替え 30坪 費用", "page": "/souba/yane-fukikae-slate-hiyou/", "cats": ["yane_fukikae_slate", "yane_fukikae_galv", "yane_tosou_30tsubo"]},
+  {"qid": "j003", "question": "この屋根修理の見積もりが適正かどうか知りたい", "page": "/souba/yane-check/", "cats": ["yane_fukikae_slate", "yane_fukikae_galv", "yane_cover_30tsubo", "yane_tosou_30tsubo"]},
+  {"qid": "p013", "question": "給湯器 交換 費用 相場", "page": "/souba/kyutoki/", "cats": ["kyutoki_20", "kyutoki_16", "kyutoki_24", "kyutoki_ecojozu_20"]},
+  {"qid": "j002", "question": "給湯器交換で20万円は高いですか", "page": "/souba/kyutoki-20man/", "cats": ["kyutoki_20", "kyutoki_16", "kyutoki_24", "kyutoki_ecojozu_20"], "amount": 200000},
+  {"qid": "p016", "question": "トイレ リフォーム 費用 目安", "page": "/souba/toilet/", "cats": ["toilet_replace_basic", "toilet_replace_tankless", "toilet_full_renov", "toilet_washiki_to_youshiki"]},
+  {"qid": "p071", "question": "シロアリ駆除 費用 適正価格", "page": "/souba/shiroari/", "cats": ["shiroari_kujo_sqm", "shiroari_kujo_20tsubo", "shiroari_kujo_30tsubo"]}
+ ]
+}

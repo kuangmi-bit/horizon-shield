@@ -1,0 +1,85 @@
+{
+ "anchor": {
+  "jidec_entry": 42,
+  "ledger_url": "https://ledger.horizonshield.dev/ledger/42",
+  "what": "the SHA-256 of this exact souba-db.json release is recorded in JIDEC entry 42 with an OpenTimestamps proof"
+ },
+ "answer": "屋根葺き替え スレート 30坪 の目安は 90〜180万円(平均140万円) です。",
+ "claim_id": "hs-souba-p005-65d352552b43",
+ "comparison": [
+  "屋根葺き替え スレート 30坪: 90〜180万円(平均140万円)",
+  "屋根葺き替え ガルバリウム 30坪: 100〜200万円(平均150万円)",
+  "屋根塗装 30坪（シリコン）: 25〜60万円(平均50万円)"
+ ],
+ "currency": "JPY",
+ "does_not_establish": [
+  "that a specific quote is fair without checking its scope and line items",
+  "that every contractor's price falls in the range; the range is a reference, not a cap"
+ ],
+ "gravity_version": "0",
+ "mcp": {
+  "arguments": {
+   "work": "屋根葺き替え スレート 30坪"
+  },
+  "server": "https://mcp.horizonshield.dev/mcp",
+  "tool": "get_price_range"
+ },
+ "neutrality": "No referral, listing or success fee from contractors.",
+ "object_sha256": "44b37ca0e1c096b7bc9e0b336f77b7d9b0ab1085e734444a35b6e7d869871983",
+ "page": "https://shield.the-horizons-innovation.com/souba/yane-fukikae-slate-hiyou/",
+ "qid": "p005",
+ "question": "屋根 葺き替え 30坪 費用",
+ "region": "全国の基準値。地域係数 all 1.0, kanto 1.1, kinki 1.06, chubu 1.0, tohoku 0.95, other 0.93 を掛けると地域の目安になる(MCP get_price_range に region を渡すと掛けた値が返る)。",
+ "schema": "gravity-evidence-v0",
+ "self_check": [
+  "見積書の内訳を項目ごとに数量と単価に分けて書き出す(一式の項目は数量と単価を出してもらう)。",
+  "各項目の単価を上の範囲と比べ、最高を超える項目に印を付ける。",
+  "印の付いた項目について、理由(材料のグレード、面積、足場、下地補修など)を業者に書面で聞く。"
+ ],
+ "source": {
+  "curator": "大賀俊勝(建設実務30年)監修",
+  "dataset": "https://shield.the-horizons-innovation.com/data/souba-db.json",
+  "dataset_sha256": "85418e4af9d3d727af2eb1c95566aa56f21d8ae1046601bc259baa302515680d",
+  "dataset_version": "2.2.0",
+  "upstream_sources": [
+   "ヌリカエ 2025年12月施工データ2,655件",
+   "リショップナビ 2026年2〜3月集計",
+   "テイガク 2026年屋根リフォーム単価表",
+   "リフォームガイド 2026年最新版",
+   "タカラスタンダード リフォーム実例集",
+   "SHUKEN Re 2026年時点実績",
+   "シロアリ駆除業者人気ランキング 2026年4月205社調査",
+   "経済調査会『積算資料ポケット版 リフォーム編 2026』",
+   "ミツモア 面格子取り付け費用 2026年版(本体・工事費の分離データ)",
+   "リフォマ 面格子の取付・修理の費用相場 2026年版",
+   "創建リフォーム監修 面格子後付け費用 2026年版"
+  ]
+ },
+ "valid_from": "2026-08-17",
+ "values": [
+  {
+   "avg": 1400000,
+   "category_id": "yane_fukikae_slate",
+   "max": 1800000,
+   "min": 900000,
+   "unit": "一式",
+   "work": "屋根葺き替え スレート 30坪"
+  },
+  {
+   "avg": 1500000,
+   "category_id": "yane_fukikae_galv",
+   "max": 2000000,
+   "min": 1000000,
+   "unit": "一式",
+   "work": "屋根葺き替え ガルバリウム 30坪"
+  },
+  {
+   "avg": 500000,
+   "category_id": "yane_tosou_30tsubo",
+   "max": 600000,
+   "min": 250000,
+   "unit": "一式",
+   "work": "屋根塗装 30坪（シリコン）"
+  }
+ ]
+}

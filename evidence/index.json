@@ -1,0 +1,71 @@
+{
+ "dataset_sha256": "85418e4af9d3d727af2eb1c95566aa56f21d8ae1046601bc259baa302515680d",
+ "dataset_version": "2.2.0",
+ "objects": [
+  {
+   "claim_id": "hs-souba-p002-0cb4cfee22ca",
+   "object_sha256": "8ee18fffa2fcf9d21edf666d13ac4993ebf70f39112138471282a1f26a522e81",
+   "page": "https://shield.the-horizons-innovation.com/souba/gaiheki/",
+   "qid": "p002",
+   "question": "外壁塗装 30坪 相場 いくら",
+   "url": "https://shield.the-horizons-innovation.com/evidence/p002.json"
+  },
+  {
+   "claim_id": "hs-souba-j001-afb031a9ddc0",
+   "object_sha256": "d67cd8e6930424e615af60ee59441bd71a79c76f8db315fb8dfbb7aa25e51429",
+   "page": "https://shield.the-horizons-innovation.com/souba/gaiheki-150man/",
+   "qid": "j001",
+   "question": "外壁塗装の見積もりで150万円は高いですか",
+   "url": "https://shield.the-horizons-innovation.com/evidence/j001.json"
+  },
+  {
+   "claim_id": "hs-souba-p005-65d352552b43",
+   "object_sha256": "44b37ca0e1c096b7bc9e0b336f77b7d9b0ab1085e734444a35b6e7d869871983",
+   "page": "https://shield.the-horizons-innovation.com/souba/yane-fukikae-slate-hiyou/",
+   "qid": "p005",
+   "question": "屋根 葺き替え 30坪 費用",
+   "url": "https://shield.the-horizons-innovation.com/evidence/p005.json"
+  },
+  {
+   "claim_id": "hs-souba-j003-a40761e92df3",
+   "object_sha256": "3353afb0d3e8edfe6dbef40df839b93bdcf8c5dd4e3d942597c11e4e6d04b930",
+   "page": "https://shield.the-horizons-innovation.com/souba/yane-check/",
+   "qid": "j003",
+   "question": "この屋根修理の見積もりが適正かどうか知りたい",
+   "url": "https://shield.the-horizons-innovation.com/evidence/j003.json"
+  },
+  {
+   "claim_id": "hs-souba-p013-219acc122336",
+   "object_sha256": "b738006d220c13f9447bf993989d1ddf4f783b1baef13ce8232ec8aae1d8936e",
+   "page": "https://shield.the-horizons-innovation.com/souba/kyutoki/",
+   "qid": "p013",
+   "question": "給湯器 交換 費用 相場",
+   "url": "https://shield.the-horizons-innovation.com/evidence/p013.json"
+  },
+  {
+   "claim_id": "hs-souba-j002-c9ac7394fa38",
+   "object_sha256": "e0d46a2fc95d5c28b70bb4f4c47d31e42596d58eb9eefe98a104dc999bc0c3e4",
+   "page": "https://shield.the-horizons-innovation.com/souba/kyutoki-20man/",
+   "qid": "j002",
+   "question": "給湯器交換で20万円は高いですか",
+   "url": "https://shield.the-horizons-innovation.com/evidence/j002.json"
+  },
+  {
+   "claim_id": "hs-souba-p016-bf4802a0e187",
+   "object_sha256": "a787ddd7794140943c713fc308c5d49b3255a62c8883684d29b32b33cfc942f1",
+   "page": "https://shield.the-horizons-innovation.com/souba/toilet/",
+   "qid": "p016",
+   "question": "トイレ リフォーム 費用 目安",
+   "url": "https://shield.the-horizons-innovation.com/evidence/p016.json"
+  },
+  {
+   "claim_id": "hs-souba-p071-b44cda627937",
+   "object_sha256": "01341aea6f1ef1f512b9f1683efc1714bcf5741d0f7820519c640f35ec27df79",
+   "page": "https://shield.the-horizons-innovation.com/souba/shiroari/",
+   "qid": "p071",
+   "question": "シロアリ駆除 費用 適正価格",
+   "url": "https://shield.the-horizons-innovation.com/evidence/p071.json"
+  }
+ ],
+ "schema": "gravity-evidence-index-v0"
+}
