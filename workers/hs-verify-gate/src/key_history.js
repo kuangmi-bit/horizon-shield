@@ -72,6 +72,37 @@ export const KEY_HISTORY_RULE = [
 ];
 
 
+// Where a served history has been fixed outside this server, by a clock the operator does not control. An anchor is
+// made after the list it anchors, so this list is NOT covered by history_sha256 (adding an anchor never changes the
+// hash it anchors). Only an anchor whose history_sha256 equals the hash computed now is reported as covering the
+// served list; the others are listed as previous. After a rotation the new list is honestly reported as not yet
+// anchored until its own entry is added here.
+// The canonical bytes of the list are the ledger entry's record (also record_canonical in the seed committed to the
+// repository), and the OpenTimestamps proof stamps SHA-256 of exactly those bytes. Holding the bytes and the proof,
+// anyone can check them against Bitcoin without this server or the ledger.
+export const KEY_HISTORY_ANCHORS = [
+  {
+    history_sha256: "d479e3e036625b87e40cc1d0882e7f569843939d34f193e9e4da9b033559b7a9",
+    as_of: "2026-09-28",
+    jidec_entry: 60,
+    ledger_url: "https://ledger.horizonshield.dev/ledger/60",
+    canonical_bytes_url: "https://ledger.horizonshield.dev/ledger/60?format=raw",
+    ots_url: "https://ledger.horizonshield.dev/ledger/60/ots",
+    bitcoin_block: 968923,
+    bitcoin_block_time: "2026-09-28 02:48 UTC",
+    seed_in_repository: "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/seed_entry_key_history_2026-09-28.json",
+    seed_commit: "8f2e02c6",
+  },
+];
+
+// Pure: which anchors cover the history whose hash is given.
+export function anchorsFor(historySha256, anchors = KEY_HISTORY_ANCHORS) {
+  const current = anchors.filter((a) => a.history_sha256 === historySha256);
+  const previous = anchors.filter((a) => a.history_sha256 !== historySha256);
+  return { covers_served_list: current.length > 0, current, previous };
+}
+
+
 // The entry for a key, found by kid (card) or by the Ed25519 public key (the others).
 export function findKey({ use, kid, public_key_ed25519_b64, jwk_x } = {}, history = KEY_HISTORY) {
   return history.find((k) => (!use || k.use === use) && (
@@ -138,6 +169,16 @@ export async function keyHistoryDocument(env, cardSignature) {
     history_sha256,
     history_sha256_covers: "canonical JSON (sorted keys, UTF-8) of {schema, subject, keys, rule}",
     env_consistency,
+    anchors: {
+      ...anchorsFor(history_sha256),
+      not_covered_by_history_sha256: true,
+      how_to_verify: [
+        "Take the canonical bytes (canonical_bytes_url, or record_canonical in seed_in_repository) and check that their SHA-256 equals history_sha256.",
+        "Run ots verify on those bytes with the proof at ots_url; it must point to the Bitcoin block named here. Once you hold the bytes and the proof, no HORIZON SHIELD server is needed.",
+      ],
+      establishes: "the served list of public keys existed, byte for byte, no later than the Bitcoin block named in the anchor",
+      does_not_establish: "that the keys were not stolen before or after that time; only when this list was fixed",
+    },
     spec: KEY_HISTORY_SPEC,
     does_not_establish: [
       "that no key has been stolen; only what the operator has declared",

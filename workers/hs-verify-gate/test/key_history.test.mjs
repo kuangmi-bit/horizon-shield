@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import worker from "../src/worker.js";
-import { KEY_HISTORY, attributable, cardJwksKeys, findKey } from "../src/key_history.js";
+import { KEY_HISTORY, KEY_HISTORY_ANCHORS, anchorsFor, attributable, cardJwksKeys, findKey } from "../src/key_history.js";
 import { canonicalUtf8, sha256Hex } from "../src/witness.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +65,15 @@ t("rule: a key not in the history: null (this history cannot say), never true", 
 t("rule: an unparsable time is refused, not read as no proof", A({ public_key_ed25519_b64: "REV=" }, "yesterday") === false);
 t("rule: kid plus a different x is not the listed key", findKey({ kid: "act", jwk_x: "OTHER" }, H) === null);
 t("rule: the served rule states the revoked-key condition", doc.rule.some((x) => x.startsWith("revoked:") && x.includes("before compromised_from")));
+
+// anchors (2026-10-03): the list fixed outside this server, and never claimed for a list it did not fix
+t("anchors: served, and kept out of history_sha256 (the hash still recomputes from schema, subject, keys, rule only)", doc.anchors && doc.anchors.not_covered_by_history_sha256 === true && doc.history_sha256 === recomputed);
+t("anchors: every current anchor carries exactly the served history_sha256", doc.anchors.current.every((a) => a.history_sha256 === doc.history_sha256) && doc.anchors.covers_served_list === (doc.anchors.current.length > 0));
+t("anchors: every listed anchor is well formed (64-hex hash, ledger entry, Bitcoin block, OTS proof URL, seed in the repository)", KEY_HISTORY_ANCHORS.length > 0 && KEY_HISTORY_ANCHORS.every((a) => /^[0-9a-f]{64}$/.test(a.history_sha256) && Number.isInteger(a.jidec_entry) && Number.isInteger(a.bitcoin_block) && /^https:\/\//.test(a.ots_url) && /^https:\/\/github\.com\//.test(a.seed_in_repository)));
+const rotated = anchorsFor("0".repeat(64));
+t("anchors: a rotated list with no anchor of its own is reported as not anchored, and the old anchor moves to previous", rotated.covers_served_list === false && rotated.current.length === 0 && rotated.previous.length === KEY_HISTORY_ANCHORS.length);
+t("anchors: says what the anchor does not establish (theft)", typeof doc.anchors.does_not_establish === "string" && doc.anchors.does_not_establish.includes("stolen"));
+console.log("  info  served history " + doc.history_sha256.slice(0, 12) + (doc.anchors.covers_served_list ? " is anchored (JIDEC entry " + doc.anchors.current.map((a) => a.jidec_entry).join(",") + ")" : " is NOT yet anchored"));
 
 console.log("\n=== " + pass + " / " + (pass + fail) + " 合格 (key history、扉 0.4.18) ===");
 process.exit(fail ? 1 : 0);
