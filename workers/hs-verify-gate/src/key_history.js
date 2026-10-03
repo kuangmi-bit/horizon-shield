@@ -92,6 +92,9 @@ export const KEY_HISTORY_ANCHORS = [
     bitcoin_block_time: "2026-09-28 02:48 UTC",
     seed_in_repository: "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/seed_entry_key_history_2026-09-28.json",
     seed_commit: "8f2e02c6",
+    // The same bytes and the same OpenTimestamps proof, deposited outside this domain (CERN Zenodo, 2026-10-03).
+    zenodo_doi: "10.5281/zenodo.23122049",
+    zenodo_record: "https://zenodo.org/records/23122049",
   },
 ];
 
@@ -173,8 +176,8 @@ export async function keyHistoryDocument(env, cardSignature) {
       ...anchorsFor(history_sha256),
       not_covered_by_history_sha256: true,
       how_to_verify: [
-        "Take the canonical bytes (canonical_bytes_url, or record_canonical in seed_in_repository) and check that their SHA-256 equals history_sha256.",
-        "Run ots verify on those bytes with the proof at ots_url; it must point to the Bitcoin block named here. Once you hold the bytes and the proof, no HORIZON SHIELD server is needed.",
+        "Take the canonical bytes (the file in zenodo_record, canonical_bytes_url, or record_canonical in seed_in_repository) and check that their SHA-256 equals history_sha256.",
+        "Run ots verify on those bytes with the proof (the .ots file in zenodo_record, or ots_url); it must point to the Bitcoin block named here. The Zenodo record holds both, so no HORIZON SHIELD server is needed.",
       ],
       establishes: "the served list of public keys existed, byte for byte, no later than the Bitcoin block named in the anchor",
       does_not_establish: "that the keys were not stolen before or after that time; only when this list was fixed",

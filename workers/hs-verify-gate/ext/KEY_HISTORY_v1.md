@@ -28,7 +28,8 @@ it still counts.
   history. A mismatch is reported, never hidden.
 - `anchors`: where a served history has been fixed by a clock the operator does not control. `current[]` lists only
   the anchors whose `history_sha256` equals the one served now (JIDEC entry, Bitcoin block, the OpenTimestamps proof,
-  the seed committed to this repository); `previous[]` the others; `covers_served_list` is false after a rotation until
+  the seed committed to this repository, and where present a Zenodo DOI holding the same bytes and proof outside this
+  domain); `previous[]` the others; `covers_served_list` is false after a rotation until
   the new list is anchored. `anchors` is not covered by `history_sha256`: an anchor is made after the list it anchors.
 - `does_not_establish[]`.
 

@@ -72,6 +72,7 @@ t("anchors: every current anchor carries exactly the served history_sha256", doc
 t("anchors: every listed anchor is well formed (64-hex hash, ledger entry, Bitcoin block, OTS proof URL, seed in the repository)", KEY_HISTORY_ANCHORS.length > 0 && KEY_HISTORY_ANCHORS.every((a) => /^[0-9a-f]{64}$/.test(a.history_sha256) && Number.isInteger(a.jidec_entry) && Number.isInteger(a.bitcoin_block) && /^https:\/\//.test(a.ots_url) && /^https:\/\/github\.com\//.test(a.seed_in_repository)));
 const rotated = anchorsFor("0".repeat(64));
 t("anchors: a rotated list with no anchor of its own is reported as not anchored, and the old anchor moves to previous", rotated.covers_served_list === false && rotated.current.length === 0 && rotated.previous.length === KEY_HISTORY_ANCHORS.length);
+t("anchors: a deposit outside this domain, when listed, is a Zenodo DOI with its record URL", KEY_HISTORY_ANCHORS.every((a) => a.zenodo_doi === undefined || (/^10\.5281\/zenodo\.\d+$/.test(a.zenodo_doi) && a.zenodo_record === "https://zenodo.org/records/" + a.zenodo_doi.split(".").pop())));
 t("anchors: says what the anchor does not establish (theft)", typeof doc.anchors.does_not_establish === "string" && doc.anchors.does_not_establish.includes("stolen"));
 console.log("  info  served history " + doc.history_sha256.slice(0, 12) + (doc.anchors.covers_served_list ? " is anchored (JIDEC entry " + doc.anchors.current.map((a) => a.jidec_entry).join(",") + ")" : " is NOT yet anchored"));
 

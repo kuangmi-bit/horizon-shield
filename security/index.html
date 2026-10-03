@@ -56,13 +56,13 @@ a{color:var(--accent)}
 </ul>
 
 <h2>Signing keys</h2>
-<p>Every public key we sign with, when it began and its status, is at <a href="https://gate.horizonshield.dev/.well-known/key-history.json">gate.horizonshield.dev/.well-known/key-history.json</a> (key-history-v1). A key not listed there is not ours. The list is fixed outside our servers: its SHA-256 <code>d479e3e036625b87e40cc1d0882e7f569843939d34f193e9e4da9b033559b7a9</code> is JIDEC ledger entry 60, anchored in Bitcoin block 968923 (2026-09-28) by OpenTimestamps. With the list's bytes and the proof, you can check this without trusting us. If a signature verifies against a key that is not in the list, report it here.</p>
+<p>Every public key we sign with, when it began and its status, is at <a href="https://gate.horizonshield.dev/.well-known/key-history.json">gate.horizonshield.dev/.well-known/key-history.json</a> (key-history-v1). A key not listed there is not ours. The list is fixed outside our servers: its SHA-256 <code>d479e3e036625b87e40cc1d0882e7f569843939d34f193e9e4da9b033559b7a9</code> is JIDEC ledger entry 60, anchored in Bitcoin block 968923 (2026-09-28) by OpenTimestamps. The list's bytes and the proof are also deposited outside our domain at Zenodo, <a href="https://doi.org/10.5281/zenodo.23122049">doi:10.5281/zenodo.23122049</a>, so you can check this without trusting us or our servers. If a signature verifies against a key that is not in the list, report it here.</p>
 
 <h2>日本語</h2>
 <p>脆弱性や、判定・記録の誤りは <code>contact@the-horizons-innovation.com</code> へ、件名の頭に <code>[security]</code> を付けて送ってください。何をしたか、対象の URL、見えたもの、どこから測ったかを書いてください。こちらの測定と食い違う報告が、いちばん役に立ちます。</p>
 <p>対象は、このサイト、horizonshield.dev の下のすべてのサービス(MCP サーバー、検証の扉、JIDEC 台帳、A2A の agent card)、公開データ JCCDB と USCCDB、配布物 nenrin-verify です。判定や記録の誤り、通るはずのない署名やハッシュが通ること、台帳の鎖や錨の破れ、公開面に個人情報や鍵が出ていることは、問い合わせではなくセキュリティの問題として扱います。</p>
 <p>サービスを止める試験、人を騙す手口、物理的な攻撃は対象外です。善意で、この範囲の中で、必要以上のデータに触れず、直すための時間をくださる限り、その調査について法的な手段はとりません。</p>
-<p>署名に使う公開鍵の一覧(いつからか、今の状態)は <a href="https://gate.horizonshield.dev/.well-known/key-history.json">key-history.json</a> にあります。載っていない鍵は、私たちの鍵ではありません。この一覧は私たちのサーバーの外で固定してあります。一覧の SHA-256 は JIDEC 台帳の 60 番として、OpenTimestamps で Bitcoin のブロック 968923(2026-09-28)に錨付けされています。一覧の中身と証明があれば、私たちを信用せずに確かめられます。</p>
+<p>署名に使う公開鍵の一覧(いつからか、今の状態)は <a href="https://gate.horizonshield.dev/.well-known/key-history.json">key-history.json</a> にあります。載っていない鍵は、私たちの鍵ではありません。この一覧は私たちのサーバーの外で固定してあります。一覧の SHA-256 は JIDEC 台帳の 60 番として、OpenTimestamps で Bitcoin のブロック 968923(2026-09-28)に錨付けされています。一覧の中身と証明は、私たちのドメインの外の Zenodo(<a href="https://doi.org/10.5281/zenodo.23122049">doi:10.5281/zenodo.23122049</a>)にも置いてあり、私たちもサーバーも信用せずに確かめられます。</p>
 <p>受け取ってから 3 営業日以内に返事をすることを目標にしています。直しは公開のリポジトリで行い、判定や記録を変えた報告は、こちらの誤りであっても公開します。ご希望がなければお名前を記して感謝を残します。現在、報奨金の制度はありません。</p>
 <p class="meta" style="margin-top:48px"><a href="https://shield.the-horizons-innovation.com/">HORIZON SHIELD</a></p>
 </main>
