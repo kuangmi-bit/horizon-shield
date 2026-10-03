@@ -129,7 +129,12 @@ CONTENT_LABEL = {"yen_amounts": "yen amounts in the text", "quantities": "㎡/�
                  "ordered_steps": "ordered-list steps", "self_check_steps": "self-check steps", "faq_jsonld": "FAQPage JSON-LD",
                  "raw_proof_terms": "hashes, signatures, curl in the text", "text_chars": "text length", "age_days": "age since last modified",
                  "title_has_tekisei": "適正 in the title", "title_has_souba": "相場 in the title",
-                 "title_has_question": "question form in the title", "title_has_number": "a number in the title"}
+                 "title_has_question": "question form in the title", "title_has_number": "a number in the title",
+                 "title_judgement": "judgement wording in the title (これ高い, 妥当 ...)", "title_ad_words": "ad wording in the title (無料, AI診断, 今すぐ)"}
+
+
+JUDGEMENT = r"これ高い|高い[？?]|妥当|高すぎ|ぼったくり"
+AD_WORDS = r"無料|AI診断|今すぐ"
 
 
 def content_features(title, h, headers=None, now=None):
@@ -150,6 +155,8 @@ def content_features(title, h, headers=None, now=None):
         "title_has_souba": 1.0 if "相場" in title else 0.0,
         "title_has_question": 1.0 if re.search(r"[?？]|高い|妥当|いくら", title) else 0.0,
         "title_has_number": 1.0 if re.search(r"[0-9０-９]", title) else 0.0,
+        "title_judgement": 1.0 if re.search(JUDGEMENT, title) else 0.0,
+        "title_ad_words": 1.0 if re.search(AD_WORDS, title) else 0.0,
     }
 
 

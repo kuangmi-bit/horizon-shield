@@ -34,6 +34,11 @@ cited (62 of 62 at zero), and pages whose body text is 70% or more the same as a
 cited (1 of 54). Both enter the fit as switches: younger_than_60d (first publication from git history; skipped when
 git is not available) and dup_over_0.7 (exact Jaccard of body-text 4-gram shingles to the nearest page). topic_siblings counts our other pages on
 the same work (first word of the slug): Bing tends to cite one page per topic from a site, so siblings split it.
+Title intent (found on 10/04 by explaining why all 18 */-check pages were never cited): titles that frame a judgement
+(これ高い, 高い？, 妥当) or carry ad wording (無料, AI診断, 今すぐ) were almost never cited (judgement 1 of 36), while price
+titles (相場, 費用, 価格, 単価) were cited on 46% of pages. Both are content features (title_judgement, title_ad_words).
+Walk-forward test: learn only on pages first published before a month, predict that month (May, June, July), the
+strictest test of whether the formula generalises forward in time.
 The headline test holds out whole months of first publication, one at a time, and scores pages at least 60 days old:
 pages made from the same template in the same batch cannot leak into their own test.
 
@@ -216,6 +221,24 @@ def softmax_cv_grouped(Z, counts, cols, groups, mask):
     top = np.argsort(-gg)[:max(1, len(gg) // 10)]
     return {"spearman": round(spearman(gg, yy), 3), "auc_cited": round(auc(gg, (yy > 0).astype(float)), 3),
             "capture_at_10pct": round(float(yy[top].sum() / max(yy.sum(), 1)), 3), "pages_scored": int(mask.sum())}
+
+
+def walk_forward(Z, counts, cols, months, mask, test_months, gate=None):
+    """train on months before m, test on m (rows in mask); a month counts only with 100+ training and 20+ test pages. gate: rows pushed to the bottom (younger than 60 days or
+    70%+ duplicate). Returns per-month and mean Spearman, AUC and capture@10%."""
+    per = {}
+    for m in test_months:
+        te = np.where((months == m) & mask)[0]; tr = np.where(months < m)[0]
+        if len(te) < 20 or len(tr) < 100 or counts[te].sum() == 0:
+            continue
+        w, b = ridge_poisson(Z[tr][:, cols], counts[tr]); g = Z[te][:, cols] @ w + b
+        if gate is not None:
+            g = g - 10.0 * gate[te]
+        yy = counts[te]; top = np.argsort(-g)[:max(1, len(te) // 10)]
+        per[m] = {"spearman": round(spearman(g, yy), 3), "auc_cited": round(auc(g, (yy > 0).astype(float)), 3),
+                  "capture_at_10pct": round(float(yy[top].sum() / yy.sum()), 3), "test_pages": int(len(te)), "train_pages": int(len(tr))}
+    mean = {k: round(float(np.mean([v[k] for v in per.values()])), 3) for k in ("spearman", "auc_cited", "capture_at_10pct")} if per else {}
+    return {"per_month": per, "mean": mean}
 
 
 def softmax_cv(Z, counts, cols, repeats, folds, seed=20261004):
@@ -416,6 +439,15 @@ def main():
         "formula_content_only": softmax_cv_grouped(Z, counts, content, months, old),
         "baseline_section_and_sitemap_only": softmax_cv_grouped(Z, counts, [i for i, n in enumerate(names) if n.startswith("section_") or n == "in_core_sitemap"], months, old),
     } if have_age else None
+    if have_age:
+        gate_rows = np.array([1.0 if (age.get(p, 9999) < 60 or dmax[i] >= 0.7) else 0.0 for i, p in enumerate(pages)])
+        tm = [m for m in sorted(set(months.tolist())) if m != "unknown" and any((months == m) & old)][1:]
+        out["softmax_gravity"]["walk_forward"] = {
+            "test_months": tm,
+            "gates_x_formula_content": walk_forward(Z, counts, content, months, old, tm, gate_rows),
+            "formula_content_only": walk_forward(Z, counts, content, months, old, tm),
+            "baseline_section_and_sitemap_only": walk_forward(Z, counts, [i for i, n in enumerate(names) if n.startswith("section_") or n == "in_core_sitemap"], months, old, tm),
+        }
     out["gates"] = {
         "younger_than_60d": {"pages": int(sum(1 for p in pages if age.get(p, 9999) < 60)), "cited": int(sum(1 for p, _, c in rows if age.get(p, 9999) < 60 and c > 0))} if have_age else None,
         "dup_over_0.7": {"pages": int((dmax >= 0.7).sum()), "cited": int(sum(1 for i, (_, _, c) in enumerate(rows) if dmax[i] >= 0.7 and c > 0))},
@@ -499,6 +531,15 @@ def main():
                          ("formula, content only", "formula_content_only"), ("baseline: section + sitemap only", "baseline_section_and_sitemap_only")):
             v = sg["held_out_months"][key]
             L.append("| %s | %.3f | %.3f | %.3f |" % (lab, v["spearman"], v["auc_cited"], v["capture_at_10pct"]))
+    wf = sg.get("walk_forward")
+    if wf:
+        L += ["", "Walk-forward: learn on earlier months only, predict each later month (%s); mean over months" % ", ".join(wf["gates_x_formula_content"]["per_month"]), "",
+              "| | Spearman | AUC P(cited) | capture@10% |", "|---|---|---|---|"]
+        for lab, key in (("gates x formula (content)", "gates_x_formula_content"), ("formula, content only", "formula_content_only"),
+                         ("baseline: section + sitemap only", "baseline_section_and_sitemap_only")):
+            v = wf[key]["mean"]
+            if v:
+                L.append("| %s | %.3f | %.3f | %.3f |" % (lab, v["spearman"], v["auc_cited"], v["capture_at_10pct"]))
     gt = out["gates"]
     L += ["", "Gates: younger than 60 days %s; body 70%%+ the same as another page: %d pages, %d cited" % (
         ("%d pages, %d cited" % (gt["younger_than_60d"]["pages"], gt["younger_than_60d"]["cited"])) if gt["younger_than_60d"] else "not measured (no git)",
