@@ -975,6 +975,10 @@ async function contractorsFromStores(env, stores) {
       const h = await env.HS_HEARING_KV.get("hearing:" + s.store_id, "json");
       profile = (h && h.profile) || null;
     } catch (_e) {}
+    // 2026-10-03: Yakumo は建設の業者名簿。業種が建設以外と決まっている店(訪問看護など)は、
+    //   手続き中でも名簿に出さない。業種が未定の店は従来どおり残す(建設の既存店は業種を持つ)。
+    const ind = s.industry || (profile && profile.industry) || null;
+    if (ind && ind !== "construction") continue;
     out.push(storeToContractor(s, profile));
   }
   return out;
