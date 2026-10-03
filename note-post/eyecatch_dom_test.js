@@ -41,8 +41,10 @@ const eb = document.querySelector('.eb');
 if (eb) eb.addEventListener('click', () => {
   if (direct) { f.dataset.to = 'header'; f.click(); return; }
   const m = document.createElement('div'); m.id = 'menu';
-  m.innerHTML = '<div role="menuitem" id="up" style="padding:8px;background:#fff">画像をアップロード</div>';
-  document.querySelector('.hdr').appendChild(m);
+  m.innerHTML = ${o.portalMenu
+    ? "'<ul style=\"position:fixed;left:660px;top:150px;background:#fff;list-style:none;padding:4px;margin:0\"><li id=\"up\" style=\"padding:8px\"><svg width=\"16\" height=\"16\"></svg><span>画像をアップロードする</span></li><li style=\"padding:8px\"><span>記事にあう画像を選ぶ</span></li></ul>'"
+    : "'<div role=\"menuitem\" id=\"up\" style=\"padding:8px;background:#fff\">画像をアップロード</div>'"};
+  (${o.portalMenu ? 'document.body' : "document.querySelector('.hdr')"}).appendChild(m);
   document.getElementById('up').onclick = () => { f.dataset.to = 'header'; f.click(); };
 });
 const bb = document.querySelector('.bb');
@@ -81,6 +83,8 @@ const CASES = [
   // 本物の画面(2026-10-02 第2話の 1-editor.png)に近い形: 見出しの口は名札の無い丸いボタンでいつも見えている。
   // 名札「画像を追加」を持つのは、大きさ 0 の入れ物の中の本文用の口だけ。本文の「+」も題の下にある。
   { name: 'I 本物に近い形(名札の無い見出しの口、隠れた本文の口)', css: '', opts: { noLabel: true, hiddenMenu: true, bodyButton: true }, want: true },
+  // 2026-10-03 第3話: 丸いボタンは押せたが「アップロードの項目が見つからない」。項目の言葉が完全一致しない形。
+  { name: 'J メニューの言葉が「画像をアップロードする」で、外に出した浮きメニュー', css: '', opts: { noLabel: true, portalMenu: true, bodyButton: true }, want: true },
 ];
 
 (async () => {
@@ -101,8 +105,16 @@ const CASES = [
       ok(st.body === 0, c.name + ': 本文に画像を入れていない (' + st.body + ')');
       await p.close();
     }
+    console.log('K 「投稿する」が出るまで待つ');
+    const { waitForButtonText } = require('./post_to_note.js');
+    const pk = await browser.newPage();
+    await pk.setContent('<div id=a></div><script>setTimeout(()=>{document.getElementById("a").innerHTML="<button>投稿する</button>"},1200)</script>');
+    ok(await waitForButtonText(pk, '投稿する', 5000), 'K 後から出る「投稿する」を待てる');
+    await pk.setContent('<button>下書き保存</button>');
+    ok(!(await waitForButtonText(pk, '投稿する', 1500)), 'K 出ないときは待ちきって false');
+    await pk.close();
   } finally { await browser.close(); }
-  const EXPECT = CASES.reduce((n, c) => n + (c.want ? 3 : 2), 0);
+  const EXPECT = CASES.reduce((n, c) => n + (c.want ? 3 : 2), 0) + 2;
   console.log('\n実行 ' + ran + ' 件 / 失敗 ' + bad + ' 件');
   if (ran !== EXPECT) { console.log('検査の数が違う(' + EXPECT + ' 件のはず)'); process.exit(2); }
   if (bad) { console.log('見出し画像の手順の検査に失敗がある'); process.exit(1); }

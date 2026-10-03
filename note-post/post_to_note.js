@@ -641,6 +641,36 @@ async function clickButtonByText(page, text) {
   return false;
 }
 
+// ボタンの言葉が出るまで待つ(含む)。
+async function waitForButtonText(page, text, timeoutMs) {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    try {
+      const ok = await page.evaluate((t) => Array.from(document.querySelectorAll('button')).some((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && (b.textContent || '').indexOf(t) >= 0;
+      }), text);
+      if (ok) return true;
+    } catch (_e) { /* 画面が切り替わる途中 */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
+// 公開した頁が、ログインしていない人にも見えるか。見えない(404)なら公開できていない。
+async function publicPageVisible(page, url) {
+  for (let i = 0; i < 5; i++) {
+    try {
+      const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      const status = res ? res.status() : 0;
+      const title = await page.title();
+      if (status === 200 && title.indexOf('見つかりません') < 0) return true;
+    } catch (_e) { /* もう一度 */ }
+    await new Promise((r) => setTimeout(r, 6000));
+  }
+  return false;
+}
+
 async function postToNote(theme, articleText, opts) {
   console.log('ブラウザ起動中...');
   const browser = await require('puppeteer-core').launch({
@@ -719,9 +749,24 @@ async function postToNote(theme, articleText, opts) {
     console.log('本文入力完了');
     await new Promise(r => setTimeout(r, 3000));
 
-    const pub = await clickButtonByText(page, '公開に進む');
+    // 2026-10-03 第3話は「公開に進む: 成功 / 投稿する: 失敗」のまま記録され、記事は下書きに残った。
+    //   開いたままのメニューを閉じてから進み、「投稿する」が出るまで待つ。出なければもう一度だけ進み直す。
+    await closeOverlays(page);
+    let pub = await clickButtonByText(page, '公開に進む');
     console.log('公開に進む:', pub ? '成功' : '失敗');
-    await new Promise(r => setTimeout(r, 3000));
+    let postBtnSeen = await waitForButtonText(page, '投稿する', 10000);
+    if (!postBtnSeen) {
+      await snap(page, '7-no-post-button');
+      console.log('「投稿する」が出ない。出ている物:', await listMenuItems(page));
+      await closeOverlays(page);
+      pub = await clickButtonByText(page, '公開に進む');
+      console.log('公開に進む(二度目):', pub ? '成功' : '失敗');
+      postBtnSeen = await waitForButtonText(page, '投稿する', 10000);
+    }
+    if (!postBtnSeen) {
+      await snap(page, '7-no-post-button-2');
+      throw new Error('「投稿する」の画面が出ない。記事は note の下書きに残っている(公開していない)');
+    }
 
     try {
       const hashtagInput = await page.$('input[placeholder*="ハッシュタグ"], input[placeholder*="タグ"]');
@@ -741,12 +786,23 @@ async function postToNote(theme, articleText, opts) {
 
     const post = await clickButtonByText(page, '投稿する');
     console.log('投稿する:', post ? '成功' : '失敗');
+    if (!post) {
+      await snap(page, '8-no-post');
+      throw new Error('「投稿する」を押せなかった。記事は note の下書きに残っている(公開していない)');
+    }
     await new Promise(r => setTimeout(r, 5000));
+    await snap(page, '8-after-post');
 
     const finalUrl = page.url();
     console.log('投稿完了 URL:', finalUrl);
     const noteKey = finalUrl.match(/\/n\/([a-z0-9]+)/)?.[1] || finalUrl.match(/\/notes\/([a-z0-9]+)/)?.[1];
-    return noteKey ? `https://note.com/horizon_shield/n/${noteKey}` : 'https://note.com/horizon_shield';
+    if (!noteKey) throw new Error('公開した記事の番号が読めない(' + finalUrl.slice(0, 80) + ')');
+    const publicUrl = `https://note.com/horizon_shield/n/${noteKey}`;
+    // 公開されたかを、誰でも見られる頁で確かめる。見えなければ公開できていない(下書きのまま)とみなして止める。
+    const seen = await publicPageVisible(page, publicUrl);
+    console.log('公開の確かめ:', seen ? '見えた' : '見えない', publicUrl);
+    if (!seen) throw new Error('公開した頁が見えない(' + publicUrl + ')。note の下書きに残っている可能性がある');
+    return publicUrl;
 
   } finally {
     await browser.close();
@@ -1173,6 +1229,58 @@ async function headerImageShown(page) {
   } catch (_e) { return false; }
 }
 
+// 見出し画像のメニューから「アップロード」の項目を探す。言葉を含む物のうち、いちばん小さい押せる物。
+async function findUploadItem(page) {
+  const KEYS = ['アップロード', 'パソコンから', 'ファイルを選', '端末から'];
+  const els = await page.$$('button, [role="button"], [role="menuitem"], [role="option"], li, label, a, div, span');
+  let best = null, bestArea = Infinity;
+  for (const el of els) {
+    let info = null;
+    try {
+      info = await el.evaluate((e, keys) => {
+        const t = ((e.textContent || '') + ' ' + (e.getAttribute('aria-label') || '')).replace(/\s+/g, ' ').trim();
+        if (!t || t.length > 40 || !keys.some((k) => t.indexOf(k) >= 0)) return null;
+        const r = e.getBoundingClientRect(); const st = getComputedStyle(e);
+        if (!(r.width > 0 && r.height > 0) || st.visibility === 'hidden' || st.display === 'none' || Number(st.opacity) === 0) return null;
+        return { area: r.width * r.height };
+      }, KEYS);
+    } catch (_e) { info = null; }
+    if (info && info.area < bestArea) { best = el; bestArea = info.area; }
+  }
+  return best;
+}
+
+// うまくいかなかったとき、次に直すための材料。いま見えている短い言葉の押せる物を並べる(最大 15)。
+async function listMenuItems(page) {
+  try {
+    return await page.evaluate(() => {
+      const out = [];
+      for (const e of document.querySelectorAll('button, [role="button"], [role="menuitem"], [role="option"], li, label, a')) {
+        const r = e.getBoundingClientRect(); const st = getComputedStyle(e);
+        if (!(r.width > 0 && r.height > 0) || st.visibility === 'hidden' || st.display === 'none') continue;
+        const t = ((e.textContent || '').replace(/\s+/g, ' ').trim() + (e.getAttribute('aria-label') ? ' [' + e.getAttribute('aria-label') + ']' : '')).slice(0, 30);
+        if (t) out.push(t + ' @' + Math.round(r.x) + ',' + Math.round(r.y));
+        if (out.length >= 15) break;
+      }
+      return out.join(' / ');
+    });
+  } catch (_e) { return '(読めない)'; }
+}
+
+// 開いたままのメニューや画面を閉じる。閉じ残しがあると「公開に進む」「投稿する」が押せなくなる(第3話は下書きのまま残った)。
+async function closeOverlays(page) {
+  for (let i = 0; i < 2; i++) {
+    try { await page.keyboard.press('Escape'); } catch (_e) { /* 何もしない */ }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  try {
+    const t = await page.$('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
+    const b = t ? await t.boundingBox() : null;
+    if (b) await page.mouse.click(b.x + Math.min(40, b.width / 2), b.y + b.height / 2);
+  } catch (_e) { /* 何もしない */ }
+  await new Promise((r) => setTimeout(r, 300));
+}
+
 async function uploadEyecatch(page, pngPath) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const BTN_SELS = ['button[aria-label="画像を追加"]', 'button[aria-label*="見出し画像"]', 'button[aria-label*="画像"]', '[role="button"][aria-label*="画像"]'];
@@ -1232,6 +1340,7 @@ async function uploadEyecatch(page, pngPath) {
     }
     if (!target) {
       await snap(page, '1-no-button');
+      await closeOverlays(page);
       return { ok: false, why: z ? ('題の上の帯に見出し画像のボタンが無い(名札の候補 ' + found.all + ' 個)') : '題の欄が見つからない' };
     }
     console.log('見出し画像のボタン:', await describeEl(target), forced ? '(見えないまま押す)' : '');
@@ -1252,18 +1361,22 @@ async function uploadEyecatch(page, pngPath) {
 
     let chooser = first.chooser;
     if (!chooser) {
-      const items = await candidates(page, [], ['画像をアップロード', 'パソコンからアップロード', 'アップロード'],
-        'button, [role="button"], [role="menuitem"], li, label, div, span');
-      if (items.visible.length) {
-        const r = await clickExpectingChooser(page, items.visible[0], 8000);
+      // 2026-10-03 第3話: 丸いボタンは押せたが「アップロードの項目が見つからない」。項目の言葉が完全一致しなかった。
+      //   言葉を「含む」で探し、いちばん小さい(いちばん中身に近い)押せる物を選ぶ。見つからなければ、出てきた項目を記録する。
+      const item = await findUploadItem(page);
+      if (item) {
+        console.log('見出し画像のメニューの項目:', await describeEl(item));
+        const r = await clickExpectingChooser(page, item, 8000);
         chooser = r.chooser;
+      } else {
+        console.log('見出し画像のメニューに出ている物:', await listMenuItems(page));
       }
     }
     if (chooser) {
       await chooser.accept([pngPath]);
     } else {
       const input = await page.$('input[type="file"]');
-      if (!input) { await snap(page, '2-no-upload'); await page.keyboard.press('Escape'); return { ok: false, why: 'アップロードの項目が見つからない' }; }
+      if (!input) { await snap(page, '2-no-upload'); await closeOverlays(page); return { ok: false, why: 'アップロードの項目が見つからない' }; }
       await input.uploadFile(pngPath);
     }
     await sleep(3000);
@@ -1282,7 +1395,7 @@ async function uploadEyecatch(page, pngPath) {
     if (!shown) { await snap(page, '5-not-shown'); return { ok: false, why: '保存したが、題の上に画像が出ていない' }; }
     return { ok: true, how: forced ? 'forced' : 'visible' };
   } catch (e) {
-    try { await page.keyboard.press('Escape'); } catch (_e) { /* 何もしない */ }
+    await closeOverlays(page);
     await snap(page, '9-error');
     return { ok: false, why: String((e && e.message) || e).slice(0, 120) };
   }
@@ -1482,4 +1595,4 @@ async function eigoMain() {
 
 // 2026-10-02 検査から関数だけを読めるように、直に走らせたときだけ main を呼ぶ。
 if (require.main === module) main();
-module.exports = { uploadEyecatch, candidates, visibleBox, headerImageShown };
+module.exports = { uploadEyecatch, candidates, visibleBox, headerImageShown, findUploadItem, closeOverlays, waitForButtonText };
