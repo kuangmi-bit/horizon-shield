@@ -36,6 +36,7 @@ const CORS_HEADERS = {
 import * as nenrin from "./nenrin_instant.js";
 import { keyHistoryDocument, cardJwksKeys } from "./key_history.js";
 import { answerWitnessRequest, measureWitnessSurfaces, loadWitnessKeyFromEnv, extractRequest as extractWitnessRequest, rpcReplyResult as witnessRpcResult, WITNESS_SURFACES } from "./witness.js";
+import { aeRoute } from "./ae_challenge.js";
 
 // 仕様確定までの暫定値。名称や閾値はここだけ直せば全体に効く。
 const CONFIG = {
@@ -5103,6 +5104,19 @@ export default {
     // CORS プリフライト。ブラウザからの POST /check は content-type で preflight が飛ぶ。
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+
+    // 2026-10-03. draft-schrock-ae-challenge-08 (Authorization Evidence Challenge) の口。/ae の下だけ。
+    // 判定規則も status も条件も card も 1 バイトも動かさん(GATE_VERSION も据え置き、card の再署名は要らん)。
+    // 中身は src/ae_challenge.js。証拠は verify_fair_price のレシート、扉は記録の有無・hash の再計算・年齢だけを見る。
+    if (path === "/ae" || path.startsWith("/ae/")) {
+      return aeRoute(request, url, env, {
+        json: (o, st) => json(o, st),
+        problem: (p) => new Response(JSON.stringify(p, null, 2), {
+          status: 403,
+          headers: { "content-type": "application/problem+json", "Cache-Control": "no-store", ...CORS_HEADERS },
+        }),
+      });
     }
 
     // --- 正規化の試験標的 (condition 07 の陽性側) ---
