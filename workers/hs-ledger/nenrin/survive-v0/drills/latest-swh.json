@@ -1,16 +1,89 @@
 {
-  "drill_at": "2026-10-02T09:50:57Z",
+  "anchors": {
+    "confirmed": 68,
+    "explorers": [
+      "blockstream.info",
+      "mempool.space"
+    ],
+    "failed": [],
+    "first_block": 959118,
+    "last_block": 969518,
+    "pending": []
+  },
+  "chain": {
+    "broken_at": null,
+    "head": "ad7586e6a696517b7175a5d2ee36d86afda44e0a698da2054e1d28b6a081dd60",
+    "rebuilt_through": 68,
+    "stamped_heads": [
+      {
+        "carried_by": 58,
+        "head_n": 57,
+        "result": "match"
+      },
+      {
+        "carried_by": 61,
+        "head_n": 60,
+        "result": "match"
+      },
+      {
+        "carried_by": 65,
+        "head_n": 64,
+        "result": "match"
+      },
+      {
+        "carried_by": 66,
+        "head_n": 65,
+        "result": "match"
+      },
+      {
+        "carried_by": 67,
+        "head_n": 66,
+        "result": "match"
+      },
+      {
+        "carried_by": 68,
+        "head_n": 67,
+        "result": "match"
+      }
+    ],
+    "stamped_heads_matched": 6
+  },
+  "digests": {
+    "failed": [],
+    "ok": 68
+  },
+  "does_not_establish": [
+    "that any claim in the ledger is true",
+    "that the copy is complete past its highest entry; the newest entries may not have reached the custodian yet",
+    "that two explorers agreeing is Bitcoin consensus; check headers against your own node for that",
+    "anything about entries whose proofs are still pending; they are listed, not counted"
+  ],
+  "drill_at": "2026-10-03T09:13:40Z",
+  "entries": 68,
+  "establishes": [
+    "these ledger bytes were rebuilt from the named custodian without connecting to any operator host",
+    "every digest, the jidec-chain-v1 head, the stamped heads and the Bitcoin anchors were recomputed from the copy and two public explorers"
+  ],
   "fence": {
     "host": "ledger.horizonshield.dev",
     "reachable": false,
     "why": "sinkholed:0.0.0.0"
   },
-  "outcome": "custodian_unavailable",
-  "report_sha256": "5b1749fac144cbf37f783af5b024af094d8ba24522dc4e53395de433f8861933",
+  "outcome": "rebuilt",
+  "range": [
+    1,
+    68
+  ],
+  "report_sha256": "21a57891d18595937cf95b7c1d35d764072491942608d85e56bab09ebe15ff8a",
   "schema": "nenrin-survive-drill-v0",
   "source": {
-    "requested": "swh"
+    "archive_sha256": "2e34736b23323e3c4b1bfc80c142e8fdec5b41d57606f84651f7d304dab8a364",
+    "custodian": "software-heritage",
+    "directory": "swh:1:dir:05294c1dae3a94d2f4a7efa79ec1751268f5aa11",
+    "operator_controlled": false,
+    "revision": "6372fb62db95b41ab2b2d5489fb5f561757eff58",
+    "snapshot": "1fd28bb4684ed80bc1ef14a15fd3a95c5001bdf3",
+    "visit_date": "2026-10-02T22:32:13.857000+00:00"
   },
-  "version": "0.1.0",
-  "why": "RuntimeError: Software Heritage vault did not finish: new"
+  "version": "0.1.0"
 }
