@@ -97,6 +97,18 @@ WHAT = {
         "made_by": "tools/survey5_prm_probe.py",
         "role": "correction",
     },
+    "survey6_wellknown_pair_2026-10-03.jsonl": {
+        "what": "The 467 addresses of probe 5 whose challenge named no metadata URL, contacted again on 2026-10-03 with "
+                "two GETs each: the RFC 9728 default location for the registered path, and the same well-known URL under "
+                "a path that cannot exist (_nx plus 16 random hex, stored in the row), same headers. One row per address "
+                "with both statuses, whether each body is a JSON object, its resource (credential-looking query values "
+                "redacted) and authorization server count, and a pair category derived only from those fields "
+                "(live_rs_keep, auth_proxy_wall_every_path, no_doc_unclassified, or an unclassified reason). It corrects "
+                "probe 5, which read a non-200 at the default location alone as auth_proxy_by_rule. Read only, no "
+                "credentials. Recompute: python3 tools/survey6_wellknown_pair.py --recompute <this file>.",
+        "made_by": "tools/survey6_wellknown_pair.py",
+        "role": "correction",
+    },
     "build_lookup_index.py": {
         "what": "A script, not data. Builds lookup_index.json and lookup_details.json for a per address lookup page "
                 "(/verify-directory/lookup/) that is not published yet (2026-09-03). Every row it writes restates a line "
