@@ -29,7 +29,9 @@ ok(need.every((k) => k in L), "lineage has every required member");
 
 L = await ev({ readReceipt: async () => ({ claim: { ...CLAIM, fair_max: 1500000 }, claim_sha256: HASH }) });
 ok(L.outcome === "UNSATISFIED" && L.reason_ids.includes("evidence_not_verified"), "a receipt whose claim was altered fails the recomputation");
-L = await ev({ now: T0 + 31 * 24 * 3600e3 });
+const T31 = T0 + 31 * 24 * 3600e3;
+const chLate = (await issueChallenge({ action: ACTION, now: T31 - 60e3, id: "c-late" })).evidence_challenge;
+L = await ev({ challenge: chLate, now: T31 });
 ok(L.reason_ids.includes("stale_evidence"), "a receipt older than max_age_sec is stale");
 L = await ev({ action: { ...ACTION, amount_jpy: 2000000 } });
 ok(L.reason_ids.includes("action_not_matched"), "a different action does not match the challenge");
@@ -44,6 +46,9 @@ ok(L.reason_ids.includes("evidence_not_accepted"), "an expired challenge is not 
 L = await ev({ challenge: { ...ch, policy_digest: "sha256:" + "0".repeat(64) } });
 ok(L.reason_ids.includes("policy_unsatisfied"), "a challenge carrying another policy digest is refused");
 
+L = await ev({ action: { ...ACTION, amount_jpy: 2000000 }, readReceipt: async () => { throw new Error("down"); } });
+ok(L.reason_ids.length === 1 && L.reason_ids[0] === "action_not_matched", "a mismatched action is reported even when the store is down (not masked as unavailable)");
+
 const CTX = { waitUntil() {} };
 const O = "https://gate.horizonshield.dev";
 let r = await worker.fetch(new Request(O + "/ae/challenge", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: ACTION }) }), {}, CTX);
@@ -55,6 +60,12 @@ ok(r.status === 200 && (await r.json()).routes, "GET /ae documents the routes");
 r = await worker.fetch(new Request(O + "/ae/policy/fair-price-before-payment-v1"), {}, CTX);
 const pol = await r.json();
 ok(pol.policy_digest === body.evidence_challenge.policy_digest, "the served policy has the digest the challenge carries");
+let called = "";
+const ENV_SVC = { MCP_SVC: { fetch: async (u) => { called = String(u); return new Response(JSON.stringify(STORE[HASH]), { status: 200, headers: { "content-type": "application/json" } }); } } };
+const ch2 = body.evidence_challenge;
+r = await worker.fetch(new Request(O + "/ae/evaluate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ challenge: ch2, action: ACTION, presentation: { claim_sha256: HASH } }) }), ENV_SVC, CTX);
+const evr = await r.json();
+ok(called.endsWith("/ledger/" + HASH) && evr.lineage.reason_ids.indexOf("evaluation_unavailable") < 0, "the evaluation reads the receipt through the MCP_SVC binding");
 r = await worker.fetch(new Request(O + "/ae/challenge", { method: "POST", body: "{}" }), {}, CTX);
 ok(r.status === 400, "a challenge request without an action is a 400");
 

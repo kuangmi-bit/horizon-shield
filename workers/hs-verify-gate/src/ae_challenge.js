@@ -132,7 +132,9 @@ export async function evaluate({ challenge, action, presentation, readReceipt, n
   const claim = presentation && typeof presentation.claim_sha256 === "string" ? presentation.claim_sha256.toLowerCase() : "";
   if (!HEX64.test(claim)) reasons.push("missing_evidence");
   let receipt = null;
-  if (HEX64.test(claim) && !reasons.includes("evidence_not_evaluated")) {
+  // Only go to the receipt store when nothing above has already decided the outcome. A mismatched action or an
+  // expired challenge is a complete UNSATISFIED; it must not be masked by an unreachable store.
+  if (HEX64.test(claim) && reasons.length === 0) {
     let got;
     try { got = await readReceipt(claim); } catch (_e) { incomplete = "evaluation_unavailable"; }
     if (!incomplete) {
@@ -197,7 +199,10 @@ export async function aeRoute(request, url, env, helpers) {
     let body; try { body = await request.json(); } catch (_e) { return json({ error: "body must be JSON" }, 400); }
     const base = (env && env.AE_RECEIPT_STORE) || RECEIPT_STORE;
     const readReceipt = async (h) => {
-      const r = await fetch(base + h, { headers: { "user-agent": "hs-verify-gate-ae/1", accept: "application/json" } });
+      // hs-mcp sits on a route in the same zone, which a Worker cannot reach with a plain fetch. Use the service
+      // binding MCP_SVC (wrangler.jsonc) when present; the URL is kept so the request looks the same to hs-mcp.
+      const f = (env && env.MCP_SVC && typeof env.MCP_SVC.fetch === "function") ? env.MCP_SVC.fetch.bind(env.MCP_SVC) : fetch;
+      const r = await f(base + h, { headers: { "user-agent": "hs-verify-gate-ae/1", accept: "application/json" } });
       if (r.status === 404) return null;
       if (!r.ok) throw new Error("receipt store " + r.status);
       return r.json();

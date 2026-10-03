@@ -27,6 +27,12 @@
     { "binding": "HS_VERIFY_KV", "id": "ab98336fc22d4d0f947501d843d2d228" }
   ],
 
+  // 2026-10-03. /ae/evaluate reads verify_fair_price receipts from hs-mcp (mcp.horizonshield.dev/ledger/<hash>).
+  // hs-mcp is on a route in the same zone, so a plain fetch from this Worker never arrives; it needs a binding.
+  "services": [
+    { "binding": "MCP_SVC", "service": "hs-mcp" }
+  ],
+
   // 同一ゾーン522の迂回先。RELAY_TOKEN は secret で入れる:
   //   npx wrangler secret put RELAY_TOKEN
   // 中継側(hs-verify-relay)にも同じ値を入れる。片方だけだと 403 で
