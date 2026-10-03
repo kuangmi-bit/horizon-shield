@@ -29,6 +29,14 @@ is predicted by a model that never saw it; reported are R2 on log(1+citations), 
 P(cited), each with the min..max over repeats, against a baseline that knows only the section and sitemap. Sign
 stability: the share of bootstrap fits in which each coefficient is positive.
 
+Gates found by testing on the 10/01 export (iasf 2026-10-04): no page younger than 60 days since its first commit was
+cited (62 of 62 at zero), and pages whose body text is 70% or more the same as another of our pages were almost never
+cited (1 of 54). Both enter the fit as switches: younger_than_60d (first publication from git history; skipped when
+git is not available) and dup_over_0.7 (exact Jaccard of body-text 4-gram shingles to the nearest page). topic_siblings counts our other pages on
+the same work (first word of the slug): Bing tends to cite one page per topic from a site, so siblings split it.
+The headline test holds out whole months of first publication, one at a time, and scores pages at least 60 days old:
+pages made from the same template in the same batch cannot leak into their own test.
+
 For the softmax fit the cross-validation also reports capture@10%: the share of held-out citations that falls on the
 10% of held-out pages the model ranks highest (10% by chance).
 
@@ -116,6 +124,57 @@ def ridge_linear(X, y, lam=1.0):
     return beta[:-1], beta[-1]
 
 
+def first_published(paths):
+    """first commit date of each page file, from git history ({} when git is not available).
+    GRAVITY_GIT_DIR may point at another clone's .git when the working copy has none."""
+    import subprocess
+    try:
+        gd = os.environ.get("GRAVITY_GIT_DIR")
+        out = subprocess.run(["git"] + (["--git-dir", gd] if gd else []) + ["-c", "core.quotepath=off", "log", "--diff-filter=A", "--name-only", "--format=@%ad", "--date=short"],
+                             cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+    except Exception:
+        return {}
+    first, cur = {}, None
+    for line in out.splitlines():
+        if line.startswith("@"):
+            cur = line[1:]
+        elif line and (line not in first or cur < first[line]):
+            first[line] = cur
+    return {p: first[local(p)] for p in paths if local(p) in first}
+
+
+def dup_max_similarity(paths, sample=8, candidates=5):
+    """for each page, the exact Jaccard similarity of its body text (4-gram shingles) to its most similar other page.
+    Candidates come from an inverted index on 1 in `sample` shingles; similarity is then computed exactly
+    (a MinHash estimate overstated it near 0.7, where the citation cliff is)."""
+    import zlib
+    sh = []
+    for p in paths:
+        t = G.text_of(io.open(os.path.join(ROOT, local(p)), encoding="utf-8", errors="replace").read())
+        sh.append({zlib.crc32(t[i:i + 4].encode()) for i in range(max(1, len(t) - 3))})
+    idx = collections.defaultdict(list)
+    for i, s_ in enumerate(sh):
+        for x in s_:
+            if x % sample == 0:
+                idx[x].append(i)
+    best = np.zeros(len(paths)); arg = np.zeros(len(paths), dtype=int)
+    for i, s_ in enumerate(sh):
+        cnt = collections.Counter(j for x in s_ if x % sample == 0 for j in idx[x] if j != i)
+        for j, _ in cnt.most_common(candidates):
+            jac = len(s_ & sh[j]) / max(1, len(s_ | sh[j]))
+            if jac > best[i]:
+                best[i], arg[i] = jac, j
+    return best, arg
+
+
+def topic(p):
+    parts = [x for x in urllib.parse.unquote(p).strip("/").split("/") if x]
+    if len(parts) < 2:
+        return p
+    slug = re.sub(r"\.html$", "", parts[1])
+    return parts[0] + "/" + re.split(r"[-・_]", slug)[0]
+
+
 def ridge_poisson(X, y, lam=1.0, iters=100):
     """log E[y] = X w + b, Newton with step halving on the penalised log-likelihood. Same w as softmax over rows."""
     n, k = X.shape
@@ -143,6 +202,20 @@ def ridge_poisson(X, y, lam=1.0, iters=100):
             break
         beta, cur = nb, nl
     return beta[:-1], beta[-1]
+
+
+def softmax_cv_grouped(Z, counts, cols, groups, mask):
+    """hold out each group (month of first publication) in turn; score only rows in mask"""
+    g = np.zeros(len(counts))
+    for m in sorted(set(groups)):
+        te = np.where(groups == m)[0]; tr = np.where(groups != m)[0]
+        if len(tr) == 0:
+            continue
+        w, b = ridge_poisson(Z[tr][:, cols], counts[tr]); g[te] = Z[te][:, cols] @ w + b
+    gg, yy = g[mask], counts[mask]
+    top = np.argsort(-gg)[:max(1, len(gg) // 10)]
+    return {"spearman": round(spearman(gg, yy), 3), "auc_cited": round(auc(gg, (yy > 0).astype(float)), 3),
+            "capture_at_10pct": round(float(yy[top].sum() / max(yy.sum(), 1)), 3), "pages_scored": int(mask.sum())}
 
 
 def softmax_cv(Z, counts, cols, repeats, folds, seed=20261004):
@@ -216,9 +289,11 @@ def selftest():
     rows = [("/a/", {"title_has_souba": 0.0, "tables": 0.0, "title_has_tekisei": 1.0, "faq_jsonld": 1.0}, 0),
             ("/b/", {"title_has_souba": 1.0, "tables": math.log1p(2), "title_has_tekisei": 1.0, "faq_jsonld": 1.0}, 10)]
     lv = levers(rows, names, np.zeros(4), np.ones(4), np.array([0.5, 0.5, 0.1, 0.4]), 0.0, 10)
+    ok4 = topic("/souba/kyutoki-20man/") == "souba/kyutoki" and topic("/aeo/シロアリ駆除-適正価格.html") == "aeo/シロアリ駆除"
     ok3 = lv[0]["page"] in ("/a/", "/b/") and all(x["expected_gain"] >= 0 for x in lv) and not any(x["lever"] == "title_souba" and x["page"] == "/b/" for x in lv)
     res = [("softmax (Poisson) fit recovers known weights", ok1), ("cross-validation ranks held-out pages", ok2),
-           ("levers apply only where the page lacks them and never lose citations at positive weights", ok3)]
+           ("levers apply only where the page lacks them and never lose citations at positive weights", ok3),
+           ("topic key groups pages on the same work", ok4)]
     for name, r in res:
         print(("  ok   " if r else "  NG   ") + name)
     print("selftest:", "ALL PASS (%d)" % len(res) if all(r for _, r in res) else "FAIL")
@@ -272,7 +347,8 @@ def main():
     path = sys.argv[1]
     arg = lambda k, d: int(sys.argv[sys.argv.index(k) + 1]) if k in sys.argv else d
     boot, repeats, folds = arg("--boot", 300), arg("--repeats", 10), arg("--folds", 5)
-    now = datetime.date.today()
+    m_ = re.search(r"(20\d\d)_(\d\d)_(\d\d)", os.path.basename(path))
+    now = datetime.date(int(m_.group(1)), int(m_.group(2)), int(m_.group(3))) if m_ else datetime.date.today()
     cites = {}
     for r in csv.DictReader(io.open(path, encoding="utf-8-sig")):
         k = [x for x in r if x.strip() in ("ページ", "Page", "URL")][0]
@@ -282,6 +358,18 @@ def main():
     pages = sorted(sm)
     inbound = inbound_links(set(pages))
     rows = [(p, features(p, sm[p], inbound, now), cites.get(p, 0)) for p in pages]
+    first = first_published(pages)
+    have_age = len(first) == len(pages)
+    age = {p: (now - datetime.date.fromisoformat(first[p])).days for p in first}
+    dmax, darg = dup_max_similarity(pages)
+    tcount = collections.Counter(topic(p) for p in pages)
+    for i, (p, f, _) in enumerate(rows):
+        if have_age:
+            f["younger_than_60d"] = 1.0 if age[p] < 60 else 0.0
+        f["dup_over_0.7"] = 1.0 if dmax[i] >= 0.7 else 0.0
+        f["topic_siblings"] = math.log1p(tcount[topic(p)] - 1)
+    if not have_age:
+        print("note: git history not available, younger_than_60d left out")
     names = list(rows[0][1].keys())
     X = np.array([[f[n] for n in names] for _, f, _ in rows], dtype=float)
     mu, sd = X.mean(0), X.std(0); sd[sd == 0] = 1
@@ -318,6 +406,25 @@ def main():
         "cross_validation_content_only": softmax_cv(Z, counts, content, repeats, folds),
     }
     out["softmax_gravity"]["weights"].sort(key=lambda c: -abs(c["w"]))
+    months = np.array([first.get(p, "unknown")[:7] for p in pages])
+    old = np.array([age.get(p, 9999) >= 60 for p in pages])
+    gate = [i for i, n in enumerate(names) if n in ("younger_than_60d", "dup_over_0.7", "topic_siblings")]
+    out["softmax_gravity"]["held_out_months"] = {
+        "months": sorted(set(months.tolist())),
+        "formula_all": softmax_cv_grouped(Z, counts, list(range(len(names))), months, old),
+        "formula_content_and_gates": softmax_cv_grouped(Z, counts, content + gate, months, old),
+        "formula_content_only": softmax_cv_grouped(Z, counts, content, months, old),
+        "baseline_section_and_sitemap_only": softmax_cv_grouped(Z, counts, [i for i, n in enumerate(names) if n.startswith("section_") or n == "in_core_sitemap"], months, old),
+    } if have_age else None
+    out["gates"] = {
+        "younger_than_60d": {"pages": int(sum(1 for p in pages if age.get(p, 9999) < 60)), "cited": int(sum(1 for p, _, c in rows if age.get(p, 9999) < 60 and c > 0))} if have_age else None,
+        "dup_over_0.7": {"pages": int((dmax >= 0.7).sum()), "cited": int(sum(1 for i, (_, _, c) in enumerate(rows) if dmax[i] >= 0.7 and c > 0))},
+    }
+    best_sib = {}
+    for i, (p, _, c) in enumerate(rows):
+        t = topic(p)
+        if t not in best_sib or c > best_sib[t][1]:
+            best_sib[t] = (p, c)
     p5, p95 = np.percentile(BS, 5, axis=0), np.percentile(BS, 95, axis=0)
     w_low = np.where(ws > 0, np.maximum(p5, 0), np.minimum(p95, 0))
     out["softmax_gravity"]["multiplier_per_lever"] = {
@@ -326,9 +433,20 @@ def main():
         for k, (_, fn) in LEVERS.items()}
     out["levers"] = levers(rows, names, mu, sd, ws, bs, counts.sum(), w_low)[:40]
     g_all = Z @ ws + bs; e_all = np.exp(g_all - g_all.max()); e_all = counts.sum() * e_all / e_all.sum()
-    out["discovery_gaps"] = sorted([{"page": p, "citations_now": int(c), "expected_from_content": round(float(e_all[i]), 1)}
-                                    for i, (p, _, c) in enumerate(rows) if e_all[i] >= 20 and c < 0.1 * e_all[i]],
-                                   key=lambda x: -(x["expected_from_content"] - x["citations_now"]))[:25]
+    def why(i, p, c):
+        r = []
+        if dmax[i] >= 0.6:
+            r.append("body %.0f%% the same as %s" % (100 * dmax[i], pages[darg[i]]))
+        bp, bc = best_sib[topic(p)]
+        if bp != p and bc >= max(5 * c, 20):
+            r.append("sibling %s has %d citations" % (bp, bc))
+        return "; ".join(r) or "no gate: discovery"
+    out["discovery_gaps"] = sorted([{"page": p, "citations_now": int(c), "expected_from_content": round(float(e_all[i]), 1), "why": why(i, p, c)}
+                                    for i, (p, _, c) in enumerate(rows) if e_all[i] >= 20 and c < 0.1 * e_all[i] and age.get(p, 9999) >= 60],
+                                   key=lambda x: -(x["expected_from_content"] - x["citations_now"]))[:30]
+    out["cannibalized"] = sorted([{"page": p, "citations_now": int(c), "sibling": best_sib[topic(p)][0], "sibling_citations": int(best_sib[topic(p)][1])}
+                                  for p, _, c in rows if best_sib[topic(p)][0] != p and best_sib[topic(p)][1] >= max(10 * c, 50) and age.get(p, 9999) >= 60],
+                                 key=lambda x: -x["sibling_citations"])
     wpath = os.path.join(ROOT, "iasf", "gravity", "weights_bing.json"); os.makedirs(os.path.dirname(wpath), exist_ok=True)
     json.dump({"schema": "gravity-weights-bing-v0", "export": os.path.basename(path), "date": now.isoformat(), "pages": len(rows),
                "all": {"features": names, "mu": dict(zip(names, map(float, mu))), "sd": dict(zip(names, map(float, sd))),
@@ -374,6 +492,17 @@ def main():
     L += ["", "| feature | w (per 1 sd) | 90% | share > 0 |", "|---|---|---|---|"]
     for c in sg["weights"]:
         L.append("| %s | %+.3f | %+.3f..%+.3f | %.2f |" % (c["feature"], c["w"], c["w_90"][0], c["w_90"][1], c["positive_share"]))
+    if sg.get("held_out_months"):
+        L += ["", "Honest test: each month of first publication held out in turn, scored on pages at least 60 days old (%d pages)" % sg["held_out_months"]["formula_all"]["pages_scored"], "",
+              "| | Spearman | AUC P(cited) | capture@10% |", "|---|---|---|---|"]
+        for lab, key in (("formula, all features", "formula_all"), ("formula, content + gates", "formula_content_and_gates"),
+                         ("formula, content only", "formula_content_only"), ("baseline: section + sitemap only", "baseline_section_and_sitemap_only")):
+            v = sg["held_out_months"][key]
+            L.append("| %s | %.3f | %.3f | %.3f |" % (lab, v["spearman"], v["auc_cited"], v["capture_at_10pct"]))
+    gt = out["gates"]
+    L += ["", "Gates: younger than 60 days %s; body 70%%+ the same as another page: %d pages, %d cited" % (
+        ("%d pages, %d cited" % (gt["younger_than_60d"]["pages"], gt["younger_than_60d"]["cited"])) if gt["younger_than_60d"] else "not measured (no git)",
+        gt["dup_over_0.7"]["pages"], gt["dup_over_0.7"]["cited"])]
     L += ["", "Multiplier on a page's expected citations from one change made on a page that lacks it (from zero tables for the table):", "",
           "| change | fitted | cautious (5th percentile) |", "|---|---|---|"]
     for k, v in sg["multiplier_per_lever"].items():
@@ -385,9 +514,14 @@ def main():
                  x["expected_gain_cautious"], x["expected_gain"]))
     L += ["", "## Discovery gaps: the formula expects citations from the page itself, Bing gives under 10% of that", "",
           "The content is there, so the next stage is discovery (indexing, internal and external links, IndexNow), not rewriting.", "",
-          "| page | citations now | expected from the page |", "|---|---|---|"]
+          "Pages under 60 days old are left out (age explains them). The last column says what else stands in the way.", "",
+          "| page | citations now | expected from the page | why |", "|---|---|---|---|"]
     for x in out["discovery_gaps"]:
-        L.append("| %s | %d | %.1f |" % (x["page"], x["citations_now"], x["expected_from_content"]))
+        L.append("| %s | %d | %.1f | %s |" % (x["page"], x["citations_now"], x["expected_from_content"], x["why"]))
+    L += ["", "## Cannibalized: a sibling page on the same work takes the citations (10x or more)", "",
+          "| page | citations | sibling | sibling citations |", "|---|---|---|---|"]
+    for x in out["cannibalized"][:40]:
+        L.append("| %s | %d | %s | %d |" % (x["page"], x["citations_now"], x["sibling"], x["sibling_citations"]))
     io.open(stem + ".md", "w", encoding="utf-8").write("\n".join(L) + "\n")
     print("\n".join(L))
     if out["export_pages_not_in_sitemaps"]:
