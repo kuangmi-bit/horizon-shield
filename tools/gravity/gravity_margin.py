@@ -25,6 +25,15 @@ structure are smaller, formatting alone is small. When enough observations exist
 logistic regression on (features of a page, was it cited) pairs gathered from several runs; until then the margin is
 a diagnostic for which page to fix next, not a prediction.
 
+Stage model (the pipeline in the GRAVITY-v0 proposal: discover, retrieve, select, cite, absorb):
+  P_capture(q) = P_D(q) x P_S(q) x P_C x P_A
+  P_D   discovered: our page appeared in the engine's results for q. Estimated from every observation file given
+        with --obs (Laplace: (seen + 1) / (n + 2)), so one zero does not read as a certainty.
+  P_S   selected if discovered: the softmax above.
+  P_C, P_A  cited and absorbed: need the engine's answer text; set to 1 and reported as unmeasured here.
+  Marginal effect of one more unit on each stage: dP/dP_D = P_S, dP/dP_S = P_D. The report names the stage with the
+  larger marginal effect per question, and orders the questions by expected gain, so effort goes where it pays.
+
 Run on a machine that can reach the sites (TOshi's Mac):
   python3 tools/gravity/gravity_margin.py --obs iasf/discovery_runs/2026-10-04-monitor/observations.jsonl
   python3 tools/gravity/gravity_margin.py --obs ... --provider openai --qid p002
@@ -183,7 +192,38 @@ def load_claims():
     return {c["qid"]: c for c in json.load(io.open(os.path.join(ROOT, "tools", "gravity", "claims.json"), encoding="utf-8"))["claims"]}
 
 
-def run(obs_path, provider=None, qid=None, max_comp=5):
+def discovery_rates(obs_paths, claims):
+    seen, n = collections.Counter(), collections.Counter()
+    for pth in obs_paths:
+        for line in io.open(pth, encoding="utf-8"):
+            r = json.loads(line)
+            if r.get("status") != "ok" or r.get("qid") not in claims:
+                continue
+            n[r["qid"]] += 1
+            seen[r["qid"]] += 1 if (r.get("hs_seen") or r.get("hs_cited")) else 0
+    return {q: {"seen": seen[q], "n": n[q], "p_d": (seen[q] + 1.0) / (n[q] + 2.0)} for q in n}
+
+
+def stages(reports, disc):
+    rows = []
+    by_q = collections.defaultdict(list)
+    for rep in reports:
+        if "p_ours_softmax" in rep:
+            by_q[rep["qid"]].append(rep["p_ours_softmax"])
+    for q, ps in by_q.items():
+        p_s = sum(ps) / len(ps)
+        d = disc.get(q, {"seen": 0, "n": 0, "p_d": 0.5})
+        cap = d["p_d"] * p_s
+        gain_d, gain_s = p_s, d["p_d"]
+        rows.append({"qid": q, "p_d": round(d["p_d"], 3), "seen": d["seen"], "n_obs": d["n"], "p_s": round(p_s, 3),
+                     "p_capture": round(cap, 3), "dP_dPD": round(gain_d, 3), "dP_dPS": round(gain_s, 3),
+                     "next_stage": "discovery" if gain_d >= gain_s else "selection",
+                     "expected_gain_next": round(max(gain_d * (1 - d["p_d"]), gain_s * (1 - p_s)), 3)})
+    rows.sort(key=lambda x: -x["expected_gain_next"])
+    return rows
+
+
+def run(obs_path, provider=None, qid=None, max_comp=5, extra_obs=()):
     claims = load_claims()
     recs = {}
     for line in io.open(obs_path, encoding="utf-8"):
@@ -221,7 +261,16 @@ def run(obs_path, provider=None, qid=None, max_comp=5):
         if "margin" in rep:
             print("%-10s %-5s margin %+6.2f  P(ours) %.2f  next: %s" % (prov, q, rep["margin"], rep["p_ours_softmax"],
                   ", ".join(f["feature"] for f in rep["next_fix"]) or "none"))
-    json.dump({"schema": "gravity-margin-v0", "weights": WEIGHTS, "tau": TAU, "obs": obs_path, "reports": reports},
+    disc = discovery_rates([obs_path] + list(extra_obs), claims)
+    st = stages(reports, disc)
+    ccr = sum(x["p_capture"] for x in st) / len(st) if st else 0.0
+    print("\nstage model  P_capture = P_D x P_S   (P_C, P_A unmeasured, set to 1)")
+    for x in st:
+        print("  %-5s P_D %.2f (seen %d/%d)  P_S %.2f  P_capture %.3f  next: %-9s  dP/dP_D %.2f  dP/dP_S %.2f" % (
+            x["qid"], x["p_d"], x["seen"], x["n_obs"], x["p_s"], x["p_capture"], x["next_stage"], x["dP_dPD"], x["dP_dPS"]))
+    print("  expected capture over these questions (CCR estimate): %.3f" % ccr)
+    json.dump({"schema": "gravity-margin-v0", "weights": WEIGHTS, "tau": TAU, "obs": obs_path, "extra_obs": list(extra_obs),
+               "stages": st, "ccr_estimate": round(ccr, 4), "reports": reports},
               io.open(os.path.join(out_dir, "margin.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     with io.open(os.path.join(out_dir, "rows.jsonl"), "w", encoding="utf-8") as fh:
         for x in rows:
@@ -232,6 +281,11 @@ def run(obs_path, provider=None, qid=None, max_comp=5):
         if "margin" in rep:
             L.append("| %s | %s | %s | %+.2f | %.2f | %s |" % (rep["provider"], rep["qid"], rep["question"], rep["margin"], rep["p_ours_softmax"],
                      "; ".join(f["label"] for f in rep["next_fix"]) or "none"))
+    L += ["", "## Stage model  P_capture = P_D x P_S  (P_C, P_A unmeasured)", "",
+          "| q | P_D (seen/n) | P_S | P_capture | next stage | dP/dP_D | dP/dP_S |", "|---|---|---|---|---|---|---|"]
+    for x in st:
+        L.append("| %s | %.2f (%d/%d) | %.2f | %.3f | %s | %.2f | %.2f |" % (x["qid"], x["p_d"], x["seen"], x["n_obs"], x["p_s"], x["p_capture"], x["next_stage"], x["dP_dPD"], x["dP_dPS"]))
+    L += ["", "CCR estimate over these questions: %.3f" % ccr]
     io.open(os.path.join(out_dir, "margin.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
     print("\nwritten: %s/margin.md, margin.json, rows.jsonl" % out_dir)
     return 0
@@ -286,7 +340,12 @@ def selftest():
     a, b = raw_features(q, good, now=now), raw_features(q, proof, now=now)
     ok3 = b["V"] > a["V"] and WEIGHTS["V"] <= 0
     ok4 = raw_features(q, good, now=now)["W"] > 0 and raw_features(q, weak, now=now)["W"] == 0
-    res = [("strong page beats weak page", ok), ("weak page gets negative margin and a content fix first", ok2),
+    st = stages([{"qid": "a", "p_ours_softmax": 0.9}, {"qid": "b", "p_ours_softmax": 0.2}],
+                {"a": {"seen": 0, "n": 8, "p_d": 0.1}, "b": {"seen": 8, "n": 8, "p_d": 0.9}})
+    sa = {x["qid"]: x for x in st}
+    ok5 = sa["a"]["next_stage"] == "discovery" and sa["b"]["next_stage"] == "selection" and abs(sa["a"]["p_capture"] - 0.09) < 1e-9
+    res = [("stage model: unseen strong page needs discovery, seen weak page needs selection", ok5),
+           ("strong page beats weak page", ok), ("weak page gets negative margin and a content fix first", ok2),
            ("raw proof is detected and never weighted up", ok3), ("woven self-check steps detected only where present", ok4)]
     for name, r in res:
         print(("  ok   " if r else "  NG   ") + name)
@@ -300,6 +359,7 @@ def main():
     ap.add_argument("--provider")
     ap.add_argument("--qid")
     ap.add_argument("--max-comp", type=int, default=5)
+    ap.add_argument("--more-obs", nargs="*", default=[], help="more observation files, used only for P_D")
     ap.add_argument("--fit", nargs="+", metavar="ROWS_JSONL")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
@@ -309,7 +369,7 @@ def main():
         sys.exit(fit(a.fit))
     if not a.obs:
         ap.error("--obs is required")
-    sys.exit(run(a.obs, a.provider, a.qid, a.max_comp))
+    sys.exit(run(a.obs, a.provider, a.qid, a.max_comp, a.more_obs))
 
 
 if __name__ == "__main__":
