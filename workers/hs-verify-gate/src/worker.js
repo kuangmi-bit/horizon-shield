@@ -3305,9 +3305,12 @@ function atomFeed(origin, changes) {
 function securityTxt(origin) {
   return [
     "Contact: mailto:contact@the-horizons-innovation.com",
+    // 2026-10-03. RFC 9116 makes Expires REQUIRED; it was missing. Policy now points at the disclosure policy.
+    "Expires: 2027-10-03T00:00:00.000Z",
     "Preferred-Languages: en, ja",
     "Canonical: " + origin + "/.well-known/security.txt",
-    "Policy: https://shield.the-horizons-innovation.com/verify-directory/",
+    "Policy: https://shield.the-horizons-innovation.com/security/",
+    "Acknowledgments: https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/README.md",
     "",
     "# This service publishes verdicts about other people's servers.",
     "# If a verdict here is wrong, that is a security problem, not a support ticket.",

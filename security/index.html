@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security and vulnerability disclosure | HORIZON SHIELD</title>
+<meta name="description" content="How to report a vulnerability or a wrong verdict in HORIZON SHIELD, its MCP and A2A servers, the verification gate, the JIDEC ledger and the JCCDB data. What is in scope, safe harbor, and what we publish.">
+<meta name="author" content="大賀俊勝 | HORIZON SHIELD">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://shield.the-horizons-innovation.com/security/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Security and vulnerability disclosure","url":"https://shield.the-horizons-innovation.com/security/","inLanguage":["en","ja"],"publisher":{"@type":"Organization","name":"The HORIZONs Co., Ltd.","url":"https://shield.the-horizons-innovation.com/"},"dateModified":"2026-10-03"}
+</script>
+<style>
+:root{--bg:#fff;--fg:#111;--muted:#555;--rule:#d0d0d0;--accent:#b00020}
+@media (prefers-color-scheme:dark){:root{--bg:#0d0d0f;--fg:#ececec;--muted:#a0a0a0;--rule:#333;--accent:#ff5c6c}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 -apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:760px;margin:0 auto;padding:48px 20px 80px}
+h1{font-size:28px;line-height:1.3;margin:0 0 8px}
+h2{font-size:19px;margin:40px 0 8px;padding-top:16px;border-top:1px solid var(--rule)}
+p,li{color:var(--fg)}
+.meta{color:var(--muted);font-size:14px}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+<h1>Security and vulnerability disclosure</h1>
+<p class="meta">HORIZON SHIELD, The HORIZONs Co., Ltd. Last updated 2026-10-03. 日本語は下にあります。</p>
+
+<h2>Report to</h2>
+<p><code>contact@the-horizons-innovation.com</code>, subject starting with <code>[security]</code>. English or Japanese. Machine-readable contact: <a href="https://shield.the-horizons-innovation.com/.well-known/security.txt">/.well-known/security.txt</a> (RFC 9116).</p>
+<p>Include what you did, the exact URL or endpoint, what you saw, and from where you measured it. A report that contradicts our own measurement is the most useful kind.</p>
+
+<h2>In scope</h2>
+<ul>
+<li>shield.the-horizons-innovation.com (the site, its data files and the diagnosis flow)</li>
+<li>Every service under horizonshield.dev: the MCP servers (mcp, ccdb, hearing, web, p001, p002), the verification gate (gate), the JIDEC ledger (ledger, jidec) and their A2A agent cards</li>
+<li>The published datasets JCCDB and USCCDB (Zenodo, Hugging Face, GitHub) and the npm and PyPI package nenrin-verify</li>
+</ul>
+<p>We treat these as security problems, not support tickets: a verdict or record that is wrong, a signature or hash that verifies when it should not (or fails when it should verify), a break in the ledger chain or its anchoring, a way to make the gate record something the measured server did not do, and any personal data or secret on a public surface.</p>
+
+<h2>Out of scope</h2>
+<p>Denial of service and load testing, social engineering, physical attacks, and findings that need a compromised device of the reporter. Reports from automated scanners without a demonstrated impact.</p>
+
+<h2>Safe harbor</h2>
+<p>If you act in good faith, stay within this page, do not access or keep more data than needed to show the problem, do not degrade the service, and give us a reasonable time to fix before publishing, we will not pursue or support legal action against you for that research.</p>
+
+<h2>What happens next</h2>
+<ul>
+<li>We aim to acknowledge within 3 business days and to tell you what we will do.</li>
+<li>Fixes are made in the public repository, and the fix commit is named in the record. Findings that changed a verdict or a record are published, including ones that make us look wrong.</li>
+<li>We credit reporters by name unless you ask us not to. Past outside findings and who made them are listed in <a href="https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/README.md">the README</a> and THIRD-PARTY.md.</li>
+<li>There is no paid bug bounty at present. We say so here rather than leave it unclear.</li>
+</ul>
+
+<h2>日本語</h2>
+<p>脆弱性や、判定・記録の誤りは <code>contact@the-horizons-innovation.com</code> へ、件名の頭に <code>[security]</code> を付けて送ってください。何をしたか、対象の URL、見えたもの、どこから測ったかを書いてください。こちらの測定と食い違う報告が、いちばん役に立ちます。</p>
+<p>対象は、このサイト、horizonshield.dev の下のすべてのサービス(MCP サーバー、検証の扉、JIDEC 台帳、A2A の agent card)、公開データ JCCDB と USCCDB、配布物 nenrin-verify です。判定や記録の誤り、通るはずのない署名やハッシュが通ること、台帳の鎖や錨の破れ、公開面に個人情報や鍵が出ていることは、問い合わせではなくセキュリティの問題として扱います。</p>
+<p>サービスを止める試験、人を騙す手口、物理的な攻撃は対象外です。善意で、この範囲の中で、必要以上のデータに触れず、直すための時間をくださる限り、その調査について法的な手段はとりません。</p>
+<p>受け取ってから 3 営業日以内に返事をすることを目標にしています。直しは公開のリポジトリで行い、判定や記録を変えた報告は、こちらの誤りであっても公開します。ご希望がなければお名前を記して感謝を残します。現在、報奨金の制度はありません。</p>
+<p class="meta" style="margin-top:48px"><a href="https://shield.the-horizons-innovation.com/">HORIZON SHIELD</a></p>
+</main>
+</body>
+</html>
