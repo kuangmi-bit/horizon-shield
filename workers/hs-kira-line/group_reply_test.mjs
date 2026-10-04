@@ -146,7 +146,7 @@ console.log("\n6) @ が無い「引用で返信」(2026-10-04 森下さんの了
   check("知らせの宛先は LINE_USER_ID", pushes()[0] && pushes()[0].body.to === "U" + "c".repeat(32));
 }
 
-console.log("\n7) 加盟店グループで @ で呼ばれたときも KIRA が決める。hearing の定型文は参考として KIRA に渡す");
+console.log("\n7) 加盟店グループで @ で呼ばれたときも KIRA が決める。hearing の定型文は使わない");
 {
   calls = []; bridgeReply = "ご回答ありがとうございます。いただいた内容は担当の大賀が確認し、掲載に反映します。";
   llmOut = JSON.stringify({ action: "reply", reply: "ご質問ありがとうございます。", reason: "", lessons: [] });
@@ -154,7 +154,7 @@ console.log("\n7) 加盟店グループで @ で呼ばれたときも KIRA が�
   await send(env, [groupMsg("@HORIZON SHIELD 質問です", true)]);
   check("KIRA の文を返した(hearing の定型をそのまま返さない)", replies().length === 1 && replies()[0].body.messages[0].text === "ご質問ありがとうございます。");
   const sent = llmCalls()[0] && JSON.stringify(llmCalls()[0].body);
-  check("hearing の定型文を参考として KIRA に渡した", !!sent && sent.includes("掲載に反映します") && sent.includes("参考"));
+  check("hearing の定型文は KIRA に渡さない(写して「掲載に反映します」と約束してしまうため)", !!sent && !sent.includes("掲載に反映します"));
   check("即時の知らせは出さない(お金・契約の語なし)", pushes().length === 0, String(pushes().length));
   bridgeReply = "ok"; llmOut = null;
 }
@@ -424,7 +424,16 @@ console.log("\n27) グループ一覧");
   check("2 つと返した", replies().length === 1 && replies()[0].body.messages[0].text.includes("2 つ"));
 }
 
-const EXPECT = 83;
+console.log("\n28) KIRA が「大賀から改めて」と返したのに reply と付けたときも、大賀さんに知らせる(本番前の予行で見つけた形)");
+{
+  const env = makeEnv(); await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  calls = []; llmOut = JSON.stringify({ action: "reply", reply: "文言修正のご依頼、受け取りました。大賀が改めてご相談させていただきます。", reason: "修正の判断は大賀さん", lessons: [] });
+  await send(env, [groupMsg("一例に過ぎないため、幅で書いてください", false)]);
+  check("返した", replies().length === 1);
+  check("大賀さんに判断が要ると知らせた", pushes().length === 1 && pushes()[0].body.messages[0].text.includes("判断が要る"), String(pushes().length));
+}
+
+const EXPECT = 85;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");
