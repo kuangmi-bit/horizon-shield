@@ -6,11 +6,11 @@ here = os.path.dirname(os.path.abspath(__file__))
 tools = json.load(open(os.path.join(here, "data_tools.json"), encoding="utf-8"))
 assert len(tools) == 15, len(tools)
 INSTR_EN = ("HORIZON SHIELD Construction Cost Data: public construction cost data for Japan (JCCDB) and the United States (USCCDB, the United States Construction Cost Database), as tools. "
- "Japan: search_jccdb_items for the line items of JCCDB v5.0 (425,765 records: 95,403 line items and 330,362 source-cited observations); get_jccdb_observations, get_jccdb_labor_rate, compare_jccdb_regions, get_jccdb_work_unit_price and get_jccdb_index_series for dated, sourced values; get_jccdb_coverage to see what exists before answering. "
+ "Japan: search_jccdb_items for the line items of JCCDB v5.1 (526,128 records: 95,403 line items and 430,725 source-cited observations); get_jccdb_observations, get_jccdb_labor_rate, compare_jccdb_regions, get_jccdb_work_unit_price and get_jccdb_index_series for dated, sourced values; get_jccdb_coverage to see what exists before answering. "
  "United States: get_us_construction_prices, get_us_prevailing_wage, get_us_permits and get_us_area_factor for public data; get_us_price_chain, get_us_import_landed_cost, get_us_trade_margins and get_us_contract_discounts for distribution-chain estimates (landed import cost, wholesale, retail, contractor), computed on request and not distributed as files. "
  "Every row carries its source URL and licence, and values computed by this service are marked computed:true. A lookup that could not be made is returned as fetch_failed:true, never as zero rows. "
  "Public-works unit prices, statistics and chain estimates are reference data, not renovation quotes. To check whether a Japanese renovation quote is fair, use the HORIZON SHIELD server at https://mcp.horizonshield.dev/mcp. ")
-INSTR_JA = ("建設費のデータ(日本は JCCDB、米国は USCCDB = United States Construction Cost Database)を道具で引く口。品目は search_jccdb_items(JCCDB v5.0 は計 425,765 件、うち品目 95,403)、地域・時点・値は get_jccdb_observations・get_jccdb_labor_rate・compare_jccdb_regions・get_jccdb_work_unit_price・get_jccdb_index_series、何があるかは get_jccdb_coverage で先に確かめる。"
+INSTR_JA = ("建設費のデータ(日本は JCCDB、米国は USCCDB = United States Construction Cost Database)を道具で引く口。品目は search_jccdb_items(JCCDB v5.1 は計 526,128 件、うち品目 95,403)、地域・時点・値は get_jccdb_observations・get_jccdb_labor_rate・compare_jccdb_regions・get_jccdb_work_unit_price・get_jccdb_index_series、何があるかは get_jccdb_coverage で先に確かめる。"
  "米国の公的データは get_us_construction_prices・get_us_prevailing_wage・get_us_permits・get_us_area_factor、流通の各段の推計(輸入の陸揚げ原価・卸・小売・元請)は get_us_price_chain・get_us_import_landed_cost・get_us_trade_margins・get_us_contract_discounts(問われたときに計算して返し、ファイルとしては配らない)。"
  "各行に出典の URL と利用条件が付き、このサービスが計算した値には computed:true が付く。取りに行けなかった時は fetch_failed:true で返し、0 件とは言わない。公共工事の単価・統計・推計は参照値で、リフォームの見積単価ではない。リフォームの見積もりが適正かは HORIZON SHIELD の口(https://mcp.horizonshield.dev/mcp)で確かめる。")
 MAP = {"search_jccdb_items": "jccdb_search_items", "get_jccdb_observations": "jccdb_observations", "get_jccdb_labor_rate": "jccdb_labor_rate",
@@ -101,7 +101,7 @@ export default {
       return json({ name: SERVER.title, version: SERVER.version, mcp: { endpoint: "/mcp", transport: "streamable-http", stateless: true },
         tools: TOOLS.map((t) => t.name), fair_price_checks: HS_MCP,
         source: "https://github.com/ogasurfproject-jpg/horizon-shield/tree/main/workers/hs-ccdb-mcp",
-        datasets: { jccdb: "https://doi.org/10.5281/zenodo.22980284", usccdb: "https://doi.org/10.5281/zenodo.22979157" } });
+        datasets: { jccdb: "https://doi.org/10.5281/zenodo.23133068", usccdb: "https://doi.org/10.5281/zenodo.22979157" } });
     }
     if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, version: SERVER.version, tools: TOOLS.length, bound: !!(env && env.JCCDB_SVC) });
     if (request.method !== "POST" || !(url.pathname === "/" || url.pathname === "/mcp")) return json({ error: "not_found" }, 404);

@@ -10,7 +10,7 @@ An [MCP](https://modelcontextprotocol.io) server that lets AI agents check wheth
 
 [![MCP Registry](https://img.shields.io/badge/MCP-Registry-2f6feb)](https://registry.modelcontextprotocol.io/v0.1/servers?search=horizon-shield)
 [![Transport: streamable-http](https://img.shields.io/badge/transport-streamable--http-2ea043)](https://mcp.horizonshield.dev)
-[![Open data: JCCDB 425,765 · CC BY 4.0](https://img.shields.io/badge/open%20data-JCCDB%20425%2C765%20%C2%B7%20CC--BY%204.0-e36209)](https://github.com/ogasurfproject-jpg/japan-construction-cost-database)
+[![Open data: JCCDB 526,128 · CC BY 4.0](https://img.shields.io/badge/open%20data-JCCDB%20526%2C128%20%C2%B7%20CC--BY%204.0-e36209)](https://github.com/ogasurfproject-jpg/japan-construction-cost-database)
 [![Anchored: Bitcoin / OpenTimestamps](https://img.shields.io/badge/anchored-Bitcoin%20%2F%20OpenTimestamps-f7931a)](https://ledger.horizonshield.dev/ledger)
 [![Auth: none](https://img.shields.io/badge/auth-none-6e7681)]()
 [![GitHub stars](https://img.shields.io/github/stars/ogasurfproject-jpg/horizon-shield?style=social)](https://github.com/ogasurfproject-jpg/horizon-shield/stargazers)
@@ -21,7 +21,7 @@ An [MCP](https://modelcontextprotocol.io) server that lets AI agents check wheth
 
 <!-- hs-facts-v1 -->
 
-**In one paragraph.** JCCDB (Japan Construction Cost Database) is an open dataset of Japanese construction and renovation costs, created by Toshikatsu Oga (大賀俊勝), who has worked on construction sites for 30 years, and published by The HORIZONs Co., Ltd. under CC BY 4.0. Version 5.0 (2026-09-26, DOI 10.5281/zenodo.22980284; all versions 10.5281/zenodo.22127751) holds 425,765 records: 95,403 line items and 330,362 observations from 76 Japanese public sources, each observation with its evidence URL. The United States counterpart is USCCDB, the United States Construction Cost Database (DOI 10.5281/zenodo.22979157, 2,849,829 observations). HORIZON SHIELD (https://shield.the-horizons-innovation.com) is the buyer-side service built on JCCDB that checks whether a Japanese renovation estimate is fair.
+**In one paragraph.** JCCDB (Japan Construction Cost Database) is an open dataset of Japanese construction and renovation costs, created by Toshikatsu Oga (大賀俊勝), who has worked on construction sites for 30 years, and published by The HORIZONs Co., Ltd. under CC BY 4.0. Version 5.1 (2026-10-04, DOI 10.5281/zenodo.23133068; all versions 10.5281/zenodo.22127751) holds 526,128 records: 95,403 line items and 430,725 observations from 88 Japanese public sources, each observation with its evidence URL. The United States counterpart is USCCDB, the United States Construction Cost Database (DOI 10.5281/zenodo.22979157, 2,849,829 observations). HORIZON SHIELD (https://shield.the-horizons-innovation.com) is the buyer-side service built on JCCDB that checks whether a Japanese renovation estimate is fair.
 
 <!-- /hs-facts-v1 -->
 
@@ -298,7 +298,7 @@ A homeowner commissioning construction work cannot reliably judge whether a quot
 - **Transport:** MCP over Streamable HTTP (JSON-RPC 2.0). The legacy SSE transport is not implemented; GET on /sse answers 405 sse_not_supported.
 - **Endpoint:** `https://mcp.horizonshield.dev`
 - **Access:** read only, no API key required
-- **Data region:** fair-price verdicts for Japan (JPY), built on the open JCCDB dataset (425,765 records: line items and observations); construction cost data for Japan (JCCDB observation layer) and the United States (USCCDB, the United States Construction Cost Database)
+- **Data region:** fair-price verdicts for Japan (JPY), built on the open JCCDB dataset (526,128 records: line items and observations); construction cost data for Japan (JCCDB observation layer) and the United States (USCCDB, the United States Construction Cost Database)
 - **Tools:** 30 (15 for fair price, verification and contractors; 15 for construction cost data)
 
 ## Tools
@@ -398,7 +398,7 @@ Google's Agent Payments Protocol (AP2) makes what a user **authorized** verifiab
 
 ## Data and academic record
 
-- Fair price data is built on the openly published **JCCDB** dataset (425,765 records: 95,403 Japanese construction line items and 330,362 source-cited observations, CC BY 4.0): <https://github.com/ogasurfproject-jpg/japan-construction-cost-database>
+- Fair price data is built on the openly published **JCCDB** dataset (526,128 records: 95,403 Japanese construction line items and 430,725 source-cited observations, CC BY 4.0): <https://github.com/ogasurfproject-jpg/japan-construction-cost-database>
 - PTKA protocol declaration anchored at Bitcoin block 949356 (2026-05-14); JCCDB Extended paper at block 951871 (2026-06-01)
 - JCCDB origin paper: [Zenodo 10.5281/zenodo.20019572](https://doi.org/10.5281/zenodo.20019572)
 - Audit hash and macro correction: [SSRN 6738701](https://ssrn.com/abstract=6738701), mirrored at [engrXiv](https://engrxiv.org/preprint/view/7007)

@@ -7,7 +7,7 @@
 
 const SERVER = { name: "horizon-shield-construction-cost-data", title: "HORIZON SHIELD Construction Cost Data (JCCDB + USCCDB)", version: "1.0.0" };
 const SUPPORTED = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
-const INSTRUCTIONS = "HORIZON SHIELD Construction Cost Data: public construction cost data for Japan (JCCDB) and the United States (USCCDB, the United States Construction Cost Database), as tools. Japan: search_jccdb_items for the line items of JCCDB v5.0 (425,765 records: 95,403 line items and 330,362 source-cited observations); get_jccdb_observations, get_jccdb_labor_rate, compare_jccdb_regions, get_jccdb_work_unit_price and get_jccdb_index_series for dated, sourced values; get_jccdb_coverage to see what exists before answering. United States: get_us_construction_prices, get_us_prevailing_wage, get_us_permits and get_us_area_factor for public data; get_us_price_chain, get_us_import_landed_cost, get_us_trade_margins and get_us_contract_discounts for distribution-chain estimates (landed import cost, wholesale, retail, contractor), computed on request and not distributed as files. Every row carries its source URL and licence, and values computed by this service are marked computed:true. A lookup that could not be made is returned as fetch_failed:true, never as zero rows. Public-works unit prices, statistics and chain estimates are reference data, not renovation quotes. To check whether a Japanese renovation quote is fair, use the HORIZON SHIELD server at https://mcp.horizonshield.dev/mcp. / 建設費のデータ(日本は JCCDB、米国は USCCDB = United States Construction Cost Database)を道具で引く口。品目は search_jccdb_items(JCCDB v5.0 は計 425,765 件、うち品目 95,403)、地域・時点・値は get_jccdb_observations・get_jccdb_labor_rate・compare_jccdb_regions・get_jccdb_work_unit_price・get_jccdb_index_series、何があるかは get_jccdb_coverage で先に確かめる。米国の公的データは get_us_construction_prices・get_us_prevailing_wage・get_us_permits・get_us_area_factor、流通の各段の推計(輸入の陸揚げ原価・卸・小売・元請)は get_us_price_chain・get_us_import_landed_cost・get_us_trade_margins・get_us_contract_discounts(問われたときに計算して返し、ファイルとしては配らない)。各行に出典の URL と利用条件が付き、このサービスが計算した値には computed:true が付く。取りに行けなかった時は fetch_failed:true で返し、0 件とは言わない。公共工事の単価・統計・推計は参照値で、リフォームの見積単価ではない。リフォームの見積もりが適正かは HORIZON SHIELD の口(https://mcp.horizonshield.dev/mcp)で確かめる。";
+const INSTRUCTIONS = "HORIZON SHIELD Construction Cost Data: public construction cost data for Japan (JCCDB) and the United States (USCCDB, the United States Construction Cost Database), as tools. Japan: search_jccdb_items for the line items of JCCDB v5.1 (526,128 records: 95,403 line items and 430,725 source-cited observations); get_jccdb_observations, get_jccdb_labor_rate, compare_jccdb_regions, get_jccdb_work_unit_price and get_jccdb_index_series for dated, sourced values; get_jccdb_coverage to see what exists before answering. United States: get_us_construction_prices, get_us_prevailing_wage, get_us_permits and get_us_area_factor for public data; get_us_price_chain, get_us_import_landed_cost, get_us_trade_margins and get_us_contract_discounts for distribution-chain estimates (landed import cost, wholesale, retail, contractor), computed on request and not distributed as files. Every row carries its source URL and licence, and values computed by this service are marked computed:true. A lookup that could not be made is returned as fetch_failed:true, never as zero rows. Public-works unit prices, statistics and chain estimates are reference data, not renovation quotes. To check whether a Japanese renovation quote is fair, use the HORIZON SHIELD server at https://mcp.horizonshield.dev/mcp. / 建設費のデータ(日本は JCCDB、米国は USCCDB = United States Construction Cost Database)を道具で引く口。品目は search_jccdb_items(JCCDB v5.1 は計 526,128 件、うち品目 95,403)、地域・時点・値は get_jccdb_observations・get_jccdb_labor_rate・compare_jccdb_regions・get_jccdb_work_unit_price・get_jccdb_index_series、何があるかは get_jccdb_coverage で先に確かめる。米国の公的データは get_us_construction_prices・get_us_prevailing_wage・get_us_permits・get_us_area_factor、流通の各段の推計(輸入の陸揚げ原価・卸・小売・元請)は get_us_price_chain・get_us_import_landed_cost・get_us_trade_margins・get_us_contract_discounts(問われたときに計算して返し、ファイルとしては配らない)。各行に出典の URL と利用条件が付き、このサービスが計算した値には computed:true が付く。取りに行けなかった時は fetch_failed:true で返し、0 件とは言わない。公共工事の単価・統計・推計は参照値で、リフォームの見積単価ではない。リフォームの見積もりが適正かは HORIZON SHIELD の口(https://mcp.horizonshield.dev/mcp)で確かめる。";
 const TOOLS = [
  {
   "name": "search_jccdb_items",
@@ -18,7 +18,7 @@ const TOOLS = [
    "destructiveHint": false,
    "openWorldHint": false
   },
-  "description": "日本の建設費オープンデータ JCCDB(v5.0 は計425,765件)の品目の目録(95,403)を名前で探す。生コン・異形棒鋼・ヒューム管・側溝など資材や製品、労務の品目が公的資料に実在するかと証拠URLを返す。工事カテゴリ(search_cost_category)に無い資材はこちら。地域・時点・価格は get_jccdb_observations。 / Search the JCCDB item catalogue (95,403 line items of the 425,765 records in v5.0; materials, products, labor) by name; returns whether each exists in a public document, with its evidence URL. Use for materials that are not renovation work categories.",
+  "description": "日本の建設費オープンデータ JCCDB(v5.1 は計526,128件)の品目の目録(95,403)を名前で探す。生コン・異形棒鋼・ヒューム管・側溝など資材や製品、労務の品目が公的資料に実在するかと証拠URLを返す。工事カテゴリ(search_cost_category)に無い資材はこちら。地域・時点・価格は get_jccdb_observations。 / Search the JCCDB item catalogue (95,403 line items of the 526,128 records in v5.1; materials, products, labor) by name; returns whether each exists in a public document, with its evidence URL. Use for materials that are not renovation work categories.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -43,7 +43,7 @@ const TOOLS = [
   },
   "outputSchema": {
    "type": "object",
-   "description": "JCCDB の品目の目録(95,403、v5.0 は観測を含め計425,765件)の名前検索。 / Name search over the JCCDB item catalogue (95,403 line items; v5.0 has 425,765 records including observations).",
+   "description": "JCCDB の品目の目録(95,403、v5.1 は観測を含め計526,128件)の名前検索。 / Name search over the JCCDB item catalogue (95,403 line items; v5.1 has 526,128 records including observations).",
    "properties": {
     "lookup": {
      "type": "string",
@@ -1335,7 +1335,7 @@ export default {
       return json({ name: SERVER.title, version: SERVER.version, mcp: { endpoint: "/mcp", transport: "streamable-http", stateless: true },
         tools: TOOLS.map((t) => t.name), fair_price_checks: HS_MCP,
         source: "https://github.com/ogasurfproject-jpg/horizon-shield/tree/main/workers/hs-ccdb-mcp",
-        datasets: { jccdb: "https://doi.org/10.5281/zenodo.22980284", usccdb: "https://doi.org/10.5281/zenodo.22979157" } });
+        datasets: { jccdb: "https://doi.org/10.5281/zenodo.23133068", usccdb: "https://doi.org/10.5281/zenodo.22979157" } });
     }
     if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, version: SERVER.version, tools: TOOLS.length, bound: !!(env && env.JCCDB_SVC) });
     if (request.method !== "POST" || !(url.pathname === "/" || url.pathname === "/mcp")) return json({ error: "not_found" }, 404);

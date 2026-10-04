@@ -8,7 +8,7 @@
    "destructiveHint": false,
    "openWorldHint": false
   },
-  "description": "日本の建設費オープンデータ JCCDB(v5.0 は計425,765件)の品目の目録(95,403)を名前で探す。生コン・異形棒鋼・ヒューム管・側溝など資材や製品、労務の品目が公的資料に実在するかと証拠URLを返す。工事カテゴリ(search_cost_category)に無い資材はこちら。地域・時点・価格は get_jccdb_observations。 / Search the JCCDB item catalogue (95,403 line items of the 425,765 records in v5.0; materials, products, labor) by name; returns whether each exists in a public document, with its evidence URL. Use for materials that are not renovation work categories.",
+  "description": "日本の建設費オープンデータ JCCDB(v5.1 は計526,128件)の品目の目録(95,403)を名前で探す。生コン・異形棒鋼・ヒューム管・側溝など資材や製品、労務の品目が公的資料に実在するかと証拠URLを返す。工事カテゴリ(search_cost_category)に無い資材はこちら。地域・時点・価格は get_jccdb_observations。 / Search the JCCDB item catalogue (95,403 line items of the 526,128 records in v5.1; materials, products, labor) by name; returns whether each exists in a public document, with its evidence URL. Use for materials that are not renovation work categories.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -33,7 +33,7 @@
   },
   "outputSchema": {
    "type": "object",
-   "description": "JCCDB の品目の目録(95,403、v5.0 は観測を含め計425,765件)の名前検索。 / Name search over the JCCDB item catalogue (95,403 line items; v5.0 has 425,765 records including observations).",
+   "description": "JCCDB の品目の目録(95,403、v5.1 は観測を含め計526,128件)の名前検索。 / Name search over the JCCDB item catalogue (95,403 line items; v5.1 has 526,128 records including observations).",
    "properties": {
     "lookup": {
      "type": "string",

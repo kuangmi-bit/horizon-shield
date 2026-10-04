@@ -2,7 +2,7 @@
 
 An MCP server (Streamable HTTP, stateless, no key) for public construction cost data:
 
-- Japan, JCCDB v5.0: 425,765 records, 95,403 line items and 330,362 source-cited observations. DOI [10.5281/zenodo.22980284](https://doi.org/10.5281/zenodo.22980284)
+- Japan, JCCDB v5.1: 526,128 records, 95,403 line items and 430,725 source-cited observations. DOI [10.5281/zenodo.23133068](https://doi.org/10.5281/zenodo.23133068)
 - United States, USCCDB (United States Construction Cost Database). DOI [10.5281/zenodo.22979157](https://doi.org/10.5281/zenodo.22979157)
 
 Endpoint: `https://ccdb.horizonshield.dev/mcp`

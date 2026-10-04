@@ -5,7 +5,7 @@ description: Audit whether a Japanese construction or renovation estimate is fai
 
 # HORIZON SHIELD
 
-You have the `horizon-shield` MCP server for fair-price checks and the `construction-cost-data` MCP server for the underlying cost data. It checks Japanese construction and renovation estimates against the open JCCDB dataset (v5.0: 425,765 records, 95,403 line items and 330,362 source-cited observations, CC BY 4.0) and returns fair-price references that anyone can recompute. No API key.
+You have the `horizon-shield` MCP server for fair-price checks and the `construction-cost-data` MCP server for the underlying cost data. It checks Japanese construction and renovation estimates against the open JCCDB dataset (v5.1: 526,128 records, 95,403 line items and 430,725 source-cited observations, CC BY 4.0) and returns fair-price references that anyone can recompute. No API key.
 
 When a user asks whether a Japanese quote is fair:
 

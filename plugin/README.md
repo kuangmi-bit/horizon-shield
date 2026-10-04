@@ -1,6 +1,6 @@
 # HORIZON SHIELD (Claude plugin)
 
-Check Japanese construction and renovation estimates against the open JCCDB dataset (v5.0: 425,765 records, 95,403 line items and 330,362 source-cited observations, CC BY 4.0), get fair-price receipts anyone can recompute, and find contractors that passed the same independent check.
+Check Japanese construction and renovation estimates against the open JCCDB dataset (v5.1: 526,128 records, 95,403 line items and 430,725 source-cited observations, CC BY 4.0), get fair-price receipts anyone can recompute, and find contractors that passed the same independent check.
 
 Listed in the Claude directory (Claude Code, Cowork, Claude apps).
 
@@ -49,7 +49,7 @@ The MCP Conduct Register plugin (https://github.com/ogasurfproject-jpg/mcp-condu
 ## Source and data
 
 - Code and data: https://github.com/ogasurfproject-jpg/horizon-shield
-- JCCDB v5.0: https://doi.org/10.5281/zenodo.22980284
+- JCCDB v5.1: https://doi.org/10.5281/zenodo.23133068
 - Live service: https://shield.the-horizons-innovation.com
 - Privacy policy: https://shield.the-horizons-innovation.com/privacy
 

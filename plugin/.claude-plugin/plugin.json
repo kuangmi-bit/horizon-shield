@@ -1,8 +1,8 @@
 {
   "name": "horizon-shield",
   "displayName": "HORIZON SHIELD",
-  "version": "1.2.1",
-  "description": "Check Japanese construction and renovation estimates against the open JCCDB dataset (425,765 records) and get Bitcoin-anchored, recomputable fair-price receipts; find contractors that passed the independent fair-price check (YAKUMO); public construction-cost data for Japan and the U.S. (JCCDB, USCCDB) from a separate read-only server. No API key. Two tools append a public ledger record; the rest read.",
+  "version": "1.2.2",
+  "description": "Check Japanese construction and renovation estimates against the open JCCDB dataset (526,128 records) and get Bitcoin-anchored, recomputable fair-price receipts; find contractors that passed the independent fair-price check (YAKUMO); public construction-cost data for Japan and the U.S. (JCCDB, USCCDB) from a separate read-only server. No API key. Two tools append a public ledger record; the rest read.",
   "author": {
     "name": "Toshikatsu Oga",
     "email": "contact@the-horizons-innovation.com",
