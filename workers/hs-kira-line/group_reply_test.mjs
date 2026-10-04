@@ -42,7 +42,7 @@ function makeEnv() {
       get: async (k) => (kv.has(k) ? kv.get(k) : null),
       put: async (k, v) => { kv.set(k, v); },
       delete: async (k) => { kv.delete(k); },
-      list: async () => ({ keys: [] }),
+      list: async (o) => ({ keys: [...kv.keys()].filter((k) => k.startsWith((o && o.prefix) || "")).map((name) => ({ name })) }),
     },
   };
 }
@@ -310,7 +310,46 @@ console.log("\n18) 大賀さん本人がグループに書いた発言には KIR
   check("返さない", replies().length === 0);
 }
 
-const EXPECT = 57;
+console.log("\n19) 大賀さんが KIRA に「グループへ」で送った文は、KIRA から加盟店グループに届き、会話に残る");
+{
+  const env = makeEnv(); await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  const owner = (text) => ({ type: "message", replyToken: "rt_o", source: { type: "user", userId: "U" + "c".repeat(32) }, message: { type: "text", id: "11", text } });
+  calls = []; llmOut = null;
+  await send(env, [owner("グループへ 森下さん、ご確認ありがとうございます。いただいた書き方に直しました。")]);
+  const toGroup = pushes().filter((c) => c.body && c.body.to === GID);
+  check("加盟店グループに送った(候補が 1 つなら自動で決まる)", toGroup.length === 1 && toGroup[0].body.messages[0].text.startsWith("森下さん"), String(toGroup.length));
+  const conv = JSON.parse((await env.SEEN_STORE.get("kira_gconv:" + GID)) || "[]");
+  check("会話に大賀さんの文として残った", conv.length === 1 && conv[0].who === "owner");
+  check("大賀さんに送ったと返した", replies().length === 1 && replies()[0].body.messages[0].text.includes("送りました"));
+  calls = [];
+  await send(env, [owner("記録 前に手で送った文です")]);
+  const conv2 = JSON.parse((await env.SEEN_STORE.get("kira_gconv:" + GID)) || "[]");
+  check("記録: 送らずに会話にだけ残した", conv2.length === 2 && pushes().filter((c) => c.body && c.body.to === GID).length === 0);
+  calls = []; llmOut = JSON.stringify({ action: "silent", reply: "", reason: "", lessons: [] });
+  await send(env, [groupMsg("承知しました", false)]);
+  const sent = llmCalls()[0] && JSON.stringify(llmCalls()[0].body);
+  check("次に KIRA が考えるとき、大賀さんの文を手本として読む", !!sent && sent.includes("大賀: 森下さん"));
+}
+
+console.log("\n20) 送り先が決められないときは送らずにそう言う");
+{
+  const env = makeEnv();
+  const owner = { type: "message", replyToken: "rt_o", source: { type: "user", userId: "U" + "c".repeat(32) }, message: { type: "text", id: "12", text: "グループへ テスト" } };
+  calls = [];
+  await send(env, [owner]);
+  check("どこにも送らない", pushes().length === 0);
+  check("決められなかったと返した", replies().length === 1 && replies()[0].body.messages[0].text.includes("決められません"));
+}
+
+console.log("\n21) 他の人の「グループへ」は効かない");
+{
+  const env = makeEnv(); await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  calls = []; llmOut = null;
+  await send(env, [{ type: "message", replyToken: "rt_x", source: { type: "user", userId: UID }, message: { type: "text", id: "13", text: "グループへ 偽の連絡" } }]);
+  check("加盟店グループに送らない", pushes().filter((c) => c.body && c.body.to === GID).length === 0);
+}
+
+const EXPECT = 65;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");

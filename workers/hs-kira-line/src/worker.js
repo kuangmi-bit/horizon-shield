@@ -265,7 +265,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v13-partner-auto-20261005", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v14-owner-relay-20261005", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -379,6 +379,7 @@ async function processEvents(events, env) {
             const _owner = userId === env.LINE_USER_ID;
             const _forUs = !_owner && !_aside && (_addressed || _quoted || _pg);
             if (_forUs || _pg) await kiraConvAppend(env, gid, "member", gt);
+            if (_forUs) { try { await env.SEEN_STORE.put("kira_last_gid", gid); } catch (_e) {} }
             if (_reply && event.replyToken && _addressed) {
               await replyToLine(event.replyToken, _reply, env.LINE_CHANNEL_TOKEN);
               await kiraConvAppend(env, gid, "kira", _reply);
@@ -1644,7 +1645,7 @@ async function kiraPartnerDecide(env, gid, text) {
   const ctx = [
     "【経験帳: どの店にも通じること】", ...(glob.length ? glob.map((l) => "- " + l.t) : ["(まだ無い)"]),
     "【経験帳: この店だけのこと】", ...(own.length ? own.map((l) => "- " + l.t) : ["(まだ無い)"]),
-    "【このグループの直近の会話(古い順。kira は KIRA の返事)】", ...conv.map((c) => (c.who === "kira" ? "kira: " : "加盟店: ") + c.text),
+    "【このグループの直近の会話(古い順。kira は KIRA の返事、大賀は大賀さんが送った文。大賀さんの書き方と判断を手本にする)】", ...conv.map((c) => (c.who === "kira" ? "kira: " : (c.who === "owner" ? "大賀: " : "加盟店: ")) + c.text),
     "【いま届いた発言】", text
   ].join("\n");
   try {
@@ -1701,6 +1702,23 @@ async function sendKiraDigest(env, nowMs) {
   await pushToLine(env.LINE_USER_ID, "【KIRA 今日の加盟店とのやりとり " + a.length + " 件】\n" + lines.join("\n"), env.LINE_CHANNEL_TOKEN);
   return true;
 }
+async function kiraResolveGroup(env) {
+  try { const g = await env.SEEN_STORE.get("kira_last_gid"); if (g) return g; } catch (_e) {}
+  try {
+    const l = await env.SEEN_STORE.list({ prefix: "groupPartner:" });
+    const ks = (l.keys || []).map((k) => k.name.slice("groupPartner:".length));
+    if (ks.length === 1) return ks[0];
+  } catch (_e) {}
+  return null;
+}
+async function kiraGroupName(env, gid) {
+  try {
+    const r = await fetch("https://api.line.me/v2/bot/group/" + encodeURIComponent(gid) + "/summary", { headers: { "Authorization": "Bearer " + env.LINE_CHANNEL_TOKEN } });
+    const j = await r.json();
+    if (j && j.groupName) return j.groupName;
+  } catch (_e) {}
+  return "加盟店グループ";
+}
 // 大賀さんの 1 対 1 だけで使える経験帳の口: 「経験帳」で一覧、「おぼえて ...」で全体に足す、「わすれて 番号」で全体から消す。
 async function handleOwnerLessonCommand(text, replyToken, env) {
   const t = String(text || "").trim();
@@ -1714,6 +1732,21 @@ async function handleOwnerLessonCommand(text, replyToken, env) {
     } catch (_e) {}
     const body = g.length ? g.map((x, i) => (i + 1) + ". " + x.t + (x.by === "owner" ? "(大賀)" : "")).join("\n") : "(まだ無い)";
     await replyToLine(replyToken, "【経験帳 全体 " + g.length + " 件】\n" + body + "\n\n店ごと: " + groups + " 店、" + items + " 件(店の中だけで使う)", env.LINE_CHANNEL_TOKEN);
+    return true;
+  }
+  // 「グループへ 本文」= 大賀さんの文を KIRA から加盟店グループへ送り、会話に残す(KIRA が読んで手本にする)。
+  // 「記録 本文」= 既に手で送った文を、送らずに会話にだけ残す。
+  if ((m = t.match(/^(グループへ|記録)[\s\u3000:：]*([\s\S]+)$/))) {
+    const send = m[1] === "グループへ", body = m[2].trim().slice(0, 4000);
+    const gid = await kiraResolveGroup(env);
+    if (!gid) {
+      await replyToLine(replyToken, "送り先の加盟店グループが決められませんでした。加盟店さんがグループに書いた後に、もう一度送ってください。", env.LINE_CHANNEL_TOKEN);
+      return true;
+    }
+    const name = await kiraGroupName(env, gid);
+    if (send) await pushToLine(gid, body, env.LINE_CHANNEL_TOKEN);
+    await kiraConvAppend(env, gid, "owner", body);
+    await replyToLine(replyToken, (send ? "送りました" : "記録しました") + "(" + name + ")。KIRA はこの文を会話として読み、次の返事の手本にします。", env.LINE_CHANNEL_TOKEN);
     return true;
   }
   if ((m = t.match(/^おぼえて[\s　:：]*([\s\S]+)$/))) {
