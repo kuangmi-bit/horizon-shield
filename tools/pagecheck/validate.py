@@ -182,7 +182,7 @@ BOT_META = ("robots", "googlebot", "googlebot-news", "bingbot", "msnbot", "slurp
 NOINDEX_RE = re.compile(r"noindex|nofollow|(?<![a-z])none(?![a-z])|unavailable_after")
 # 実行時にページを書き換えられる外部資源(script src / iframe / embed / object)は、許可した出どころだけ。
 #   静的な門は実行後の姿を見られない。だから「誰のコードが動くか」を置き場所で縛る。
-RUNTIME_ALLOWED_HOSTS = ("shield.the-horizons-innovation.com", ".horizonshield.dev", ".oga-surf-project.workers.dev", "www.paypal.com", "static.cloudflareinsights.com")
+RUNTIME_ALLOWED_HOSTS = ("shield.the-horizons-innovation.com", ".horizonshield.dev", ".oga-surf-project.workers.dev", "www.paypal.com", "static.cloudflareinsights.com", "www.clarity.ms")
 BASE64_RE = re.compile(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{12,4000}={0,2}(?![A-Za-z0-9+/=])")
 # 通貨記号の無い金額: 価格語の直後の桁区切り数、または桁区切り数の直後の税込/税抜。
 MONEY_RE3 = re.compile(r"(?:税込|税抜|総額|合計|費用|価格|単価|相場|見積|金額|料金|報酬|給与|月給|日給|年収)[^\d\n]{0,6}\d{1,3}(?:,\d{3})+|\d{1,3}(?:,\d{3})+[^\d\n]{0,3}(?:税込|税抜)")
