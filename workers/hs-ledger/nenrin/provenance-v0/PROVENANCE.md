@@ -1,6 +1,7 @@
 # nenrin-provenance-verify-v0 (番人 draft, 2026-09-17)
 
-One verifier over the whole provenance graph of one A2A task. It composes three layers that each stand on
+One verifier over the whole provenance graph of one A2A task. The normative step-by-step procedure, which a
+second implementation follows to reproduce the interop corpora, is VERIFIER.md. It composes three layers that each stand on
 their own, imports their pinned primitives unchanged, and adds only the cross-layer checks no single layer can
 make. It opens no socket and has no clock; key resolution (resolve) and evidence confirmation (lookup) are
 injected, exactly like the layers below it.
@@ -59,14 +60,17 @@ What each finding means (defined 2026-10-04; until then four of these were liste
 - no_execution_records: neither a grant nor a receipt was presented; the delegation layer is verified on its own.
 - witness_disagreement: the witnesses of one hop returned different verdicts; that hop's aggregate is
   "disagreement" (R4). Surfaced, not refused.
-- self_authorized: the grant's caller_id equals its provider_id; the caller authorized its own executor. Declared,
+- self_authorized: the grant's caller_id equals its provider_id; the caller authorized its own executor (emitted when
+  the pair or preflight check reaches that point, VERIFIER.md step 2a and step 3). Declared,
   so recorded and not refused. This is the execution-layer self path; the delegation-layer one (a witness that is
   a party to its own hop) is an R1 refusal, delegation_observation_invalid with reason witness_not_independent.
-- open_grant: the grant names no provider_id, so any executor is accepted and nothing reconciles attributably.
-- evidence_bound_unchecked: the reconciled receipt carries outcome.evidence, the pointer is well formed, and no
+- open_grant: the grant names no provider_id, so any executor is accepted and nothing reconciles attributably
+  (same emission condition as self_authorized).
+- evidence_bound_unchecked: the evidence target (the reconciled receipt, or the primary receipt when nothing
+  reconciled, VERIFIER.md step 4) carries outcome.evidence, the pointer is well formed, and no
   external lookup was injected. Read it as "bound, not confirmed": it is the normal state of an offline run and
   appears on clean bundles, including interop-v0 pass. It is not an anomaly.
-- no_evidence_bound: the reconciled receipt carries no evidence pointer; the outcome rests on the provider's
+- no_evidence_bound: the evidence target carries no evidence pointer; the outcome rests on the provider's
   signed claim alone.
 - no_digest_link: a receipt reconciled and observations were presented, but no observation's conduct.detail_ref
   names it as nenrin-exec://<receipt_id>; the layers verify independently but are not linked.

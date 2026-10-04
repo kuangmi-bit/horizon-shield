@@ -11,7 +11,8 @@ Deterministically bind an A2A Task id to NENRIN conduct evidence, so that trust 
 
 ## Record (WitnessObservation)
     { task_id, hop:{seq,from,to}, prev_evidence_id, conduct:{verdict,detail_ref}, witness_id, observed_at, evidence_id }
-- evidence_id = SHA-256(canonical(record without evidence_id)). Anyone recomputes; no trust in issuer.
+- evidence_id = SHA-256(canonical(preimage)), where the preimage is the record without evidence_id, witness_sig,
+  edge_sig and consent. Anyone recomputes; no trust in issuer. The full procedure is ../provenance-v0/VERIFIER.md.
 
 ## Invariants (the moat = the hard part, not the binding)
 - R1 independence: witness_id must differ from hop.from and hop.to. A party cannot witness its own hop.
@@ -59,9 +60,9 @@ Observations filed before this rule stay as filed; their batch entries are in th
 ## Canonical form, pinned (the portable part of the verification contract)
 
 Artifact identity is a SHA-256 over the UTF-8 bytes of canonical(preimage), where preimage is the record without
-evidence_id, witness_sig, edge_sig and consent. The record's schema name sits inside the hashed bytes. There is no domain
-prefix in v0; the agreement and contract record families add one, this family commits its type through the schema
-field instead. The canonical rule is the one the sieve and contract layers already prove byte-identical across
+evidence_id, witness_sig, edge_sig and consent. A WitnessObservation carries no schema field (corrected 2026-10-04:
+an earlier sentence here said the schema name sits inside the hashed bytes, which is true of grant, receipt and intent
+but not of this record). There is no domain prefix in v0; the agreement and contract record families add one. The canonical rule is the one the sieve and contract layers already prove byte-identical across
 Python and Node. Its name is musubi-canonical-v0, its vectors are ../musubi-v0/canonical_vectors.json, and that name
 is the value the execution layer writes into a VATE-shaped action_binding.canonicalization (one rule, one name):
 
