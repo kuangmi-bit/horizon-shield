@@ -2,7 +2,12 @@
 """
 北海道開発局「北海道開発局単価(令和8年9月1日以降入札書提出期限日の請負工事・業務等に適用)」(閲覧単価一覧、A3横、52頁)を、
 罫線の格子とセルの座標で読み、観測層 v2 に書く。
-使い方: python3 parse_hkd_zairyo.py [--debug 出力.csv] [--check 照合結果.json]
+使い方: python3 parse_hkd_zairyo.py [--month r8_09|r8_10] [--out 出力.csv] [--debug 出力.csv] [--check 照合結果.json]
+  --month を省くと r8_09(9月の表、最初の取り込みと同じ動き)。月ごとに別の source_id・別のファイル(古い月の行は消さない)。
+  開発局は同じ URL の PDF を毎月差し替えるので、原本は raw/<source_id>.pdf を MONTHS の sha256 で固定し、表紙の適用日の文言で月を確かめる。
+  --out を渡すとそこに書く(古い月に当て直して md5 を比べるときに、既存のファイルを書き換えないため)。
+  頁の照合: 表の頁の下端の「n / N ページ」が 1..N の連番で N 頁そろうこと、表でない頁が表の前(表紙・説明・目次)だけであること、
+  目次の分類コードがすべて表に現れ、目次の頁(n)の頁に最初に出ること。合わなければ problems に数えて止める。
 
 表の列: 分類 / 名称 / 規格 / 単位 / 摘要１ / 摘要２ / 荷渡条件 / 札幌 函館 小樽 旭川 室蘭 釧路 帯広 網走 留萌 稚内(開発建設部)。
 - 語は pdftotext -bbox-layout の座標、罫線の位置は pdfplumber(線の座標だけ)。
@@ -21,10 +26,28 @@ sys.path.insert(0, os.path.join(OBS2, "tools"))
 from mlit_grid import poppler_pages, plumber_pages, layout_pages, merge_positions, h_cover, covers, cell_text, NUMTOK
 from obs_common import make_id, num, write_obs
 
-SID = "hkd-zairyo-r8-09"
-PDF = "raw/hkd-zairyo-r8-09.pdf"
+
+
+def _opt(name, default=None):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+
+
+MONTHS = {
+    # 9月: 最初の取り込み(2026-09-26 取得)
+    "r8_09": {"sid": "hkd-zairyo-r8-09", "period": "2026-09", "effective_from": "2026-09-01",
+              "cover": "令和8年9月1日以降入札書提出期限日の請負工事・業務等に適用",
+              "sha": "aea49512dd1eb482cbc1a591d5ee522df5612d0566ae393980d3e8bd60954ad2"},
+    # 10月: 同じ URL の差し替え(2026-10-04 取得)
+    "r8_10": {"sid": "hkd-zairyo-r8-10", "period": "2026-10", "effective_from": "2026-10-01",
+              "cover": "令和8年10月1日以降入札書提出期限日の請負工事・業務等に適用",
+              "sha": "fe077f82241bbe76aab13faeecbf04e6c7c15ef3207305f2c2c41707e4ca7c08"},
+}
+MONTH = _opt("--month", "r8_09")
+M = MONTHS[MONTH]
+SID = M["sid"]
+PDF = "raw/%s.pdf" % SID
 URL = "https://www.hkd.mlit.go.jp/ky/jg/gijyutu/ud49g70000000uh8-att/slo5pa0000016vb8.pdf"
-OUT = "observations/jp/material_hkd_zairyo_r8_09.csv"
+OUT = _opt("--out", "observations/jp/material_hkd_zairyo_%s.csv" % MONTH)
 AREAS = ["札幌", "函館", "小樽", "旭川", "室蘭", "釧路", "帯広", "網走", "留萌", "稚内"]
 LABOR = {"01-01", "01-02", "01-03", "01-04"}
 EQUIP = {"02-85", "03-03", "03-05", "07-05"}
@@ -33,8 +56,8 @@ NOTE = ("北海道開発局が実勢価格調査で設定した単価(物価資�
 
 
 def toc(P):
-    """目次(3-4頁)の 分類コード → (大分類名, 中分類名)"""
-    m = {}
+    """目次(3-4頁)の 分類コード → (大分類名, 中分類名)。目次の頁の欄(表の通し頁)は pages[分類コード] に入れる"""
+    m, pages = {}, {}
     for pn in (3, 4):
         ws = sorted(P[pn - 1], key=lambda w: (round(w[1]), w[0]))
         lines = collections.defaultdict(list)
@@ -54,10 +77,12 @@ def toc(P):
                         names.append(toks[j][4]); j += 1
                     if len(names) >= 2:
                         m[code] = (names[0], " ".join(names[1:]))
+                        if j < len(toks):
+                            pages[code] = int(toks[j][4])
                     i = j + 1
                 else:
                     i += 1
-    return m
+    return m, pages
 
 
 def time_basis(unit):
@@ -77,10 +102,15 @@ def main():
     dbg = sys.argv[sys.argv.index("--debug") + 1] if "--debug" in sys.argv else None
     pdf = os.path.join(OBS2, PDF)
     sha = hashlib.sha256(open(pdf, "rb").read()).hexdigest()
+    if sha != M["sha"]:
+        sys.exit("原本の sha256 が %s の値と違う: %s" % (MONTH, sha))
     P = poppler_pages(pdf)
+    if M["cover"] not in "".join(w[4] for w in P[0]):
+        sys.exit("表紙に『%s』が無い(月の取り違え)" % M["cover"])
     G = plumber_pages(pdf)
     L = layout_pages(pdf)
-    T = toc(P)
+    T, TP = toc(P)
+    nontable_pages, footers, first_page_of = [], [], {}
     out, dbg_rows, problems = [], [], []
     stats = collections.Counter()
     max_right, max_center = 0.0, 0.0
@@ -98,7 +128,10 @@ def main():
         hd = [w for w in ws if w[4] == "分類"]
         if not hd or not any(w[4] == "荷渡条件" for w in ws):
             stats["pages_not_table"] += 1
+            nontable_pages.append(pn)
             continue
+        ft = re.match(r"^(\d+)/(\d+)ページ$", "".join(w[4] for w in sorted([w for w in ws if w[1] > 800], key=lambda t: t[0])))
+        footers.append((pn, int(ft.group(1)), int(ft.group(2))) if ft else (pn, None, None))
         head_y = hd[0][1]
         heads = {w[4]: w for w in ws if abs(w[1] - head_y) < 2.0}
         need = ["分類", "名称", "規格", "単位", "摘要１", "摘要２", "荷渡条件"] + AREAS
@@ -153,6 +186,7 @@ def main():
             if not re.match(r"^\d\d-\d\d$", code):
                 problems.append(("bad_code", pn, txt)); continue
             seen_codes[code] += 1
+            first_page_of.setdefault(code, pn)
             if code in LABOR:
                 stats["rows_labor_skipped"] += 1
                 continue
@@ -207,7 +241,7 @@ def main():
                     "obs_id": oid, "country": "JP", "layer": layer, "category": category, "item_name": item,
                     "spec": spec_full, "unit": unit, "geo_level": "bureau_area", "geo_code": "01", "geo_name": "北海道",
                     "area_label": a, "area_code": "", "area_members": "", "price": price, "currency": "JPY",
-                    "price_basis": basis, "price_status": status, "period": "2026-09", "effective_from": "2026-09-01",
+                    "price_basis": basis, "price_status": status, "period": M["period"], "effective_from": M["effective_from"],
                     "source_id": SID, "source_page": pn, "evidence_url": URL, "license": "PDL1.0", "note": note,
                 })
                 if dbg is not None:
@@ -241,6 +275,21 @@ def main():
         stats["crosscheck_poppler"] += len(lp)
         stats["crosscheck_pdfminer"] += len(lq)
         stats["crosscheck_matched"] += len(lp) - len(miss)
+    # 頁の照合(読み飛ばした頁が無いこと)
+    if footers:
+        tot = footers[0][2]
+        if [f[1] for f in footers] != list(range(1, len(footers) + 1)) or any(f[2] != tot for f in footers) or tot != len(footers):
+            problems.append(("page_footer_sequence", [f for f in footers if f[1] is None or f[2] != tot][:5], len(footers), tot))
+        first_tab = footers[0][0]
+        if [p for p in nontable_pages if p > first_tab]:
+            problems.append(("nontable_page_inside_tables", [p for p in nontable_pages if p > first_tab]))
+        toc_unseen = sorted(set(T) - set(seen_codes))
+        if toc_unseen:
+            problems.append(("toc_code_without_rows", toc_unseen))
+        toc_page_mismatch = [(c, TP[c], first_page_of[c] - first_tab + 1) for c in sorted(TP) if c in first_page_of and TP[c] != first_page_of[c] - first_tab + 1]
+        if toc_page_mismatch:
+            problems.append(("toc_page_mismatch", toc_page_mismatch[:10]))
+        stats["table_pages_footer_total"] = tot
     n = write_obs(os.path.join(OBS2, OUT), out)
     rep = {"source_id": SID, "pdf_sha256": sha, "rows_written": n,
            "by_status": dict(collections.Counter(o["price_status"] for o in out)),
@@ -249,7 +298,8 @@ def main():
            "stats": dict(stats), "problems": len(problems), "problem_samples": [str(p)[:300] for p in problems[:40]],
            "max_value_right_to_cell_right_pt": round(max_right, 2), "max_value_center_to_header_center_pt": round(max_center, 2),
            "crosscheck_pdfminer_mismatch_pages": cross_mismatch[:20], "layout_vs_bbox_mismatch_pages": layout_mismatch[:20],
-           "codes_seen": dict(seen_codes), "text_overflow": overflow[:20], "toc_codes": len(T), "codes_not_in_toc": sorted(set(seen_codes) - set(T))}
+           "codes_seen": dict(seen_codes), "text_overflow": overflow[:20], "toc_codes": len(T), "codes_not_in_toc": sorted(set(seen_codes) - set(T)),
+           "month": MONTH, "pages_total": len(P), "nontable_pages": nontable_pages, "toc_pages_read": len(TP)}
     print(json.dumps({k: v for k, v in rep.items() if k != "codes_seen"}, ensure_ascii=False, indent=1))
     if "--check" in sys.argv:
         json.dump(rep, open(sys.argv[sys.argv.index("--check") + 1], "w", encoding="utf-8"), ensure_ascii=False, indent=1)

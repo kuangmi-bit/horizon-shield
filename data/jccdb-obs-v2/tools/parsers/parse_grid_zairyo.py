@@ -2,7 +2,11 @@
 """
 国の地方機関の「材料単価【設計】」(土木工事設計材料単価表)を、罫線の格子とセルの座標で読み、観測層 v2 に書く。
 対象: 九州地方整備局(qsr) / 東北地方整備局(thr) / 内閣府 沖縄総合事務局 開発建設部(ogb)。
-使い方: python3 parse_grid_zairyo.py <qsr|thr|ogb> [--debug 出力.csv] [--check 照合結果.json]
+使い方: python3 parse_grid_zairyo.py <qsr|thr|ogb> [--month 版] [--out 出力.csv] [--debug 出力.csv] [--check 照合結果.json]
+  --month を省くと各局の既定の版(DEFAULT_MONTH。九州 r8_09、東北 r8_04、沖縄 r8_04 で、今までと同じ動き)。
+  版ごとに別の source_id・別のファイル(古い版の行は消さない)。版の一覧は MONTHS。
+  --out を渡すとそこに書く(古い版を作り直して既存のファイルと md5 を比べるときに、既存のファイルを書き換えないため)。
+  MONTHS の版に sha256 があれば原本の sha256 を、cover があれば表紙の文字を確かめ、違えば止める。
 
 読み方(tools/parsers/mlit_grid.py):
 - 語は pdftotext -bbox-layout の座標。罫線の位置は pdfplumber(線の座標だけ)。
@@ -50,6 +54,37 @@ CONF = {
         "area_pages": [],
     },
 }
+
+# 版(月)ごとの設定。既定の版は上の CONF のまま(空の dict)。新しい版は CONF を写し、版で変わる欄だけを上書きする。
+DEFAULT_MONTH = {"qsr": "r8_09", "thr": "r8_04", "ogb": "r8_04"}
+MONTHS = {
+    "qsr": {
+        "r8_09": {},
+        # 令和８年度土木工事設計材料単価表(令和８年１０月)。2026-10-04 取得
+        "r8_10": {"source_id": "qsr-zairyo-r8-10", "pdf": "raw/qsr-zairyo-r8-10.pdf",
+                  "url": "https://www.qsr.mlit.go.jp/content/000003229.pdf",
+                  "period": "2026-10", "effective_from": "2026-10-01",
+                  "out": "observations/jp/material_qsr_zairyo_r8_10.csv",
+                  "sha256": "a94b1b33adb70f1a93ee0923f748d09df8ff6d6e1eb388c8f27a1dca3a97576c",
+                  "cover": [(1, "（令和８年１０月）"), (2, "令和８年１０月１日以降に入札を行う工事")]},
+    },
+    "thr": {"r8_04": {}},
+    "ogb": {
+        "r8_04": {},
+        # 令和８年度 労務・資材局統一単価(建設系)令和８年１０月。2026-10-04 取得
+        "r8_10": {"source_id": "ogb-zairyo-r8-10", "pdf": "raw/ogb-zairyo-r8-10.pdf",
+                  "url": "https://www.ogb.go.jp/-/media/Files/OGB/Kaiken/kyoku/about/gikan/sekisan_roumushizai/roumu_shizai/R08/PDF_R0810_roumu_shizai_kensetu_1.pdf",
+                  "period": "2026-10",
+                  "out": "observations/jp/material_ogb_zairyo_r8_10.csv",
+                  "sha256": "feaa0d81d8996f1c7b618281ec491aa8c5a88ac8063c8c8ca0f2935527aec61c",
+                  "cover": [(1, "労務・資材局統一単価（建設系）令和８年１０月"), (5, "令和８年１０月単価です")]},
+    },
+}
+
+
+def _opt(name, default=None):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+
 
 # フォントの都合で文字が取れない語(原本では読めるが、PDF の文字の対応表が無い)。値を作らない。
 BAD_RANGES = [(0x0590, 0x1DFF), (0x2C00, 0x2E7F), (0xA000, 0xABFF), (0xE000, 0xF8FF), (0x2140, 0x214F)]
@@ -180,12 +215,21 @@ def norm_area(s):
 def main():
     key = sys.argv[1]
     dbg = sys.argv[sys.argv.index("--debug") + 1] if "--debug" in sys.argv else None
-    C = CONF[key]
+    month = _opt("--month", DEFAULT_MONTH[key])
+    if month not in MONTHS[key]:
+        sys.exit("版が無い: %s %s(あるのは %s)" % (key, month, ", ".join(sorted(MONTHS[key]))))
+    C = dict(CONF[key])
+    C.update(MONTHS[key][month])
     pdf = os.path.join(OBS2, C["pdf"])
     sha = hashlib.sha256(open(pdf, "rb").read()).hexdigest()
+    if C.get("sha256") and sha != C["sha256"]:
+        sys.exit("原本の sha256 が MONTHS と違う: %s" % sha)
     P = poppler_pages(pdf)
     G = plumber_pages(pdf)
     L = layout_pages(pdf)
+    for cpn, ctext in C.get("cover", []):
+        if ctext not in re.sub(r"\s+", "", L[cpn - 1]):
+            sys.exit("表紙の文字が違う: %d 頁に『%s』が無い" % (cpn, ctext))
     areas = area_table_qsr(P, C["area_pages"]) if C["area_pages"] else {}
     areas_n = {norm_area(k): v for k, v in areas.items()}
     out, dbg_rows = [], []
@@ -408,7 +452,7 @@ def main():
         stats["crosscheck_cells_poppler"] += len(lp)
         stats["crosscheck_cells_pdfminer"] += len(lq)
         stats["crosscheck_matched"] += len(lp) - len(miss)
-    n = write_obs(os.path.join(OBS2, C["out"]), out)
+    n = write_obs(_opt("--out", os.path.join(OBS2, C["out"])), out)
     st = collections.Counter(o["price_status"] for o in out)
     report = {
         "source_id": C["source_id"], "pdf_sha256": sha, "rows_written": n, "by_status": dict(st),

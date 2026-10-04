@@ -9,7 +9,13 @@
 セルの範囲を取り、結合セル(None)はその列で上にある、範囲がこの行まで届くセルの文字を引き継ぐ。
 セル内の複数行は、各行の右端がセルの右端近くなら折り返し(空白なし)、そうでなければ空白1つでつなぐ。
 別表「地区別対象市町村一覧」(PDF 2 頁)は、埋め込みフォントに ToUnicode も cmap も無く文字が取れないため、area_members は空。
-使い方: python3 parse_cgr_zairyo.py [OBS2 のルート]
+使い方: python3 parse_cgr_zairyo.py [OBS2 のルート] [--month r8_04|r8_10] [--out 出力.csv] [--diag 診断.json]
+  --month を省くと r8_04(B1 が作った 4月の表。第5部のアスファルト合材 2026年6月単価も同じファイルに出す)。
+  月ごとに別の source_id・別のファイル(古い月の行は消さない)。頁の範囲・報告価格の時点・上半期/下半期は MONTHS の表で版ごとに持つ。
+  --out / --diag を渡すと、そこに書く(古い月に当て直して md5 を比べるときに、既存のファイルを書き換えないため)。
+  r8_10(2026年10月単価): 第1部 4〜45、第2部 47〜94、第3部 98〜122(報告価格 2026.9 / 2026.3)、第4部 125〜168。
+  アスファルト合材の別 PDF(第5部)は 4月版だけに付く(10月版には付けない)。
+  10月版は別表(PDF 2 頁)の文字が取れるので、第1部の地区の列に対象市町村の文言を area_members として付ける(beppyo_members)。
 """
 import sys, os, re, json, hashlib, collections, unicodedata
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -19,18 +25,37 @@ from mlit_zairyo_common import words_of, layout_pages, parse_table_page, layout_
 from obs_common import make_id, num, pref, write_obs
 import pdfplumber
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.abspath(os.path.join(HERE, "..", ".."))
-SID = "cgr-zairyo-r8-04"
+def _opt(name, default=None):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+
+
+_pos = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith("--") and not sys.argv[i - 1].startswith("--")]
+ROOT = _pos[0] if _pos else os.path.abspath(os.path.join(HERE, "..", ".."))
+# 版(月) -> 設定。r8_04 は B1 の固定値のまま(既定)。
+MONTHS = {
+    "r8_04": {"sid": "cgr-zairyo-r8-04", "period": "2026-04",
+              "sha": "787fca9d32a767b7f688ef029502365b692bc3672d5177c2e45c57c394bcfb7d",
+              "P1": list(range(4, 46)), "P2": list(range(47, 97)), "P3": list(range(100, 127)), "P4": list(range(128, 172)),
+              "half": "上半期", "rep_now": "2026.3", "rep_prev": "2025.9", "with_as": True, "beppyo": False,
+              "diag": os.path.join("reports", "B1-kinki-chugoku-shikoku.cgr_diag.json")},
+    # 10月: J3-ktr-cgr-r8-10 の取り込み(sekkei2610.pdf、168 頁)
+    "r8_10": {"sid": "cgr-zairyo-r8-10", "period": "2026-10",
+              "sha": "bedaf103ada66facf0466273b638d744a8e05ea5f1a6848f9711e2a92ad7b074",
+              "P1": list(range(4, 46)), "P2": list(range(47, 95)), "P3": list(range(98, 123)), "P4": list(range(125, 169)),
+              "half": "下半期", "rep_now": "2026.9", "rep_prev": "2026.3", "with_as": False, "beppyo": True,
+              "diag": os.path.join("reports", "J3-ktr-cgr-r8-10.cgr_r8_10_diag.json")},
+}
+MONTH = _opt("--month", "r8_04")
+M = MONTHS[MONTH]
+SID = M["sid"]
 PDF = os.path.join(ROOT, "raw", SID + ".pdf")
-OUT = os.path.join(ROOT, "observations", "jp", "material_cgr_zairyo_r8_04.csv")
-DIAG = os.path.join(ROOT, "reports", "B1-kinki-chugoku-shikoku.cgr_diag.json")
+OUT = _opt("--out", os.path.join(ROOT, "observations", "jp", "material_cgr_zairyo_%s.csv" % MONTH))
+DIAG = _opt("--diag", os.path.join(ROOT, M["diag"]))
 LED = json.load(open(os.path.join(ROOT, "sources", SID + ".json"), encoding="utf-8"))
-SHA = "787fca9d32a767b7f688ef029502365b692bc3672d5177c2e45c57c394bcfb7d"
-P1 = list(range(4, 46))
-P2 = list(range(47, 97))
-P3 = list(range(100, 127))
-P4 = list(range(128, 172))
-PERIOD = "2026-04"
+SHA = M["sha"]
+P1, P2, P3, P4 = M["P1"], M["P2"], M["P3"], M["P4"]
+PERIOD = M["period"]
+HALF, REP_NOW, REP_PREV = M["half"], M["rep_now"], M["rep_prev"]
 # 第5部: 別の PDF「土木工事設計材料（アスファルト合材）単価一覧表（2026年6月単価）」(raw/cgr-zairyo-as-r8-06.pdf)
 SID_AS = "cgr-zairyo-as-r8-06"
 PDF_AS = os.path.join(ROOT, "raw", SID_AS + ".pdf")
@@ -141,6 +166,49 @@ def poppler_check_ruled(pwords, data, value_cols):
     return n, ok, bad, round(margin, 2)
 
 
+def beppyo_members(page, p1_group):
+    """別表「地区別対象市町村一覧」(PDF 2 頁)を pdftotext -bbox の語の座標で読む。
+    代表地区名の欄(左端が見出し「代表地区名」の左端から 3pt 以内)の語と、同じ行(上端の差 2pt 未満)にある対象市町村名の欄
+    (見出し「代表地区名」の左端から 60pt より右)の語を組にする。文言は原文のまま(同じ行に語が複数あれば空白1つでつなぐ)。
+    県のラベル(「鳥取県地区別」など)は縦に結合したセルの中央にあるので、その県の地区(第1部の列の県)の行の上下の範囲に
+    ラベルの中心が入ることを確かめる。第1部の列の地区名の集合と別表の地区名の集合が一致することも確かめる。
+    戻り値: ({地区名(NFKC): 対象市町村}, 照合の dict)"""
+    ws = page["words"]
+    hd = [w for w in ws if w[4] == "代表地区名"]
+    assert len(hd) == 1, "別表の見出しが無い"
+    hx0, hbot = hd[0][0], hd[0][3]
+    body = [w for w in ws if w[1] > hbot]
+    names = sorted([w for w in body if abs(w[0] - hx0) < 3], key=lambda t: t[1])
+    labels = [w for w in body if w[2] < hx0 - 5]
+    mems = [w for w in body if w[0] > hx0 + 60]
+    assert len(names) + len(labels) + len(mems) == len(body), "別表に欄の外の語"
+    res, used, multi = {}, set(), 0
+    for nw in names:
+        got = sorted([m for m in mems if abs(m[1] - nw[1]) < 2.0], key=lambda t: t[0])
+        assert got, ("対象市町村が無い地区", nw[4])
+        multi += len(got) > 1
+        for m in got:
+            assert id(m) not in used, ("2つの地区に付く語", m[4])
+            used.add(id(m))
+        k = unicodedata.normalize("NFKC", nw[4])
+        assert k not in res, ("別表で同じ地区名が2つ", nw[4])
+        res[k] = " ".join(m[4] for m in got)
+    assert len(used) == len(mems), "地区に付かない対象市町村の語"
+    lab_check = []
+    for lw in labels:
+        assert lw[4].endswith("地区別"), ("県のラベルの形", lw[4])
+        g = lw[4][:-3]
+        ys = [nw[1] for nw in names if p1_group.get(unicodedata.normalize("NFKC", nw[4])) == g]
+        yc = (lw[1] + lw[3]) / 2
+        ok = bool(ys) and min(ys) - 2 <= yc <= max(ys) + 14
+        lab_check.append({"label": lw[4], "districts": len(ys), "ok": ok})
+        assert ok, ("県のラベルがその県の地区の行の範囲に無い", lw[4])
+    missing = sorted(set(p1_group) - set(res))
+    extra = sorted(set(res) - set(p1_group))
+    assert not missing, ("別表に無い第1部の地区", missing)
+    return res, {"districts": len(res), "members_multiword": multi, "labels": lab_check, "beppyo_only": extra}
+
+
 def main():
     P = words_of(PDF)
     LP = layout_pages(PDF)
@@ -196,9 +264,9 @@ def main():
                 roles[j] = "no"
             elif hn == "単位":
                 roles[j] = "unit"
-            elif "(2026.3)" in hn:
+            elif "(%s)" % REP_NOW in hn:
                 roles[j] = "price"
-            elif "(2025.9)" in hn:
+            elif "(%s)" % REP_PREV in hn:
                 roles[j] = "ref"
             elif hn == "変動率":
                 roles[j] = "rate"
@@ -243,11 +311,11 @@ def main():
                           "area_code": "", "area_members": ""})
                 v = c[pj]
                 refv = c[rj[0]] if rj else ""
-                sec = "令和8年度(上半期) 局統一単価 中国統一資材。値は報告価格(2026.3)。"
+                sec = "令和8年度(%s) 局統一単価 中国統一資材。値は報告価格(%s)。" % (HALF, REP_NOW)
                 if v and v not in BLANK_MARKS and float(num(v)) > 0:
                     o.update({"price": num(v), "price_status": "published_pdl", "note": sec + doujou + "表に税の記載なし(国の積算の扱いで消費税抜き)。"})
                     if refv and refv not in BLANK_MARKS and float(num(refv)) > 0:
-                        o.update({"ref_value": num(refv), "ref_note": "前回の報告価格(2025.9)"})
+                        o.update({"ref_value": num(refv), "ref_note": "前回の報告価格(%s)" % REP_PREV})
                 else:
                     o.update({"price": "", "price_status": "not_set",
                               "note": sec + doujou + ("原本の値は 0" + ("(備考: %s)" % note_txt if note_txt else "") + "。" if v and v not in BLANK_MARKS else "原本で空欄。") + "0 円ではなく、設定していないものとして扱う。"})
@@ -262,7 +330,7 @@ def main():
                     o.update({"geo_level": "pref", "geo_code": gc, "geo_name": gn, "area_label": pnm,
                               "area_code": "", "area_members": ""})
                     v = c[j]
-                    sec = "令和8年度(上半期) 局統一単価 地区別資材。"
+                    sec = "令和8年度(%s) 局統一単価 地区別資材。" % HALF
                     if v and v not in BLANK_MARKS:
                         o.update({"price": num(v), "price_status": "published_pdl", "note": sec + doujou + "表に税の記載なし(国の積算の扱いで消費税抜き)。"})
                     else:
@@ -277,10 +345,10 @@ def main():
         if o["source_page"] in [str(x) for x in P1] and o["geo_level"] == "bureau_area":
             g, a = o["area_label"].split(" ", 1)
             area_pref[unicodedata.normalize("NFKC", a)] = g
-    PA = words_of(PDF_AS)
-    pla = pdfplumber.open(PDF_AS)
+    PA = words_of(PDF_AS) if M["with_as"] else []
+    pla = pdfplumber.open(PDF_AS) if M["with_as"] else None
     as_stats = []
-    for pn in range(1, len(pla.pages) + 1):
+    for pn in (range(1, len(pla.pages) + 1) if M["with_as"] else []):
         page = pla.pages[pn - 1]
         ts = page.find_tables()
         if not ts:
@@ -331,6 +399,32 @@ def main():
                     o.update({"price": "", "price_status": "not_set", "note": NOTE_BLANK})
                 o["obs_id"] = make_id(SID_AS, pn, ri, a, item, spec, unit)
                 rows_out.append(o)
+    # 別表(PDF 2 頁)の対象市町村を第1部の地区の列に付ける(文字が取れる版だけ)
+    beppyo_diag = None
+    if M["beppyo"]:
+        p1_group = {}
+        for o in rows_out:
+            if o["source_page"] in [str(x) for x in P1] and o["geo_level"] == "bureau_area":
+                g, a = o["area_label"].split(" ", 1)
+                assert p1_group.setdefault(unicodedata.normalize("NFKC", a), g) == g, ("同じ地区名が2つの県に", a)
+        mem, beppyo_diag = beppyo_members(P[1], p1_group)
+        for o in rows_out:
+            if o["source_page"] in [str(x) for x in P1] and o["geo_level"] == "bureau_area":
+                o["area_members"] = mem[unicodedata.normalize("NFKC", o["area_label"].split(" ", 1)[1])]
+    # 部の外の頁(表紙・目次・節の扉)に表が無いこと、部の中で表の無い頁を記録する
+    covered = set(P1 + P2 + P3 + P4)
+    outside = []
+    for pn in range(4, len(P) + 1):
+        if pn in covered:
+            continue
+        try:
+            r0 = parse_table_page(P[pn - 1], pn)
+        except Exception as e:  # 表の形でない頁で止まるのは可(表でない印)
+            r0 = None
+        assert r0 is None or not r0["rows"], ("部の外の頁に第1部・第2部の形の表", pn)
+        outside.append({"page": pn, "first_line": [l.strip() for l in LP[pn - 1].split("\n") if l.strip()][:1]})
+    no_table = [s0["page"] for s0 in stats]
+    no_table = [pn for pn in P3 + P4 if pn not in no_table]
     # 同じ観測(出典・品目・規格・単位・地域・時点)が2行になるもの: 表の番号を規格の後ろに付けて分ける(原本の重複らしきものも残す)
     KEY = ("source_id", "layer", "item_name", "spec", "unit", "geo_level", "geo_code", "area_label", "area_code", "period", "price_basis")
     grp = collections.defaultdict(list)
@@ -358,13 +452,19 @@ def main():
                      "part34_cells_equal": sum(s["cells_equal"] for s in stats if s["part"] in (3, 4)),
                      "part34_min_margin_pt": min(s["min_margin_pt"] for s in stats if s["part"] in (3, 4))}
     diag["natural_key_dups_split_by_table_no"] = dup_groups
-    diag["as_2606"] = {"pages": as_stats, "pdf_sha256": hashlib.sha256(open(PDF_AS, "rb").read()).hexdigest(),
-                       "rows": sum(1 for o in rows_out if o["source_id"] == SID_AS),
-                       "cells_checked": sum(x["cells_checked"] for x in as_stats), "cells_equal": sum(x["cells_equal"] for x in as_stats)}
+    if M["with_as"]:
+        diag["as_2606"] = {"pages": as_stats, "pdf_sha256": hashlib.sha256(open(PDF_AS, "rb").read()).hexdigest(),
+                           "rows": sum(1 for o in rows_out if o["source_id"] == SID_AS),
+                           "cells_checked": sum(x["cells_checked"] for x in as_stats), "cells_equal": sum(x["cells_equal"] for x in as_stats)}
+    diag["month"] = MONTH
+    diag["pages_outside_parts"] = outside
+    diag["part34_pages_without_table"] = no_table
+    diag["beppyo"] = beppyo_diag
     json.dump(diag, open(DIAG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(json.dumps({k: diag[k] for k in ("rows", "status", "layer", "check", "max_center_distance_pt", "max_right_edge_distance_pt")},
                      ensure_ascii=False), diag["pdf_sha256"] == SHA)
-    print(json.dumps({k: v for k, v in diag["as_2606"].items() if k != "pages"}, ensure_ascii=False), diag["as_2606"]["pdf_sha256"] == SHA_AS)
+    if M["with_as"]:
+        print(json.dumps({k: v for k, v in diag["as_2606"].items() if k != "pages"}, ensure_ascii=False), diag["as_2606"]["pdf_sha256"] == SHA_AS)
 
 
 if __name__ == "__main__":

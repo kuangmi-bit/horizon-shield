@@ -4,7 +4,11 @@
 観測層 v2 に取り込む。両局とも「材料単価【設計】」の同じ帳票(sekisan_layout.py)。値は pdftotext -bbox-layout の座標で読む。
 
 使い方: python3 parse_hrr_cbr_zairyo.py hrr|cbr
-  hrr: 原本 OBS2/raw/hrr-zairyo-r8-09.pdf(PDL1.0。値を入れる)
+       python3 parse_hrr_cbr_zairyo.py hrr [--month r8_09|r8_10] [--out 出力.csv] [--summary 要約.json]
+  hrr: 原本 OBS2/raw/hrr-zairyo-<月>.pdf(PDL1.0。値を入れる)。--month を省くと r8_09(9月、最初の取り込みと同じ動き)。
+       月ごとに別の source_id・別のファイル(古い月の行は消さない)。原本は HRR_MONTHS の sha256 で固定し、
+       各頁の見出しの年月が HRR_MONTHS の period と同じこと、表でない頁が表紙・説明・地区割り一覧表だけであることを確かめる。
+       --out / --summary を渡すとそこに書く(古い月に当て直して md5 を比べるときに、既存のファイルを書き換えないため)。
        地区割り一覧表は同じ PDF の 2〜4 頁(地区番号・地区名・該当市町村名)
   cbr: 原本 OBS2/raw_restricted/cbr-zairyo-r8-10.pdf(PDF の 2 頁に「本単価表を無断転載・複写や電子媒体等に加工することを禁じます。」
        とあり、サイトの PDL1.0 の「権利表記の記載がない限り」に当たらないため、値は写さない。状態だけ)
@@ -19,16 +23,40 @@ sys.path.insert(0, os.path.join(OBS2, "tools"))
 from sekisan_layout import words_of, layout_pages, parse_page, lines_of, NUM, DASH, nfkc
 from obs_common import make_id, num, pref, write_obs, JP_CODE_PREF
 
-CFG = {
-    "hrr": {
-        "sid": "hrr-zairyo-r8-09",
-        "pdf": os.path.join(OBS2, "raw", "hrr-zairyo-r8-09.pdf"),
-        "url": "https://www.hrr.mlit.go.jp/gijyutu/tannka/2026.9.pdf",
-        "out": os.path.join(OBS2, "observations", "jp", "material_hrr_zairyo_r8_09.csv"),
+
+
+def _opt(name, default=None):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+
+
+HRR_MONTHS = {
+    # 9月: 最初の取り込み(2026-09-26 取得)
+    "r8_09": {"sid": "hrr-zairyo-r8-09", "url": "https://www.hrr.mlit.go.jp/gijyutu/tannka/2026.9.pdf", "period": "2026-09",
+              "sha": "4328997eb468f22185734e43b0f725e801872942d63855b7684645f112c5cf02",
+              "summary": os.path.join(OBS2, "reports", "B2_hrr_parse_summary.json")},
+    # 10月: 2026-10-04 取得
+    "r8_10": {"sid": "hrr-zairyo-r8-10", "url": "https://www.hrr.mlit.go.jp/gijyutu/tannka/2026.10.pdf", "period": "2026-10",
+              "sha": "a9c356653604a4d409b87e3ae9711f95a5d9aaf52685afd9ba00952bf43ac536",
+              "summary": os.path.join(OBS2, "reports", "hrr_r8_10_parse_summary.json")},
+}
+
+
+def hrr_cfg(month):
+    H = HRR_MONTHS[month]
+    return {
+        "sid": H["sid"],
+        "pdf": os.path.join(OBS2, "raw", H["sid"] + ".pdf"),
+        "url": H["url"],
+        "out": os.path.join(OBS2, "observations", "jp", "material_hrr_zairyo_%s.csv" % month),
         "license": "PDL1.0", "status_value": "published_pdl", "copy_values": True,
         "effective_from": "",
         "note": "北陸地整が独自調査(特別調査)で設定した単価。物価資料に掲載のある材料は載っていない。税抜き(原本の注記)。",
-    },
+        "month": month, "period": H["period"], "sha": H["sha"], "summary": H["summary"],
+    }
+
+
+CFG = {
+    "hrr": hrr_cfg("r8_09"),
     "cbr": {
         "sid": "cbr-zairyo-r8-10",
         "pdf": os.path.join(OBS2, "raw_restricted", "cbr-zairyo-r8-10.pdf"),
@@ -119,6 +147,9 @@ def main(which):
     C = CFG[which]
     sid = C["sid"]
     if which == "hrr":
+        got = hashlib.sha256(open(C["pdf"], "rb").read()).hexdigest()
+        if got != C["sha"]:
+            raise SystemExit("原本の sha256 が %s の値と違う: %s" % (C["month"], got))
         area, area_quote = hrr_area_table(C["pdf"])
     else:
         area, area_quote = cbr_area_table(C["area_pdf"])
@@ -128,10 +159,14 @@ def main(which):
     stats = collections.Counter()
     maxd, maxsplit, offs = 0.0, 0.0, []
     unmatched_area = set()
+    nontable = []
     for pno, ws in enumerate(pages, 1):
         P = parse_page(ws, pno)
         if P is None:
+            nontable.append(pno)
             continue
+        if which == "hrr" and P["period"] != C["period"]:
+            raise SystemExit("p%d の見出しの年月 %s が %s の %s でない" % (pno, P["period"], C["month"], C["period"]))
         stats["pages"] += 1
         maxd = max(maxd, P["max_col_dist_pt"]); maxsplit = max(maxsplit, P["group_split_err_pt"]); offs.append(P["col_offset_pt"])
         # 照合: -layout の本文の値の形の語の数
@@ -219,9 +254,24 @@ def main(which):
                                 "layout_tokens": sum(c["layout_value_tokens"] for c in checks),
                                 "bbox_values": sum(c["bbox_value_words"] for c in checks), "mismatch": mism},
                "area_entries": len(area), "area_quote": area_quote, "unmatched_area": sorted(map(str, unmatched_area))}
+    if which == "hrr":
+        # 表でない頁の文字(先頭の語)。表の頁の間に、表紙(「土木工事設計材料（公表）単価一覧表」)以外の頁があれば止める
+        heads = {p: "".join(w[4] for w in sorted(pages[p - 1], key=lambda t: (round(t[1]), t[0]))[:12]) for p in nontable}
+        first_tab = min(set(range(1, len(pages) + 1)) - set(nontable))
+        inside = [p for p in nontable if p > first_tab and "単価一覧表" not in heads[p]]
+        summary["month"] = C["month"]
+        summary["pages_total"] = len(pages)
+        summary["nontable_pages"] = {str(p): heads[p][:40] for p in nontable}
+        if inside or unmatched_area or mism:
+            print(json.dumps(summary, ensure_ascii=False, indent=1))
+            raise SystemExit("照合が合わない: 表の間の表でない頁 %s / 地区の不一致 %d / layout との不一致 %d 頁" % (inside, len(unmatched_area), len(mism)))
     print(json.dumps(summary, ensure_ascii=False, indent=1))
-    json.dump(summary, open(os.path.join(HERE, "..", "..", "reports", "B2_%s_parse_summary.json" % which), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    json.dump(summary, open(C.get("summary") or os.path.join(HERE, "..", "..", "reports", "B2_%s_parse_summary.json" % which), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
 if __name__ == "__main__":
+    if sys.argv[1] == "hrr":
+        CFG["hrr"] = hrr_cfg(_opt("--month", "r8_09"))
+        CFG["hrr"]["out"] = _opt("--out", CFG["hrr"]["out"])
+        CFG["hrr"]["summary"] = _opt("--summary", CFG["hrr"]["summary"])
     main(sys.argv[1])

@@ -1,0 +1,33 @@
+{
+ "source_id": "ogb-zairyo-r8-10",
+ "country": "JP",
+ "title": "令和８年度 労務・資材局統一単価（建設系）令和８年１０月 のうち Ⅰ 公共工事設計材料単価（建設系）",
+ "publisher": "内閣府 沖縄総合事務局 開発建設部",
+ "url": "https://www.ogb.go.jp/-/media/Files/OGB/Kaiken/kyoku/about/gikan/sekisan_roumushizai/roumu_shizai/R08/PDF_R0810_roumu_shizai_kensetu_1.pdf",
+ "landing": "https://www.ogb.go.jp/kaiken/koji/007864",
+ "latest_note": "積算・労務資材関係の頁(2026-10-04 に読んだ)で令和8年度は『R8.10』と『R8.4』(それぞれ建設系と港湾・空港系)。R8.10 が最新。この台帳は前の版(ogb-zairyo-r8-04)と同じ建設系だけで、港湾・空港系(PDF_R0810_roumu_shizai_kouwan_1.pdf)は取り込んでいない。",
+ "effective_from": "",
+ "effective_note": "原本『本資料掲載の資材単価は、令和８年１０月単価です。』適用開始日の記載は無い。",
+ "http_last_modified": "Wed, 30 Sep 2026 06:42:55 GMT",
+ "bytes": 1864885,
+ "sha256": "feaa0d81d8996f1c7b618281ec491aa8c5a88ac8063c8c8ca0f2935527aec61c",
+ "retrieved_at": "2026-10-04",
+ "fetched_via": "Apify web-fetch (formats=raw)。作業環境から官公庁サイトへ直接は届かないため。バイト列の長さ 1,864,885 が応答の Content-Length と一致し、先頭が %PDF-1.7 であることを確かめた。応答に ETag は無かった。",
+ "license": "PDL1.0",
+ "license_url": "https://www.ogb.go.jp/notice/014307",
+ "license_quote": "当ウェブサイトで掲載・発信している情報（以下「コンテンツ」といいます。）の著作権は、特記されていない限り沖縄総合事務局に帰属し、権利表記の記載がない限り「公共データ利用規約（第1.0版）」（PDL1.0）が適用されています。 / イ）コンテンツを編集・加工等して利用する場合は、上記出典とは別に、編集・加工等を行ったことを記載してください。",
+ "license_note": "内閣府の機関だが、沖縄総合事務局ホームページ利用規約はサイトのコンテンツに PDL1.0 を適用すると定める(別ルールはシンボルマークだけ)。PDF 本体に複製・転載を制限する特記は無い(全頁の文字を検索して確かめた)。",
+ "attribution": "出典：「令和８年度 労務・資材局統一単価（建設系）令和８年１０月」（沖縄総合事務局開発建設部）（https://www.ogb.go.jp/-/media/Files/OGB/Kaiken/kyoku/about/gikan/sekisan_roumushizai/roumu_shizai/R08/PDF_R0810_roumu_shizai_kensetu_1.pdf）を加工して作成",
+ "scope_quote": "本資料は、沖縄総合事務局開発建設部において定期的に調査している資材単価について掲載しています。ただし、｢月刊建設物価｣・「Ｗｅｂ建設物価」・「建設物価主要資材価格動向」((一財)建設物価調査会発行)及び｢月刊積算資料｣・「積算資料電子版」((一財)経済調査会発行)に掲載されている資材単価については、既に公表されているため本資料には掲載しておりません。",
+ "area_quote": "Ⅱ 資材単価区域図(51頁)は画像だけで文字が取れないため、地区(北部１〜南部１、北部２Ｈ)に含まれる市町村は area_members に入れていない。",
+ "values_copied": true,
+ "how_read": "罫線の格子とセルの座標で読んだ(tools/parsers/parse_grid_zairyo.py ogb --month r8_10 と mlit_grid.py。4月の parser に版の引数を足したもので、引数なし(r8_04)で作り直すと既存の material_ogb_zairyo_r8_04.csv と md5 一致)。語は pdftotext -bbox-layout の座標、罫線の位置は pdfplumber。行 = 単位の列と値の列を横切る横罫線で区切った帯、列 = 縦罫線で区切ったセル。列見出し(県名・地区名)は1つのセルに収まる見出し語、県名の群ラベルはラベルの高さまで伸びる縦線で範囲を決めた。表紙(1頁『労務・資材局統一単価（建設系）令和８年１０月』、5頁『令和８年１０月単価です』)を parser が確かめる。原本 51 頁で4月と同じ頁割り(表の頁 41 頁、表でない頁 10 頁)、各頁の種別も4月と同じ頁にある。目次は4月から『河川・砂防・ダム用材』『ＰＣ橋桁関係資材』が増え『タイロッド』が消えたが、表の頁の種別欄には現れない(4月も同じ)。照合: (1) pdfplumber(pdfminer)の語で値のセルの数字を別に拾い、poppler の読みと(文字, 右端, 上端)で全件照合: 507 / 507 件一致(pdfminer 側 507 件)。(2) pdftotext -layout の数字の語の数 549 = bbox の数字の語の数 549(頁ごとに全頁一致、不一致の頁 0)。(3) 値の右端とセルの右罫線の距離の最大 1.24pt、値の中心と列見出しの中心の距離の最大 14.90pt(値は右寄せのため)。セルからはみ出した語・帯に入らない語 0(problems 0)。46〜48頁(種別欄が『令和８年度』の追加表、別の格子)も同じ方法で読んだ。この版には値が 0 の行は無い(4月の『市場性なし』の3行は表から消えた)。この PDF に労務単価は含まれない(建設系の資材単価のみ)。",
+ "license_checked": "2026-10-04 に利用規約の頁(license_url)を Apify で読み直し、license_quote の条文が頁の文字どおり残っていることを確かめた。",
+ "previous_edition": "ogb-zairyo-r8-04",
+ "previous_edition_check": "4月(ogb-zairyo-r8-04)との照合: 行 515 から 507、値のある行 512 から 507、規格 415 から 407(増 0・減 8。減は DSF の光ケーブル 5 規格と、4月に値 0『市場性なし』だった3規格)。同じ行 507 行はすべて値があり、値が変わった行 200(すべて上がった)、変化率の中央値 +11.16%、最大 +53.33%(Ｕボルト（ＳＵＳ） Ｍ６×２５×７５ ＰＬ２枚 255 から 391)、最小 +0.63%。極端な変化は原本の -layout の文字で新旧とも確かめた。地区の列の集合(10)と CSV の列は4月と同じ。詳細は reports/ogb_r8_10_vs_r8_04.json。",
+ "files_written": [
+  "observations/jp/material_ogb_zairyo_r8_10.csv (507 行)",
+  "reports/ogb_r8_10_parse_check.json (parser の照合の結果)",
+  "reports/ogb_r8_10_vs_r8_04.json (4月の版との照合)"
+ ]
+}

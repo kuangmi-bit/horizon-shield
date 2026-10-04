@@ -15,7 +15,9 @@
 照合(別の読み方): poppler(pdftotext -bbox-layout)の語を、同じ頁の罫線の格子(矩形から作る)でセルに割り当て、
         pdfminer(pdfplumber)のセルの文字と、空白を除いて全セルで比べる。価格の列は全件一致を要求する。
 
-使い方: python3 parse_cbr_tokuchou_shizai.py [--check-json 出力先]
+使い方: python3 parse_cbr_tokuchou_shizai.py [--month r8_08|r8_09] [--out 出力.csv] [--check-json 出力先]
+  --month を省くと r8_08(令和8年9月3日更新の ZIP、list_r8.08_*)。版ごとに別の source_id・別のファイル(古い版の行は消さない)。
+  r8_09 は令和8年9月30日更新の ZIP(list_r8.09_*)。--out を渡すとそこに書く(古い版に当て直して md5 を比べるとき、既存のファイルを書き換えないため)。
 """
 import sys, os, re, io, json, zipfile, subprocess, tempfile, collections, unicodedata
 import xml.etree.ElementTree as ET
@@ -28,8 +30,28 @@ import pdfplumber
 PREFS = ["aichi", "gifu", "mie", "shizuoka", "nagano"]
 PREF_JA = {"aichi": "愛知県", "gifu": "岐阜県", "mie": "三重県", "shizuoka": "静岡県", "nagano": "長野県"}
 PAGE = "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/R8_chousa_tanka.htm"
-ZIPURL = "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/zip/r08/list_r8.08_shizai_%s.zip"
-OUT = os.path.join(OBS2, "observations", "jp", "material_cbr_tokuchou_shizai_r8_08.csv")
+
+
+def _opt(name, default=None):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+
+
+MONTHS = {
+    # 版(頁の ZIP の名前 list_r8.MM_shizai_<県>.zip)。source_id は cbr-tokuchou-shizai-<tag>-<県>
+    # ZIP は年度の累積の一覧(前の版の行をそのまま含む)。prev のある版は、前の版と全欄同じ行を書かない(同じ観測を二重に並べない)。
+    "r8_08": {"tag": "r8-08", "zip": "r8.08", "out": "material_cbr_tokuchou_shizai_r8_08.csv"},  # 令和8年9月3日更新
+    "r8_09": {"tag": "r8-09", "zip": "r8.09", "out": "material_cbr_tokuchou_shizai_r8_09.csv", "prev": "r8_08"},  # 令和8年9月30日更新
+}
+MONTH = _opt("--month", "r8_08")
+M = MONTHS[MONTH]
+
+
+def zip_url(E):
+    return "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/zip/r08/list_" + E["zip"] + "_shizai_%s.zip"
+
+
+ZIPURL = zip_url(M)
+OUT = _opt("--out") or os.path.join(OBS2, "observations", "jp", M["out"])
 COLS = ["pref", "office", "ka", "irai", "shizai", "kubun", "zaiko", "hin", "kikaku", "unit", "price", "month", "area", "biko"]
 HEAD = ["県名", "調査依頼事務所名", "担当課", "依頼番号", "資材番号", "調査区分", "材工区分", "品名", "規格", "単位", "価格", "報告月", "単価適用地域", "備考"]
 TS = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
@@ -102,14 +124,15 @@ def cell_index(v, lines):
     return None
 
 
-def main():
-    args = sys.argv[1:]
-    check_out = args[args.index("--check-json") + 1] if "--check-json" in args else None
+def read_edition(mk):
+    """版 mk の 5 県の ZIP を全部読み、(行, ファイルごとの照合, 合計) を返す。"""
+    E = MONTHS[mk]
+    zipurl = zip_url(E)
     rows_out = []
     chk = collections.OrderedDict()
     tot = collections.Counter()
     for pk in PREFS:
-        sid = "cbr-tokuchou-shizai-r8-08-%s" % pk
+        sid = "cbr-tokuchou-shizai-%s-%s" % (E["tag"], pk)
         zpath = os.path.join(OBS2, "raw", sid + ".zip")
         z = zipfile.ZipFile(zpath)
         assert z.testzip() is None
@@ -202,16 +225,56 @@ def main():
                             "price_status": status, "ref_value": "", "ref_note": "",
                             "period": period, "effective_from": "",
                             "source_id": sid, "source_page": "%s p.%d" % (base, pi),
-                            "evidence_url": ZIPURL % pk, "license": "PDL1.0",
+                            "evidence_url": zipurl % pk, "license": "PDL1.0",
                             "jccdb_v4_item_id": "", "note": "。".join(note),
                         })
                         tot["status:" + status] += 1
             chk["%s/%s" % (pk, base)] = dict(fchk)
             for k, v in fchk.items():
                 tot[k] += v
+    return rows_out, chk, tot
+
+
+def main():
+    args = sys.argv[1:]
+    check_out = args[args.index("--check-json") + 1] if "--check-json" in args else None
+    rows_out, chk, tot = read_edition(MONTH)
+    extra = collections.OrderedDict()
+    if M.get("prev"):
+        # 前の版と比べる。県・事務所と担当課・依頼番号#資材番号 が同じで、版で変わる欄(obs_id, source_id, source_page, evidence_url)の
+        # ほかが全部同じ行は、前の版のファイルにある観測と同じなので書かない。違う行と新しい行だけを書く。
+        prev_rows, _, _ = read_edition(M["prev"])
+        edk = ("obs_id", "source_id", "source_page", "evidence_url")
+        key = lambda r: (r["source_id"].rsplit("-", 1)[1], r["category"], r["area_code"])
+        body = lambda r: tuple((k, r[k]) for k in sorted(r) if k not in edk)
+        prev = {key(r): r for r in prev_rows}
+        assert len(prev) == len(prev_rows)
+        cmpc = collections.Counter()
+        cur, kept = set(), []
+        for r in rows_out:
+            k = key(r)
+            cur.add(k)
+            p = prev.get(k)
+            if p is None:
+                cmpc["new"] += 1
+                kept.append(r)
+            elif body(p) == body(r):
+                cmpc["same_as_prev"] += 1
+            else:
+                cmpc["changed_vs_prev"] += 1
+                r = dict(r)
+                r["note"] += "。前の版(%s)の同じ依頼番号#資材番号の行(価格 %s、状態 %s)と欄が違う。前の版の行は前の版のファイルに残る" % (
+                    MONTHS[M["prev"]]["zip"], p["price"] or "(空欄)", p["price_status"])
+                kept.append(r)
+        cmpc["prev_only"] = sum(1 for k in prev if k not in cur)
+        extra["vs_prev"] = dict(cmpc, edition_rows=len(rows_out), prev_rows=len(prev_rows), prev=M["prev"])
+        extra["written_by_source_status"] = {"%s %s" % kk: v for kk, v in sorted(collections.Counter((r["source_id"], r["price_status"]) for r in kept).items())}
+        extra["edition_by_source_status"] = {"%s %s" % kk: v for kk, v in sorted(collections.Counter((r["source_id"], r["price_status"]) for r in rows_out).items())}
+        rows_out = kept
     n = write_obs(OUT, rows_out)
     res = {"rows": n, "totals": dict(tot), "per_file": chk}
-    print(json.dumps({"rows": n, "totals": dict(tot)}, ensure_ascii=False, indent=1))
+    res.update(extra)
+    print(json.dumps(dict({"rows": n, "totals": dict(tot)}, **extra), ensure_ascii=False, indent=1))
     if check_out:
         json.dump(res, open(check_out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 

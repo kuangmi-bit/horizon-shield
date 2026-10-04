@@ -1,13 +1,13 @@
 {
  "files": {
   "observations/jp/index_mlit_deflator.csv": {
-   "rows": 12300,
+   "rows": 12375,
    "by_status": {
-    "published_pdl": 12300
+    "published_pdl": 12375
    },
-   "periods": 164,
+   "periods": 165,
    "series": 75,
-   "sha256": "9de948ccc3b54131871fa1ad3e0aa996737af52e09bdff1789759ae66f3b360f"
+   "sha256": "23a8dacc6f507872e35c084b22f4a333133706a541d6d3218b65010b8f7430c9"
   },
   "observations/jp/index_mlit_deflator_nendo.csv": {
    "rows": 5625,
@@ -25,7 +25,7 @@
   "H_month_vs_year_same": true,
   "month_first_last": [
    "2016-04",
-   "2026-06"
+   "2026-07"
   ],
   "Q": {
    "other:same": 2250,

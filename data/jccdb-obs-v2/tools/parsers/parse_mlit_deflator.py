@@ -2,12 +2,17 @@
 """
 国土交通省「建設工事費デフレーター(2020年度基準)」を openpyxl でセルから直接読み、観測層 v2 の index 行にする。
 
-入力: OBS2/raw/mlit-deflator-tsuki-2606.xlsx   (月次の公表ファイル deftsuki_2606.xlsx、令和8年8月31日付け)
-        シート「deftsuki2020（月別）」2016年4月〜2026年6月、シート「deftsuki2020（四半期別）」
+入力: OBS2/raw/mlit-deflator-tsuki-<版>.xlsx   (月次の公表ファイル deftsuki_<版>.xlsx)
+        版 2606 = 令和8年8月31日付け(2016年4月〜2026年6月)、版 2607 = 令和8年9月30日付け(2016年4月〜2026年7月)
+        シート「deftsuki2020（月別）」、シート「deftsuki2020（四半期別）」
       OBS2/raw/mlit-deflator-nendo-260630.xlsx (年度次 defnendo_260630.xlsx、令和8年6月30日付け) 1951〜2025年度
 出力: OBS2/observations/jp/index_mlit_deflator.csv        (月別 + 四半期別)
       OBS2/observations/jp/index_mlit_deflator_nendo.csv  (年度別)
       OBS2/reports/W2-deflator-checks.json
+使い方: python3 parse_mlit_deflator.py [--month 2606|2607]
+  --month を省くと 2606(今までと同じ)。月次ファイルは過去の月を改定して出し直すので、系列の正本は最新の版の1本で、
+  index_mlit_deflator.csv を選んだ版の中身で書き直す(同じ時点の値を二つの版で並べない)。年度次は defnendo_260630 のまま。
+  このあとに post_mlit_deflator.py --month <同じ版> で保留と付け直し(2026-09-26 番人の判断)を当てる。
 
 表頭は 3〜10 行目の 8 段。系列名は 10 行目(最下段)、spec に上の段からの経路(同じ語の続きは1つにまとめる)を原文で持つ。
 値の無いセル(「***」、空)は not_set。
@@ -25,9 +30,14 @@ OBS2 = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(OBS2, "tools"))
 from obs_common import make_id, write_obs  # noqa: E402
 
-SID_M = "mlit-deflator-tsuki-2606"
+MONTHS = {
+    "2606": {"sid": "mlit-deflator-tsuki-2606", "url": "https://www.mlit.go.jp/statistics/details/content/deftsuki_2606.xlsx"},  # 令和8年8月31日付け
+    "2607": {"sid": "mlit-deflator-tsuki-2607", "url": "https://www.mlit.go.jp/statistics/details/content/deftsuki_2607.xlsx"},  # 令和8年9月30日付け
+}
+MONTH = sys.argv[sys.argv.index("--month") + 1] if "--month" in sys.argv else "2606"
+SID_M = MONTHS[MONTH]["sid"]
 SID_Y = "mlit-deflator-nendo-260630"
-URL_M = "https://www.mlit.go.jp/statistics/details/content/deftsuki_2606.xlsx"
+URL_M = MONTHS[MONTH]["url"]
 URL_Y = "https://www.mlit.go.jp/statistics/details/content/defnendo_260630.xlsx"
 UNIT = "index (2020年度平均 = 100)"
 QMAP = {"1-3月": 1, "4-6月": 2, "7-9月": 3, "10-12月": 4}

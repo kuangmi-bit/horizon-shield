@@ -20,7 +20,12 @@
 
 照合: 頁ごとに、-layout の本文で値の形の語(ASCII の数・「-」「－」)の多重集合を数え、bbox で値として割り当てた語と比べる
 (品名・規格・番号・種別№・備考の中の数の語は、bbox で同じ行の値でない欄に入ったものとして両方から除く)。
-使い方: python3 parse_ktr_zairyo.py
+使い方: python3 parse_ktr_zairyo.py [--month r8_04|r8_10] [--out 出力.csv] [--summary 照合.json]
+  --month を省くと r8_04(B2 が作った 令和8年4月1日の表)。parse_ktr_as_monthly.py が import するときも r8_04 のまま(地区割一覧表は 4月1日の表)。
+  r8_10 は 令和８年度 土木工事設計材料単価表（特別調査）（令和８年１０月１日）(000959244.pdf)。頁の構成は 4月1日の表と同じ 68 頁で、
+  違いは 63 頁(10月の表は「スチールショット単価」だけで、「アルミ高欄（ダム堰対応）他単価」が無い)。罫線の小さい表は組版が少し違うので、
+  y の範囲を 10月の頁の語の位置で決め直した RULED_BY_MONTH["r8_10"] を使う(x の欄の境界は同じ)。
+  月ごとに別の source_id・別のファイル(古い版の行は消さない)。--out / --summary を渡すと、そこに書く(古い版に当て直して md5 を比べるとき用)。
 """
 import sys, os, re, json, hashlib, collections, statistics, itertools
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,11 +35,34 @@ sys.path.insert(0, os.path.join(OBS2, "tools"))
 from sekisan_layout import words_of, layout_pages, lines_of, cluster, nfkc, join_cell
 from obs_common import make_id, num, pref, write_obs
 
-SID = "ktr-zairyo-r8-04"
-PDF = os.path.join(OBS2, "raw", "ktr-zairyo-r8-04.pdf")
-URL = "https://www.ktr.mlit.go.jp/ktr_content/content/000940500.pdf"
-OUT = os.path.join(OBS2, "observations", "jp", "material_ktr_zairyo_r8_04.csv")
-PERIOD, EFF = "2026-04", "2026-04-01"
+
+
+def _opt(name, default=None):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+
+
+# 版 -> 設定
+MONTHS = {
+    "r8_04": {"sid": "ktr-zairyo-r8-04", "url": "https://www.ktr.mlit.go.jp/ktr_content/content/000940500.pdf",
+              "sha": "b78074edce6020851c50c79e11a0f2879d6ac886859228f12d50c0814263e07e",
+              "period": "2026-04", "eff": "2026-04-01", "summary": os.path.join("reports", "B2_ktr_parse_summary.json"),
+              "as_note": " アスファルト合材(安定処理材)は関東地整が毎月調査して更新する。これは令和8年4月1日時点で、2026年9月1日以降適用の単価は別 PDF(000956094.pdf、未取り込み)にある。"},
+    # 10月1日の表: J3-ktr-cgr-r8-10 の取り込み
+    "r8_10": {"sid": "ktr-zairyo-r8-10", "url": "https://www.ktr.mlit.go.jp/ktr_content/content/000959244.pdf",
+              "sha": "607e4b4a456dc3088808a5eaaa44607ee5eaad838b4f54e0c393cb4beb079ead",
+              "period": "2026-10", "eff": "2026-10-01", "summary": os.path.join("reports", "J3-ktr-cgr-r8-10.ktr_r8_10_summary.json"),
+              "as_note": (" アスファルト合材(安定処理材)は関東地整が毎月調査して更新する。これは令和8年10月1日の特別調査の単価"
+                          "(掲載頁では、4月1日・10月1日以降適用のアスファルト合材は特別調査を参照とし、ほかの月は毎月の別 PDF で示している)。"),
+              # 10月1日の表は全頁の下端に頁番号(文字)がある(4月1日の表の表の頁には無い)。表の行と照合の数に混ざらないよう先に除く
+              "strip_folio": True},
+}
+MONTH = _opt("--month", "r8_04")
+M = MONTHS[MONTH]
+SID = M["sid"]
+PDF = os.path.join(OBS2, "raw", SID + ".pdf")
+URL = M["url"]
+OUT = _opt("--out", os.path.join(OBS2, "observations", "jp", "material_ktr_zairyo_%s.csv" % MONTH))
+PERIOD, EFF = M["period"], M["eff"]
 NUMV = re.compile(r"^[0-9]{1,3}(,[0-9]{3})*(\.[0-9]+)?$|^[0-9]+(\.[0-9]+)?$")
 DASH = {"-", "－", "\u2015", "‐"}
 NOTE_OPEN = "関東地整が独自調査(特別調査)で設定した単価(物価資料に載っていない材料だけ)。消費税を含まない(調査条件)。"
@@ -355,6 +383,14 @@ RULED = [
     {"page": 63, "name": "スチールショット単価", "y": (500, 610), "cols": [("item", 0), ("spec", 160), ("unit", 290), ("rem", 440)],
      "price": (380, 405), "labels": {"rem": ""}, "merged": []},
 ]
+# 10月1日の表: 罫線の小さい表の y の範囲を 10月の頁の語の位置で決め直したもの(見出しの行の下から、注・価格条件の行の上まで)。
+# x の欄の境界・単価の欄は 4月1日の表と同じ(語の x は 2pt 以内で一致)。63 頁は「スチールショット単価」だけ(頁の上に移った)。
+RULED_R8_10 = [dict(T) for T in RULED if not (T["page"] == 63 and T["name"].startswith("アルミ高欄"))]
+for _T, _y in zip(RULED_R8_10, [(615, 650), (125, 255), (135, 510), (136, 300), (262, 315), (135, 250)]):
+    _T["y"] = _y
+assert [T["page"] for T in RULED_R8_10] == [38, 40, 41, 58, 61, 63]
+RULED_BY_MONTH = {"r8_04": RULED, "r8_10": RULED_R8_10}
+RULED = RULED_BY_MONTH[MONTH]
 
 
 def parse_ruled(pages, T):
@@ -420,10 +456,35 @@ def parse_ruled(pages, T):
     return out
 
 
+def strip_folio(pages, lay):
+    """各頁の下端の頁番号を除く(10月1日の表だけ)。語: 文字が頁番号と同じで、頁でいちばん下にあり、同じ高さ(2pt 以内)にほかの語が無いもの。
+    -layout の文字: 最後の空でない行が頁番号だけならその行を除く。両方で除けたことを頁ごとに確かめる。返り値: (pages, lay, 除いた頁の数)"""
+    out_p, out_l, n = [], [], 0
+    for i, ws in enumerate(pages):
+        no = str(i + 1)
+        ymax = max(w[1] for w in ws) if ws else 0
+        f = [w for w in ws if w[4] == no and w[1] >= ymax - 0.5]
+        if len(f) == 1 and not [w for w in ws if w is not f[0] and abs(w[1] - f[0][1]) < 2]:
+            ls = lay[i].split("\n")
+            k = max(j for j, l in enumerate(ls) if l.strip())
+            assert ls[k].strip() == no, ("頁番号の行が -layout の最後に無い", no, ls[k])
+            out_p.append([w for w in ws if w is not f[0]])
+            out_l.append("\n".join(ls[:k] + ls[k + 1:]))
+            n += 1
+        else:
+            out_p.append(ws)
+            out_l.append(lay[i])
+    return out_p, out_l + lay[len(pages):], n
+
+
 def main():
     sha = hashlib.sha256(open(PDF, "rb").read()).hexdigest()
+    assert sha == M["sha"], (SID, sha)
     pages = words_of(PDF)
     lay = layout_pages(PDF)
+    if M.get("strip_folio"):
+        pages, lay, nfolio = strip_folio(pages, lay)
+        assert nfolio == len(pages), ("頁番号を除けない頁がある", nfolio, len(pages))
     area, area_nlab, area_miss = area_table(pages)
     area_err = (area_nlab, area_miss)
     rows, stats, checks = [], collections.Counter(), []
@@ -475,7 +536,7 @@ def main():
                 if layer == "work" and status == "published_pdl":
                     note = "作業の単価(原本22頁〔特記事項〕: 労務費・直接経費を含む直接工事費で材料費は含まない。週休2日補正は実施していない)。消費税を含まない。"
                 if title == "アスファルト合材価格":
-                    note += " アスファルト合材(安定処理材)は関東地整が毎月調査して更新する。これは令和8年4月1日時点で、2026年9月1日以降適用の単価は別 PDF(000956094.pdf、未取り込み)にある。"
+                    note += M["as_note"]
                 item = r["item"]
                 zc = r["zcode"]
                 if zc:
@@ -639,5 +700,5 @@ if __name__ == "__main__":
                "check_values_total_grid_list": sum(c["bbox_values"] for c in checks if c["kind"] != "ruled"),
                "ruled_values": sum(c["bbox_values"] for c in checks if c["kind"] == "ruled"), "check_bad": bad,
                "checks": checks}
-    json.dump(summary, open(os.path.join(OBS2, "reports", "B2_ktr_parse_summary.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    json.dump(summary, open(_opt("--summary", os.path.join(OBS2, M["summary"])), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(json.dumps({k: v for k, v in summary.items() if k != "checks"}, ensure_ascii=False, indent=1))

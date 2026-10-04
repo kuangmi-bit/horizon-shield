@@ -1,0 +1,64 @@
+{
+ "source_id": "cbr-tokuchou-shizai-r8-09-shizuoka",
+ "country": "JP",
+ "title": "令和８年度の特別調査（資材単価） 静岡県分 令和8年9月30日更新版(ZIP の中身は事務所ごとの PDF「建設資材価格調査報告リスト 令和８年度 管内建設資材価格・設計労務単価調査業務」)",
+ "publisher": "国土交通省 中部地方整備局",
+ "url": "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/zip/r08/list_r8.09_shizai_shizuoka.zip",
+ "landing": "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/R8_chousa_tanka.htm",
+ "landing_parent": "https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/index.htm",
+ "published_note": "頁の一覧に「令和8年9月30日更新／ZIP」(頁は Shift_JIS で Apify の本文は文字化けする。数字・記号の並び「8」「9」「30」「ZIP」が前の版の「令和8年9月3日更新／ZIP」と同じ位置にあることで読んだ)。頁の Last-Modified は Wed, 30 Sep 2026 08:03:07 GMT。頁にはこの版の ZIP(list_r8.09_*)5 つだけが載り、前の版(list_r8.08_*)の欄は無くなった(前の版の ZIP は 2026-10-04 時点で同じ URL からまだ取れ、sha256 は前の版の台帳と一致)。",
+ "http_last_modified": "Wed, 30 Sep 2026 08:03:13 GMT",
+ "bytes": 767812,
+ "sha256": "647f9caa5c224c5f0d41abc5b06586ddb207edfad012f704eebc223f074fd185",
+ "zip_members": [
+  {
+   "name": "list_r8.09_shizai_富士砂防.pdf",
+   "bytes": 105771,
+   "sha256": "ebf31e8a6b0e40f3955d26decf5498e2694adaefcce2b99530e019cc0aa1ba3a"
+  },
+  {
+   "name": "list_r8.09_shizai_沼津河川国道.pdf",
+   "bytes": 303507,
+   "sha256": "f805745ad561698c4a637a26bdbcea4f2402f105ad0082855d3686f7a4f5fd89"
+  },
+  {
+   "name": "list_r8.09_shizai_浜松河川国道.pdf",
+   "bytes": 269116,
+   "sha256": "5a69eb3e64ed08e173e94d2cbc5a31f612276e7b807367fe9512102825bc47d9"
+  },
+  {
+   "name": "list_r8.09_shizai_静岡国道.pdf",
+   "bytes": 362137,
+   "sha256": "94cd8753caeb7dafcdd2ae156bd322a998459fb31dc98e33e29692382101a28b"
+  }
+ ],
+ "retrieved_at": "2026-10-04",
+ "fetched_via": "Apify web-fetch (formats=raw)。作業環境から官公庁サイトへ直接は届かないため。bytes は Content-Length と一致、先頭 PK、zipfile.testzip で CRC 誤り 0。",
+ "license": "PDL1.0",
+ "license_url": "https://www.cbr.mlit.go.jp/policy.htm",
+ "license_quote": "当ホームページで公開している情報（以下「コンテンツ」といいます。）の著作権は、特記されていない限り国土交通省中部地方整備局に帰属し、権利表記の記載がない限り「公共データ利用規約（第1.0版）」（PDL1.0）に準拠した利用条件の下で、利用することができます。 / イ）コンテンツを編集・加工等して利用する場合は、上記出典とは別に、編集・加工等を行ったことを記載してください。なお編集・加工した情報を、あたかも国（又は府省等）が作成したかのような態様で公表・利用してはいけません。 / ２）本利用ルールが適用されないコンテンツについて 以下のコンテンツについては、本利用ルールの適用外です。 ア）組織や特定の事業を表すシンボルマーク、ロゴ、キャラクターデザイン イ）具体的かつ合理的な根拠の説明とともに、別の利用ルールの適用を明示しているコンテンツ",
+ "license_note": "この版の ZIP の中の PDF 4 本の全文を pdftotext で検索し、転載・複製・電子媒体・禁止・禁じ・著作・無断・磁気の語が 0 件であることを確かめた(権利表記なし)。サイトの利用条件の頁(policy.htm、Last-Modified Tue, 10 Dec 2024 05:07:23 GMT)を 2026-10-04 に取り直し、license_quote の条文が変わっていないことを確かめた。よって前の版と同じくサイトの PDL1.0 が当たる。中部地整の「土木工事設計材料単価表」(shizai2026xx.pdf、台帳 cbr-zairyo-r8-10)は表の 2 頁に「本単価表を無断転載・複写や電子媒体等に加工することを禁じます。」があり別扱い(値は写していない)。この ZIP はその表とは別の文書(事務所ごとの特別調査の報告リスト)。",
+ "attribution": "「令和８年度の特別調査（資材単価）静岡県」（中部地方整備局）（https://www.cbr.mlit.go.jp/architecture/kensetsugijutsu/unit_price/R8_chousa_tanka.htm）を加工して作成",
+ "scope_quote": "② 中部地方整備局　管内事務所・管理所－特別調査（資材単価） 「①局－特別調査（資材単価）」に無い資材単価で、工事ごとに特別調査を行い、予定価格の積算に用いたもの。 ※本掲載単価は、工事ごとに調査を実施したものであり、施工地域、時期、現場条件が異なる場合、単価が異なる場合がある。",
+ "scope_quote_note": "頁(index.htm)は Shift_JIS で、Apify の本文は日本語が文字化けする。文言は WebFetch の読みで取り、Apify の生バイトに残る各文字の 2 バイト目(ASCII)と数字・記号の並び(※、①、－、、 の位置)が合うことを確かめた。原本で確かめてから引用に使うこと。",
+ "tax_note": "原本(頁・PDF)に消費税の扱いの記載は無い。price_basis は special_survey_price(tools/extra_enums/J1-open-routes.json)にし、税抜きと断定していない。",
+ "area_note": "geo_code は原本の「県名」欄(調査を依頼した事務所の県)。単価の効く範囲は area_label(原本の「単価適用地域」の文字のまま。局管内 / 管内統一 / 事務所管内 / 当該工事のみ / 工事限定 / 市町名 など)。「局管内」の行は geo_level bureau_area、geo_code 空。area_code は地区コードではなく「調査依頼番号#資材番号」(原本の依頼番号と資材番号。当該工事を特定する番号で、同じ品名・規格が別の工事で別の値になる行を区別するため)。",
+ "how_read": "tools/parsers/parse_cbr_tokuchou_shizai.py --month r8_09。読み方は前の版(cbr-tokuchou-shizai-r8-08-*)と同じ: PDF は細い矩形の罫線で囲んだ 14 列の格子(県名 / 調査依頼事務所名 / 担当課 / 依頼番号 / 資材番号 / 調査区分 / 材工区分 / 品名 / 規格 / 単位 / 価格 / 報告月 / 単価適用地域 / 備考)。pdfplumber の extract_tables(lines) でセルに切り、セル内の折り返しは前後が ASCII 英数字のときだけ空白でつなぎ他は詰めた。価格は数ならその値(桁区切りを除く)、数でない(調査中止、「…にあり」、「…に分割」、「下記内訳のとおり」、空欄)は not_set、備考に建設物価などの市販資料の名がある行(値は空欄)は publication_based_not_public。照合(別の読み方): poppler の pdftotext -bbox-layout の語を、同じ頁の罫線(矩形)から作った格子でセルに割り当て、pdfplumber(pdfminer)のセルの文字と空白を除いて全セルで比べた。この出典: 5964 セル中 5964 一致(価格の列を含め不一致 0)。格子の外の語は各 PDF の表題 3 語だけ(12 語)。見出し行を除くデータ行 395 行。この ZIP は年度の累積の一覧で、前の版の行をそのまま含む。前の版と、県・事務所と担当課・依頼番号#資材番号 が同じで版で変わる欄(obs_id、source_id、source_page、evidence_url)のほかが全部同じ行 147 行は、同じ観測を二重に並べないよう書かず、前の版のファイル(material_cbr_tokuchou_shizai_r8_08.csv)に残した。新しく載った行 248 行を material_cbr_tokuchou_shizai_r8_09.csv に書いた。前の版から値や欄が変わった行は 0 行、前の版にだけある行は 0 行(5 県の合計の照合の数字は reports/cbr_tokuchou_r8_09_check.json)。",
+ "rows_by_status": {
+  "published_pdl": 184,
+  "not_set": 64
+ },
+ "values_copied": true,
+ "row_listing": "public_build",
+ "http_etag": "\"bb744-65caebb1eb436\"",
+ "edition_rows_by_status": {
+  "not_set": 65,
+  "published_pdl": 330
+ },
+ "rows_same_as_previous_edition": 147,
+ "files_written": [
+  "observations/jp/material_cbr_tokuchou_shizai_r8_09.csv"
+ ],
+ "files_note": "この出典の新しい行は 248 行(上の files_written)。前の版と全欄同じ 147 行は observations/jp/material_cbr_tokuchou_shizai_r8_08.csv の cbr-tokuchou-shizai-r8-08-shizuoka の行が受け持つ。",
+ "previous_edition": "cbr-tokuchou-shizai-r8-08-shizuoka"
+}

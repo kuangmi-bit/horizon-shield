@@ -1,0 +1,171 @@
+{
+ "rows": 736,
+ "totals": {
+  "status:published_pdl": 1259,
+  "poppler_words_outside_grid": 54,
+  "cells": 22358,
+  "cells_equal": 22358,
+  "header_rows": 117,
+  "data_rows": 1480,
+  "status:not_set": 208,
+  "status:publication_based_not_public": 13
+ },
+ "per_file": {
+  "aichi/list_r8.09_shizai_名古屋国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1120,
+   "cells_equal": 1120,
+   "header_rows": 5,
+   "data_rows": 75
+  },
+  "aichi/list_r8.09_shizai_名四国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 840,
+   "cells_equal": 840,
+   "header_rows": 3,
+   "data_rows": 57
+  },
+  "aichi/list_r8.09_shizai_愛知国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1596,
+   "cells_equal": 1596,
+   "header_rows": 6,
+   "data_rows": 108
+  },
+  "aichi/list_r8.09_shizai_設楽ダム工事.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1078,
+   "cells_equal": 1078,
+   "header_rows": 5,
+   "data_rows": 72
+  },
+  "gifu/list_r8.09_shizai_多治見砂防国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1400,
+   "cells_equal": 1400,
+   "header_rows": 8,
+   "data_rows": 92
+  },
+  "gifu/list_r8.09_shizai_岐阜国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 5026,
+   "cells_equal": 5026,
+   "header_rows": 26,
+   "data_rows": 333
+  },
+  "gifu/list_r8.09_shizai_新丸山ダム工事.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 224,
+   "cells_equal": 224,
+   "header_rows": 3,
+   "data_rows": 13
+  },
+  "gifu/list_r8.09_shizai_木曽川上流河川.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1106,
+   "cells_equal": 1106,
+   "header_rows": 8,
+   "data_rows": 71
+  },
+  "gifu/list_r8.09_shizai_越美山系砂防.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 56,
+   "cells_equal": 56,
+   "header_rows": 1,
+   "data_rows": 3
+  },
+  "gifu/list_r8.09_shizai_高山国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1106,
+   "cells_equal": 1106,
+   "header_rows": 6,
+   "data_rows": 73
+  },
+  "mie/list_r8.09_shizai_三重河川国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 42,
+   "cells_equal": 42,
+   "header_rows": 1,
+   "data_rows": 2
+  },
+  "mie/list_r8.09_shizai_北勢国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 2170,
+   "cells_equal": 2170,
+   "header_rows": 8,
+   "data_rows": 147
+  },
+  "mie/list_r8.09_shizai_木曽川下流河川.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 98,
+   "cells_equal": 98,
+   "header_rows": 1,
+   "data_rows": 6
+  },
+  "shizuoka/list_r8.09_shizai_富士砂防.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 238,
+   "cells_equal": 238,
+   "header_rows": 2,
+   "data_rows": 15
+  },
+  "shizuoka/list_r8.09_shizai_沼津河川国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1862,
+   "cells_equal": 1862,
+   "header_rows": 10,
+   "data_rows": 123
+  },
+  "shizuoka/list_r8.09_shizai_浜松河川国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 1442,
+   "cells_equal": 1442,
+   "header_rows": 8,
+   "data_rows": 95
+  },
+  "shizuoka/list_r8.09_shizai_静岡国道.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 2422,
+   "cells_equal": 2422,
+   "header_rows": 11,
+   "data_rows": 162
+  },
+  "nagano/list_r8.09_shizai_天竜川上流河川.pdf": {
+   "poppler_words_outside_grid": 3,
+   "cells": 532,
+   "cells_equal": 532,
+   "header_rows": 5,
+   "data_rows": 33
+  }
+ },
+ "vs_prev": {
+  "same_as_prev": 744,
+  "new": 736,
+  "prev_only": 0,
+  "edition_rows": 1480,
+  "prev_rows": 744,
+  "prev": "r8_08"
+ },
+ "written_by_source_status": {
+  "cbr-tokuchou-shizai-r8-09-aichi not_set": 29,
+  "cbr-tokuchou-shizai-r8-09-aichi published_pdl": 118,
+  "cbr-tokuchou-shizai-r8-09-gifu not_set": 61,
+  "cbr-tokuchou-shizai-r8-09-gifu publication_based_not_public": 11,
+  "cbr-tokuchou-shizai-r8-09-gifu published_pdl": 256,
+  "cbr-tokuchou-shizai-r8-09-mie published_pdl": 13,
+  "cbr-tokuchou-shizai-r8-09-shizuoka not_set": 64,
+  "cbr-tokuchou-shizai-r8-09-shizuoka published_pdl": 184
+ },
+ "edition_by_source_status": {
+  "cbr-tokuchou-shizai-r8-09-aichi not_set": 32,
+  "cbr-tokuchou-shizai-r8-09-aichi published_pdl": 280,
+  "cbr-tokuchou-shizai-r8-09-gifu not_set": 110,
+  "cbr-tokuchou-shizai-r8-09-gifu publication_based_not_public": 13,
+  "cbr-tokuchou-shizai-r8-09-gifu published_pdl": 462,
+  "cbr-tokuchou-shizai-r8-09-mie published_pdl": 155,
+  "cbr-tokuchou-shizai-r8-09-nagano not_set": 1,
+  "cbr-tokuchou-shizai-r8-09-nagano published_pdl": 32,
+  "cbr-tokuchou-shizai-r8-09-shizuoka not_set": 65,
+  "cbr-tokuchou-shizai-r8-09-shizuoka published_pdl": 330
+ }
+}

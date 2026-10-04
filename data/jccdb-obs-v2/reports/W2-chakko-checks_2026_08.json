@@ -1,0 +1,29 @@
+{
+ "files": {
+  "observations/jp/cost_sqft_mlit_chakko_2026_08.csv": {
+   "rows": 4591,
+   "by_status": {
+    "published_cc_by": 3964,
+    "not_set": 627
+   },
+   "by_price_basis": {
+    "count": 2400,
+    "construction_cost_planned_total": 1200,
+    "cost_per_m2": 991
+   },
+   "sha256": "8eacb124bc708534d5e44459c31c0918110958569ceeb80ea8c17b6bfa14cb8f"
+  }
+ },
+ "checks": {
+  "2026-08": {
+   "counts": {
+    "A_ok": 78,
+    "C_ok": 3744,
+    "B_ok": 144,
+    "E_eq": 144,
+    "D_ok": 144
+   },
+   "diffs": []
+  }
+ }
+}

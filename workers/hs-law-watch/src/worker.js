@@ -116,13 +116,29 @@ export function extractSection(text, section) {
   return e < 0 ? text.slice(s) : text.slice(s, e);
 }
 
+function charsetOf(ctype, bytes) {
+  const m = /charset=["']?([\w.:-]+)/i.exec(ctype || "");
+  if (m) return m[1].toLowerCase();
+  let head = "";
+  for (let i = 0; i < Math.min(bytes.length, 4096); i++) head += String.fromCharCode(bytes[i]);
+  const mm = /<meta[^>]+charset=["']?([\w.:-]+)/i.exec(head);
+  return mm ? mm[1].toLowerCase() : "utf-8";
+}
+
 async function fetchText(url, method) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 20000);
   try {
     const r = await fetch(url, { method: method || "GET", headers: { "user-agent": UA, accept: "*/*" }, signal: ctl.signal, redirect: "follow" });
-    const text = method === "HEAD" ? "" : await r.text();
-    return { ok: r.ok, status: r.status, text, ctype: r.headers.get("content-type") || "" };
+    const ctype = r.headers.get("content-type") || "";
+    if (method === "HEAD") return { ok: r.ok, status: r.status, text: "", ctype };
+    // 2026-10-04: 文字コードを見て読む。東北地整の頁は Shift_JIS で、UTF-8 として読むとファイル名が化け、
+    //   同じリンクが毎回「新しいリンク」に見えていた。content-type の charset、無ければ <meta charset> を見る。
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    const cs = charsetOf(ctype, bytes);
+    let text, charset = cs;
+    try { text = new TextDecoder(cs).decode(bytes); } catch { text = new TextDecoder("utf-8").decode(bytes); charset = "utf-8(" + cs + " は読めない)"; }
+    return { ok: r.ok, status: r.status, text, ctype, charset };
   } catch (e) {
     return { ok: false, status: 0, text: "", error: String(e && e.message || e).slice(0, 200) };
   } finally { clearTimeout(t); }
@@ -180,13 +196,16 @@ async function checkSource(env, src, now) {
 
   if (src.kind === "probe") {
     const key = url;
-    if (res.status === 200) {
+    // 2026-10-04: 近畿地整は無い PDF にも 200 で HTML(サイトのお知らせ頁)を返す。PDF が返ったときだけ「公開された」とする。
+    //   (2026-10-01 に 2026_11tanka.pdf を公開と誤って拾った。実物は text/html 22,289 bytes)
+    const isDoc = res.status === 200 && (!src.expect_ctype || new RegExp(src.expect_ctype, "i").test(res.ctype || ""));
+    if (isDoc) {
       events.push({ event_id: await sha256hex("probe|" + url), source_id: src.id, domain: src.domain, kind: "new_document",
         detected_at, title: src.title + " が公開された: " + url.split("/").pop(), url, impact: { items: [], triage: "construction" } });
     }
     await env.DB.prepare("INSERT OR REPLACE INTO snapshots (source_id, fetched_at, http_status, ok, hash, items_json, fail_streak, url) VALUES (?,?,?,?,?,?,?,?)")
-      .bind(src.id, detected_at, res.status, res.status === 200 ? 1 : 0, key, "[]", 0, url).run();
-    return { events, status: res.status };
+      .bind(src.id, detected_at, res.status, isDoc ? 1 : 0, key, "[]", 0, url).run();
+    return { events, status: res.status, ctype: res.ctype || "", is_document: isDoc };
   }
 
   if (!res.ok && src.kind === "kanpo" && res.status === 404) {
@@ -252,7 +271,7 @@ async function checkSource(env, src, now) {
   }
   await env.DB.prepare("INSERT OR REPLACE INTO snapshots (source_id, fetched_at, http_status, ok, hash, items_json, fail_streak, url) VALUES (?,?,?,?,?,?,?,?)")
     .bind(src.id, detected_at, res.status, 1, hash, JSON.stringify(items.map((i) => i.key)), 0, via === "mirror" ? src.mirror : url).run();
-  return { events, status: res.status, count: items.length, baseline: !prev || !prev.hash, via, mirror_fetched_at: res.mirror ? res.mirror.fetched_at : undefined, ...extra };
+  return { events, status: res.status, count: items.length, baseline: !prev || !prev.hash, via, mirror_fetched_at: res.mirror ? res.mirror.fetched_at : undefined, charset: res.charset, ...extra };
 }
 
 export async function runAll(env, now, only) {
@@ -263,7 +282,8 @@ export async function runAll(env, now, only) {
     try {
       const r = await checkSource(env, src, now);
       for (const ev of r.events) if (await putEvent(env, ev)) { fresh.push(ev); report.new_events++; }
-      report.sources[src.id] = { status: r.status, count: r.count, baseline: r.baseline, failed: !!r.failed, mismatch: !!r.mismatch, events: r.events.length, via: r.via || undefined, mirror_fetched_at: r.mirror_fetched_at, mirror_why: r.mirror_why };
+      report.sources[src.id] = { status: r.status, count: r.count, baseline: r.baseline, failed: !!r.failed, mismatch: !!r.mismatch, events: r.events.length, via: r.via || undefined, mirror_fetched_at: r.mirror_fetched_at, mirror_why: r.mirror_why,
+        is_document: r.is_document, charset: r.charset };
     } catch (e) {
       report.sources[src.id] = { error: String(e && e.message || e).slice(0, 200) };
     }

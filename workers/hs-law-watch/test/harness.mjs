@@ -28,7 +28,8 @@ globalThis.fetch = async (url, init = {}) => {
   const w = WORLD[u];
   if (!w) return new Response("not found", { status: 404 });
   if (w.status && w.status >= 500) return new Response("err", { status: w.status });
-  return new Response(init.method === "HEAD" ? null : w.body, { status: w.status || 200 });
+  const headers = w.ctype ? { "content-type": w.ctype } : {};
+  return new Response(init.method === "HEAD" ? null : (w.bytes || w.body), { status: w.status || 200, headers });
 };
 const S = Object.fromEntries(SOURCES.map((s) => [s.id, s]));
 const tsuchiUrl = S["mhlw-shinryo-r8-tsuchi"].url;
@@ -77,7 +78,7 @@ setDay1(d2);
 WORLD[tsuchiUrl] = { body: listHtml('<a href="/content/12400000/001760000.pdf">疑義解釈資料の送付について（その14）訪問看護ベースアップ評価料</a>') };
 WORLD[S["egov-houkan-unei-kijun"].url] = { body: egov("412M50000100080_20270401_509M60000100005") };
 WORLD[S["tdoc-kokuji67-genko"].url] = { body: tdoc("厚生労働大臣が定める基準", "別の告示") };
-WORLD[resolveUrl(S["kkr-zairyo-next"], d2)] = { status: 200, body: "" };
+WORLD[resolveUrl(S["kkr-zairyo-next"], d2)] = { status: 200, body: "", ctype: "application/pdf" };
 delete WORLD[resolveUrl(S["kanpo-today"], d2)];
 WORLD[resolveUrl(S["kanpo-today"], d2)] = { body: `<a href="./0001.html">道路の区域を変更する件</a>` };
 env.LINE_TOKEN = "t"; env.LINE_TO = "U1"; env.GITHUB_TOKEN = "g"; env.GITHUB_REPO = "ogasurfproject-jpg/jhnrd";
@@ -230,6 +231,40 @@ ok(parseLinks(cewHtml, "https://data.bls.gov/cew/", S["bls-qcew-files"].link_fil
   const src2 = S["hud-tdc"]; WORLD[src2.url] = { status: 403, body: "" };
   const r2m = await runAll(envM, new Date("2026-10-06T00:07:00Z"), [src2.id]);
   ok(r2m.sources[src2.id].failed === true && r2m.sources[src2.id].mirror_why === undefined && r2m.sources[src2.id].via === undefined, "no mirror configured -> unchanged failure path");
+}
+
+
+// ---- 9. 2026-10-04: 偽の「公開」と文字化けを直した ----
+{
+  const envP = { DB: makeDb() };
+  const dP = new Date("2026-10-01T00:07:00Z");
+  const pu = resolveUrl(S["kkr-zairyo-next"], dP);
+  // 近畿地整は無い PDF にも 200 で HTML のお知らせ頁を返す -> 公開ではない
+  for (const k of Object.keys(WORLD)) delete WORLD[k];
+  WORLD[pu] = { status: 200, body: "<html>WEBサイトリニューアルのお知らせ</html>", ctype: "text/html" };
+  const rp = await runAll(envP, dP, ["kkr-zairyo-next"]);
+  ok(rp.sources["kkr-zairyo-next"].events === 0 && rp.sources["kkr-zairyo-next"].is_document === false, "probe: 200 text/html (soft 404) is not a new document " + JSON.stringify(rp.sources["kkr-zairyo-next"]));
+  WORLD[pu] = { status: 200, body: "", ctype: "application/pdf" };
+  const rp2 = await runAll(envP, new Date("2026-10-01T09:07:00Z"), ["kkr-zairyo-next"]);
+  ok(rp2.sources["kkr-zairyo-next"].events === 1 && rp2.sources["kkr-zairyo-next"].is_document === true, "probe: 200 application/pdf is a new document");
+
+  // Shift_JIS の頁(東北地整)を文字コードどおりに読み、二度目に同じリンクを新しいとしない
+  const envJ = { DB: makeDb() };
+  const sj = new Uint8Array([60, 104, 116, 109, 108, 62, 60, 104, 101, 97, 100, 62, 60, 109, 101, 116, 97, 32, 104, 116, 116, 112, 45, 101, 113, 117, 105, 118, 61, 34, 67, 111, 110, 116, 101, 110, 116, 45, 84, 121, 112, 101, 34, 32, 99, 111, 110, 116, 101, 110, 116, 61, 34, 116, 101, 120, 116, 47, 104, 116, 109, 108, 59, 32, 99, 104, 97, 114, 115, 101, 116, 61, 83, 104, 105, 102, 116, 95, 74, 73, 83, 34, 62, 60, 47, 104, 101, 97, 100, 62, 60, 98, 111, 100, 121, 62, 60, 97, 32, 104, 114, 101, 102, 61, 34, 114, 48, 56, 146, 80, 137, 191, 149, 92, 46, 112, 100, 102, 34, 62, 144, 221, 140, 118, 146, 80, 137, 191, 149, 92, 60, 47, 97, 62, 60, 97, 32, 104, 114, 101, 102, 61, 34, 120, 46, 104, 116, 109, 34, 62, 145, 188, 60, 47, 97, 62, 60, 47, 98, 111, 100, 121, 62, 60, 47, 104, 116, 109, 108, 62]);
+  const thr = S["thr-zairyo-list"];
+  WORLD[thr.url] = { bytes: sj, ctype: "text/html" };
+  const j1 = await runAll(envJ, new Date("2026-10-02T00:07:00Z"), [thr.id]);
+  const snapJ = await envJ.DB.prepare("SELECT items_json FROM snapshots WHERE source_id = ?").bind(thr.id).first();
+  ok(snapJ && /設計単価表/.test(snapJ.items_json) && /r08%E5%8D%98%E4%BE%A1%E8%A1%A8\.pdf|r08単価表\.pdf/.test(snapJ.items_json) && !/\uFFFD|%EF%BF%BD/.test(snapJ.items_json), "Shift_JIS page decoded (title and file name readable) " + (snapJ && snapJ.items_json.slice(0, 200)));
+  const j2 = await runAll(envJ, new Date("2026-10-02T09:07:00Z"), [thr.id]);
+  const evJ = (await envJ.DB.prepare("SELECT * FROM events WHERE source_id = ? AND kind = 'new_link'").bind(thr.id).all()).results;
+  ok(j1.sources[thr.id].baseline === true && evJ.length === 0, "Shift_JIS page: second run raises no new_link " + JSON.stringify(evJ.map((e) => e.title)));
+
+  // 奈良県の単価資料の一覧: 資材・労務・損料の PDF は拾い、頁の他のリンクは拾わない
+  const nara = S["nara-shizai-list"];
+  const naraHtml = '<a href="/documents/8708/r0810nara_materialprice.pdf">令和8年10月改定 土木工事設計資材単価表</a><a href="/documents/8708/r0803_roumuprice.pdf">労務単価</a><a href="/n134/66514.html">この頁</a><a href="/documents/9999/other.pdf">別の課</a>';
+  const nl = parseLinks(naraHtml, nara.url, nara.link_filter);
+  ok(nara && nl.length === 2 && nl.every((l) => l.url.includes("/documents/8708/")), "nara-shizai-list filter picks the unit price PDFs only " + JSON.stringify(nl.map((l) => l.url)));
 }
 
 console.log(`hs-law-watch harness: ${pass} pass / ${fail} fail`);

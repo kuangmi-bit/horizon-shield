@@ -10,6 +10,11 @@
 出力: OBS2/observations/jp/cost_sqft_mlit_chakko_2025.csv(年計)
       OBS2/observations/jp/cost_sqft_mlit_chakko_2026_01_07.csv(月次 7 か月)
       OBS2/reports/W2-chakko-checks.json(照合の数字)
+使い方: python3 parse_estat_chakko_pref.py [--month 2026-08]
+  --month を省くと今までと同じ(2025 年計と 2026-01 ... 2026-07 の 8 時点、上の 2 ファイル)。
+  --month YYYY-MM を渡すとその月だけを読み、OBS2/observations/jp/cost_sqft_mlit_chakko_YYYY_MM.csv と
+  OBS2/reports/W2-chakko-checks_YYYY_MM.json に書く(既存の月のファイルは書き換えない。月ごとに別の source_id で、同じ月は一度だけ)。
+  このあとに post_estat_chakko.py [--month YYYY-MM] で統計の 0 を値に戻す(2026-09-26 番人の判断、apply_decisions_20260926.stat_zero)。
 
 行の作り方:
   - 表の値はそのまま別行で持つ: 建築物の数(count, 棟)、床面積の合計(count, ㎡)、工事費予定額(construction_cost_planned_total, 万円)
@@ -44,7 +49,13 @@ STAT_INF = {  # (表, 時点) -> e-Stat statInfId(ファイル一覧の頁で表
     ("6-1", "2026-05"): "000040469905", ("7-1", "2026-05"): "000040469907",
     ("6-1", "2026-06"): "000040482040", ("7-1", "2026-06"): "000040482042",
     ("6-1", "2026-07"): "000040497338", ("7-1", "2026-07"): "000040497340",
+    ("6-1", "2026-08"): "000040511825", ("7-1", "2026-08"): "000040511827",  # 2026-09-30 公開
 }
+MONTH = sys.argv[sys.argv.index("--month") + 1] if "--month" in sys.argv else None
+if MONTH:
+    _y, _m = MONTH.split("-")
+    assert (("6-1", MONTH) in STAT_INF) and _y == "2026", MONTH
+    PERIODS = [(MONTH, MONTH, "令和8年%d月分" % int(_m))]
 TITLE = {
     "6-1": "第６表－１ 着工建築物：都道府県別、構造別（建築物の数、床面積の合計、工事費予定額）",
     "7-1": "第７表－１ 着工建築物：都道府県別、用途別（大分類）（建築物の数、床面積の合計、工事費予定額）",
@@ -146,7 +157,7 @@ def main():
     rows_by_file = collections.OrderedDict()
     checks = collections.OrderedDict()
     for per, period, per_label in PERIODS:
-        out = rows_by_file.setdefault("2025" if per == "2025" else "2026_01_07", [])
+        out = rows_by_file.setdefault(MONTH.replace("-", "_") if MONTH else ("2025" if per == "2025" else "2026_01_07"), [])
         grid = {}  # (table, geo_code, group_norm, measure_idx) -> cellval
         subs = {}  # (table, 'shi'/'gun', geo_code, group_norm, measure_idx) -> cellval
         for table in ("6-1", "7-1"):
@@ -301,7 +312,7 @@ def main():
         files[os.path.relpath(fn, OBS2)] = {"rows": n, "by_status": dict(st), "by_price_basis": dict(pb),
                                              "sha256": hashlib.sha256(open(fn, "rb").read()).hexdigest()}
     rep = {"files": files, "checks": checks}
-    json.dump(rep, open(os.path.join(OBS2, "reports", "W2-chakko-checks.json"), "w", encoding="utf-8"),
+    json.dump(rep, open(os.path.join(OBS2, "reports", "W2-chakko-checks%s.json" % ("_" + MONTH.replace("-", "_") if MONTH else "")), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     print(json.dumps(rep, ensure_ascii=False, indent=1)[:6000])
 

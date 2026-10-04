@@ -98,8 +98,8 @@ export const SOURCES = [
   { id: "kkr-zairyo-next", domain: "construction", kind: "probe",
     title: "近畿地方整備局 土木工事設計材料単価表(翌月版)",
     url: "https://www-2.kkr.mlit.go.jp/plan/jigyousya/technical_information/gijutsukanri/qgl8vl0000004zj9-att/{YYYY}_{MM}tanka.pdf",
-    month_offset: 1,
-    why: "2026_09tanka.pdf の命名が月ごとなら、翌月版の公開を HEAD で拾える。命名が変われば 404 のまま(= 拾えない)なので、その時は台帳を直す。" },
+    month_offset: 1, expect_ctype: "pdf",
+    why: "2026_09tanka.pdf の命名が月ごとなら、翌月版の公開を HEAD で拾える。命名が変われば 404 のまま(= 拾えない)なので、その時は台帳を直す。無い月は 200 で HTML のお知らせ頁が返るので、content-type が pdf のときだけ公開とする(2026-10-04)。" },
   // [2026-09-26 観測層 v2] 各地方機関の設計材料単価表の一覧頁。新しい PDF のリンクが増えたら、次の月(版)の表が出た合図。
   //   obs2_family は観測層 v2 の出典の系統(sources/<family>-*.json)。取り込みは tools/parsers/ の parser を当て直す。
   { id: "ktr-zairyo-list", domain: "construction", kind: "list", obs2_family: "ktr-zairyo",
@@ -119,6 +119,10 @@ export const SOURCES = [
     title: "九州地方整備局 工事積算(設計単価)の一覧", url: "https://www.qsr.mlit.go.jp/for_company/kensetu_joho/koujisekisan.html", link_filter: "/content/.*\\.pdf$" },
   { id: "hkd-zairyo-list", domain: "construction", kind: "list", obs2_family: "hkd-zairyo",
     title: "北海道開発局 設計単価の一覧", url: "https://www.hkd.mlit.go.jp/ky/jg/gijyutu/ud49g70000000uh8.html", link_filter: "\\.pdf$" },
+  // [2026-10-04] 奈良県の土木工事設計単価資料(資材単価は毎月改定、労務・損料・再生材など)。平成建設(奈良)の積算の相談から。
+  //   県の値は利用条件(私的使用・引用のみ)で写さず、生コンの地区ごとの状態だけを持つ(tools/parsers/parse_nara_shizai_status.py)。
+  { id: "nara-shizai-list", domain: "construction", kind: "list", obs2_family: "nara-shizai",
+    title: "奈良県 土木工事設計単価資料の一覧(資材単価は毎月。値は写さず状態だけを持つ)", url: "https://www.pref.nara.lg.jp/n134/66514.html", link_filter: "/documents/8708/.*\\.pdf$" },
   { id: "ogb-zairyo-list", domain: "construction", kind: "list", obs2_family: "ogb-zairyo",
     title: "沖縄総合事務局 労務・資材単価の一覧", url: "https://www.ogb.go.jp/kaiken/koji/007864", link_filter: "\\.pdf$" },
   { id: "nilim-sekou-package-list", domain: "construction", kind: "list", obs2_family: "mlit-sekou-package",
