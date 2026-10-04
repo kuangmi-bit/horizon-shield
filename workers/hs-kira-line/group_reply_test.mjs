@@ -150,7 +150,7 @@ console.log("\n7) @ で呼ばれた発言も、大賀に知らせる");
   check("大賀に知らせた", pushes().length === 1, String(pushes().length));
 }
 
-console.log("\n8) 呼ばれず引用でもない発言は、返さず知らせもしない");
+console.log("\n8) 加盟店グループでない所の、呼ばれず引用でもない発言は、返さず知らせもしない");
 {
   calls = [];
   await send(makeEnv(), [groupMsg("森下さん、明日の現場よろしくです", false)]);
@@ -158,7 +158,30 @@ console.log("\n8) 呼ばれず引用でもない発言は、返さず知らせ�
   check("知らせない", pushes().length === 0, String(pushes().length));
 }
 
-const EXPECT = 24;
+console.log("\n9) 加盟店グループでは、@ も引用も無い発言も大賀に知らせる(グループには返さない)");
+{
+  calls = [];
+  const env = makeEnv(); await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  await send(env, [groupMsg("1については問題ございません。2については m 単価との認識で問題ございません。", false)]);
+  check("グループには返さない", replies().length === 0, String(replies().length));
+  check("大賀に知らせた", pushes().length === 1, String(pushes().length));
+  const pt = pushes()[0] && pushes()[0].body && pushes()[0].body.messages[0].text;
+  check("知らせにグループでの発言の印", !!pt && pt.includes("グループでの発言"), pt && pt.slice(0, 30));
+}
+
+console.log("\n10) 加盟店グループでも、社内の人への一言(@森下 …)は知らせない");
+{
+  calls = [];
+  const env = makeEnv(); await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  await send(env, [groupMsg("@森下 真也 明日以後宜しくです!", false)]);
+  check("知らせない(本文の @)", pushes().length === 0, String(pushes().length));
+  calls = [];
+  const ev = groupMsg("@堤 よろしく", false); ev.message.mention = { mentionees: [{ index: 0, length: 2, type: "user", isSelf: false }] };
+  await send(env, [ev]);
+  check("知らせない(mention の先頭が他の人)", pushes().length === 0, String(pushes().length));
+}
+
+const EXPECT = 29;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");

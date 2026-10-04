@@ -264,7 +264,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v11-group-quote-20261004", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v12-group-notify-20261004", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -382,9 +382,16 @@ async function processEvents(events, env) {
               console.log("[group] acked (quote) gid=" + gid);
             }
             // 呼ばれた発言・引用での返信は、hearing が返事をしたかに関わらず、本文を大賀に知らせる(人が読むまで止めない)。
-            if (isAddressedToBot(event) || isQuoteReply(event)) {
+            // 2026-10-04 追記(HS-KIRA-GROUP-NOTIFY-ALL): 加盟店さんに「@ を付けて」とは一度も案内していない。
+            //   だから加盟店グループ(groupPartner の印のあるグループ)では、@ も引用も無い発言も大賀に知らせる。
+            //   ただし社内の人への一言(先頭が公式アカウント以外への @)は知らせない。グループには返さない(黙る)ことは同じ。
+            let _notify = isAddressedToBot(event) || isQuoteReply(event);
+            if (!_notify && !isAsideToOther(event)) {
+              try { _notify = !!(await env.SEEN_STORE.get("groupPartner:" + gid)); } catch (_e) {}
+            }
+            if (_notify) {
               try {
-                await pushToLine(env.LINE_USER_ID, "\u3010\u52a0\u76df\u5e97\u30b0\u30eb\u30fc\u30d7 \u8981\u78ba\u8a8d\u3011" + (isQuoteReply(event) ? "(\u5f15\u7528\u3067\u8fd4\u4fe1)" : "(@\u3067\u547c\u3073\u304b\u3051)") + "\n" + gt.slice(0, 400) + (gt.length > 400 ? "\u2026" : ""), env.LINE_CHANNEL_TOKEN);
+                await pushToLine(env.LINE_USER_ID, "\u3010\u52a0\u76df\u5e97\u30b0\u30eb\u30fc\u30d7 \u8981\u78ba\u8a8d\u3011" + (isQuoteReply(event) ? "(\u5f15\u7528\u3067\u8fd4\u4fe1)" : (isAddressedToBot(event) ? "(@\u3067\u547c\u3073\u304b\u3051)" : "(\u30b0\u30eb\u30fc\u30d7\u3067\u306e\u767a\u8a00)")) + "\n" + gt.slice(0, 400) + (gt.length > 400 ? "\u2026" : ""), env.LINE_CHANNEL_TOKEN);
               } catch (_e) {}
             }
           }
@@ -1540,6 +1547,16 @@ async function ingestPartnerSilently(userMessage, userId, groupId, env) {
 //   誰の発言を引用したかは webhook では分からない(大賀が OA Manager から手で送った文の id は手元に無い)。
 //   加盟店グループでの引用返信は、こちらへの返事であることがほとんどなので、受け取りの一言と大賀への知らせに使う。
 const QUOTE_ACK_TEXT = "\u3054\u8fd4\u4fe1\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059\u3002\u5185\u5bb9\u3092\u78ba\u8a8d\u3057\u3066\u3001\u62c5\u5f53\u306e\u5927\u8cc0\u304b\u3089\u3042\u3089\u305f\u3081\u3066\u304a\u8fd4\u4e8b\u3057\u307e\u3059\u3002";
+// 社内の人への一言か。先頭が公式アカウント以外への @(LINE の mention で isSelf でない人が先頭)なら、こちら宛てではない。
+function isAsideToOther(event) {
+  const m = event && event.message;
+  if (!m) return false;
+  const ms = m.mention && Array.isArray(m.mention.mentionees) ? m.mention.mentionees : [];
+  if (ms.some((x) => x && x.isSelf === true)) return false;
+  if (ms.some((x) => x && x.index === 0)) return true;
+  const s = String(m.text || "").trim();
+  return /^[@\uff20]/.test(s) && !/^[@\uff20][ \u3000]*HORIZON[ \u3000]*SHIELD/i.test(s);
+}
 function isQuoteReply(event) {
   const m = event && event.message;
   return !!(m && typeof m.quotedMessageId === "string" && m.quotedMessageId.length > 0);
