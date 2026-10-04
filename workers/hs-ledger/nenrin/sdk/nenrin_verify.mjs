@@ -765,7 +765,7 @@ export function preflightReport(input) {
 // never collapsed into the favorable outcome. The wall that no signature can cross (no side-effect oracle) is
 // written into does_not_establish on every report, accepted or refused.
 
-export const VERIFIER_VERSION = "0.1.5";
+export const VERIFIER_VERSION = "0.1.6";
 export const LINK_PREFIX = "nenrin-exec://";
 
 // R3 generalized to a SET with possibly several witnesses per hop: seqs contiguous from 0, every root has a
@@ -794,27 +794,42 @@ export function chainContinuousSet(observations) {
 
 export function verifyProvenance(input) {
   const task_id = input && input.task_id;
-  const observations = Array.isArray(input.observations) ? input.observations : [];
-  const grant = input.grant || null;
-  const primaryReceipt = input.receipt || null;
+  // 0.1.6 (interop-v0.2/edge, kuangmi-bit's two open questions): a record slot or list element that is present but
+  // not an object (and not the null/false "not presented" markers) is malformed. It is refused in its own step with
+  // reason record_not_object and is otherwise not presented: it is not consulted by step 0, R3, R4 or linkage, and
+  // it never makes a verdict "accepted". Before 0.1.6 the reference threw on a non-object observation and treated a
+  // non-object record as a record (a cascade of accidental refusals including task_id_mismatch).
+  const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const notPresented = (v) => v === undefined || v === null || v === false;
+  const rawObservations = Array.isArray(input.observations) ? input.observations : [];
+  const malformedObservations = []; rawObservations.forEach((o, i) => { if (!isRecord(o)) malformedObservations.push(i); });
+  const observations = rawObservations.filter(isRecord);
+  const malformedRecords = [];                                     // [slot, index?]
+  const slot = (name) => { const v = input[name]; if (notPresented(v)) return null; if (isRecord(v)) return v; malformedRecords.push(name); return null; };
+  const grant = slot("grant");
+  const primaryReceipt = slot("receipt");
   // 0.1.3 (horizon-shield#26, reported by Poke-nushi). `receipt` and `receipts` used to feed different checks: the
   // action check ran on `receipt`, reconciliation and the reported receipt_id on `receipts`, so receipt A with
   // receipts [B] reported B's id under A's verdict. Now there is one receipt set, the union of both inputs, and
   // every authentic receipt in it passes the same action and binding checks as the primary one.
   const receipts = [];
   { const seen = new Set();
-    for (const r of (primaryReceipt ? [primaryReceipt] : []).concat(Array.isArray(input.receipts) ? input.receipts : [])) {
+    const extra = Array.isArray(input.receipts) ? input.receipts : [];
+    extra.forEach((r, i) => { if (!isRecord(r)) malformedRecords.push("receipts[" + i + "]"); });
+    for (const r of (primaryReceipt ? [primaryReceipt] : []).concat(extra.filter(isRecord))) {
       let key; try { key = canonical(r); } catch (_e) { key = String(receipts.length); }
       if (!seen.has(key)) { seen.add(key); receipts.push(r); }
     } }
   const resolve = typeof input.resolve === "function" ? input.resolve : () => null;
   const lookup = typeof input.lookup === "function" ? input.lookup : null;
   const requireSigs = input.require_signatures !== false;
-  const intent = input.intent || null;
+  const intent = slot("intent");
 
   const refusals = [], findings = [];
   const refuse = (code, why, extra) => refusals.push(Object.assign({ code, why }, extra || {}));
   const note = (code, why, extra) => findings.push(Object.assign({ code, why }, extra || {}));
+  for (const i of malformedObservations) refuse("delegation_observation_invalid", "an element of observations is not an object; it is not an observation and contributes nothing to steps 0, R3, R4 or linkage", { index: i, reason: "record_not_object" });
+  for (const name of malformedRecords) refuse(name === "intent" ? "preflight_invalid" : "execution_invalid", "the record slot " + name + " holds a value that is neither an object nor null/false; it is malformed and otherwise treated as not presented", { record: name, reason: "record_not_object" });
   const layers = { identity: null, delegation: null, execution: null, preflight: null, evidence: null, linkage: null };
 
   // ---- 0. task identity across every presented record ----
@@ -829,7 +844,7 @@ export function verifyProvenance(input) {
   if (mismatched.length) refuse("task_id_mismatch", "every record must carry the task_id under verification", { records: mismatched });
 
   // ---- 1. delegation layer (observation) ----
-  if (observations.length === 0) {
+  if (rawObservations.length === 0) {
     layers.delegation = { present: false };
     note("no_delegation_observations", "no third-party observation of the delegation chain was presented; the execution layer is verified on its own");
   } else {
@@ -913,7 +928,7 @@ export function verifyProvenance(input) {
   }
 
   // ---- 4. linkage (digest-bound carriage from observation to the reconciled receipt) ----
-  if (observations.length && reconciledReceipt) {
+  if (rawObservations.length && reconciledReceipt) {
     const rid = receiptId(reconciledReceipt);
     let links = 0; const bad = [];
     observations.forEach((o, i) => {

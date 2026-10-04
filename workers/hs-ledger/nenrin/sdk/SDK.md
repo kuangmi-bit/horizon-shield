@@ -72,6 +72,19 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.4.4 (2026-10-04): malformed records are refused, not crashed on or guessed at
+
+The independent implementer's edge corpus (interop-v0.2/edge, horizon-shield#30) asked two questions the text had
+not settled. Running the reference on his 32 fixtures: 26 agreed with his verifier and his expectations, and the 6
+that differed were exactly his two open questions. On two of them the reference threw (a non-object element of
+observations); on four it read a non-object value in a record slot as a record and produced a cascade of
+accidental refusals. Settled rule (VERIFIER.md section 5, "Malformed records"): such a value adds one refusal in
+its own step with reason record_not_object (delegation_observation_invalid, execution_invalid or preflight_invalid)
+and is otherwise not presented. Fail-closed on purpose, so malformed input never yields accepted; his proposal
+treated the record slots as not presented, which would accept receipt: 5 beside a valid receipt. verifier_version
+0.1.6 in both the JavaScript and the Python package; no verdict in interop-v0, interop-v0.1 or the frozen parity
+corpus changed. interop-v0.2/edge/run_edge.mjs runs the reference over that corpus.
+
 ## 0.4.3 (2026-10-04): the two edges the attack rounds left as "remaining"
 
 Same verifiers as 0.4.2 (verifier_version 0.1.5, tsugi_verify.mjs 0.3.1), two edges closed. A witness pool is

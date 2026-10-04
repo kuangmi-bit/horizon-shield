@@ -96,5 +96,19 @@ chk("the real key plus the order-2 point is refused (mixed order)", ed25519KeyOk
 chk("provenance: a did:key of the mixed-order point does not resolve", didKeyResolver(didOf(mixed)) === null);
 { const r = await tsugiVerifyRecord(Object.assign({}, signedRec, { public_key_ed25519_b64: mixed.toString("base64") }));
   chk("TSUGI: a record under the mixed-order key is refused (bad_signature)", r.ok === false && r.refusals.some((x) => x.code === "bad_signature"), JSON.stringify(r.refusals || r)); }
-console.log(fail ? "\n" + fail + " FAILED" : "\nALL PASS (strict timestamp and signature-encoding rules, VERIFIER.md section 5, the TSUGI verifier's base64 rule, no small-order or mixed-order keys)");
+// ---- 6. (0.4.4) malformed records: refused in their own step with reason record_not_object, never a crash, never accepted ----
+const run = (b) => { try { return verifyProvenance(Object.assign({}, b, { resolve: didKeyResolver })); } catch (e) { return { threw: String(e.message) }; } };
+const malformed = [
+  ["observations: [1]", Object.assign({}, pass, { observations: [1] }), "delegation_observation_invalid"],
+  ["observations: [1, valid]", Object.assign({}, pass, { observations: [1].concat(pass.observations || []) }), "delegation_observation_invalid"],
+  ["receipt: 5 beside receipts: [valid]", Object.assign({}, pass, { receipt: 5, receipts: [pass.receipt] }), "execution_invalid"],
+  ["grant: \"g\"", Object.assign({}, pass, { grant: "g" }), "execution_invalid"],
+  ["receipts: [5]", Object.assign({}, pass, { receipts: [5] }), "execution_invalid"],
+  ["intent: 5", Object.assign({}, pass, { intent: 5 }), "preflight_invalid"],
+];
+for (const [name, b, code] of malformed) {
+  const p = run(b);
+  chk("malformed " + name + " is refused with " + code + "/record_not_object and no task_id_mismatch", !p.threw && p.verdict === "refused" && p.refusals.some((r) => r.code === code && r.reason === "record_not_object") && !p.refusals.some((r) => r.code === "task_id_mismatch"), JSON.stringify(p.threw || p.refusals.map((r) => r.code + "/" + r.reason)));
+}
+console.log(fail ? "\n" + fail + " FAILED" : "\nALL PASS (strict timestamp and signature-encoding rules, VERIFIER.md section 5, the TSUGI verifier's base64 rule, no small-order or mixed-order keys, malformed records refused)");
 process.exit(fail ? 1 : 0);

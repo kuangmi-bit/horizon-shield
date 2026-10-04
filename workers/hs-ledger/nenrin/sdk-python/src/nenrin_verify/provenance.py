@@ -25,7 +25,7 @@ from ._js import (UNDEF, JSTypeError, assign, OBJECT_PROTOTYPE_KEYS, CanonicalEr
                   date_parse, is_num, is_obj, node_b64decode, nullish, or_, prop, seq, sort_numeric, stringify,
                   truthy, uniq)
 
-VERIFIER_VERSION = "0.1.5"
+VERIFIER_VERSION = "0.1.6"
 CONSUME_VERSION = "0.1.1"
 CANDIDATE_EVIDENCE_VERSION = "0.1.0"
 LINK_PREFIX = "nenrin-exec://"
@@ -688,12 +688,30 @@ def _hop_seq(o):
 
 def verify_provenance(inp):
     task_id = and_prop(inp, "task_id")
-    observations = prop(inp, "observations") if isinstance(prop(inp, "observations"), list) else []
-    grant = or_(prop(inp, "grant"), None)
-    primary_receipt = or_(prop(inp, "receipt"), None)
+    # 0.1.6: a record slot or list element that is present but not an object (and not null/false) is malformed:
+    # refused in its own step with reason record_not_object, otherwise not presented (provenance_verify.mjs).
+    raw_observations = prop(inp, "observations") if isinstance(prop(inp, "observations"), list) else []
+    malformed_observations = [i for i, o in enumerate(raw_observations) if not is_obj(o)]
+    observations = [o for o in raw_observations if is_obj(o)]
+    malformed_records = []
+
+    def slot(name):
+        v = prop(inp, name)
+        if v is UNDEF or v is None or v is False:
+            return None
+        if is_obj(v):
+            return v
+        malformed_records.append(name)
+        return None
+    grant = slot("grant")
+    primary_receipt = slot("receipt")
     receipts = []
     seen = set()
     extra = prop(inp, "receipts") if isinstance(prop(inp, "receipts"), list) else []
+    for i, r in enumerate(extra):
+        if not is_obj(r):
+            malformed_records.append("receipts[" + str(i) + "]")
+    extra = [r for r in extra if is_obj(r)]
     for r in ([primary_receipt] if truthy(primary_receipt) else []) + list(extra):
         try:
             key = canonical(r)
@@ -705,7 +723,7 @@ def verify_provenance(inp):
     resolve = prop(inp, "resolve") if callable(prop(inp, "resolve")) else (lambda _id: None)
     lookup = prop(inp, "lookup") if callable(prop(inp, "lookup")) else None
     require_sigs = not seq(prop(inp, "require_signatures"), False)
-    intent = or_(prop(inp, "intent"), None)
+    intent = slot("intent")
 
     refusals, findings = [], []
 
@@ -718,6 +736,11 @@ def verify_provenance(inp):
         d = {"code": code, "why": why}
         d.update(extra or {})
         findings.append(d)
+
+    for i in malformed_observations:
+        refuse("delegation_observation_invalid", "an element of observations is not an object; it is not an observation and contributes nothing to steps 0, R3, R4 or linkage", {"index": i, "reason": "record_not_object"})
+    for name in malformed_records:
+        refuse("preflight_invalid" if name == "intent" else "execution_invalid", "the record slot " + name + " holds a value that is neither an object nor null/false; it is malformed and otherwise treated as not presented", {"record": name, "reason": "record_not_object"})
 
     layers = {"identity": None, "delegation": None, "execution": None, "preflight": None, "evidence": None, "linkage": None}
 
@@ -739,7 +762,7 @@ def verify_provenance(inp):
         refuse("task_id_mismatch", "every record must carry the task_id under verification", {"records": mismatched})
 
     # ---- 1. delegation layer (observation) ----
-    if len(observations) == 0:
+    if len(raw_observations) == 0:
         layers["delegation"] = {"present": False}
         note("no_delegation_observations", "no third-party observation of the delegation chain was presented; the execution layer is verified on its own")
     else:
@@ -856,7 +879,7 @@ def verify_provenance(inp):
         layers["evidence"] = {"bound": False, "checked_externally": False, "result": "no_receipt", "external": None}
 
     # ---- 4. linkage ----
-    if len(observations) and truthy(reconciled):
+    if len(raw_observations) and truthy(reconciled):
         rid = receipt_id(reconciled)
         links, bad = 0, []
         for i, o in enumerate(observations):

@@ -178,6 +178,17 @@ weakness it is said so, with the fix.
   intent). observations and receipts that are not arrays are treated as empty. grant.provider_id, not_before and
   not_after: null and absent mean the same (no provider named, no bound). prev_evidence_id at seq 0 must be exactly
   null; absent fails root_prev_not_null.
+- **Malformed records (settled 2026-10-04, interop-v0.2/edge).** A record slot (grant, receipt, intent) whose value
+  is present but neither an object nor null/false, and an element of observations or receipts that is not an
+  object, is malformed. It adds one refusal in its own step, with reason record_not_object: an observations element
+  adds delegation_observation_invalid; a grant, receipt or receipts element adds execution_invalid; an intent adds
+  preflight_invalid. In every other respect it is not presented: it is not consulted by step 0, R3, R4 or linkage,
+  it does not enter the receipt set, and the rest of the procedure runs as if the slot were null (so a grant with
+  receipts [5] is also execution_incomplete_pair). A list that holds only malformed elements still counts as
+  presented for the purposes of step 1's no_delegation_observations finding and step 5's precondition. The rule is
+  fail-closed on purpose: malformed input never yields accepted, and a producer that emits receipt: 5 is told so.
+  The reference applies this from nenrin-verify 0.4.4 (verifier_version 0.1.6); before, it threw on a non-object
+  observation and read a non-object record as a record.
 - **Missing fields inside a record.** Any field missing from a record stays missing in its preimage (it is not
   turned into null). If grant.action or the receipt's executed_action (or the intent's proposed_action) is missing,
   null, false, 0 or "", E1 (or the preflight action check) fails with action_diverged. An edge whose task_id or hop is
