@@ -1,0 +1,94 @@
+{
+  "task_id": "task_interop01_preflight_signature_invalid",
+  "observations": [
+    {
+      "task_id": "task_interop01_preflight_signature_invalid",
+      "hop": {
+        "seq": 0,
+        "from": "did:key:z6MkvvTJ8A26cP94TebUYfSUNPmVDsB2MvatjqLFMERkRMR4",
+        "to": "did:key:z6Mkpd4tstMspwfduBWk2QDvZEbu8rH7zNkBbz3nYfHfGmoS"
+      },
+      "prev_evidence_id": null,
+      "conduct": {
+        "verdict": "pass",
+        "detail_ref": "nenrin-exec://2217fe6fdb9f1106bbe087307ddd5605a4cefabd07e21bc5d19824e709e02b4a"
+      },
+      "witness_id": "did:key:z6MktVEth6T4KxVDPcPKgQBvCpsPLCwN5HY11EfrTpimY7G1",
+      "observed_at": "2026-10-04T00:30:00Z",
+      "evidence_id": "3ccc032cabc027549323098d4bc0e3321b3ec37b756aac456162c0ea06d4beb6",
+      "witness_sig": "eIUS0Cn6rv2qK9EtGyQtD76kyzcxAD5Vy8qIkzo8zY0JdToxUSJAl4NBVLpvoTLCCxLUr8otzkU6EXJwYMKpDQ==",
+      "edge_sig": "MkI52RQXt74AJgaIyC6tOPVSUWFo50fuupHy2yDBJu1Z01jqy9G8fu3EjVoIpTmS87aoztiDtx46ow8C4SLADA=="
+    },
+    {
+      "task_id": "task_interop01_preflight_signature_invalid",
+      "hop": {
+        "seq": 1,
+        "from": "did:key:z6Mkpd4tstMspwfduBWk2QDvZEbu8rH7zNkBbz3nYfHfGmoS",
+        "to": "did:key:z6MkjKiQ85CUX5AzHbVSVLoEnZqvaVByroVwtiCJa7pJJ7mD"
+      },
+      "prev_evidence_id": "3ccc032cabc027549323098d4bc0e3321b3ec37b756aac456162c0ea06d4beb6",
+      "conduct": {
+        "verdict": "pass",
+        "detail_ref": null
+      },
+      "witness_id": "did:key:z6MkkvTu6WfwC5gPZuN4JdDUNNkLrKGkapNgEzzuznbno5X4",
+      "observed_at": "2026-10-04T00:30:00Z",
+      "evidence_id": "21476e8ee8105f499d588d7425edb308735b385af5567d475a3bac56757cb1e0",
+      "witness_sig": "l6CYHEwKUViN9QtrmefJkUBkcMFlurO1GbVsMZzCby+f2JgCls7swl1OqevhTEGCgMqDa/VBV0SjKscLC0XKCA==",
+      "edge_sig": "ta3nv/Vm/xWaOVTyzQH5gAYafpqk1HjPxHQGsUtwbzyw75KlVhvggpum8xOkcHO6l4WfwxKdKuW2qAQr3BJaBA=="
+    }
+  ],
+  "grant": {
+    "schema": "task-execution-bind-v0/grant",
+    "task_id": "task_interop01_preflight_signature_invalid",
+    "action": {
+      "tool": "a2a.invoke",
+      "target": "/task",
+      "args_sha256": "sha_args_ok"
+    },
+    "caller_id": "did:key:z6MkvvTJ8A26cP94TebUYfSUNPmVDsB2MvatjqLFMERkRMR4",
+    "provider_id": "did:key:z6Mkpd4tstMspwfduBWk2QDvZEbu8rH7zNkBbz3nYfHfGmoS",
+    "nonce": "n1",
+    "not_before": "2026-10-04T00:00:00Z",
+    "not_after": "2026-10-04T01:00:00Z",
+    "grant_ref": "e9f419450800484dccc5a4cbc35639bc6e63a78e973aa0a75671262572babf07",
+    "caller_sig": "ontDn3PgPKSrhFD5rU0js/OcxVtorQhliEhJB/LdQgKmEjEy49+UeZ7aHepfI1ozXmwppLC6pVLdInxw4LaICQ=="
+  },
+  "receipt": {
+    "schema": "task-execution-bind-v0/receipt",
+    "task_id": "task_interop01_preflight_signature_invalid",
+    "grant_ref": "e9f419450800484dccc5a4cbc35639bc6e63a78e973aa0a75671262572babf07",
+    "executed_action": {
+      "tool": "a2a.invoke",
+      "target": "/task",
+      "args_sha256": "sha_args_ok"
+    },
+    "outcome": {
+      "status": "completed",
+      "result_sha256": "sha_res_1",
+      "evidence": {
+        "kind": "ledger_record",
+        "ref": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "system": "ledger.horizonshield.dev"
+      }
+    },
+    "provider_id": "did:key:z6Mkpd4tstMspwfduBWk2QDvZEbu8rH7zNkBbz3nYfHfGmoS",
+    "executed_at": "2026-10-04T00:30:00Z",
+    "receipt_id": "2217fe6fdb9f1106bbe087307ddd5605a4cefabd07e21bc5d19824e709e02b4a",
+    "provider_sig": "k7xJ7IPPByrdVzLVB/aUIutcl2gYeIzgGJFCvoqoQHjh1Ydyt2Xg5cq8mO9xHp2210oovO2xkQQslY6cGCkNAQ=="
+  },
+  "intent": {
+    "schema": "task-execution-bind-v0/intent",
+    "task_id": "task_interop01_preflight_signature_invalid",
+    "grant_ref": "e9f419450800484dccc5a4cbc35639bc6e63a78e973aa0a75671262572babf07",
+    "proposed_action": {
+      "tool": "a2a.invoke",
+      "target": "/task",
+      "args_sha256": "sha_args_ok"
+    },
+    "provider_id": "did:key:z6Mkpd4tstMspwfduBWk2QDvZEbu8rH7zNkBbz3nYfHfGmoS",
+    "declared_at": "2026-10-04T00:30:00Z",
+    "intent_id": "556238ed49c5d1260b8e3aff0b8a16f1d7424a1fc18dc8a380cf4d3fe8781b1f",
+    "intent_sig": "d7IGogtjoWAHlgJKzUCyO+VHaBOzykn0M2HecqoHDFVAO4Ytlze4NGO8MP2x6CQPaW/oz4BoYrrzB0dLWz5tAA=="
+  }
+}

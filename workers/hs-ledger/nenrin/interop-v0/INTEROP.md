@@ -31,3 +31,7 @@ To claim interoperability from another implementation: verify the five fixtures 
 
 ## Note
 Re-running make_interop_fixtures.mjs produces NEW fixtures with fresh keys. The committed fixtures/ and expected.json are the immutable reference; run_interop.mjs is the check.
+
+## Extension vectors (interop-v0.1)
+This corpus stays frozen. ../interop-v0.1/ adds thirteen vectors in the same format, written after the first independent reimplementation (A2A Discussion #1631, 2026-10-04) reported where the specs forced a guess: the two readings of the linkage rule, the self_authorized grant, R1 witness independence, and every refusal code these five do not reach. Together the two corpora exercise all 14 refusal codes. A conforming implementation reproduces both expected.json files.
+

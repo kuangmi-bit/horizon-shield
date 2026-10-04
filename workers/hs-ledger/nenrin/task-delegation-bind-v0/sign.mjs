@@ -1,5 +1,6 @@
 // Signature layer for task-delegation-bind-v0. Ed25519 detached signatures over the same canonical bytes
-// as evidence_id. Wire form in production is a detached JWS (EdDSA); DIDs resolve to the public key
+// as evidence_id: raw 64-byte Ed25519, base64, over canonical(preimage), no JWS envelope (SPEC.md, clarified
+// 2026-10-04). DIDs resolve to the public key
 // (did:key is self-contained and needs no network). Here a resolver id -> publicKey stands in for DID resolution.
 //
 // Two signatures, two different jobs:

@@ -20,14 +20,18 @@ Deterministically bind an A2A Task id to NENRIN conduct evidence, so that trust 
   A hidden or forged hop (A to C, hiding B) breaks continuity.
 - R4 non-suppression: the aggregate over the full witness set for a {task_id, hop} is fail-closed;
   disagreeing verdicts yield "disagreement", never the favorable one. The read returns the full set.
+  Scope (clarified 2026-10-04): "fail-closed" applies to the HOP-LEVEL aggregate verdict. A hop whose aggregate is
+  "disagreement" is surfaced as the finding witness_disagreement; it is not, by itself, a refusal of the task-level
+  verdict. A verifier that refuses on disagreement alone is not conforming (interop-v0 fixture disagreement: accepted).
 
 ## Out of scope for v0 (honest line)
-- No DID/JWS party signatures yet (roadmap); v0 proves the deterministic content-addressed core only.
+- The content-addressed core above is what v0 pins; party signatures are the layer below (Signature layer).
 - No external standard exists yet for task-id to evidence binding (checked 2026-09-16), so v0 stays minimal and
   anchors only on the real A2A Task `id`; align to a community convention if one emerges.
 
 ## Signature layer (v0 + sig)
-Two Ed25519 detached signatures (wire form: detached JWS, EdDSA; DIDs resolve to the key, did:key is self-contained):
+Two Ed25519 detached signatures (DIDs resolve to the key, did:key is self-contained).
+Signing input (clarified 2026-10-04, A2A Discussion #1631): each signature is a raw 64-byte Ed25519 signature, standard base64 encoded, over the UTF-8 bytes of the canonical JSON named below, and nothing else: sig = Ed25519.sign(canonical(preimage)). There is no JWS envelope, no protected header and no alg or kid; the signature travels detached from the record. An implementation that builds a JWS signing input (b64url(header) "." b64url(payload)) will not verify these records.
 - witness_sig: the witness signs canonical(preimage). The verdict becomes attributable and non-repudiable (R2 catches tamper, this catches spoofing of witness_id).
 - edge_sig: the delegating party (hop.from) signs canonical({task_id, hop}). The edge A->B is party-attested, not just witness-claimed. This closes the self-asserted-chain hole at the party level.
 Honest line: signatures prove WHO asserted, not that the assertion is TRUE. Attribution (sigs) + independence (R1) + non-suppression (R4) together = attributable, independent, non-suppressible observations. Signing does not change evidence_id (preimage excludes sigs).

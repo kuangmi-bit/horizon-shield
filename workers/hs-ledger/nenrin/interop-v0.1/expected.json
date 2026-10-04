@@ -1,0 +1,201 @@
+{
+  "schema": "nenrin-interop-expected-v0",
+  "version": "0.1.1",
+  "extends": "interop-v0 at c235e75e362ae6bf303e75be9a302caefe726c06 (unchanged)",
+  "verifier": "nenrin-provenance-verify-v0 (sdk/nenrin_verify.mjs, npm: nenrin-verify)",
+  "note": "the canonical verdict signature each fixture must reproduce: verdict, sorted refusal codes, sorted finding codes",
+  "cases": {
+    "linkage_unpresented": {
+      "intent": "an observation's nenrin-exec:// detail_ref names a receipt_id that is not in the presented set; refused under either reading of the linkage rule",
+      "task_id": "task_interop01_linkage_unpresented",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "linkage_receipt_mismatch"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": []
+    },
+    "linkage_unreconciled": {
+      "intent": "two receipts are presented, only one is signed by the authorized provider and reconciles; the link names the other, presented one. Refused: the link must name the RECONCILED receipt, not merely a presented one",
+      "task_id": "task_interop01_linkage_unreconciled",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "linkage_receipt_mismatch"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": []
+    },
+    "self_authorized": {
+      "intent": "the grant's caller_id equals its provider_id; declared, so recorded as a finding and not refused",
+      "task_id": "task_interop01_self_authorized",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked",
+          "self_authorized"
+        ]
+      },
+      "reasons": []
+    },
+    "witness_is_party": {
+      "intent": "hop 0's witness is the hop's own from party; R1 witness independence fails, refusal",
+      "task_id": "task_interop01_witness_is_party",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "delegation_observation_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": [
+        "witness_not_independent"
+      ]
+    },
+    "task_id_mismatch": {
+      "intent": "a self-consistent grant/receipt pair that belongs to another task_id; refusal",
+      "task_id": "task_interop01_task_id_mismatch",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "task_id_mismatch"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": []
+    },
+    "task_id_missing": {
+      "intent": "the bundle's task_id is the empty string; refusal (every record then also mismatches)",
+      "task_id": "task_interop01_task_id_missing",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "task_id_mismatch",
+          "task_id_missing"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": []
+    },
+    "incomplete_pair": {
+      "intent": "a grant is presented with no receipt; refusal",
+      "task_id": "task_interop01_incomplete_pair",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_incomplete_pair"
+        ],
+        "findings": []
+      },
+      "reasons": []
+    },
+    "provider_sig_invalid": {
+      "intent": "the receipt's provider_sig is tampered; refusal, and with no authentic receipt left the grant is also unreconciled",
+      "task_id": "task_interop01_provider_sig_invalid",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": [
+        "provider_sig_invalid"
+      ]
+    },
+    "non_utc_timestamp": {
+      "intent": "executed_at carries a +09:00 offset; the receipt is refused as execution_invalid with reason invalid_timestamp (invalid_timestamp is a reason, not a refusal code)",
+      "task_id": "task_interop01_non_utc_timestamp",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": [
+        "invalid_timestamp"
+      ]
+    },
+    "evidence_malformed": {
+      "intent": "the outcome's evidence pointer names an unknown kind; refusal",
+      "task_id": "task_interop01_evidence_malformed",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "evidence_invalid"
+        ],
+        "findings": []
+      },
+      "reasons": [
+        "evidence_kind_unknown"
+      ]
+    },
+    "preflight_without_grant": {
+      "intent": "a signed intent is presented without the grant it references; refusal",
+      "task_id": "task_interop01_preflight_without_grant",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "preflight_without_grant"
+        ],
+        "findings": [
+          "no_execution_records"
+        ]
+      },
+      "reasons": []
+    },
+    "preflight_invalid": {
+      "intent": "the signed intent proposes an action the grant does not authorize; refusal",
+      "task_id": "task_interop01_preflight_invalid",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "preflight_invalid"
+        ],
+        "findings": [
+          "declared_executed_divergence",
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": [
+        "action_diverged"
+      ]
+    },
+    "preflight_signature_invalid": {
+      "intent": "the intent's signature is tampered; refusal",
+      "task_id": "task_interop01_preflight_signature_invalid",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "preflight_signature_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      },
+      "reasons": [
+        "intent_sig_invalid"
+      ]
+    }
+  }
+}

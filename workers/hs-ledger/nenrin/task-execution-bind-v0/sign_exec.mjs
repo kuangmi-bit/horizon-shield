@@ -2,7 +2,8 @@
 //   caller_sig   : the caller signs canonical(grantPreimage). The authorization is ATTRIBUTABLE to the caller.
 //   provider_sig : the provider signs canonical(receiptPreimage), which INCLUDES grant_ref, so the receipt is
 //                  bound to that specific grant and attributable to the provider (non-repudiable).
-// Wire form in production is a detached JWS (EdDSA); DIDs resolve to the public key (did:key is self-contained,
+// Wire form: raw 64-byte Ed25519, base64, over the canonical preimage, no JWS envelope (SPEC.md, clarified
+// 2026-10-04). DIDs resolve to the public key (did:key is self-contained,
 // no network). Here a resolver id -> publicKey stands in for DID resolution, exactly as in sign.mjs.
 // Honest line: signatures prove WHO asserted, not that the assertion is TRUE.
 import { sign as nodeSign, verify as nodeVerify, generateKeyPairSync } from "node:crypto";

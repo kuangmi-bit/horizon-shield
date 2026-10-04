@@ -60,8 +60,8 @@ NENRIN (observation layer, task-delegation-bind-v0):
 | edge attestation | the delegating party hop.from (edge_sig) | musubi-canonical-v0({task_id, hop}) | none |
 
 Key resolution on the NENRIN side is did:key, offline. Signatures in the pinned fixtures are raw
-Ed25519 over the canonical bytes, base64; SPEC.md names detached JWS (EdDSA) as the production
-wire form. Each record's own derived id is outside that record's signature, and is recomputable from
+Ed25519 over the canonical bytes, base64, and that is the wire form (SPEC.md, clarified 2026-10-04: no JWS
+envelope). Each record's own derived id is outside that record's signature, and is recomputable from
 the signed bytes: grant_ref outside caller_sig, receipt_id outside provider_sig, intent_id outside
 intent_sig, evidence_id outside witness_sig. That does not make references to those ids unsigned. The
 receipt's grant_ref is inside the bytes provider_sig covers, so provider_sig binds the receipt to one

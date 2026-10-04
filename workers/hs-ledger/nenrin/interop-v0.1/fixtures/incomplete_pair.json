@@ -1,0 +1,57 @@
+{
+  "task_id": "task_interop01_incomplete_pair",
+  "observations": [
+    {
+      "task_id": "task_interop01_incomplete_pair",
+      "hop": {
+        "seq": 0,
+        "from": "did:key:z6MkouqLM8FJSMgyiqEKK42s1Hkpp89SYMn3L4A9TVbXxvET",
+        "to": "did:key:z6Mkeq9MTf7o9nTYLW2aGwVPqxTVp5TD7aNwcBEaJuQv8Fcv"
+      },
+      "prev_evidence_id": null,
+      "conduct": {
+        "verdict": "pass",
+        "detail_ref": null
+      },
+      "witness_id": "did:key:z6MkthnfL25bUA72gdEjt3MQYLPk5hU9RGrft19i1dZzcJw9",
+      "observed_at": "2026-10-04T00:30:00Z",
+      "evidence_id": "8f0644c348b1fc327a39aa7144f0c43628f8174b3dfe4c152f0db3928f17bf88",
+      "witness_sig": "ykQmDTpunPye5+FAcCjF19sLrrvuSMrFKKfoZWiZXHjssUYk8db5gQEz6dpq6Y8iphzVRw2JpjQ6eJI0snuYDg==",
+      "edge_sig": "5ShD5SkEnbEEYxgciGrTb4LTpKZKM3yiYXCf/LmgVDn9+5DNa+hLa+a1+9krE4U3EAl8DUg1crmPbMBXbECeCQ=="
+    },
+    {
+      "task_id": "task_interop01_incomplete_pair",
+      "hop": {
+        "seq": 1,
+        "from": "did:key:z6Mkeq9MTf7o9nTYLW2aGwVPqxTVp5TD7aNwcBEaJuQv8Fcv",
+        "to": "did:key:z6MksSaReTsKWbqk4nVSnQ3GE3YZmd61PVfGutMoQ68RMjtz"
+      },
+      "prev_evidence_id": "8f0644c348b1fc327a39aa7144f0c43628f8174b3dfe4c152f0db3928f17bf88",
+      "conduct": {
+        "verdict": "pass",
+        "detail_ref": null
+      },
+      "witness_id": "did:key:z6MkmvW6vHEuzzM7iVbXiozKHpQxKmFYYc7LCdYRdEx9f326",
+      "observed_at": "2026-10-04T00:30:00Z",
+      "evidence_id": "b0e3c93b98396caaea523d4dbe7e007878c0a8c87620c7f34db8b94acc29b106",
+      "witness_sig": "07MErXtPBLqx0ntbxOBncQ1QwcLEg250Mg6wo+8+b92dHLzFCstqwkGSTQO3LmFHGVsliKwramUJbtN0jGfMBA==",
+      "edge_sig": "EpvMHwZLG9TfvxZYF70eteV/ZSs2iXJmP8QT2Orlau5fPBASyqP5u0rNyy7GhlknK4SgD8OXjmbLShmKibrTBg=="
+    }
+  ],
+  "grant": {
+    "schema": "task-execution-bind-v0/grant",
+    "task_id": "task_interop01_incomplete_pair",
+    "action": {
+      "tool": "a2a.invoke",
+      "target": "/task",
+      "args_sha256": "sha_args_ok"
+    },
+    "caller_id": "did:key:z6MkouqLM8FJSMgyiqEKK42s1Hkpp89SYMn3L4A9TVbXxvET",
+    "provider_id": "did:key:z6Mkeq9MTf7o9nTYLW2aGwVPqxTVp5TD7aNwcBEaJuQv8Fcv",
+    "nonce": "n1",
+    "not_before": "2026-10-04T00:00:00Z",
+    "not_after": "2026-10-04T01:00:00Z",
+    "grant_ref": "fa93e7d1450a22e59f3ba96b1a571c90bef64f0467ab497592b41625a3a490da",
+    "caller_sig": "dAlG+egdnxzOUVtpRsebFcQKTgT2VqbfA2uwl4gEQfYHUbTqOdTXHiDtV0772tHJaqBdPqwnls98kA6cAeT0BA=="
+  }
+}

@@ -21,6 +21,12 @@ injected, exactly like the layers below it.
 - digest-bound linkage: an observation whose conduct.detail_ref is nenrin-exec://<receipt_id> must name the
   RECONCILED receipt, and the digest must recompute. Linkage, not authority: the observation's verdict never
   inherits the receipt's outcome, and the receipt's outcome never inherits the verdict.
+  Clarified 2026-10-04: naming a receipt that was merely PRESENTED is not enough; a link to a presented receipt
+  that did not reconcile (for example one not signed by the authorized provider) is linkage_receipt_mismatch.
+  Linkage is evaluated only when exactly one receipt reconciles. Under equivocation, or when nothing reconciles,
+  there is no reconciled receipt, linkage is not evaluated, and neither linkage_receipt_mismatch nor no_digest_link
+  is emitted; the execution refusal is the operative one. interop-v0.1 fixtures linkage_unpresented and
+  linkage_unreconciled pin both cases.
 - R3 over a SET: chainContinuousSet generalizes the pinned chainContinuous to several witnesses per hop
   (every non-root prev_evidence_id must resolve to some presented prior-hop observation). With one witness per
   hop it is the pinned check; provenance_adversarial asserts the two agree on valid, forged and hidden-hop cases.
@@ -40,9 +46,32 @@ execution_incomplete_pair, execution_invalid, execution_signature_invalid, execu
 execution_unreconciled, evidence_invalid, linkage_receipt_mismatch, preflight_without_grant, preflight_invalid,
 preflight_signature_invalid.
 
+Refusals carry an optional reason (for example execution_invalid with reason invalid_timestamp, receipt_unbound or
+action_diverged; delegation_observation_invalid with reason witness_not_independent). Reasons explain; they are not
+part of the verdict signature and are not refusal codes.
+
 ## Finding codes (declared, non-fatal)
 no_delegation_observations, no_execution_records, witness_disagreement, self_authorized, open_grant,
-evidence_bound_unchecked, no_evidence_bound, no_digest_link.
+evidence_bound_unchecked, no_evidence_bound, no_digest_link, declared_executed_divergence.
+
+What each finding means (defined 2026-10-04; until then four of these were listed but not defined):
+- no_delegation_observations: no observation was presented; the execution layer is verified on its own.
+- no_execution_records: neither a grant nor a receipt was presented; the delegation layer is verified on its own.
+- witness_disagreement: the witnesses of one hop returned different verdicts; that hop's aggregate is
+  "disagreement" (R4). Surfaced, not refused.
+- self_authorized: the grant's caller_id equals its provider_id; the caller authorized its own executor. Declared,
+  so recorded and not refused. This is the execution-layer self path; the delegation-layer one (a witness that is
+  a party to its own hop) is an R1 refusal, delegation_observation_invalid with reason witness_not_independent.
+- open_grant: the grant names no provider_id, so any executor is accepted and nothing reconciles attributably.
+- evidence_bound_unchecked: the reconciled receipt carries outcome.evidence, the pointer is well formed, and no
+  external lookup was injected. Read it as "bound, not confirmed": it is the normal state of an offline run and
+  appears on clean bundles, including interop-v0 pass. It is not an anomaly.
+- no_evidence_bound: the reconciled receipt carries no evidence pointer; the outcome rests on the provider's
+  signed claim alone.
+- no_digest_link: a receipt reconciled and observations were presented, but no observation's conduct.detail_ref
+  names it as nenrin-exec://<receipt_id>; the layers verify independently but are not linked.
+- declared_executed_divergence: an intent was presented and its proposed_action differs from the reconciled
+  receipt's executed_action; the preflight or execution refusal raised alongside it is the operative one.
 
 ## The wall (written into every report)
 No signature can cross it, and no report from this verifier claims to:

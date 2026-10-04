@@ -43,7 +43,9 @@ carriage in compose.test.mjs verifiable across the seam.
   from the authorized executor (provider_not_authorized otherwise).
 - Window: executed_at must fall in [not_before, not_after]. Timestamps must be strict RFC3339 UTC (a
   trailing Z, no offset, no date-only form), so a non-UTC offset cannot slip an execution past the window
-  via Date.parse laxity; a malformed timestamp yields invalid_timestamp.
+  via Date.parse laxity; a malformed timestamp yields invalid_timestamp. invalid_timestamp is a REASON, not a
+  refusal code: in a provenance report it appears as refusal execution_invalid with reason invalid_timestamp
+  (or preflight_invalid for an intent's declared_at). The refusal-code vocabulary is the list in PROVENANCE.md.
 - Recompute: a tampered grant or receipt fails its own content hash.
 
 ## Out of scope for v0 (honest line)
@@ -59,7 +61,8 @@ carriage in compose.test.mjs verifiable across the seam.
 - v0 is a draft, not outsider-validated. It aligns to a community convention if one emerges.
 
 ## Signature layer (sign_exec.mjs)
-Two Ed25519 detached signatures (wire form: detached JWS, EdDSA; did:key resolves the key, no network):
+Two Ed25519 detached signatures (did:key resolves the key, no network).
+Signing input (clarified 2026-10-04, A2A Discussion #1631): each signature is a raw 64-byte Ed25519 signature, standard base64 encoded, over the UTF-8 bytes of the canonical JSON named below, and nothing else: sig = Ed25519.sign(canonical(preimage)). There is no JWS envelope, no protected header and no alg or kid; the signature travels detached from the record. An implementation that builds a JWS signing input (b64url(header) "." b64url(payload)) will not verify these records.
 - caller_sig: the caller signs canonical(grantPreimage). The authorization is attributable to the caller.
 - provider_sig: the provider signs canonical(receiptPreimage), which includes grant_ref, so the receipt is
   bound to that grant and attributable to the provider.
