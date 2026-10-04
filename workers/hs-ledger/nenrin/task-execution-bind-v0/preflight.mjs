@@ -18,7 +18,7 @@
 // "preauthorized" means the provider's DECLARED action matches the caller's signed grant. It does not promise
 // the provider will execute that action; the receipt, checked afterward, is what catches a provider that
 // declared one thing and did another.
-import { canonical, sha256hex, aggregateVerdict } from "../task-delegation-bind-v0/bind.mjs";
+import { canonical, sha256hex, aggregateVerdict, sigBytes } from "../task-delegation-bind-v0/bind.mjs";
 import { grantRef, grantRecomputeOk, actionsEqual, isRfc3339Utc, providerAuthorized, grantIsSelfAuthorized, reconcileOutcome, checkActionBinding, actionBindingOk } from "./bind_exec.mjs";
 import { sign as nodeSign, verify as nodeVerify, generateKeyPairSync } from "node:crypto";
 
@@ -94,7 +94,7 @@ export function signIntent(i, providerPriv) {
 }
 export function verifyIntentSig(i, providerPub) {
   if (typeof i.intent_sig !== "string" || !providerPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(intentPreimage(i)), "utf8"), providerPub, Buffer.from(i.intent_sig, "base64")); }
+  try { const sb = sigBytes(i.intent_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(intentPreimage(i)), "utf8"), providerPub, sb); }
   catch (e) { return false; }
 }
 

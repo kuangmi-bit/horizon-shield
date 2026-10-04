@@ -9,6 +9,17 @@ export { parseStrict, checkCanonicalInput };
 
 export const sha256hex = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 
+// sigBytes(s): the 64 signature bytes of a signature field, or null. 0.4.1 (provenance-v0/VERIFIER.md section 5):
+// only canonical standard base64 is accepted (RFC 4648 section 4, padding present, no whitespace, no url-safe
+// letters, unused trailing bits zero), so one signature has exactly one encoding. Buffer.from alone was lenient.
+const B64_STD = /^[A-Za-z0-9+/]*={0,2}$/;
+export function sigBytes(s) {
+  if (typeof s !== "string" || s.length === 0 || s.length % 4 !== 0 || !B64_STD.test(s)) return null;
+  const b = Buffer.from(s, "base64");
+  if (b.length !== 64 || b.toString("base64") !== s) return null;
+  return b;
+}
+
 // Canonical form, pinned (SPEC.md): keys sorted by code point (keys are printable ASCII, so every runtime sorts
 // them the same way), no whitespace, strings escaped only for '"', '\\' and U+0000..U+001F, non-ASCII raw,
 // integers only within plus or minus 2^53 - 1. canonical() refuses input outside the rule instead of producing

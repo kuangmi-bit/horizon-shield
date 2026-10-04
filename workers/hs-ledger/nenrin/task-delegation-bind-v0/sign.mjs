@@ -10,7 +10,7 @@
 // Honest line: signatures prove WHO asserted, not that the assertion is TRUE. Combined with R1 (independent
 // witness) and R4 (disagreement surfaced) you get attributable + independent + non-suppressible observations.
 import { sign as nodeSign, verify as nodeVerify, generateKeyPairSync } from "node:crypto";
-import { canonical, preimage } from "./bind.mjs";
+import { canonical, preimage, sigBytes } from "./bind.mjs";
 
 export function newAgentKey() { return generateKeyPairSync("ed25519"); } // { publicKey, privateKey } KeyObjects
 
@@ -26,12 +26,12 @@ export function signEdge(obs, fromPriv) {
 }
 export function verifyWitnessSig(obs, witnessPub) {
   if (typeof obs.witness_sig !== "string" || !witnessPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(preimage(obs)), "utf8"), witnessPub, Buffer.from(obs.witness_sig, "base64")); }
+  try { const sb = sigBytes(obs.witness_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(preimage(obs)), "utf8"), witnessPub, sb); }
   catch (e) { return false; }
 }
 export function verifyEdgeSig(obs, fromPub) {
   if (typeof obs.edge_sig !== "string" || !fromPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(edgeOf(obs)), "utf8"), fromPub, Buffer.from(obs.edge_sig, "base64")); }
+  try { const sb = sigBytes(obs.edge_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(edgeOf(obs)), "utf8"), fromPub, sb); }
   catch (e) { return false; }
 }
 // signed verify: witness signature (attribution) + edge signature (party-attested edge). resolve: id -> publicKey.

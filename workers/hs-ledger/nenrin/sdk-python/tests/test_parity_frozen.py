@@ -29,7 +29,8 @@ def _bundle(name):
 def test_corpus_is_whole():
     assert len(BUNDLES) == len(JS) == 31
     verdicts = [JS[n]["verdict"] for n in NAMES]
-    assert verdicts.count("accepted") == 13 and verdicts.count("refused") == 18
+    # 0.4.1: date_rollover_feb29 and hour_24_and_long_fraction pinned the old lenient date reading; now refused
+    assert verdicts.count("accepted") == 11 and verdicts.count("refused") == 20
 
 
 @pytest.mark.parametrize("name", NAMES)

@@ -126,6 +126,13 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.4.1 (2026-10-04)
+
+Two rules made strict in step with the JavaScript verifier (verifier_version 0.1.4, see the npm SDK.md): a timestamp
+must be a real calendar instant (no 2026-02-30, no hour 24, no year 0000), and a signature field must be canonical
+standard base64. The frozen parity corpus was regenerated from the JavaScript file; two bundles that pinned the old
+lenient date reading are now refused with invalid_timestamp.
+
 ## Where the claim stops
 
 - **Stack depth.** A document nested deep enough to exhaust a runtime's stack has no report in that runtime, and

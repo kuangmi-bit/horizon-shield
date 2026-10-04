@@ -24,7 +24,7 @@ from ._js import (UNDEF, JSTypeError, assign, OBJECT_PROTOTYPE_KEYS, CanonicalEr
                   date_parse, is_num, is_obj, node_b64decode, nullish, or_, prop, seq, sort_numeric, stringify,
                   truthy, uniq)
 
-VERIFIER_VERSION = "0.1.3"
+VERIFIER_VERSION = "0.1.4"
 CONSUME_VERSION = "0.1.1"
 CANDIDATE_EVIDENCE_VERSION = "0.1.0"
 LINK_PREFIX = "nenrin-exec://"
@@ -85,11 +85,31 @@ def aggregate_verdict(observations_for_hop):
 
 
 # ---- signatures (sign.mjs, sign_exec.mjs, preflight.mjs) ----
-def _ed25519_verify(pub, message, sig_b64):
-    """nodeVerify(null, Buffer.from(message, "utf8"), pub, Buffer.from(sig, "base64")) inside try/catch."""
+_B64_STD = _re.compile(r"[A-Za-z0-9+/]*={0,2}")
+
+
+def sig_bytes(s):
+    """bind.mjs sigBytes (0.4.1): the 64 bytes of a signature field written in canonical standard base64, else None."""
+    import base64 as _b64
+    if not isinstance(s, str) or len(s) == 0 or len(s) % 4 != 0 or not _B64_STD.fullmatch(s):
+        return None
     try:
+        b = _b64.b64decode(s, validate=True)
+    except Exception:
+        return None
+    if len(b) != 64 or _b64.b64encode(b).decode("ascii") != s:
+        return None
+    return b
+
+
+def _ed25519_verify(pub, message, sig_b64):
+    """sigBytes(sig) then nodeVerify(null, Buffer.from(message, "utf8"), pub, bytes) inside try/catch."""
+    try:
+        sb = sig_bytes(sig_b64)
+        if sb is None:
+            return False
         key = pub if isinstance(pub, Ed25519PublicKey) else Ed25519PublicKey.from_public_bytes(pub)
-        key.verify(node_b64decode(sig_b64), message.encode("utf-8"))
+        key.verify(sb, message.encode("utf-8"))
         return True
     except InvalidSignature:
         return False
@@ -174,7 +194,23 @@ def receipt_binds_grant(g, r):
     return isinstance(gr, str) and gr == grant_ref(g)
 
 
+_RFC3339_CAL = _re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?Z")
+
+
+def _days_in_month(y, m):
+    return [31, 29 if (y % 4 == 0 and y % 100 != 0) or y % 400 == 0 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]
+
+
 def is_rfc3339_utc(s):
+    """bind_exec.mjs isRfc3339Utc (0.4.1): the strict pattern, a real calendar day, hour 0..23, then Date.parse."""
+    if not isinstance(s, str):
+        return False
+    m = _RFC3339_CAL.fullmatch(s)
+    if not m:
+        return False
+    y, mo, d, h, mi, se = (int(m.group(i)) for i in range(1, 7))
+    if y < 1 or not (1 <= mo <= 12) or d < 1 or d > _days_in_month(y, mo) or h > 23 or mi > 59 or se > 59:
+        return False
     return date_parse(s) is not None
 
 

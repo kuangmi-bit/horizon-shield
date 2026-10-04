@@ -7,7 +7,7 @@
 // no network). Here a resolver id -> publicKey stands in for DID resolution, exactly as in sign.mjs.
 // Honest line: signatures prove WHO asserted, not that the assertion is TRUE.
 import { sign as nodeSign, verify as nodeVerify, generateKeyPairSync } from "node:crypto";
-import { canonical } from "../task-delegation-bind-v0/bind.mjs";
+import { canonical, sigBytes } from "../task-delegation-bind-v0/bind.mjs";
 import { grantPreimage, receiptPreimage, receiptId } from "./bind_exec.mjs";
 
 export function newAgentKey() { return generateKeyPairSync("ed25519"); } // { publicKey, privateKey } KeyObjects
@@ -22,12 +22,12 @@ export function signReceipt(r, providerPriv) {
 }
 export function verifyGrantSig(g, callerPub) {
   if (typeof g.caller_sig !== "string" || !callerPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(grantPreimage(g)), "utf8"), callerPub, Buffer.from(g.caller_sig, "base64")); }
+  try { const sb = sigBytes(g.caller_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(grantPreimage(g)), "utf8"), callerPub, sb); }
   catch (e) { return false; }
 }
 export function verifyReceiptSig(r, providerPub) {
   if (typeof r.provider_sig !== "string" || !providerPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(receiptPreimage(r)), "utf8"), providerPub, Buffer.from(r.provider_sig, "base64")); }
+  try { const sb = sigBytes(r.provider_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(receiptPreimage(r)), "utf8"), providerPub, sb); }
   catch (e) { return false; }
 }
 // signed pair verify: caller authorized (caller_sig) + provider receipted (provider_sig). resolve: id -> publicKey.

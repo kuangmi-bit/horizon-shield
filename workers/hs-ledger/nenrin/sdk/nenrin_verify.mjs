@@ -155,6 +155,17 @@ export function parseStrict(text) {
 
 export const sha256hex = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 
+// sigBytes(s): the 64 signature bytes of a signature field, or null. 0.4.1 (provenance-v0/VERIFIER.md section 5):
+// only canonical standard base64 is accepted (RFC 4648 section 4, padding present, no whitespace, no url-safe
+// letters, unused trailing bits zero), so one signature has exactly one encoding. Buffer.from alone was lenient.
+const B64_STD = /^[A-Za-z0-9+/]*={0,2}$/;
+export function sigBytes(s) {
+  if (typeof s !== "string" || s.length === 0 || s.length % 4 !== 0 || !B64_STD.test(s)) return null;
+  const b = Buffer.from(s, "base64");
+  if (b.length !== 64 || b.toString("base64") !== s) return null;
+  return b;
+}
+
 // Canonical form, pinned (SPEC.md): keys sorted by code point (keys are printable ASCII, so every runtime sorts
 // them the same way), no whitespace, strings escaped only for '"', '\\' and U+0000..U+001F, non-ASCII raw,
 // integers only within plus or minus 2^53 - 1. canonical() refuses input outside the rule instead of producing
@@ -228,7 +239,8 @@ export function aggregateVerdict(observationsForHop) {
 
 // ============================== task-delegation-bind-v0/sign.mjs ==============================
 // Signature layer for task-delegation-bind-v0. Ed25519 detached signatures over the same canonical bytes
-// as evidence_id. Wire form in production is a detached JWS (EdDSA); DIDs resolve to the public key
+// as evidence_id: raw 64-byte Ed25519, base64, over canonical(preimage), no JWS envelope (SPEC.md, clarified
+// 2026-10-04). DIDs resolve to the public key
 // (did:key is self-contained and needs no network). Here a resolver id -> publicKey stands in for DID resolution.
 //
 // Two signatures, two different jobs:
@@ -252,12 +264,12 @@ export function signEdge(obs, fromPriv) {
 }
 export function verifyWitnessSig(obs, witnessPub) {
   if (typeof obs.witness_sig !== "string" || !witnessPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(preimage(obs)), "utf8"), witnessPub, Buffer.from(obs.witness_sig, "base64")); }
+  try { const sb = sigBytes(obs.witness_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(preimage(obs)), "utf8"), witnessPub, sb); }
   catch (e) { return false; }
 }
 export function verifyEdgeSig(obs, fromPub) {
   if (typeof obs.edge_sig !== "string" || !fromPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(edgeOf(obs)), "utf8"), fromPub, Buffer.from(obs.edge_sig, "base64")); }
+  try { const sb = sigBytes(obs.edge_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(edgeOf(obs)), "utf8"), fromPub, sb); }
   catch (e) { return false; }
 }
 // signed verify: witness signature (attribution) + edge signature (party-attested edge). resolve: id -> publicKey.
@@ -328,9 +340,19 @@ export function receiptBindsGrant(g, r) {
 }
 
 // strict RFC3339 UTC ("...Z") timestamp. v0 requires UTC Z form so a non-UTC offset or a date-only
-// string cannot slip an execution past the window via Date.parse laxity.
-const RFC3339_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-export function isRfc3339Utc(s) { return typeof s === "string" && RFC3339_UTC.test(s) && !Number.isNaN(Date.parse(s)); }
+// string cannot slip an execution past the window via Date.parse laxity. 0.4.1 (provenance-v0/VERIFIER.md
+// section 5): the calendar is checked too. Date.parse alone accepted 2026-02-30 (rolled to March 2), hour 24 and
+// year 0000; a real instant needs year 0001..9999, a real day of that month, hour 0..23, minute and second 0..59.
+const RFC3339_UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?Z$/;
+const daysInMonth = (y, m) => [31, (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+export function isRfc3339Utc(s) {
+  if (typeof s !== "string") return false;
+  const m = RFC3339_UTC.exec(s);
+  if (!m) return false;
+  const [y, mo, d, h, mi, se] = m.slice(1, 7).map(Number);
+  if (y < 1 || mo < 1 || mo > 12 || d < 1 || d > daysInMonth(y, mo) || h > 23 || mi > 59 || se > 59) return false;
+  return !Number.isNaN(Date.parse(s));
+}
 
 // validity window: executed_at within [not_before, not_after]; both bounds live in the signed grant.
 export function withinWindow(g, r) {
@@ -418,7 +440,8 @@ export function reconcileOutcome(receipts, grant_ref) {
 //   caller_sig   : the caller signs canonical(grantPreimage). The authorization is ATTRIBUTABLE to the caller.
 //   provider_sig : the provider signs canonical(receiptPreimage), which INCLUDES grant_ref, so the receipt is
 //                  bound to that specific grant and attributable to the provider (non-repudiable).
-// Wire form in production is a detached JWS (EdDSA); DIDs resolve to the public key (did:key is self-contained,
+// Wire form: raw 64-byte Ed25519, base64, over the canonical preimage, no JWS envelope (SPEC.md, clarified
+// 2026-10-04). DIDs resolve to the public key (did:key is self-contained,
 // no network). Here a resolver id -> publicKey stands in for DID resolution, exactly as in sign.mjs.
 // Honest line: signatures prove WHO asserted, not that the assertion is TRUE.
 
@@ -433,12 +456,12 @@ export function signReceipt(r, providerPriv) {
 }
 export function verifyGrantSig(g, callerPub) {
   if (typeof g.caller_sig !== "string" || !callerPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(grantPreimage(g)), "utf8"), callerPub, Buffer.from(g.caller_sig, "base64")); }
+  try { const sb = sigBytes(g.caller_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(grantPreimage(g)), "utf8"), callerPub, sb); }
   catch (e) { return false; }
 }
 export function verifyReceiptSig(r, providerPub) {
   if (typeof r.provider_sig !== "string" || !providerPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(receiptPreimage(r)), "utf8"), providerPub, Buffer.from(r.provider_sig, "base64")); }
+  try { const sb = sigBytes(r.provider_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(receiptPreimage(r)), "utf8"), providerPub, sb); }
   catch (e) { return false; }
 }
 // signed pair verify: caller authorized (caller_sig) + provider receipted (provider_sig). resolve: id -> publicKey.
@@ -614,7 +637,7 @@ export function signIntent(i, providerPriv) {
 }
 export function verifyIntentSig(i, providerPub) {
   if (typeof i.intent_sig !== "string" || !providerPub) return false;
-  try { return nodeVerify(null, Buffer.from(canonical(intentPreimage(i)), "utf8"), providerPub, Buffer.from(i.intent_sig, "base64")); }
+  try { const sb = sigBytes(i.intent_sig); if (!sb) return false; return nodeVerify(null, Buffer.from(canonical(intentPreimage(i)), "utf8"), providerPub, sb); }
   catch (e) { return false; }
 }
 
@@ -665,7 +688,7 @@ export function preflightReport(input) {
 // never collapsed into the favorable outcome. The wall that no signature can cross (no side-effect oracle) is
 // written into does_not_establish on every report, accepted or refused.
 
-export const VERIFIER_VERSION = "0.1.3";
+export const VERIFIER_VERSION = "0.1.4";
 export const LINK_PREFIX = "nenrin-exec://";
 
 // R3 generalized to a SET with possibly several witnesses per hop: seqs contiguous from 0, every root has a

@@ -58,9 +58,19 @@ export function receiptBindsGrant(g, r) {
 }
 
 // strict RFC3339 UTC ("...Z") timestamp. v0 requires UTC Z form so a non-UTC offset or a date-only
-// string cannot slip an execution past the window via Date.parse laxity.
-const RFC3339_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-export function isRfc3339Utc(s) { return typeof s === "string" && RFC3339_UTC.test(s) && !Number.isNaN(Date.parse(s)); }
+// string cannot slip an execution past the window via Date.parse laxity. 0.4.1 (provenance-v0/VERIFIER.md
+// section 5): the calendar is checked too. Date.parse alone accepted 2026-02-30 (rolled to March 2), hour 24 and
+// year 0000; a real instant needs year 0001..9999, a real day of that month, hour 0..23, minute and second 0..59.
+const RFC3339_UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?Z$/;
+const daysInMonth = (y, m) => [31, (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+export function isRfc3339Utc(s) {
+  if (typeof s !== "string") return false;
+  const m = RFC3339_UTC.exec(s);
+  if (!m) return false;
+  const [y, mo, d, h, mi, se] = m.slice(1, 7).map(Number);
+  if (y < 1 || mo < 1 || mo > 12 || d < 1 || d > daysInMonth(y, mo) || h > 23 || mi > 59 || se > 59) return false;
+  return !Number.isNaN(Date.parse(s));
+}
 
 // validity window: executed_at within [not_before, not_after]; both bounds live in the signed grant.
 export function withinWindow(g, r) {

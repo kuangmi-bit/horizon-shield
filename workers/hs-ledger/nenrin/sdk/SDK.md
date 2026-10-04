@@ -72,6 +72,24 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.4.1 (2026-10-04): two rules made strict, same version as the Python package
+
+The first independent implementation of interop-v0 (A2A Discussion #1631) and two blind reimplementations written
+from ../provenance-v0/VERIFIER.md found the places where this verifier was looser than the rule it states.
+Both are now strict, in the JavaScript file and in the Python port alike (verifier_version 0.1.4):
+
+- Timestamps must denote a real instant. The pattern was always strict, but the instant was read with the runtime's
+  date parser, which accepted 2026-02-30 (rolled to 2026-03-02), hour 24 and year 0000. Now year 0001..9999, a real
+  day of that month, hour 0..23, minute and second 0..59; anything else is invalid_timestamp.
+- Signature fields must be canonical standard base64 (RFC 4648 section 4: padding present, no url-safe letters, no
+  whitespace, unused trailing bits zero), so one signature has one encoding. Buffer.from was lenient.
+
+Every interop-v0 and interop-v0.1 verdict signature is unchanged. Two frozen parity bundles that existed to pin the
+old lenient reading (date_rollover_feb29, hour_24_and_long_fraction) are now refused with invalid_timestamp.
+../conformance-v0/strict_rules.test.mjs checks both rules; ../conformance-v0/differential.py holds this file and the
+Python port to the same verdicts. npm has no 0.4.0; this release takes the number after PyPI's 0.4.0 so both
+packages carry 0.4.1.
+
 ## 0.3.0 (2026-10-02): the agreement verifier, and one version number with the Python package
 npm and PyPI now carry the same version number for the same verifiers. Until this release the Python package was
 0.3.0 and this one 0.2.3, with different contents under one name, which made "nenrin-verify 0.3.0" ambiguous in
