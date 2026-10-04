@@ -183,14 +183,15 @@ weakness it is said so, with the fix.
 - **Evidence presence.** E is absent when it is missing, null, false, 0 or "" (no_evidence_bound). An empty object or
   array is present and not well formed (evidence_invalid). A missing or non-object outcome means E is absent.
 - **Timestamps.** The pattern uses ASCII digits only and matches the whole string (no trailing newline). Instants are
-  compared at millisecond precision, extra fraction digits truncated. Known weakness: the reference reads the instant
-  with the runtime's date parser, which accepts some impossible values (2026-02-30 rolled to 2026-03-02, hour 24, year
-  0000) and rejects second 60. A conforming verifier MUST reject impossible calendar dates, hour 24 and second 60; the
-  reference is being brought to that rule in its next release. No corpus vector depends on it.
+  compared at millisecond precision, extra fraction digits truncated. A conforming verifier MUST reject impossible
+  calendar dates (proleptic Gregorian, years 0001 to 9999), hour 24 and second 60. The reference applies this rule
+  from nenrin-verify 0.4.1; earlier versions read the instant with the runtime's date parser, which accepted some
+  impossible values (2026-02-30 rolled to 2026-03-02, hour 24, year 0000) and rejected second 60. No corpus vector
+  depends on it.
 - **Base64.** A conforming verifier MUST accept only canonical standard base64 (RFC 4648 section 4: the standard
-  alphabet, padding present, no whitespace, unused trailing bits zero), so one signature has one encoding. Known
-  weakness: the reference decodes leniently (missing padding, - and _, ignored characters) and accepts such strings;
-  it is brought to the rule in its next release, together with the date rule. No corpus vector depends on it.
+  alphabet, padding present, no whitespace, unused trailing bits zero), so one signature has one encoding. The
+  reference applies this rule from nenrin-verify 0.4.1; earlier versions decoded leniently (missing padding, - and _,
+  ignored characters) and accepted such strings. No corpus vector depends on it.
 - **Ed25519.** Verification as performed by OpenSSL (RFC 8032 with OpenSSL's checks). Crafted small-order or
   non-canonical signatures are not in the corpora.
 - **Key resolution.** In the offline interop setting only did:key resolves. Parties named by an https origin need an
