@@ -1,6 +1,8 @@
 // RUN_ALL: suite
 // 籤の反対側 (witness_reply) と池を育てる口 (witness_pool_build) の採点。両側を localhost で繋いで一周回す。network は localhost だけ。
 // 緑の意味: 頼まれた側が測って署名し、頼んだ側がそれを 11.4 の規則で受け入れ、検証器が定足数に数えた、それだけ。証人が本物かは見とらん。
+import { createHash, createPrivateKey, createPublicKey } from "node:crypto";
+const edPubFromSeed = (label) => { const seed = createHash("sha256").update(label).digest(); const priv = createPrivateKey({ key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), seed]), format: "der", type: "pkcs8" }); return Buffer.from(createPublicKey(priv).export({ format: "jwk" }).x, "base64url").toString("base64"); };
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -142,7 +144,7 @@ const reqHash = await requestSha256(req);
     const origin = "https://" + host;
     sites[origin + "/.well-known/agent-card.json"] = { name: host, ...(a2a ? { url: origin + "/a2a" } : {}), capabilities: { extensions: ext ? [{ uri: "https://gate.horizonshield.dev/ext/conduct/v1" }] : [] } };
     sites[origin + "/.well-known/mcp-conduct.json"] = { consent: {}, witness_policy: { reciprocal }, ...(keyUrl ? { witness_key_url: keyUrl } : {}) };
-    if (key) sites[(keyUrl || origin + "/keys/witness.json")] = { public_key_ed25519_b64: Buffer.from(host.padEnd(32, "x")).toString("base64") };
+    if (key) sites[(keyUrl || origin + "/keys/witness.json")] = { public_key_ed25519_b64: edPubFromSeed(host) };
   };
   mk("good-a.example"); mk("good-b.example", { keyUrl: "https://good-b.example/.well-known/hs-witness-key.json" });
   mk("noext.example", { ext: false }); mk("norecip.example", { reciprocal: false }); mk("nokey.example", { key: false });

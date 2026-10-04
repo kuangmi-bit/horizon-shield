@@ -175,6 +175,8 @@ def normalize_pool(pool):
         for k in ("signed_domain", "key_url", "public_key_ed25519_b64"):
             if not _is_str(e.get(k)): raise ValueError("pool entry lacks " + k)
         if _host(e["key_url"]) != e["signed_domain"].lower(): raise ValueError("pool entry signed_domain is not the host of its key_url (11.4)")
+        pk = b64_exact(e["public_key_ed25519_b64"], 32)
+        if pk is None or not ed25519_key_ok(pk): raise ValueError("pool entry for " + e["signed_domain"] + " has a public_key_ed25519_b64 that is not canonical base64 of a usable Ed25519 key")
         o = {"signed_domain": e["signed_domain"], "key_url": e["key_url"], "public_key_ed25519_b64": e["public_key_ed25519_b64"]}
         if isinstance(e.get("a2a_url"), str): o["a2a_url"] = e["a2a_url"]
         out.append(o)

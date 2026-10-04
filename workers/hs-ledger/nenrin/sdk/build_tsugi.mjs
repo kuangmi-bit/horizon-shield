@@ -53,6 +53,10 @@ async function tsugiMain() {
   if (a["operator-key"]) opts.operatorKeys = String(a["operator-key"]).split(",").map((s) => s.trim()).filter(Boolean);
   else if (a["fetch-operator-key"]) opts.operatorKeys = await fetchOperatorKeys(a["fetch-operator-key"]);
   else if (!Array.isArray(loaded) && typeof loaded.operator_public_key_ed25519_b64 === "string" && a["trust-embedded-key"]) opts.operatorKeys = [loaded.operator_public_key_ed25519_b64];
+  for (const k of opts.operatorKeys || []) {                       // 0.3.1: a wrong operator key is a usage error, not "untrusted"
+    const pk = b64Exact(k, 32);
+    if (!pk || !ed25519KeyOk(pk)) { console.error("tsugi-verify: operator key " + JSON.stringify(k) + " is not canonical base64 of a usable Ed25519 key"); process.exit(2); }
+  }
   if (a.pool || a.q || a.k || a.beacon || a["require-commitment"] || a["anchor-height"]) {
     opts.witnessQuorum = {};
     if (a.pool) opts.witnessQuorum.pool = JSON.parse(readFileSync(a.pool, "utf8"));

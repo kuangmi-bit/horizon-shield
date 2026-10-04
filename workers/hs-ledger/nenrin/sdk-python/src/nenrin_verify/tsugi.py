@@ -474,6 +474,9 @@ def normalize_pool(pool):
             raise JSError("pool entry key_url is not a URL: " + e["key_url"])
         if lower(host) != lower(e["signed_domain"]):
             raise JSError("pool entry signed_domain " + e["signed_domain"] + " is not the host of its key_url (11.4)")
+        pk = b64_exact(e["public_key_ed25519_b64"], 32)
+        if pk is None or not ed25519_key_ok(pk):
+            raise JSError("pool entry for " + e["signed_domain"] + " has a public_key_ed25519_b64 that is not canonical base64 of a usable Ed25519 key")
         n = _hashed_entry(e)
         if isinstance(prop(e, "a2a_url"), str):
             n["a2a_url"] = e["a2a_url"]
@@ -946,6 +949,10 @@ def run(argv, read_file=_read_file, fetch_keys=fetch_operator_keys):
     elif (not isinstance(loaded, list) and isinstance(prop(loaded, "operator_public_key_ed25519_b64"), str)
           and truthy(g("trust-embedded-key"))):
         opts["operatorKeys"] = [loaded["operator_public_key_ed25519_b64"]]
+    for k in opts.get("operatorKeys", []):   # 0.3.1: a wrong operator key is a usage error, not "untrusted"
+        pk = b64_exact(k, 32)
+        if pk is None or not ed25519_key_ok(pk):
+            raise Usage("tsugi-verify: operator key " + stringify(k) + " is not canonical base64 of a usable Ed25519 key")
     if any(truthy(g(k)) for k in ("pool", "q", "k", "beacon", "require-commitment", "anchor-height")):
         wq = {}
         if truthy(g("pool")):

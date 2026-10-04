@@ -103,6 +103,8 @@ def tsugi_selftest():
             same = (not c["js"]["threw"] and code == c["js"]["exit"] and tsugi.output_text(out) == c["js"]["stdout"])
         except tsugi.NotReproduced:
             same = False
+        except tsugi.Usage:   # the JavaScript printed the usage line to stderr and exited 2, with no report
+            same = (not c["js"]["threw"] and c["js"]["exit"] == 2 and c["js"]["stdout"] == "")
         except Exception:
             same = c["js"]["threw"]
         ok += same

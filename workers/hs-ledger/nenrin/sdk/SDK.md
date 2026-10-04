@@ -72,6 +72,17 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.4.3 (2026-10-04): the two edges the attack rounds left as "remaining"
+
+Same verifiers as 0.4.2 (verifier_version 0.1.5, tsugi_verify.mjs 0.3.1), two edges closed. A witness pool is
+refused (bad_pool) when any entry's key is not canonical base64 of a usable key, so a pool cannot carry two
+spellings of one key, and a pool key is checked before it is compared; and an operator key passed to the CLI that is
+not a usable key is a usage error (exit 2, no report), not authorization_untrusted_key, so a typo in the trust set
+is told apart from a key the operator did not sign with. The Python command does the same. The frozen TSUGI corpus
+gains four cases for these (102 in all); no existing verdict changed.
+
+
+
 ## 0.4.2 (2026-10-04): no key with nothing behind it, and base64 read strictly in the TSUGI verifier too
 
 An independent attack on the verifiers, run before this release, found two things.

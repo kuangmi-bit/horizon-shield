@@ -10,6 +10,7 @@
 //
 // 数は文字列 (v0 の約束)。sha256 は WebCrypto (Worker と node で同じ)。python の双子は recovery_verify.py の draw()。
 // 自分の host は引く前に外す (self_witness、conduct-v1.1 11.4)。
+import { b64Exact, ed25519KeyOk } from "../task-delegation-bind-v0/ed25519_key.mjs";
 import { canonicalUtf8 } from "../agreement-v0/agreement_canonical.mjs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -35,6 +36,8 @@ export function normalizePool(pool) {
     for (const k of ["signed_domain", "key_url", "public_key_ed25519_b64"]) if (typeof e[k] !== "string" || !e[k]) throw new Error("pool entry lacks " + k);
     let host = ""; try { host = new URL(e.key_url).host; } catch { throw new Error("pool entry key_url is not a URL: " + e.key_url); }
     if (host.toLowerCase() !== e.signed_domain.toLowerCase()) throw new Error("pool entry signed_domain " + e.signed_domain + " is not the host of its key_url (11.4)");
+    const pk = b64Exact(e.public_key_ed25519_b64, 32);                 // 0.3.1: a pool key is a key, not a label (one key, one spelling, one vote)
+    if (!pk || !ed25519KeyOk(pk)) throw new Error("pool entry for " + e.signed_domain + " has a public_key_ed25519_b64 that is not canonical base64 of a usable Ed25519 key");
     return { ...hashedEntry(e), ...(typeof e.a2a_url === "string" ? { a2a_url: e.a2a_url } : {}) };
   });
   out.sort((a, b) => (a.public_key_ed25519_b64 < b.public_key_ed25519_b64 ? -1 : a.public_key_ed25519_b64 > b.public_key_ed25519_b64 ? 1 : 0));

@@ -75,7 +75,7 @@ the recorder and the policy together): [integrations/FRAMEWORKS.md](https://gith
 
 | module | what | held to |
 |---|---|---|
-| `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.4.2 (`nenrin_verify.mjs`, verifier 0.1.5): the same report, key for key |
+| `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.4.3 (`nenrin_verify.mjs`, verifier 0.1.5): the same report, key for key |
 | `agreement_verify.verify`, `nenrin-agreement-verify` | a two-party agreement record (`a2a-agreement-v1`, `v1.1`), including key succession across a rotation | the repository's own Python verifier, unchanged but for one import line and a header comment; it and the JavaScript verifier return the same report on 5,286 frozen cases, and from npm nenrin-verify 0.3.0 the JavaScript command `nenrin-agreement-verify` prints what this one prints |
 | `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.7), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
 | `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.1): the same stdout, byte for byte, and the same exit code |
@@ -137,6 +137,12 @@ pose as a second key; both are refused everywhere this package checks a signatur
 0.4.1 now covers them all too (`provenance.b64_exact`), and a TSUGI witness key counts once toward a quorum. The
 frozen corpora were regenerated from the JavaScript files; no verdict changed. The agreement verifier is unchanged;
 it already applied the same subgroup rule.
+
+## 0.4.3 (2026-10-04)
+
+A witness pool with a key that is not canonical base64 of a usable key is bad_pool, and an operator key passed to
+`tsugi-verify` that is not a usable key is a usage error (exit 2, no report), as in the JavaScript command. Four frozen
+TSUGI cases added (102 in all); no existing verdict changed.
 
 ## 0.4.1 (2026-10-04)
 

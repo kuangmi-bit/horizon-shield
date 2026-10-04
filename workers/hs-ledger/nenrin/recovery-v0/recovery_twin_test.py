@@ -83,7 +83,13 @@ t("v2 python: v0 fixture under a quorum -> witness_quorum_short", "witness_quoru
 m = json.loads(json.dumps(wf["records"])); m[6]["draw"]["drawn"][0] = "witness-e.example"
 m[6] = dict(R.hashed_body(m[6])); m[6]["record_sha256"] = R.record_sha256(m[6])
 t("v2 python: drawn edited by hand -> draw_mismatch", "draw_mismatch" in codes(R.verify_chain(m, witness_quorum={"q": 2, "pool": wf["pool"]})))
-bad_pool = {"entries": wf["pool"]["entries"] + [{"signed_domain": "witness-f.example", "key_url": "https://witness-f.example/k.json", "public_key_ed25519_b64": "zz" + wf["pool"]["entries"][0]["public_key_ed25519_b64"][2:]}]}
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey as _EdPriv
+from cryptography.hazmat.primitives import serialization as _ser
+import base64 as _b64
+_fresh = _b64.b64encode(_EdPriv.generate().public_key().public_bytes(_ser.Encoding.Raw, _ser.PublicFormat.Raw)).decode()
+bad_pool = {"entries": wf["pool"]["entries"] + [{"signed_domain": "witness-f.example", "key_url": "https://witness-f.example/k.json", "public_key_ed25519_b64": _fresh}]}
+unusable_pool = {"entries": wf["pool"]["entries"] + [{"signed_domain": "witness-f.example", "key_url": "https://witness-f.example/k.json", "public_key_ed25519_b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}]}
+t("v2 python (0.3.1): a pool with an unusable key -> bad_pool", "bad_pool" in codes(R.verify_chain(wf["records"], witness_quorum={"q": 2, "pool": unusable_pool})))
 t("v2 python: another pool -> pool_mismatch", "pool_mismatch" in codes(R.verify_chain(wf["records"], witness_quorum={"q": 2, "pool": bad_pool})))
 t("v2 python: another beacon -> beacon_mismatch", "beacon_mismatch" in codes(R.verify_chain(wf["records"], witness_quorum={"q": 2, "pool": wf["pool"], "beaconHash": "f" * 64})))
 m2 = json.loads(json.dumps(wf["records"])); idx = next(i for i, e in enumerate(m2[6]["external"]) if "record" in e)

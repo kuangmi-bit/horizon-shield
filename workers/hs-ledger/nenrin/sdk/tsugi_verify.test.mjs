@@ -1,5 +1,6 @@
 // tsugi_verify.test.mjs : the single-file TSUGI verifier is a faithful copy of the recovery-v0 modules and verifies
 // the real incident chain and the witness fixture offline, with the same refusal codes as the modules, byte for byte.
+import { generateKeyPairSync } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import * as SDK from "./tsugi_verify.mjs";
@@ -25,8 +26,9 @@ const key = inc.operator_public_key_ed25519_b64;
 const rS = await SDK.verifyChain(inc.records, { operatorKeys: [key] });
 const rM = await MOD.verifyChain(inc.records, { operatorKeys: [key] });
 chk("incident 2 strict: ok and byte-identical report to the modules", rS.ok && JSON.stringify(rS) === JSON.stringify(rM));
-const bS = await SDK.verifyChain(inc.records, { operatorKeys: ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="] });
-chk("incident 2 with an untrusted key: authorization_untrusted_key, same as modules", bS.refusals.some((x) => x.code === "authorization_untrusted_key") && JSON.stringify(bS) === JSON.stringify(await MOD.verifyChain(inc.records, { operatorKeys: ["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="] })));
+const untrusted = Buffer.from(generateKeyPairSync("ed25519").publicKey.export({ format: "jwk" }).x, "base64url").toString("base64");
+const bS = await SDK.verifyChain(inc.records, { operatorKeys: [untrusted] });
+chk("incident 2 with an untrusted key: authorization_untrusted_key, same as modules", bS.refusals.some((x) => x.code === "authorization_untrusted_key") && JSON.stringify(bS) === JSON.stringify(await MOD.verifyChain(inc.records, { operatorKeys: [untrusted] })));
 for (const r of inc.records) chk("record_sha256 recomputes in the SDK: " + r.schema.replace("nenrin-", "").replace("-v1", "") + " " + r.record_sha256.slice(0, 8), (await SDK.recordSha256(r)) === r.record_sha256);
 
 // 3. witness fixture: draw, quorum, commitment, and mutations produce identical refusal codes
@@ -57,8 +59,11 @@ const cli = (args) => { try { return { code: 0, out: execFileSync("node", [new U
 const incPath = new URL("../recovery-v0/incident_20260920_resign_chain.json", import.meta.url).pathname;
 const c1 = cli([incPath, "--operator-key", key]);
 chk("CLI: incident chain strict, exit 0, ok true", c1.code === 0 && /"ok": true/.test(c1.out));
-const c2 = cli([incPath, "--operator-key", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="]);
+const otherKey = Buffer.from(generateKeyPairSync("ed25519").publicKey.export({ format: "jwk" }).x, "base64url").toString("base64");
+const c2 = cli([incPath, "--operator-key", otherKey]);
 chk("CLI: wrong operator key, exit 1, authorization_untrusted_key", c2.code === 1 && /authorization_untrusted_key/.test(c2.out));
+const c2b = cli([incPath, "--operator-key", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="]);
+chk("CLI (0.3.1): an operator key that is not a usable key is a usage error, exit 2, no report", c2b.code === 2 && /is not canonical base64 of a usable Ed25519 key/.test(c2b.out) && !/"ok"/.test(c2b.out));
 const c3 = cli([incPath]);
 chk("CLI: lenient without a key says so in note", c3.code === 0 && /lenient/.test(c3.out));
 const poolPath = new URL("./_tsugi_smoke_pool.gen.json", import.meta.url);

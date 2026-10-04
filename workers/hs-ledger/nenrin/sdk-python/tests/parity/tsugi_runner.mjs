@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const T = await import(pathToFileURL(process.argv[2]).href);
-const { verifyChain, fetchOperatorKeys, VERIFIER_VERSION } = T;
+const { verifyChain, fetchOperatorKeys, VERIFIER_VERSION, b64Exact, ed25519KeyOk } = T;
 
 function tsugiArgs(argv) {
   const a = {}; const pos = [];
@@ -25,6 +25,7 @@ async function tsugiMain(argv, files) {
   if (a["operator-key"]) opts.operatorKeys = String(a["operator-key"]).split(",").map((s) => s.trim()).filter(Boolean);
   else if (a["fetch-operator-key"]) opts.operatorKeys = await fetchOperatorKeys(a["fetch-operator-key"]);
   else if (!Array.isArray(loaded) && typeof loaded.operator_public_key_ed25519_b64 === "string" && a["trust-embedded-key"]) opts.operatorKeys = [loaded.operator_public_key_ed25519_b64];
+  for (const k of opts.operatorKeys || []) { const pk = b64Exact(k, 32); if (!pk || !ed25519KeyOk(pk)) return { usage: true, exit: 2 }; }   // 0.3.1, as tsugi_verify.mjs
   if (a.pool || a.q || a.k || a.beacon || a["require-commitment"] || a["anchor-height"]) {
     opts.witnessQuorum = {};
     if (a.pool) opts.witnessQuorum.pool = JSON.parse(readFileSync(a.pool, "utf8"));

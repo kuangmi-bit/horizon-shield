@@ -763,6 +763,8 @@ export function normalizePool(pool) {
     for (const k of ["signed_domain", "key_url", "public_key_ed25519_b64"]) if (typeof e[k] !== "string" || !e[k]) throw new Error("pool entry lacks " + k);
     let host = ""; try { host = new URL(e.key_url).host; } catch { throw new Error("pool entry key_url is not a URL: " + e.key_url); }
     if (host.toLowerCase() !== e.signed_domain.toLowerCase()) throw new Error("pool entry signed_domain " + e.signed_domain + " is not the host of its key_url (11.4)");
+    const pk = b64Exact(e.public_key_ed25519_b64, 32);                 // 0.3.1: a pool key is a key, not a label (one key, one spelling, one vote)
+    if (!pk || !ed25519KeyOk(pk)) throw new Error("pool entry for " + e.signed_domain + " has a public_key_ed25519_b64 that is not canonical base64 of a usable Ed25519 key");
     return { ...hashedEntry(e), ...(typeof e.a2a_url === "string" ? { a2a_url: e.a2a_url } : {}) };
   });
   out.sort((a, b) => (a.public_key_ed25519_b64 < b.public_key_ed25519_b64 ? -1 : a.public_key_ed25519_b64 > b.public_key_ed25519_b64 ? 1 : 0));
@@ -1148,6 +1150,10 @@ async function tsugiMain() {
   if (a["operator-key"]) opts.operatorKeys = String(a["operator-key"]).split(",").map((s) => s.trim()).filter(Boolean);
   else if (a["fetch-operator-key"]) opts.operatorKeys = await fetchOperatorKeys(a["fetch-operator-key"]);
   else if (!Array.isArray(loaded) && typeof loaded.operator_public_key_ed25519_b64 === "string" && a["trust-embedded-key"]) opts.operatorKeys = [loaded.operator_public_key_ed25519_b64];
+  for (const k of opts.operatorKeys || []) {                       // 0.3.1: a wrong operator key is a usage error, not "untrusted"
+    const pk = b64Exact(k, 32);
+    if (!pk || !ed25519KeyOk(pk)) { console.error("tsugi-verify: operator key " + JSON.stringify(k) + " is not canonical base64 of a usable Ed25519 key"); process.exit(2); }
+  }
   if (a.pool || a.q || a.k || a.beacon || a["require-commitment"] || a["anchor-height"]) {
     opts.witnessQuorum = {};
     if (a.pool) opts.witnessQuorum.pool = JSON.parse(readFileSync(a.pool, "utf8"));

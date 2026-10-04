@@ -1,6 +1,7 @@
 // RUN_ALL: suite
 // v2 籤 (kuji) の採点: 籤が再計算できる、fixture が通る、壊した物が必ず落ちる (mutation)、依頼と受け入れが 11.4 の規則で動く。
 // 緑の意味: この file が書いた変異が全部拒否された、それだけ。証人が本物かどうかは見とらん (fixture の鍵は seed)。
+import { generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -47,12 +48,17 @@ t("verifier version is 0.3.1", VERIFIER_VERSION === "0.3.1");
   t("draw: k larger than the eligible pool draws everyone eligible (5 of 6, own host out) and says k_requested", d5.k === "5" && d5.k_requested === "99" && d5.drawn.length === 5 && !d5.drawn.includes(OWN_HOST));
   const d6 = await draw({ pool, beaconHash: beacon.hash, subjectSha256: records[5].record_sha256, k: 0 });
   t("draw: k 0 draws nobody and the pool hash is still computed", d6.drawn.length === 0 && d6.pool_sha256 === d1.pool_sha256);
-  const pool2 = { entries: [...pool.entries, { signed_domain: "witness-f.example", key_url: "https://witness-f.example/k.json", public_key_ed25519_b64: "zz" + pool.entries[0].public_key_ed25519_b64.slice(2) }] };
+  const freshKey = Buffer.from(generateKeyPairSync("ed25519").publicKey.export({ format: "jwk" }).x, "base64url").toString("base64");
+  const pool2 = { entries: [...pool.entries, { signed_domain: "witness-f.example", key_url: "https://witness-f.example/k.json", public_key_ed25519_b64: freshKey }] };
   t("draw: adding an entry changes the pool hash", (await poolSha256(pool2)) !== d1.pool_sha256);
   let threw = false; try { normalizePool({ entries: [...pool.entries, pool.entries[0]] }); } catch { threw = true; }
   t("pool: a duplicate entry is refused (one domain, one key, one vote)", threw);
   threw = false; try { normalizePool({ entries: [{ signed_domain: "x.example", key_url: "https://y.example/k.json", public_key_ed25519_b64: "AAAA" }] }); } catch { threw = true; }
   t("pool: signed_domain must be the host of key_url (11.4)", threw);
+  for (const [why, k] of [["missing padding", pool.entries[0].public_key_ed25519_b64.replace(/=+$/, "")], ["a small-order point (the identity)", "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="], ["a non-canonical y (p + 1)", "7v///////////////////////////////////////38="]]) {
+    threw = false; try { normalizePool({ entries: [{ signed_domain: "x.example", key_url: "https://x.example/k.json", public_key_ed25519_b64: k }] }); } catch { threw = true; }
+    t("pool (0.3.1): a key with " + why + " is refused", threw);
+  }
   threw = false; try { await draw({ pool, beaconHash: "nope", subjectSha256: records[5].record_sha256, k: 1 }); } catch { threw = true; }
   t("draw: a beacon that is not 64 hex is refused", threw);
 }
@@ -65,7 +71,7 @@ const withVerify = (v) => [...records.slice(0, 6), v];
   t("mutation: drawn list edited by hand -> draw_mismatch", has(r, "draw_mismatch"), JSON.stringify(codes(r)));
   const m2 = clone(records[6]); m2.draw.drawn.push(OWN_HOST); const r2 = await verifyChain(withVerify(await reseal(m2)), { witnessQuorum: strict });
   t("mutation: own host added to the draw -> self_witness", has(r2, "self_witness"));
-  const pool3 = { entries: [...pool.entries, { signed_domain: "witness-f.example", key_url: "https://witness-f.example/k.json", public_key_ed25519_b64: "zz" + pool.entries[0].public_key_ed25519_b64.slice(2) }] };
+  const pool3 = { entries: [...pool.entries, { signed_domain: "witness-f.example", key_url: "https://witness-f.example/k.json", public_key_ed25519_b64: Buffer.from(generateKeyPairSync("ed25519").publicKey.export({ format: "jwk" }).x, "base64url").toString("base64") }] };
   const r3 = await verifyChain(records, { witnessQuorum: { q: Q, pool: pool3 } });
   t("mutation: a different pool handed to the verifier -> pool_mismatch", has(r3, "pool_mismatch"));
   const r4 = await verifyChain(records, { witnessQuorum: { q: Q, pool, beaconHash: "f".repeat(64) } });

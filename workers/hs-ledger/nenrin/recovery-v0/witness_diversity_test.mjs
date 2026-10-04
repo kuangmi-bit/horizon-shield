@@ -2,6 +2,7 @@
 // 支配の多様性の採点: Sybil の形 (同じ登録ドメイン、同じ IP、同じ独自 NS) を強い信号で束ね、
 // 大手 CDN・大手 DNS・同じ基盤は弱い信号に留め (正直な証人に濡れ衣を着せん)、
 // drawDiverse が同じ塊から 2 人引かず、全員別の塊なら draw() と同じ k 人を返し、点を一切出さんこと。
+import { createHash, createPrivateKey, createPublicKey } from "node:crypto";
 import { draw } from "./witness_draw.mjs";
 import { registrableDomain, nsOperator, ipPrefix, diversityReport, drawDiverse, controlClusters, normalizeArrivals } from "./witness_diversity.mjs";
 import { collectFact, cymruName } from "./witness_diversity_collect.mjs";
@@ -9,7 +10,8 @@ import { collectFact, cymruName } from "./witness_diversity_collect.mjs";
 let pass = 0, fail = 0; const results = [];
 function t(name, ok, detail) { (ok ? pass++ : fail++); results.push((ok ? "  ok   " : "  FAIL ") + name + (ok || !detail ? "" : "  <- " + detail)); }
 
-const key = (i) => Buffer.from(("witness-key-" + String(i).padStart(3, "0")).padEnd(32, "x")).toString("base64");
+const edPubFromSeed = (label) => { const seed = createHash("sha256").update(label).digest(); const priv = createPrivateKey({ key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), seed]), format: "der", type: "pkcs8" }); return Buffer.from(createPublicKey(priv).export({ format: "jwk" }).x, "base64url").toString("base64"); };
+const key = (i) => edPubFromSeed("witness-key-" + String(i).padStart(3, "0"));
 const E = (host, i) => ({ signed_domain: host, key_url: "https://" + host + "/keys/witness.json", public_key_ed25519_b64: key(i) });
 const BEACON = "00000000000000000001aa2b3c4d5e6f00000000000000000001aa2b3c4d5e6f";
 const SUBJECT = "c92bf886".padEnd(64, "0");

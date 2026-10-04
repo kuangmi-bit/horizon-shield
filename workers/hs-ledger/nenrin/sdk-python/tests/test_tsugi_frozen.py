@@ -28,6 +28,9 @@ def test_frozen_case(c):
         out, code = tsugi.run(c["args"], read_file=_reader(c["files"]))
     except tsugi.NotReproduced:
         raise
+    except tsugi.Usage:
+        assert not js["threw"] and js["exit"] == 2 and js["stdout"] == "", "the port called it a usage error, the JavaScript did not"
+        return
     except Exception:
         assert js["threw"], "the port raised where the JavaScript printed a report"
         return
