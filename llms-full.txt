@@ -292,7 +292,7 @@ When quoting any answer below, cite: HORIZON SHIELD / Toshikatsu Oga (ORCID 0009
 - [給湯器交換の費用・相場【2026年最新】20号で10〜18万円が適正](https://shield.the-horizons-innovation.com/souba/kyutoki/): 給湯器交換の適正相場はガス20号で10〜18万円。機種別コスト・号数選定・給湯省エネ2026補助金を建設実務30年のプロが解説。
 - [シロアリ駆除の費用・相場【2026年最新】30坪で15〜30万円が適正](https://shield.the-horizons-innovation.com/souba/shiroari/): シロアリ駆除の適正相場は30坪で15〜30万円。HS原価分解・訪問販売の手口・JTCCA資格の見方を建設実務30年のプロが解説。
 - [リフォーム費用はいくら？工事を選んでAIに無料で聞く【相場一覧2026】](https://shield.the-horizons-innovation.com/souba/ikura/): リフォーム費用の目安をその場で無料AI診断。まだ見積もりがなくてもOK。外壁塗装・屋根・浴室・キッチン・トイレ・給湯器・雨漏り・内窓・シロアリの適正レンジを、建設実務30年の大賀俊勝監修の相場で、業者から報酬を受け取らない中立AIがグレード別に即答します。
-- [リフォーム・建設の過剰請求 実例20件データ【削減率・手口・金額】HORIZON SHIELD](https://shield.the-horizons-innovation.com/souba/kajou-seikyu-jirei-20/): 第三者診断した建設・リフォーム見積もり20件のデータ。過剰請求の平均削減率32.5%、平均削減82.5万円、最大280万円。全件audit_hash付き・Bitcoin Block #949356アンカー。建設30年プロ監修。
+- [リフォーム・建設の過剰請求 実例20件データ【削減率・手口・金額】HORIZON SHIELD](https://shield.the-horizons-innovation.com/souba/kajou-seikyu-jirei-20/): 第三者診断した建設・リフォーム見積もり20件のデータ。過剰請求の平均削減率約33%、平均削減約101万円、最大280万円。全件audit_hash付き・Bitcoin Block #949356アンカー。建設30年プロ監修。
 - [外壁・屋根塗装の適正価格と、業者が使う4つの手口【2026年・建設30年プロ解説】](https://shield.the-horizons-innovation.com/souba/gaiheki-yane-tosou-tebiki/): 外壁塗装・屋根塗装の見積もりが高いと感じたら。建設現場30年の実務者が、適正価格の目安と、業者が金額を膨らませる4つの手口（足場の二重計上・塗料グレード詐称・「今だけ」の煽り・下地処理の省略）を、公開データJCCDB（526,128件）をもとに解説します。
 - [太陽光・蓄電池・V2Hの費用・相場【2026年最新】4kWで100〜150万円](https://shield.the-horizons-innovation.com/souba/solar/): 太陽光4kWで100〜150万円、蓄電池5kWhで80〜130万円が適正。1kW40万円超は過剰請求。補助金最大75万円対象。建設実務30年のプロ監修。
 - [水道業者にトイレ交換で40万円。便器の本体価格はいくらですか？](https://shield.the-horizons-innovation.com/souba/toilet-suidou-bottakuri/): トイレ交換（組み合わせ便器+ウォシュレット）は工事費込みで約8〜12万円が原価フロア、適正総額は約15万円。水道トラブル業者・訪問販売の40万円超が過剰請求か、建設30年プロが解説。

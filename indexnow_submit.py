@@ -7,7 +7,7 @@ indexnow_submit.py -- HORIZON SHIELD IndexNow 送信(3関所allowlist・dry-run�
   本番送信:                   python3 indexnow_submit.py --changed bath,gaiheki,renovation,tenpo --send
   URL直指定:                  python3 indexnow_submit.py --urls https://.../souba/bath/ --send
 """
-import os, argparse, json, sys, urllib.request, urllib.error, urllib.parse
+import os, argparse, json, sys, urllib.request, urllib.error, urllib.parse, base64, binascii, re
 
 HOST = "shield.the-horizons-innovation.com"
 BASE = "https://" + HOST
@@ -19,6 +19,37 @@ ENDPOINT = "https://api.indexnow.org/indexnow"
 
 # 関所2の禁止語(本文に出たら moat 漏れ=送らない。逆順表記でgrep封印、機能は同一)
 MOAT_FORBIDDEN = [s[::-1] for s in ["5.23", "dlohserht_regnad", "CPW"]]
+# 2026-10-04: 画像の data: URI の中身(base64)は、禁止語の照合から外す。
+#   /ehn/ のカード画像(JPEG)の base64 に、禁止語の3文字の並びが偶然出て、実漏れでないのに落ちていた(7/8 と 10/4)。
+#   外すのは次の三つが揃う塊だけ。どれか一つでも欠ければ、今までどおり全文で照合する。
+#     (1) data:image/...;base64, の形で、塊が引用符・括弧・空白・> のどれかで閉じている
+#     (2) 復号した頭が画像の印(JPEG / PNG / GIF / WebP / AVIF・HEIC / ICO)
+#     (3) 復号した中身が UTF-8 の文として読めない(文を画像の型で包んだものは外さない)
+#   SVG は中身が文なので (2) で外れない。alt や title など塊の外にある語も外れない。
+_IMG_B64_RE = re.compile(r"(data:image/[A-Za-z0-9.+-]+;base64,)([A-Za-z0-9+/]+={0,2})(?=[\"')\s>]|&quot;|&#39;|$)")
+_IMG_MAGIC = (b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n", b"GIF87a", b"GIF89a", b"\x00\x00\x01\x00")
+
+def _is_binary_image(raw):
+    if not (raw.startswith(_IMG_MAGIC) or (raw[:4] == b"RIFF" and raw[8:12] == b"WEBP") or raw[4:8] == b"ftyp"):
+        return False
+    try:
+        raw.decode("utf-8")
+        return False
+    except UnicodeDecodeError:
+        return True
+
+def strip_binary_images(body):
+    def _r(m):
+        p = m.group(2)
+        if len(p) % 4 == 1:
+            return m.group(0)
+        try:
+            raw = base64.b64decode(p + "=" * (-len(p) % 4), validate=True)
+        except (binascii.Error, ValueError):
+            return m.group(0)
+        return m.group(1) if _is_binary_image(raw) else m.group(0)
+    return _IMG_B64_RE.sub(_r, body)
+
 # 関所2の必須語(還流ブロックが反映されてる証拠。souba還流URLにのみ要求)
 RECIRC_MARKER = "EHN board で他の実例を見る"
 
@@ -41,7 +72,8 @@ def gate(url, require_marker):
         return False, "FETCH_FAIL " + str(e)[:40]
     if status != 200:
         return False, "HTTP " + str(status)
-    leaked = [w for w in MOAT_FORBIDDEN if w in body]
+    scan = strip_binary_images(body)
+    leaked = [w for w in MOAT_FORBIDDEN if w in scan]
     if leaked:
         return False, "MOAT_LEAK " + ",".join(leaked)
     if require_marker and RECIRC_MARKER not in body:
