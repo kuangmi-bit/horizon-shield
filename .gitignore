@@ -307,5 +307,5 @@ ops/second_record_prep_out/
 note-post/debug/
 
 # GRAVITY (citation formula, radar, experiments) is private: copies in hs-core-private/gravity_private
-tools/gravity/
-experiments/
+tools/gravity
+experiments
