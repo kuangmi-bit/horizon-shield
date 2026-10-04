@@ -74,11 +74,18 @@ not_before <= t <= not_after. A null not_before or not_after is no bound on that
 null is malformed. When present it must be an object with
 type "canonical_request_digest", canonicalization "musubi-canonical-v0", preimage_profile
 "task-execution-bind-v0/action", digest {alg "sha-256", value = sha256(the record's action field)}; otherwise the
-pair check fails with reason action_binding_malformed, action_binding_unknown_profile or action_binding_mismatch.
+check fails, with the reason decided in this order. Not an object (or an array), type not "canonical_request_digest",
+digest not an object, digest.alg not "sha-256", or digest.value not a string: action_binding_malformed.
+canonicalization or preimage_profile not the values above: action_binding_unknown_profile. The record's action field
+null or absent, or digest.value not equal to the recomputed digest: action_binding_mismatch. All three are reasons;
+the refusal code is the one the step names (execution_invalid in step 2, preflight_invalid in step 3).
 
 ## 3. The procedure
 Codes go into two lists, refusals and findings. Run every step, in order, whatever earlier steps found: no step
-is skipped because another refused, except where a step says so.
+is skipped because another refused, except where a step says so. In steps 1 to 3, a name in parentheses after a
+check is a reason, reported for readers; the refusal code is the one the step names at the end of the bullet or
+paragraph (for example, an invalid executed_at in step 2a gives reason invalid_timestamp under refusal
+execution_invalid).
 
 **Step 0, identity.** If task_id is not a non-empty string: refusal task_id_missing. Then compare task_id with the
 task_id of every observation, the grant, the intent and every receipt in the receipt set. If any differs (an empty
