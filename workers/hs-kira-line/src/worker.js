@@ -265,7 +265,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v14-owner-relay-20261005", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v15-audit-20261005", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -365,53 +365,74 @@ async function processEvents(events, env) {
         try {
           const gt = event.message.text.trim();
           if (gt && gid) {
+            // 同じ発言の再送(LINE の再配達)で二度返さない・二度覚えない。
+            const _mid = event.message && event.message.id;
+            if (_mid) {
+              let _seen = null;
+              try { _seen = await env.SEEN_STORE.get("kira_seen_msg:" + _mid); } catch (_e) {}
+              if (_seen) { console.log("[group] skip redelivery mid=" + _mid); continue; }
+              try { await env.SEEN_STORE.put("kira_seen_msg:" + _mid, "1", { expirationTtl: 60 * 60 * 24 * 2 }); } catch (_e) {}
+            }
+            // 大賀さん本人がグループに書いた発言は、加盟店の答えとして hearing に流さない(自分の文が加盟店の回答に化けた 9/7 の件)。
+            //   KIRA も返さない。加盟店グループなら会話には大賀さんの文として残す(KIRA の手本)。
+            if (userId === env.LINE_USER_ID) {
+              let _pgo = false;
+              try { _pgo = !!(await env.SEEN_STORE.get("groupPartner:" + gid)); } catch (_e) {}
+              if (_pgo) await kiraConvAppend(env, gid, "owner", gt);
+              continue;
+            }
             const _reply = await ingestPartnerSilently(gt, userId, gid, env);
-            // HS-KIRA-PARTNER-AUTO-20261005: 加盟店グループでは、KIRA が自分で読んで返す(TOshi の指示「全部自動で」)。
-            //   ・@ で呼ばれ、hearing の窓口が返事を作った(設問への答え)ときは、これまでどおりその文を返す。
-            //   ・それ以外で、こちら宛て(@・引用・加盟店グループでの発言)なら、KIRA が経験帳と直近の会話を読んで、
-            //     返す(reply) / 大賀に回す(escalate: お金・契約・掲載の確定など、KIRA が決めてはいけない話) / 黙る(silent) を決める。
-            //   ・返事は replyToken で返す(LINE の送信数を使わない)。大賀への知らせは escalate のときだけ即時、残りは夜のまとめ。
-            //   ・会話から分かったことは経験帳に自動で書き足す(店ごとの話はその店の中だけ。どの店にも通じる話し方だけ全体へ)。
+            // HS-KIRA-PARTNER-AUTO-20261005(v15 で見直し): 加盟店グループでは KIRA が自分で読んで返す(TOshi の指示「全部自動で」)。
+            //   ・加盟店グループ(groupPartner の印)では、@ でも引用でも普通の発言でも KIRA が決める。hearing の定型文は参考として渡す
+            //     (hearing は設問への答えでない発言にも「掲載に反映します」等の定型を返すため、そのまま返すと事実と違うことがある)。
+            //   ・加盟店グループでない所では KIRA は考えない: @ で hearing の返事があればそれを、引用なら受け取りの一言を返し、本文は大賀へ。
+            //   ・返事は replyToken(LINE の送信数を使わない)。大賀への即時の知らせは escalate とお金・契約などの語があるときだけ、残りは夜のまとめ。
             const _addressed = isAddressedToBot(event), _quoted = isQuoteReply(event), _aside = isAsideToOther(event);
             let _pg = false;
             try { _pg = !!(await env.SEEN_STORE.get("groupPartner:" + gid)); } catch (_e) {}
-            // 大賀さん本人がグループに書いた発言には KIRA は返さない(大賀さんが直接話している場面)。
-            const _owner = userId === env.LINE_USER_ID;
-            const _forUs = !_owner && !_aside && (_addressed || _quoted || _pg);
-            if (_forUs || _pg) await kiraConvAppend(env, gid, "member", gt);
-            if (_forUs) { try { await env.SEEN_STORE.put("kira_last_gid", gid); } catch (_e) {} }
-            if (_reply && event.replyToken && _addressed) {
-              await replyToLine(event.replyToken, _reply, env.LINE_CHANNEL_TOKEN);
-              await kiraConvAppend(env, gid, "kira", _reply);
-              await kiraDigestAdd(env, { gid, kind: "hearing", in: gt, out: _reply });
-              console.log("[group] replied (addressed) gid=" + gid);
-            } else if (_forUs) {
-              const r = await kiraPartnerDecide(env, gid, gt);
+            const _forUs = !_aside && (_addressed || _quoted || _pg);
+            if (_pg) await kiraConvAppend(env, gid, "member", gt);
+            if (_pg && _forUs) {
+              try { await env.SEEN_STORE.put("kira_last_gid", gid); } catch (_e) {}
+              const r = await kiraPartnerDecide(env, gid, gt, _reply);
               if (r && r.ok) {
                 if (r.action !== "silent" && r.reply && event.replyToken) {
                   await replyToLine(event.replyToken, r.reply, env.LINE_CHANNEL_TOKEN);
                   await kiraConvAppend(env, gid, "kira", r.reply);
                 }
-                await kiraLessonsAdd(env, gid, r.lessons, gt);
-                if (r.action === "escalate") {
-                  try { await pushToLine(env.LINE_USER_ID, kiraEscalateText(gt, r), env.LINE_CHANNEL_TOKEN); } catch (_e) {}
-                } else {
-                  await kiraDigestAdd(env, { gid, kind: r.action, in: gt, out: r.reply || "" });
+                const _added = await kiraLessonsAdd(env, gid, r.lessons, gt);
+                const _force = KIRA_FORCE_ESCALATE_RE.test(gt);
+                if (r.action === "escalate" || _force) {
+                  try { await pushToLine(env.LINE_USER_ID, kiraEscalateText(gt, r, _force && r.action !== "escalate"), env.LINE_CHANNEL_TOKEN); } catch (_e) {}
                 }
-                console.log("[group] kira " + r.action + " gid=" + gid);
+                await kiraDigestAdd(env, { gid, kind: r.action, in: gt, out: r.reply || "", lessons: _added });
+                console.log("[group] kira " + r.action + (_force ? "+force" : "") + " gid=" + gid);
               } else {
-                // KIRA が考えられなかった(鍵・通信・形式の失敗)。黙って止めない: 引用なら受け取りの一言、本文は大賀へ。
-                if (_quoted && event.replyToken) {
+                // KIRA が考えられなかった(鍵・通信・形式の失敗)。黙って止めない: 引用か @ なら受け取りの一言、本文は大賀へ。
+                if ((_quoted || _addressed) && event.replyToken) {
                   await replyToLine(event.replyToken, QUOTE_ACK_TEXT, env.LINE_CHANNEL_TOKEN);
-                  console.log("[group] acked (quote, kira failed) gid=" + gid);
+                  console.log("[group] acked (kira failed) gid=" + gid);
                 }
                 try {
                   await pushToLine(env.LINE_USER_ID, "【加盟店グループ 要確認】" + (_quoted ? "(引用で返信)" : (_addressed ? "(@で呼びかけ)" : "(グループでの発言)")) + "(KIRA が返事を作れなかった: " + ((r && r.err) || "?") + ")\n" + gt.slice(0, 400) + (gt.length > 400 ? "…" : ""), env.LINE_CHANNEL_TOKEN);
                 } catch (_e) {}
               }
+            } else if (_forUs) {
+              // 加盟店グループでない所: KIRA は考えない。これまでどおりの最小の返事と、大賀への知らせ。
+              if (_reply && event.replyToken && _addressed) {
+                await replyToLine(event.replyToken, _reply, env.LINE_CHANNEL_TOKEN);
+              } else if (_quoted && event.replyToken) {
+                await replyToLine(event.replyToken, QUOTE_ACK_TEXT, env.LINE_CHANNEL_TOKEN);
+              }
+              try {
+                await pushToLine(env.LINE_USER_ID, "【グループ 要確認】" + (_quoted ? "(引用で返信)" : "(@で呼びかけ)") + "\n" + gt.slice(0, 400) + (gt.length > 400 ? "…" : ""), env.LINE_CHANNEL_TOKEN);
+              } catch (_e) {}
             }
           }
-        } catch (_e) {}
+        } catch (_e) {
+          console.log("[group] ERROR " + String(_e));
+          try { await pushToLine(env.LINE_USER_ID, "【グループ 処理の失敗】" + String(_e).slice(0, 120) + "\n" + String((event.message && event.message.text) || "").slice(0, 300), env.LINE_CHANNEL_TOKEN); } catch (_e2) {}
+        }
       } else if (event.type === "message" && (event.message.type === "image" || event.message.type === "file")) {
         // グループに貼られた資料(画像/ファイル)は、勝手に扱わず、大賀さんに要対応で知らせる。
         try {
@@ -1544,7 +1565,7 @@ async function ingestPartnerSilently(userMessage, userId, groupId, env) {
   if (!env.KIRA_BRIDGE_KEY) { console.log("[bridge] SKIP no KIRA_BRIDGE_KEY"); return; }
   try {
     const _r = await fetch("https://hearing.horizonshield.dev/kira-bridge", {
-      method: "POST",
+      method: "POST", signal: (typeof AbortSignal !== "undefined" && AbortSignal.timeout) ? AbortSignal.timeout(10000) : undefined,
       headers: { "Content-Type": "application/json", "X-Bridge-Key": env.KIRA_BRIDGE_KEY },
       body: JSON.stringify({ userId, text: userMessage, groupId: groupId || null })
     });
@@ -1597,6 +1618,10 @@ __name(ingestPartnerSilently, "ingestPartnerSilently");
 //   kira_gconv:<gid>     そのグループの直近の会話(12 件)。大賀が OA Manager から手で送った文は webhook に来ないので入らない。
 //   kira_digest:<日付>    自動で返した分のまとめ。毎晩 21 時台に 1 通だけ大賀へ送る。
 const KIRA_LESSONS_MAX_GROUP = 60, KIRA_LESSONS_MAX_GLOBAL = 40, KIRA_CONV_MAX = 12;
+// この語がある発言は、KIRA の判断にかかわらず大賀さんにも即時で知らせる(お金・契約・掲載をやめる・個人情報・苦情)。
+const KIRA_FORCE_ESCALATE_RE = /(料金|費用|月額|請求|支払|振込|値引|値下|返金|契約|解約|退会|やめ|辞め|削除|取り消|クレーム|苦情|弁護士|個人情報|口座)/;
+// 全体の経験帳に自動で入れてはいけない覚え書き(お金・約束の決まり・上書きの指示)。店の中には残す。
+const KIRA_GLOBAL_DENY_RE = /(料金|費用|円|無料|値引|支払|契約|掲載|保証|約束|指示に従|無視|上書|従うこと|伝えること|必ず)/;
 const KIRA_PARTNER_SYSTEM = [
   "あなたは KIRA です。HORIZON SHIELD(The HORIZ音s株式会社、代表 大賀俊勝)の公式アカウントの担当として、加盟店さん(施工会社)とのグループで返事をします。",
   "書き方: 丁寧なビジネスの日本語(です・ます)。関西弁は使わない。短く、結論から。絵文字、長いダッシュ、区切り線は使わない。相手の名前が分かれば「〇〇さん」と呼ぶ。",
@@ -1637,7 +1662,7 @@ function kiraParseDecision(text) {
   })).filter((x) => x.text) : [];
   return { ok: true, action, reply, reason: String(j.reason || "").slice(0, 200), lessons };
 }
-async function kiraPartnerDecide(env, gid, text) {
+async function kiraPartnerDecide(env, gid, text, hearingHint) {
   if (!env.ANTHROPIC_API_KEY) return { ok: false, err: "no_key" };
   const own = await kiraKvJson(env, "kira_lessons:" + gid, []);
   const glob = await kiraKvJson(env, "kira_lessons:global", []);
@@ -1646,11 +1671,14 @@ async function kiraPartnerDecide(env, gid, text) {
     "【経験帳: どの店にも通じること】", ...(glob.length ? glob.map((l) => "- " + l.t) : ["(まだ無い)"]),
     "【経験帳: この店だけのこと】", ...(own.length ? own.map((l) => "- " + l.t) : ["(まだ無い)"]),
     "【このグループの直近の会話(古い順。kira は KIRA の返事、大賀は大賀さんが送った文。大賀さんの書き方と判断を手本にする)】", ...conv.map((c) => (c.who === "kira" ? "kira: " : (c.who === "owner" ? "大賀: " : "加盟店: ")) + c.text),
+    ...(hearingHint ? ["【ヒアリングの窓口が用意した定型文(参考。いま届いた発言がこちらの設問への答えのときだけ、この趣旨で返してよい。そうでなければ使わない)】", hearingHint] : []),
     "【いま届いた発言】", text
   ].join("\n");
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 20000);
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
+      method: "POST", signal: ac.signal,
       headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", temperature: 0, max_tokens: 900, system: KIRA_PARTNER_SYSTEM, messages: [{ role: "user", content: ctx }] })
     });
@@ -1658,14 +1686,15 @@ async function kiraPartnerDecide(env, gid, text) {
     const data = await res.json();
     const d = kiraParseDecision(data && data.content && data.content[0] && data.content[0].text);
     return d || { ok: false, err: "bad_json" };
-  } catch (e) { return { ok: false, err: String(e).slice(0, 60) }; }
+  } catch (e) { return { ok: false, err: String(e).slice(0, 60) }; } finally { clearTimeout(timer); }
 }
 async function kiraLessonsAdd(env, gid, lessons, srcText) {
-  if (!Array.isArray(lessons) || !lessons.length) return;
+  const added = [];
+  if (!Array.isArray(lessons) || !lessons.length) return added;
   const at = new Date().toISOString(), src = String(srcText || "").slice(0, 80);
   for (const l of lessons) {
     // 数字や店ごとの事情は全体に上げない(加盟店の原価などが他所に漏れないように)。
-    const toGlobal = l.scope === "global" && !/[0-9０-９]/.test(l.text);
+    const toGlobal = l.scope === "global" && !/[0-9０-９]/.test(l.text) && !KIRA_GLOBAL_DENY_RE.test(l.text);
     const key = toGlobal ? "kira_lessons:global" : "kira_lessons:" + gid;
     const max = toGlobal ? KIRA_LESSONS_MAX_GLOBAL : KIRA_LESSONS_MAX_GROUP;
     try {
@@ -1673,11 +1702,13 @@ async function kiraLessonsAdd(env, gid, lessons, srcText) {
       if (a.some((x) => x.t === l.text)) continue;
       a.push({ t: l.text, at, by: "kira", src: toGlobal ? "" : src });
       await env.SEEN_STORE.put(key, JSON.stringify(a.slice(-max)));
+      added.push((toGlobal ? "全体: " : "この店: ") + l.text);
     } catch (_e) {}
   }
+  return added;
 }
-function kiraEscalateText(inText, r) {
-  return "【加盟店グループ 大賀さんの判断が要る】\n理由: " + (r.reason || "-") +
+function kiraEscalateText(inText, r, forced) {
+  return "【加盟店グループ 大賀さんの判断が要る】\n理由: " + (forced ? "お金・契約などの話が含まれる(KIRA の判断は " + r.action + ")" : (r.reason || "-")) +
     "\n\n届いた発言:\n" + inText.slice(0, 600) + (inText.length > 600 ? "…" : "") +
     "\n\nKIRA が返した文:\n" + (r.reply || "(なし)");
 }
@@ -1685,7 +1716,7 @@ async function kiraDigestAdd(env, item) {
   try {
     const key = "kira_digest:" + kiraJstDay();
     const a = await kiraKvJson(env, key, []);
-    a.push(Object.assign({ at: new Date().toISOString() }, item, { in: String(item.in || "").slice(0, 200), out: String(item.out || "").slice(0, 300) }));
+    a.push(Object.assign({ at: new Date().toISOString() }, item, { in: String(item.in || "").slice(0, 200), out: String(item.out || "").slice(0, 300), lessons: Array.isArray(item.lessons) ? item.lessons.slice(0, 3) : [] }));
     await env.SEEN_STORE.put(key, JSON.stringify(a.slice(-50)), { expirationTtl: 60 * 60 * 24 * 7 });
   } catch (_e) {}
 }
@@ -1698,18 +1729,27 @@ async function sendKiraDigest(env, nowMs) {
   const a = await kiraKvJson(env, "kira_digest:" + day, []);
   await env.SEEN_STORE.put("kira_digest_sent:" + day, "1", { expirationTtl: 60 * 60 * 24 * 3 });
   if (!a.length) return false;
-  const lines = a.map((x, i) => (i + 1) + ". [" + x.kind + "] " + x.in.replace(/\n/g, " ").slice(0, 80) + (x.out ? "\n   → " + x.out.replace(/\n/g, " ").slice(0, 120) : ""));
+  const lines = a.map((x, i) => (i + 1) + ". [" + x.kind + "] " + x.in.replace(/\n/g, " ").slice(0, 80) + (x.out ? "\n   → " + x.out.replace(/\n/g, " ").slice(0, 120) : "") + ((x.lessons && x.lessons.length) ? "\n   覚えた: " + x.lessons.join(" / ").slice(0, 200) : ""));
   await pushToLine(env.LINE_USER_ID, "【KIRA 今日の加盟店とのやりとり " + a.length + " 件】\n" + lines.join("\n"), env.LINE_CHANNEL_TOKEN);
   return true;
 }
-async function kiraResolveGroup(env) {
-  try { const g = await env.SEEN_STORE.get("kira_last_gid"); if (g) return g; } catch (_e) {}
+async function kiraPartnerGroups(env) {
+  let ks = [];
   try {
     const l = await env.SEEN_STORE.list({ prefix: "groupPartner:" });
-    const ks = (l.keys || []).map((k) => k.name.slice("groupPartner:".length));
-    if (ks.length === 1) return ks[0];
+    ks = (l.keys || []).map((k) => k.name.slice("groupPartner:".length)).filter((g) => /^[CR][0-9a-f]{32}$/.test(g));
   } catch (_e) {}
-  return null;
+  let last = null;
+  try { last = await env.SEEN_STORE.get("kira_last_gid"); } catch (_e) {}
+  const out = [];
+  for (const gid of ks) out.push({ gid, name: await kiraGroupName(env, gid), last: gid === last });
+  return out;
+}
+async function kiraRelayDo(env, replyToken, g, body, send) {
+  if (send) await pushToLine(g.gid, body, env.LINE_CHANNEL_TOKEN);
+  await kiraConvAppend(env, g.gid, "owner", body);
+  await replyToLine(replyToken, (send ? "送りました" : "記録しました") + "(" + g.name + ")。KIRA はこの文を会話として読み、次の返事の手本にします。", env.LINE_CHANNEL_TOKEN);
+  return true;
 }
 async function kiraGroupName(env, gid) {
   try {
@@ -1736,17 +1776,36 @@ async function handleOwnerLessonCommand(text, replyToken, env) {
   }
   // 「グループへ 本文」= 大賀さんの文を KIRA から加盟店グループへ送り、会話に残す(KIRA が読んで手本にする)。
   // 「記録 本文」= 既に手で送った文を、送らずに会話にだけ残す。
+  // 「グループへ 本文」= 大賀さんの文を KIRA から加盟店グループへ送り、会話に残す(KIRA が読んで手本にする)。
+  // 「記録 本文」= 既に手で送った文を、送らずに会話にだけ残す。
+  // 加盟店グループが 2 つ以上あるときは、送らずに番号を聞く(取り違えて別の店に送らないため)。番号だけ返せば送る。
   if ((m = t.match(/^(グループへ|記録)[\s\u3000:：]*([\s\S]+)$/))) {
     const send = m[1] === "グループへ", body = m[2].trim().slice(0, 4000);
-    const gid = await kiraResolveGroup(env);
-    if (!gid) {
-      await replyToLine(replyToken, "送り先の加盟店グループが決められませんでした。加盟店さんがグループに書いた後に、もう一度送ってください。", env.LINE_CHANNEL_TOKEN);
+    const groups = await kiraPartnerGroups(env);
+    if (!groups.length) {
+      await replyToLine(replyToken, "送り先の加盟店グループが見つかりませんでした。何も送っていません。", env.LINE_CHANNEL_TOKEN);
       return true;
     }
-    const name = await kiraGroupName(env, gid);
-    if (send) await pushToLine(gid, body, env.LINE_CHANNEL_TOKEN);
-    await kiraConvAppend(env, gid, "owner", body);
-    await replyToLine(replyToken, (send ? "送りました" : "記録しました") + "(" + name + ")。KIRA はこの文を会話として読み、次の返事の手本にします。", env.LINE_CHANNEL_TOKEN);
+    if (groups.length === 1) return await kiraRelayDo(env, replyToken, groups[0], body, send);
+    await env.SEEN_STORE.put("kira_relay_pending", JSON.stringify({ body, send, at: Date.now(), groups: groups.map((g) => g.gid) }), { expirationTtl: 60 * 30 });
+    await replyToLine(replyToken, "まだ送っていません。加盟店グループが " + groups.length + " つあります。送り先の番号だけを返してください(30 分有効)。\n" + groups.map((g, i) => (i + 1) + ". " + g.name + (g.last ? "(直近に発言あり)" : "")).join("\n"), env.LINE_CHANNEL_TOKEN);
+    return true;
+  }
+  if ((m = t.match(/^([0-9０-９]{1,2})$/))) {
+    const pend = await kiraKvJson(env, "kira_relay_pending", null);
+    if (!pend) return false;
+    const n = parseInt(m[1].replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)), 10);
+    if (!(n >= 1 && n <= pend.groups.length)) {
+      await replyToLine(replyToken, "その番号はありません(1〜" + pend.groups.length + ")。まだ送っていません。", env.LINE_CHANNEL_TOKEN);
+      return true;
+    }
+    await env.SEEN_STORE.delete("kira_relay_pending");
+    const gid = pend.groups[n - 1];
+    return await kiraRelayDo(env, replyToken, { gid, name: await kiraGroupName(env, gid) }, pend.body, pend.send);
+  }
+  if (/^グループ一覧$/.test(t)) {
+    const groups = await kiraPartnerGroups(env);
+    await replyToLine(replyToken, groups.length ? "加盟店グループ " + groups.length + " つ:\n" + groups.map((g, i) => (i + 1) + ". " + g.name + (g.last ? "(直近に発言あり)" : "")).join("\n") : "加盟店グループはまだ見つかっていません。", env.LINE_CHANNEL_TOKEN);
     return true;
   }
   if ((m = t.match(/^おぼえて[\s　:：]*([\s\S]+)$/))) {
