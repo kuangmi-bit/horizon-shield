@@ -365,6 +365,11 @@ This is a remote MCP server. Point any MCP client at the endpoint.
 
 If your client supports remote MCP servers directly, use the endpoint URL above.
 
+### In Claude, without configuration
+
+The construction cost data server (`https://ccdb.horizonshield.dev/mcp`, fifteen read-only tools for JCCDB and USCCDB) is listed in the Claude connector directory after Anthropic's automated review: https://claude.ai/directory/connectors/horizon-shield-construction-cost-data . Open the page in Claude and press Connect; no key and no account with us. It is a community connector, which means it passed the automated review and is not verified by Anthropic.
+<!-- claude-directory-v1 -->
+
 ## Example
 
 ```
