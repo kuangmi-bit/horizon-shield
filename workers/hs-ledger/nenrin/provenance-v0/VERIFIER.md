@@ -187,10 +187,10 @@ weakness it is said so, with the fix.
   with the runtime's date parser, which accepts some impossible values (2026-02-30 rolled to 2026-03-02, hour 24, year
   0000) and rejects second 60. A conforming verifier MUST reject impossible calendar dates, hour 24 and second 60; the
   reference is being brought to that rule in its next release. No corpus vector depends on it.
-- **Base64.** The reference decodes leniently (characters outside the alphabet ignored, - and _ read as + and /,
-  padding optional, unused trailing bits ignored). Only the decoded 64 bytes are verified, so two encodings of the same
-  signature verify alike. A verifier that rejects non-canonical encodings may refuse where the reference accepts; no
-  corpus vector depends on it.
+- **Base64.** A conforming verifier MUST accept only canonical standard base64 (RFC 4648 section 4: the standard
+  alphabet, padding present, no whitespace, unused trailing bits zero), so one signature has one encoding. Known
+  weakness: the reference decodes leniently (missing padding, - and _, ignored characters) and accepts such strings;
+  it is brought to the rule in its next release, together with the date rule. No corpus vector depends on it.
 - **Ed25519.** Verification as performed by OpenSSL (RFC 8032 with OpenSSL's checks). Crafted small-order or
   non-canonical signatures are not in the corpora.
 - **Key resolution.** In the offline interop setting only did:key resolves. Parties named by an https origin need an
