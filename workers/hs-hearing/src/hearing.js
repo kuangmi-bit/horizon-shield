@@ -1900,7 +1900,10 @@ function pendingAskedTexts(ap) {
   return out.join("\n");
 }
 
-async function handlePartnerInbound(env, storeId, store, text, source) {
+async function handlePartnerInbound(env, storeId, store, text, source, opts) {
+  // 2026-10-05 kiraDecides: 返事は KIRA(hs-kira-line)が決める。ここは記録と取り込みだけをして、
+  //   AI の返事を作らず、作っていない返事を大賀に「自動で回答した」と知らせない(送られていない文の知らせは誤報になる)。
+  const kiraDecides = !!(opts && opts.kiraDecides);
   const raw = String(text || "").trim();
   const company = (store && store.company) || "";
   const src = source || "line";
@@ -1933,6 +1936,7 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
   //    そのときでも、掲載料・支払い・いくらか等、こちらへのお金の問い合わせなら、これまでどおり大賀に回す。
   const answeringUs = hasEcho || CONCIERGE.askedAboutPrices(_askedAll);
   if (CONCIERGE.MONEY_WORDS_RE.test(t) && (!answeringUs || CONCIERGE.FEE_INQUIRY_RE.test(t))) {
+    if (kiraDecides) return { kind: "money", res: null, reply: "", asked: sp.echo || _askedText };
     try { await notify(env, "[Yakumo] 金額に関する問い合わせ。要対応(大賀が案内): store=" + storeId + " src=" + src + " / " + t.slice(0, 120)); } catch (_e) {}
     return { kind: "money", res: null, reply: "料金・金額については、担当の大賀からご案内します。少々お待ちください。" };
   }
@@ -1953,6 +1957,7 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
       AP.noteEngagement(store);
       try { await AP.putStore(env, store, src + ":質問(engaged)"); } catch (_e) {}
     }
+    if (kiraDecides) return { kind: "question", res: null, reply: "", facts: CONCIERGE.FACT_SHEET.slice() };
     const ans = await conciergeAnswer(env, t, { company });
     try { await notify(env, "[Yakumo] 加盟店から質問。窓口が自動で回答(要確認): "
       + (company || storeId) + " src=" + src + " / 問=" + t.slice(0, 90) + " / 答=" + String(ans).slice(0, 90)); } catch (_e) {}
@@ -1972,6 +1977,11 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
   const _apAfter = await env.HS_HEARING_KV.get("store:" + storeId, "json");
   const _attrib = ((_apAfter && _apAfter.autopilot) || {}).last_attributed || "";
   if (_attrib === "ambiguous" || _attrib === "ambiguous_waves") {
+    if (kiraDecides) {
+      try { await notify(env, "[Yakumo] 切り分け不能(" + _attrib + ")。返事は KIRA が出す。どの設問の答えか人が当て直すこと: "
+        + (company || storeId) + " src=" + src + " / " + t.slice(0, 80)); } catch (_e) {}
+      return { kind: "answer-uncertain", res, reply: "", asked: sp.echo || _askedText };
+    }
     try { await notify(env, "[Yakumo] 切り分け不能(" + _attrib + ")のため定型で返信。人が当て直すこと: "
       + (company || storeId) + " src=" + src + " / " + t.slice(0, 80)); } catch (_e) {}
     // 2026-09-30 こちらの設問を貼って答えてくださったときに「取り違えているかもしれない」とは返さない。
@@ -1984,18 +1994,20 @@ async function handlePartnerInbound(env, storeId, store, text, source) {
 
   // 必須項目が足りず保留のとき。分かるところだけで良い旨を、正直に返す。
   if (!res.ok && res.reason === "missing-required") {
+    if (kiraDecides) return { kind: "answer-missing", res, reply: "", asked: sp.echo || _askedText };
     try { await notify(env, "[Yakumo] 回答あり(必須項目が不足のため保留): "
       + (company || storeId) + " src=" + src + " 本文=" + t.slice(0, 80)); } catch (_e) {}
     return { kind: "answer-missing", res, reply: "ありがとうございます。もう少しだけ、社名・地域(市区町村)・"
       + "対応の内容が分かるように教えていただけますか。分かるところだけで結構です。" };
   }
 
+  if (kiraDecides) return { kind: "answer", res, reply: "", asked: sp.echo || _askedText };
   const smart = await aiPartnerReply(env, t, { company, asked: sp.echo || _askedText });
   try { await notify(env, "[Yakumo] " + src + "の回答にAI応答: " + (company || storeId) + " / " + t.slice(0, 60)); } catch (_e) {}
   return { kind: "answer", res, reply: smart || "受け取りました。ありがとうございます。内容は運営事務局で確認します。お急ぎのご用件でしたら、その旨をお書きください。" };
 }
 
-async function handleKiraBridge(env, userId, text, groupId, estimates) {
+async function handleKiraBridge(env, userId, text, groupId, estimates, opts) {
   const t = String(text || "").trim();
   let storeId = await env.HS_HEARING_KV.get("line2store:" + userId, "text");
 
@@ -2178,8 +2190,12 @@ async function handleKiraBridge(env, userId, text, groupId, estimates) {
   //   見積書は監査キューへ(業種決定の入口と同じく、ここでも積む)。
   if (Array.isArray(estimates) && estimates.length) { try { await appendEstimatesForAudit(env, storeId, estimates); } catch (_e) {} }
   const store = await env.HS_HEARING_KV.get("store:" + storeId, "json");
-  const outcome = await handlePartnerInbound(env, storeId, store, t, "line");
-  return { ok: true, reply: outcome.reply };
+  const outcome = await handlePartnerInbound(env, storeId, store, t, "line", opts);
+  // 2026-10-05 kind を返す。kind がある返事は「窓口の判断」で、KIRA が決め直してよい。kind が無い返事(登録コード・業種の問い)は手続きの一歩なので、そのまま送る。
+  const out = { ok: true, reply: outcome.reply, kind: outcome.kind };
+  if (outcome.asked) out.asked = String(outcome.asked).slice(0, 600);
+  if (Array.isArray(outcome.facts)) out.facts = outcome.facts;
+  return out;
 }
 
 async function appendEstimatesForAudit(env, storeId, estimates) {
@@ -2611,7 +2627,7 @@ export default {
       const uid = safeStr(bb.userId, 64);
       if (!/^U[0-9a-f]{32}$/.test(uid)) return json({ error: "bad_user" }, 400);
       const gid = /^[CR][0-9a-f]{32}$/.test(safeStr(bb.groupId || "", 64)) ? safeStr(bb.groupId || "", 64) : null;
-      const out = await handleKiraBridge(env, uid, safeStr(bb.text, 6000), gid, Array.isArray(bb.estimates) ? bb.estimates : []);
+      const out = await handleKiraBridge(env, uid, safeStr(bb.text, 6000), gid, Array.isArray(bb.estimates) ? bb.estimates : [], { kiraDecides: bb.kira_decides === true });
       return json(out);
     }
     // KIRA(hs-kira-line)から: 加盟店が送った見積を審査材料(estimates_for_audit)に積む。共有鍵必須。

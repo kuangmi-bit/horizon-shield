@@ -34,7 +34,7 @@ for (const f of fs.readdirSync(SRCDIR)) {
   let body = fs.readFileSync(path.join(SRCDIR, f), "utf8");
   body = body.replace(/from "\.\/([a-z0-9_]+)\.js"/g, 'from "./$1.mjs"');
   if (f === "hearing.js") {
-    for (const name of ["handlePartnerInbound", "handleLineWebhook"]) {
+    for (const name of ["handlePartnerInbound", "handleLineWebhook", "handleKiraBridge"]) {
       if (!body.includes("export { " + name + " }") && !body.includes(name + " };")) {
         body += "\nexport { " + name + " };\n";
       }
@@ -192,8 +192,61 @@ console.log("\n5) LINE Webhook を丸ごと通して、質問に窓口が答え�
   check("生の質問は残している(partnerq:)", has(env, "partnerq:"));
 }
 
+/* --- 6. 2026-10-05 kiraDecides: 返事は KIRA が決める。窓口は記録と取り込みだけ ----------
+   hs-kira-line が kira_decides:true を付けて来たとき、ここで AI の返事を作らない。
+   作っていない返事を「窓口が自動で回答」と大賀に知らせない(送られていない文の知らせは誤報)。
+   記録(partnerq: / hearing:)と engaged は、これまでどおり残す。 */
+console.log("\n6) kiraDecides: 窓口は返事を作らず、kind と材料だけ返す");
+{
+  const pushes = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes("api.line.me")) { try { pushes.push(JSON.parse(init.body)); } catch (_e) {} }
+    return { ok: true, status: 200, json: async () => ({}), text: async () => "" };
+  };
+  const withTok = (e) => { e.LINE_CHANNEL_TOKEN = "t"; e.LINE_USER_ID = "U" + "f".repeat(32); return e; };
+
+  let env = withTok(makeEnv()); let store = seedStore(env);
+  let out = await H.handlePartnerInbound(env, SID, store, "今シートの記載をしてますが、これは途中で止めたらダメになっちゃいますか？", "line", { kiraDecides: true });
+  check("質問: kind は question", out.kind === "question", out.kind);
+  check("質問: 返事を作らない(reply 空)", out.reply === "", JSON.stringify(out.reply));
+  check("質問: 答えてよい事実を渡す(facts)", Array.isArray(out.facts) && out.facts.some((f) => f.includes("途中で止めても大丈夫")));
+  check("質問: 生の質問は残す(partnerq:)", has(env, "partnerq:"));
+  check("質問: engaged は残す(penalty=0)", (readStore(env).autopilot.penalty || 0) === 0);
+  check("質問: 『窓口が自動で回答』の知らせを出さない", pushes.length === 0, pushes.length + " 通");
+
+  pushes.length = 0; env = withTok(makeEnv()); store = seedStore(env);
+  out = await H.handlePartnerInbound(env, SID, store, "掲載の料金はいくらですか？", "line", { kiraDecides: true });
+  check("金額: kind は money", out.kind === "money", out.kind);
+  check("金額: 返事を作らない", out.reply === "");
+  check("金額: 取り込まない(hearing: 無し)", !has(env, "hearing:"));
+
+  pushes.length = 0;
+  env = withTok(makeEnv({ company: "さざなみ訪問看護ステーション", area: "平塚市", works: ["点滴の管理", "服薬管理"] })); store = seedStore(env);
+  out = await H.handlePartnerInbound(env, SID, store, "1) 常勤4名です\n2) 加算は2つ取っています", "line", { kiraDecides: true });
+  check("回答: kind は answer 系", /^answer/.test(out.kind || ""), out.kind);
+  check("回答: 取り込む(hearing:)", has(env, "hearing:"));
+  check("回答: 返事を作らない", out.reply === "");
+  check("回答: 尋ねていた設問を渡す(asked)", String(out.asked || "").includes("協力の条件"), out.asked);
+
+  pushes.length = 0; env = withTok(makeEnv()); store = seedStore(env);
+  out = await H.handlePartnerInbound(env, SID, store, "今シートの記載をしてますが、これは途中で止めたらダメになっちゃいますか？", "line");
+  check("印が無ければ従来どおり窓口が答える", out.reply.includes("途中で止めても大丈夫"));
+
+  // 橋の口: kind と facts が返り、kind の無い手続き(業種の問い)は従来どおり文を返す
+  env = withTok(makeEnv()); seedStore(env);
+  const U1 = "U" + "1".repeat(32);
+  env._kv.set("line2store:" + U1, SID);
+  let b = await H.handleKiraBridge(env, U1, "あとで続きから書けますか？", null, [], { kiraDecides: true });
+  check("橋: kind=question と facts を返す", b.ok && b.kind === "question" && Array.isArray(b.facts) && b.reply === "", JSON.stringify(b).slice(0, 120));
+  const U2 = "U" + "2".repeat(32);
+  b = await H.handleKiraBridge(env, U2, "はじめまして", null, [], { kiraDecides: true });
+  check("橋: 初回(業種の問い)は kind 無しで文を返す", b.ok && !b.kind && !!b.reply, JSON.stringify(b).slice(0, 120));
+  globalThis.fetch = realFetch;
+}
+
 /* 走らなかった試験は、通った試験と見分けがつかない。数を数えて、減ったら落とす。 */
-const EXPECT = 26;
+const EXPECT = 42;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) {
   console.log("  NG   試験がまるごと走っていません。途中で止まっていないか見てください。");

@@ -59,11 +59,12 @@ async function send(env, events, opts) {
 let calls = [];
 let bridgeReply = "ご回答ありがとうございます。いただいた内容は担当の大賀が確認し、掲載に反映します。";
 let llmOut = null;
+let bridgeExtra = {}, bridgeStatus = 200;
 globalThis.fetch = async (url, init) => {
   const u = String(url);
   let body = null; try { body = JSON.parse((init && init.body) || "null"); } catch (_e) { body = null; }
   calls.push({ url: u, body });
-  if (u.includes("/kira-bridge")) return new Response(JSON.stringify({ ok: true, reply: bridgeReply }), { status: 200 });
+  if (u.includes("/kira-bridge")) return bridgeStatus !== 200 ? new Response("down", { status: bridgeStatus }) : new Response(JSON.stringify(Object.assign({ ok: true, reply: bridgeReply }, bridgeExtra)), { status: 200 });
   if (u.includes("api.anthropic.com") && llmOut !== null) return new Response(JSON.stringify({ content: [{ type: "text", text: llmOut }] }), { status: 200 });
   return new Response("{}", { status: 200 });
 };
@@ -433,7 +434,145 @@ console.log("\n28) KIRA が「大賀から改めて」と返したのに reply �
   check("大賀さんに判断が要ると知らせた", pushes().length === 1 && pushes()[0].body.messages[0].text.includes("判断が要る"), String(pushes().length));
 }
 
-const EXPECT = 85;
+// ===== v17: 加盟店さんとの 1 対 1 も KIRA が返す =====
+const DMU = "U" + "d".repeat(32);
+const dmMsg = (text, id) => ({ type: "message", replyToken: "rt_dm", source: { type: "user", userId: DMU }, message: { type: "text", id: id || ("d" + Math.random().toString(36).slice(2)), text } });
+const llms = () => calls.filter((c) => c.url.includes("api.anthropic.com"));
+const llmCtx = () => { const l = llms()[0]; return (l && l.body && l.body.messages && l.body.messages[0].content) || ""; };
+async function dmEnv(rec) { const env = makeEnv(); await env.SEEN_STORE.put("partner:" + DMU, JSON.stringify(rec || { since: 1 })); return env; }
+const FACTS = ["・ヒアリングの用紙は、途中で止めても大丈夫。送信したところまで保存される。"];
+
+console.log("\n29) 1対1 の質問: hearing には kira_decides を付けて記録だけさせ、KIRA が台帳の事実で返す");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "question", facts: FACTS };
+  llmOut = JSON.stringify({ action: "reply", reply: "途中で止めても大丈夫です。送信したところまで保存されます。", reason: "", lessons: [] });
+  await send(env, [dmMsg("途中で止めたらダメになっちゃいますか？")]);
+  check("hearing に渡した", bridges().length === 1);
+  check("hearing に kira_decides:true を付けた", bridges()[0] && bridges()[0].body.kira_decides === true);
+  check("KIRA に 1対1 だと伝えた", llmCtx().includes("1 対 1 のトーク"));
+  check("KIRA に答えてよい事実を渡した", llmCtx().includes("答えてよい事実") && llmCtx().includes("途中で止めても大丈夫"));
+  check("replyToken で返した", replies().length === 1 && replies()[0].body.replyToken === "rt_dm");
+  check("返したのは KIRA の文", replies()[0] && replies()[0].body.messages[0].text.startsWith("途中で止めても大丈夫です"));
+  check("普通の返事では大賀へ即時の知らせを出さない", pushes().length === 0, String(pushes().length));
+  const conv = JSON.parse((await env.SEEN_STORE.get("kira_gconv:dm:" + DMU)) || "[]");
+  check("会話は 1対1 の帳に残す(相手の発言と KIRA の返事)", conv.length === 2 && conv[0].who === "member" && conv[1].who === "kira");
+  const dg = Object.values(Object.fromEntries([...(await env.SEEN_STORE.list({ prefix: "kira_digest:" })).keys].map((k) => [k.name, k.name])));
+  const dgv = dg.length ? JSON.parse(await env.SEEN_STORE.get(dg[0])) : [];
+  check("夜のまとめに 1対1 として載せる", dgv.length === 1 && dgv[0].where === "1対1");
+}
+
+console.log("\n30) 1対1 の手続きの一歩(kind の無い hearing の文: 業種の問い等)は、KIRA を通さずそのまま送る");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = "御社のご業種は、次のどれに近いですか。"; bridgeExtra = {};
+  llmOut = JSON.stringify({ action: "reply", reply: "x", reason: "", lessons: [] });
+  await send(env, [dmMsg("はじめまして")]);
+  check("KIRA は呼ばない", llms().length === 0);
+  check("hearing の文をそのまま返した", replies().length === 1 && replies()[0].body.messages[0].text === bridgeReply);
+}
+
+console.log("\n31) 1対1 のお金の話: KIRA が reply でも大賀へ即時");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "money" };
+  llmOut = JSON.stringify({ action: "reply", reply: "ご質問ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [dmMsg("掲載の料金はいくらですか？")]);
+  const p = pushes().map((c) => c.body.messages[0].text).join("\n");
+  check("大賀へ知らせた(1対1 と分かる見出し)", p.includes("加盟店 1対1") && p.includes("判断が要る"), p.slice(0, 60));
+  check("知らせにユーザーID を付けた", p.includes(DMU));
+}
+
+console.log("\n32) 1対1 で KIRA が考えられないとき: 受け取りの一言と大賀への知らせ");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer", asked: "対応エリアを教えてください" };
+  llmOut = "考え中です";
+  await send(env, [dmMsg("平塚市と茅ヶ崎市です")]);
+  check("受け取りの一言を返した", replies().length === 1 && replies()[0].body.messages[0].text.includes("担当の大賀"));
+  check("大賀へ要確認を知らせた", pushes().some((c) => c.body.messages[0].text.includes("1対1 要確認")));
+}
+
+console.log("\n33) 1対1 の再配達(同じ発言 id)には二度返さない");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer" };
+  llmOut = JSON.stringify({ action: "reply", reply: "ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [dmMsg("了解です", "same-dm-1")]);
+  await send(env, [dmMsg("了解です", "same-dm-1")]);
+  check("返事は 1 回", replies().length === 1, String(replies().length));
+  check("hearing への記録も 1 回", bridges().length === 1, String(bridges().length));
+}
+
+console.log("\n34) 1対1 で hearing が落ちていても、KIRA は返し、記録に入っていないと大賀へ知らせる");
+{
+  const env = await dmEnv();
+  calls = []; bridgeStatus = 500; bridgeExtra = {};
+  llmOut = JSON.stringify({ action: "reply", reply: "ありがとうございます。写真をお待ちしています。", reason: "", lessons: [] });
+  await send(env, [dmMsg("写真あとで送ります")]);
+  check("KIRA が返した", replies().length === 1 && replies()[0].body.messages[0].text.includes("写真"));
+  check("記録に入っていないと大賀へ知らせた", pushes().some((c) => c.body.messages[0].text.includes("渡せませんでした")));
+  bridgeStatus = 200;
+}
+
+console.log("\n35) 1対1 で hearing が落ちていて初めての「加盟店希望」なら、これまでの案内文を返す");
+{
+  const env = makeEnv();
+  calls = []; bridgeStatus = 500; llmOut = JSON.stringify({ action: "reply", reply: "x", reason: "", lessons: [] });
+  await send(env, [dmMsg("加盟店希望です")]);
+  check("案内文を返した", replies().length === 1 && replies()[0].body.messages[0].text.includes("加盟店ご担当者さま"));
+  check("KIRA は呼ばない", llms().length === 0);
+  check("大賀へ知らせた", pushes().length === 1);
+  bridgeStatus = 200;
+}
+
+console.log("\n36) 1対1 の設問への答え: 尋ねていた設問を KIRA に渡す。グループに属する人は、その店の経験帳を使う");
+{
+  const env = await dmEnv({ since: 1, via: "group_member", groupId: GID });
+  await env.SEEN_STORE.put("kira_lessons:" + GID, JSON.stringify([{ t: "森下さんは現場担当", at: "x", by: "kira" }]));
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer", asked: "代表的な施工事例を2〜3件教えてください" };
+  llmOut = JSON.stringify({ action: "reply", reply: "事例のご回答ありがとうございます。", reason: "", lessons: [{ scope: "partner", text: "町田市で内窓29本の事例あり" }] });
+  await send(env, [dmMsg("平塚市 窓カバー7本 内窓2本 / 町田市 内窓29本")]);
+  check("尋ねていた設問を渡した", llmCtx().includes("こちらが尋ねていた設問") && llmCtx().includes("代表的な施工事例"));
+  check("その店の経験帳を読んだ", llmCtx().includes("森下さんは現場担当"));
+  check("hearing に所属グループを渡した", bridges()[0] && bridges()[0].body.groupId === GID);
+  const own = JSON.parse((await env.SEEN_STORE.get("kira_lessons:" + GID)) || "[]");
+  check("覚えた事はその店の帳に入れた", own.some((x) => x.t.includes("内窓29本")));
+  const gconv = await env.SEEN_STORE.get("kira_gconv:" + GID);
+  check("1対1 の会話はグループの会話に混ぜない", !gconv || !gconv.includes("窓カバー"));
+}
+
+console.log("\n37) グループ: 加盟店グループでは hearing に kira_decides を付け、そうでないグループでは付けない");
+{
+  const env = makeEnv();
+  await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "question", facts: FACTS };
+  llmOut = JSON.stringify({ action: "reply", reply: "途中で止めても大丈夫です。", reason: "", lessons: [] });
+  await send(env, [groupMsg("途中で止めたらダメですか？", false)]);
+  check("加盟店グループ: kira_decides:true", bridges()[0] && bridges()[0].body.kira_decides === true);
+  check("加盟店グループ: KIRA に台帳の事実を渡した", llmCtx().includes("答えてよい事実"));
+  const env2 = makeEnv();
+  calls = []; bridgeExtra = {};
+  await send(env2, [groupMsg("こんにちは", false)]);
+  check("加盟店グループでない: kira_decides:false", bridges()[0] && bridges()[0].body.kira_decides === false);
+}
+bridgeExtra = {};
+
+console.log("\n38) 加盟店さんのお客さんへの説明の仕方を、KIRA が global と付けても全体の帳に上げない(予行で見つけた形)");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer", asked: "高いと言われたときの説明を教えてください" };
+  llmOut = JSON.stringify({ action: "reply", reply: "ありがとうございます。", reason: "", lessons: [{ scope: "global", text: "値上げで高いと言われたら、材料費の値上がりをそのまま説明することで対応できる" }, { scope: "global", text: "お礼は一言で短く返すと喜ばれる" }] });
+  await send(env, [dmMsg("高いと言われたら、材料の値上がりをそのまま説明しています")]);
+  const glob = JSON.parse((await env.SEEN_STORE.get("kira_lessons:global")) || "[]");
+  const own = JSON.parse((await env.SEEN_STORE.get("kira_lessons:u:" + DMU)) || "[]");
+  check("店のやり方は全体に入れない", !glob.some((x) => x.t.includes("材料費")), JSON.stringify(glob));
+  check("店の帳には残す", own.some((x) => x.t.includes("材料費")));
+  check("話し方の覚え書きは全体に入る", glob.some((x) => x.t.includes("お礼は一言")));
+}
+bridgeExtra = {};
+
+const EXPECT = 118;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");
