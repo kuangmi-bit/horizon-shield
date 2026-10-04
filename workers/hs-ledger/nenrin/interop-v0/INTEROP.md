@@ -32,6 +32,13 @@ To claim interoperability from another implementation: verify the five fixtures 
 ## Note
 Re-running make_interop_fixtures.mjs produces NEW fixtures with fresh keys. The committed fixtures/ and expected.json are the immutable reference; run_interop.mjs is the check.
 
+## Independent implementations
+Both by @kuangmi-bit (GitHub handle, by request), neither having read any NENRIN source:
+- 2026-10-04, Python, written from the specs: 5 of 5 here (A2A Discussion #1631, comment 18738206).
+- 2026-10-04, Python, written from provenance-v0/VERIFIER.md alone: 18 of 18 here and in ../interop-v0.1/, then the
+  36 vectors of ../interop-v0.2/edge/, whose expectations it cut (../interop-v0.2/edge/python/verify_edge.py, PR #30).
+The Python package nenrin-verify is a port by the reference's author and does not count.
+
 ## Extension vectors (interop-v0.1)
 This corpus stays frozen. ../interop-v0.1/ adds thirteen vectors in the same format, written after the first independent reimplementation (A2A Discussion #1631, 2026-10-04) reported where the specs forced a guess: the two readings of the linkage rule, the self_authorized grant, R1 witness independence, and every refusal code these five do not reach. Together the two corpora exercise all 14 refusal codes. A conforming implementation reproduces both expected.json files.
 

@@ -15,7 +15,8 @@ reference implementation was not read.
 
 ```sh
 cd workers/hs-ledger/nenrin/interop-v0.2/edge
-python3 python/run_edge.py
+python3 python/run_edge.py   # the independent implementation, which cut expected.json
+node run_edge.mjs            # the reference (../../sdk/nenrin_verify.mjs, published as nenrin-verify)
 ```
 
 Requires Python 3.10+ and `cryptography` (Ed25519 through OpenSSL, as section 5 pins). The runner exits

@@ -81,7 +81,7 @@
     {
       "who": "kuangmi-bit",
       "subject": "nenrin-provenance",
-      "what": "A second, separate verifier built from the text of VERIFIER.md alone: 18 of 18 on interop-v0 and interop-v0.1 (8 of 18 for the build from the older text), then 32 fixtures of interop-v0.2/edge with an independent runner",
+      "what": "A second, separate verifier built from the text of VERIFIER.md alone: 18 of 18 on interop-v0 and interop-v0.1 (8 of 18 for the build from the older text), then the 36 fixtures of interop-v0.2/edge (merged as PR #30), whose expectations it cut",
       "evidence": "https://github.com/a2aproject/A2A/discussions/1631#discussioncomment-18739314",
       "date": "2026-10-04"
     }
