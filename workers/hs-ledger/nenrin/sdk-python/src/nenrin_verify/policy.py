@@ -192,11 +192,16 @@ def _check_record(rec, sha):
     if not isinstance(rc, str) or hashlib.sha256(rc.encode("utf-8")).hexdigest() != sha:
         return "the record bytes you supplied do not hash to record_sha256", None
     if isinstance(rec, dict) and rec.get("signature_ed25519_b64") and rec.get("public_key_ed25519_b64"):
-        import base64
+        from .provenance import b64_exact, ed25519_key_ok
+        pk, sb = b64_exact(rec["public_key_ed25519_b64"], 32), b64_exact(rec["signature_ed25519_b64"], 64)
+        if pk is None or sb is None:
+            return ("the signature or public key is not canonical standard base64 "
+                    "(a 64-byte signature and a 32-byte key)"), False
+        if not ed25519_key_ok(pk):
+            return "the public key is not a usable Ed25519 key (it must be the canonical encoding of a point in the prime-order subgroup)", False
         try:
             from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-            Ed25519PublicKey.from_public_bytes(base64.b64decode(rec["public_key_ed25519_b64"])).verify(
-                base64.b64decode(rec["signature_ed25519_b64"]), rc.encode("utf-8"))
+            Ed25519PublicKey.from_public_bytes(pk).verify(sb, rc.encode("utf-8"))
             return None, True
         except Exception:
             return "the signature does not verify over the record bytes", False

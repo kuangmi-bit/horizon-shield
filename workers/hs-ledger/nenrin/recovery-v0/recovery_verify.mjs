@@ -13,8 +13,9 @@
 import { canonicalUtf8 } from "../agreement-v0/agreement_canonical.mjs";
 import { validate, SCHEMAS, PRIMITIVES } from "./recovery_schema.mjs";
 import { draw as drawWitnesses, normalizePool, commitmentClaimText } from "./witness_draw.mjs";
+import { b64Exact, ed25519KeyOk } from "../task-delegation-bind-v0/ed25519_key.mjs";
 
-export const VERIFIER_VERSION = "0.3.0"; // v2: random witness draw + quorum (v1: signed operator authorization)
+export const VERIFIER_VERSION = "0.3.1"; // v2: random witness draw + quorum (v1: signed operator authorization); 0.3.1: canonical base64 only
 const enc = new TextEncoder();
 
 export async function sha256Hex(bytes) {
@@ -39,16 +40,26 @@ export async function seal(record) {
   return r;
 }
 
-const b64ToBytes = (s) => Uint8Array.from(Buffer.from(s, "base64"));
 const bytesToB64 = (b) => Buffer.from(b).toString("base64");
+
+// From 0.3.1 (nenrin-verify 0.4.2) the key and the signature are read as canonical standard base64 only (b64Exact),
+// and the key must be a usable Ed25519 key (ed25519KeyOk: not a small-order point, canonical encoding). Before, both
+// were decoded leniently (missing padding, - and _, ignored characters) and any curve point was accepted as a key,
+// so a small-order key verified a signature made with no private key at all. Both live in
+// ../task-delegation-bind-v0/ed25519_key.mjs, shared with the provenance verifier's did:key resolution.
 
 // Ed25519 (witness intake と同じ欄名): canonical bytes への署名。
 export async function verifySignature(record) {
   const sig = record.signature_ed25519_b64, pub = record.public_key_ed25519_b64;
   if (!sig || !pub) return { ok: false, why: "signature_ed25519_b64 and public_key_ed25519_b64 must both be present" };
+  const pk = b64Exact(pub, 32);
+  if (!pk) return { ok: false, why: "public_key_ed25519_b64 must be a 32-byte Ed25519 key in canonical standard base64" };
+  if (!ed25519KeyOk(pk)) return { ok: false, why: "public_key_ed25519_b64 is not a usable Ed25519 key (it must be the canonical encoding of a point in the prime-order subgroup)" };
+  const sb = b64Exact(sig, 64);
+  if (!sb) return { ok: false, why: "signature_ed25519_b64 must be a 64-byte Ed25519 signature in canonical standard base64" };
   try {
-    const key = await globalThis.crypto.subtle.importKey("raw", b64ToBytes(pub), { name: "Ed25519" }, false, ["verify"]);
-    const ok = await globalThis.crypto.subtle.verify({ name: "Ed25519" }, key, b64ToBytes(sig), canonicalBytes(record));
+    const key = await globalThis.crypto.subtle.importKey("raw", pk, { name: "Ed25519" }, false, ["verify"]);
+    const ok = await globalThis.crypto.subtle.verify({ name: "Ed25519" }, key, sb, canonicalBytes(record));
     return ok ? { ok: true } : { ok: false, why: "Ed25519 signature does not verify over the canonical bytes" };
   } catch (e) {
     return { ok: false, why: "signature check failed: " + (e && e.message || e) };
@@ -131,7 +142,7 @@ export async function verifyWitnesses(verify, { ownHost, endpoint, executionSha2
   }
   let poolByDomain = null;
   if (pool) { try { poolByDomain = new Map(normalizePool(pool).map((e) => [e.signed_domain.toLowerCase(), e])); } catch { poolByDomain = null; } }
-  const answered = [], agreeing = [], disagreeing = [];
+  const answered = [], agreeing = [], disagreeing = [], keyVoted = new Set();
   const ext = Array.isArray(verify.external) ? verify.external : [];
   for (let n = 0; n < ext.length; n++) {
     const e = ext[n]; if (!e || !e.record) continue;   // v0 の自由形 (Agenstry の行など) は数えん、拒否もせん
@@ -153,6 +164,9 @@ export async function verifyWitnesses(verify, { ownHost, endpoint, executionSha2
     }
     answered.push(rec.source.signed_domain);
     if (agreeing.includes(dom) || disagreeing.includes(dom)) continue;   // 一 domain 一票 (11.4 counting)
+    const signer = rec.public_key_ed25519_b64;                           // 一 key 一票 (0.3.1): without a pool nothing ties a key to a domain,
+    if (keyVoted.has(signer)) continue;                                  // so one key signing for two domains counts once
+    keyVoted.add(signer);
     (subsetMatches(verify.expected_after, rec.observed) ? agreeing : disagreeing).push(dom);
   }
   if (q !== null && verify.recovered === true && agreeing.length < q) refuse("witness_quorum_short", "recovered is true but " + agreeing.length + " of the required " + q + " drawn witnesses observed the expected state (drawn " + drawn.length + ", answered " + answered.length + ", disagreeing " + disagreeing.length + ")");

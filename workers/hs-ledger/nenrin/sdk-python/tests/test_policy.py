@@ -107,3 +107,33 @@ def test_signatures_verified_here(tmp_path):
     bad[k0] = dict(bad[k0], signature_ed25519_b64=base64.b64encode(b"\0" * 64).decode())
     d = P.evaluate(r, {"require_verified_signature": True}, records=bad)
     assert not d["allow"] and any("does not verify" in x["why"] for x in d["not_counted"])
+
+
+def test_noncanonical_base64_is_not_counted():
+    """0.4.2: a record whose signature or key is not canonical standard base64 is not counted, even if it would decode."""
+    import base64
+    import hashlib
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    k = Ed25519PrivateKey.generate()
+    rc = '{"n":1}'
+    sha = hashlib.sha256(rc.encode()).hexdigest()
+    pub = base64.b64encode(k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
+    sig = base64.b64encode(k.sign(rc.encode())).decode()
+    good = {"record_canonical": rc, "public_key_ed25519_b64": pub, "signature_ed25519_b64": sig}
+    assert P._check_record(good, sha) == (None, True)
+    for bad in (dict(good, signature_ed25519_b64=sig.rstrip("=")), dict(good, signature_ed25519_b64=sig + "\n"),
+                dict(good, public_key_ed25519_b64=pub.rstrip("=")), dict(good, public_key_ed25519_b64=" " + pub)):
+        why, ok = P._check_record(bad, sha)
+        assert ok is False and "canonical standard base64" in why
+
+
+def test_small_order_key_is_not_counted():
+    """0.4.2: under a small-order key, R = identity and S = 0 verifies on every message; such a record is not counted."""
+    import hashlib
+    rc = '{"n":2}'
+    sha = hashlib.sha256(rc.encode()).hexdigest()
+    rec = {"record_canonical": rc, "public_key_ed25519_b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+           "signature_ed25519_b64": "AQ" + "A" * 84 + "=="}
+    why, ok = P._check_record(rec, sha)
+    assert ok is False and "usable Ed25519 key" in why

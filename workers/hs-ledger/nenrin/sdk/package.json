@@ -1,6 +1,6 @@
 {
   "name": "nenrin-verify",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Zero-dependency, consumer-runnable verifiers for NENRIN evidence: a provenance bundle (nenrin_verify.mjs), a two-party agreement record (nenrin-agreement-verify) and a TSUGI recovery chain with its random witness draw (tsugi_verify.mjs). The same reports as the Python package nenrin-verify. Verify yourself, offline, with no trust in the operator.",
   "type": "module",
   "main": "nenrin_verify.mjs",

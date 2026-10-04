@@ -1,4 +1,4 @@
-"""TSUGI recovery-chain verifier: the Python port of tsugi_verify.mjs (verifier 0.3.0), held to the same report.
+"""TSUGI recovery-chain verifier: the Python port of tsugi_verify.mjs (verifier 0.3.1), held to the same report.
 
 A TSUGI segment is one incident written as append-only records: drift+ -> proposal -> authorization -> execution ->
 verify. This module checks what the JavaScript checks, in the same order, with the same refusal codes and the same
@@ -32,16 +32,18 @@ import sys
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from ._js import (OBJECT_PROTOTYPE_KEYS, UNDEF, JSTypeError, NotReproduced, _JS_WS, _js_key_order, buffer_from,
+from ._js import (OBJECT_PROTOTYPE_KEYS, UNDEF, JSTypeError, NotReproduced, _JS_WS, _js_key_order,
                   is_num, loads, lower, nullish, number_to_string, prop, seq, stringify, to_number_js, to_string,
                   truthy, utf8)
 from ._url import URLFailure, url_host
+from .provenance import ed25519_key_ok
 
-VERIFIER_VERSION = "0.3.0"
+VERIFIER_VERSION = "0.3.1"
 
-# Node's WebCrypto rejects an Ed25519 raw public key that is not 32 bytes with a DOMException whose text depends on
-# the Node release: "Invalid keyData" from Node 24, "Ed25519 raw keys must be exactly 32-bytes" on Node 22. The
-# JavaScript verifier puts that text into the refusal; this port writes Node 24's.
+# Up to verifier 0.3.0, Node's WebCrypto rejected an Ed25519 raw public key that is not 32 bytes with a DOMException
+# whose text depends on the Node release ("Invalid keyData" from Node 24, "Ed25519 raw keys must be exactly 32-bytes"
+# on Node 22) and the refusal carried that text. From 0.3.1 the key is checked as canonical base64 of 32 bytes before
+# WebCrypto sees it, so no refusal depends on the Node release; the constant stays for the case tooling.
 KEY_LENGTH_MESSAGE = "Invalid keyData"
 
 
@@ -556,16 +558,38 @@ def record_sha256(record):
     return sha256_hex(canonical_bytes(record))
 
 
+_B64_STD = re.compile(r"[A-Za-z0-9+/]*={0,2}")
+
+
+def b64_exact(s, n):
+    """tsugi_verify.mjs b64Exact (0.3.1): the n bytes of a field written in canonical standard base64 (RFC 4648
+    section 4: the standard alphabet, padding present, no whitespace, unused trailing bits zero), else None."""
+    import base64 as _b64
+    if not isinstance(s, str) or len(s) == 0 or len(s) % 4 != 0 or not _B64_STD.fullmatch(s):
+        return None
+    try:
+        b = _b64.b64decode(s, validate=True)
+    except Exception:
+        return None
+    if len(b) != n or _b64.b64encode(b).decode("ascii") != s:
+        return None
+    return b
+
+
 def verify_signature(record):
     sig, pub = prop(record, "signature_ed25519_b64"), prop(record, "public_key_ed25519_b64")
     if not truthy(sig) or not truthy(pub):
         return {"ok": False, "why": "signature_ed25519_b64 and public_key_ed25519_b64 must both be present"}
+    raw = b64_exact(pub, 32)
+    if raw is None:
+        return {"ok": False, "why": "public_key_ed25519_b64 must be a 32-byte Ed25519 key in canonical standard base64"}
+    if not ed25519_key_ok(raw):
+        return {"ok": False, "why": "public_key_ed25519_b64 is not a usable Ed25519 key (it must be the canonical encoding of a point in the prime-order subgroup)"}
+    sb = b64_exact(sig, 64)
+    if sb is None:
+        return {"ok": False, "why": "signature_ed25519_b64 must be a 64-byte Ed25519 signature in canonical standard base64"}
     try:
-        raw = buffer_from(pub)
-        if len(raw) != 32:
-            raise JSError(KEY_LENGTH_MESSAGE)
         key = Ed25519PublicKey.from_public_bytes(raw)
-        sb = buffer_from(sig)
         try:
             key.verify(sb, canonical_bytes(record))
             ok = True
@@ -684,7 +708,7 @@ def verify_witnesses(verify, own_host=None, endpoint=None, execution_sha256=None
             pool_by_domain = {lower(e["signed_domain"]): e for e in normalize_pool(pool)}
         except (JSError, JSTypeError):
             pool_by_domain = None
-    answered, agreeing, disagreeing = [], [], []
+    answered, agreeing, disagreeing, key_voted = [], [], [], set()
     ext = prop(verify, "external")
     ext = ext if isinstance(ext, list) else []
     for n, e in enumerate(ext):
@@ -731,6 +755,10 @@ def verify_witnesses(verify, own_host=None, endpoint=None, execution_sha256=None
         answered.append(src["signed_domain"])
         if dom in agreeing or dom in disagreeing:
             continue
+        signer = prop(rec, "public_key_ed25519_b64")   # one key, one vote (0.3.1), as tsugi_verify.mjs
+        if signer in key_voted:
+            continue
+        key_voted.add(signer)
         (agreeing if subset_matches(prop(verify, "expected_after"), prop(rec, "observed")) else disagreeing).append(dom)
     if q is not None and prop(verify, "recovered") is True and len(agreeing) < q:
         refuse("witness_quorum_short", "recovered is true but " + str(len(agreeing)) + " of the required " + to_string(q)

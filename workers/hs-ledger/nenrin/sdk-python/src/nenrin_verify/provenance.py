@@ -14,6 +14,7 @@ Layers (each verifies on its own; this file adds the cross-layer checks):
 It opens no socket and has no clock. Signatures prove who asserted, not that the assertion is true; every report
 says so in does_not_establish, accepted or refused.
 """
+import functools as _functools
 import hashlib
 import re as _re
 
@@ -24,7 +25,7 @@ from ._js import (UNDEF, JSTypeError, assign, OBJECT_PROTOTYPE_KEYS, CanonicalEr
                   date_parse, is_num, is_obj, node_b64decode, nullish, or_, prop, seq, sort_numeric, stringify,
                   truthy, uniq)
 
-VERIFIER_VERSION = "0.1.4"
+VERIFIER_VERSION = "0.1.5"
 CONSUME_VERSION = "0.1.1"
 CANDIDATE_EVIDENCE_VERSION = "0.1.0"
 LINK_PREFIX = "nenrin-exec://"
@@ -88,8 +89,9 @@ def aggregate_verdict(observations_for_hop):
 _B64_STD = _re.compile(r"[A-Za-z0-9+/]*={0,2}")
 
 
-def sig_bytes(s):
-    """bind.mjs sigBytes (0.4.1): the 64 bytes of a signature field written in canonical standard base64, else None."""
+def b64_exact(s, n):
+    """The n bytes of a field written in canonical standard base64 (RFC 4648 section 4: the standard alphabet, padding
+    present, no whitespace, unused trailing bits zero), else None. One key or signature has exactly one spelling."""
     import base64 as _b64
     if not isinstance(s, str) or len(s) == 0 or len(s) % 4 != 0 or not _B64_STD.fullmatch(s):
         return None
@@ -97,9 +99,79 @@ def sig_bytes(s):
         b = _b64.b64decode(s, validate=True)
     except Exception:
         return None
-    if len(b) != 64 or _b64.b64encode(b).decode("ascii") != s:
+    if len(b) != n or _b64.b64encode(b).decode("ascii") != s:
         return None
     return b
+
+
+_ED_P = 2 ** 255 - 19
+_ED_L = 2 ** 252 + 27742317777372353535851937790883648493
+_ED_D = (-121665 * pow(121666, _ED_P - 2, _ED_P)) % _ED_P
+_ED_D2 = 2 * _ED_D % _ED_P
+_ED_SQRT_M1 = pow(2, (_ED_P - 1) // 4, _ED_P)
+
+
+def _ed_add(P, Q):
+    p = _ED_P
+    a = (P[1] - P[0]) * (Q[1] - Q[0]) % p
+    b = (P[1] + P[0]) * (Q[1] + Q[0]) % p
+    c = P[3] * _ED_D2 % p * Q[3] % p
+    d = 2 * P[2] * Q[2] % p
+    e, f, g, h = (b - a) % p, (d - c) % p, (d + c) % p, (b + a) % p
+    return (e * f % p, g * h % p, f * g % p, e * h % p)
+
+
+def _ed_mul(P, n):
+    R, Q = (0, 1, 1, 0), P
+    while n:
+        if n & 1:
+            R = _ed_add(R, Q)
+        Q = _ed_add(Q, Q)
+        n >>= 1
+    return R
+
+
+def _ed_is_identity(P):
+    return P[0] % _ED_P == 0 and (P[1] - P[2]) % _ED_P == 0
+
+
+@_functools.lru_cache(maxsize=4096)
+def _ed25519_key_check(raw):
+    p = _ED_P
+    sign = raw[31] >> 7
+    y = int.from_bytes(raw[:31] + bytes([raw[31] & 0x7F]), "little")
+    if y >= p:
+        return False
+    u, v = (y * y - 1) % p, (_ED_D * y * y + 1) % p
+    x2 = u * pow(v, p - 2, p) % p
+    x = pow(x2, (p + 3) // 8, p)
+    if x * x % p != x2:
+        x = x * _ED_SQRT_M1 % p
+    if x * x % p != x2:
+        return False
+    if x == 0 and sign == 1:
+        return False
+    if (x & 1) != sign:
+        x = p - x
+    P = (x, y, 1, x * y % p)
+    if _ed_is_identity(P):
+        return False
+    return _ed_is_identity(_ed_mul(P, _ED_L))
+
+
+def ed25519_key_ok(raw):
+    """ed25519_key.mjs ed25519KeyOk (nenrin-verify 0.4.2): True only for the canonical encoding of a point P of the
+    prime-order subgroup (P != identity, L * P = identity). Refused: small order (R = identity, S = 0 verifies on every
+    message with no private key), mixed order A + T (one private key posing as a second key), and non-canonical
+    encodings (y >= p, or x = 0 with the sign bit set)."""
+    if not isinstance(raw, (bytes, bytearray)) or len(raw) != 32:
+        return False
+    return _ed25519_key_check(bytes(raw))
+
+
+def sig_bytes(s):
+    """bind.mjs sigBytes (0.4.1): the 64 bytes of a signature field written in canonical standard base64, else None."""
+    return b64_exact(s, 64)
 
 
 def _ed25519_verify(pub, message, sig_b64):
@@ -1003,6 +1075,8 @@ def public_key_from_did_key(did):
     raw = payload[2:]
     if len(raw) != 32:
         raise ValueError("an Ed25519 public key is 32 bytes")
+    if not ed25519_key_ok(raw):
+        raise ValueError("not a usable Ed25519 key (it must be the canonical encoding of a point in the prime-order subgroup)")
     return raw
 
 

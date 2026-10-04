@@ -199,10 +199,18 @@ weakness it is said so, with the fix.
   alphabet, padding present, no whitespace, unused trailing bits zero), so one signature has one encoding. The
   reference applies this rule from nenrin-verify 0.4.1; earlier versions decoded leniently (missing padding, - and _,
   ignored characters) and accepted such strings. No corpus vector depends on it.
-- **Ed25519.** Verification as performed by OpenSSL (RFC 8032 with OpenSSL's checks). Crafted small-order or
-  non-canonical signatures are not in the corpora.
-- **Key resolution.** In the offline interop setting only did:key resolves. Parties named by an https origin need an
-  injected resolver, which is outside the corpora; without one their signatures do not verify.
+- **Ed25519.** Verification as performed by OpenSSL (RFC 8032 with OpenSSL's checks), with one rule added on the
+  key: a public key resolves only if it is the canonical encoding (y < p, and not x = 0 with the sign bit set) of a
+  point P of the prime-order subgroup (P is not the identity and L * P is the identity, L = 2^252 +
+  27742317777372353535851937790883648493). Otherwise no signature under it verifies. This refuses small-order keys,
+  under which OpenSSL accepts R = the identity point, S = 0 on every message with no private key, and mixed-order
+  keys A + T, which A's private key can sign for while the string differs from A, so one key could pose as a second,
+  independent party (R1). The agreement verifier (agreement-v0) applies the same subgroup rule. The reference applies
+  it from nenrin-verify 0.4.2 (verifier_version 0.1.5). Non-canonical signatures (S >= L, a non-canonical R) are
+  refused by OpenSSL. None of these are in the corpora.
+- **Key resolution.** In the offline interop setting only did:key resolves, and only to a key the Ed25519 rule above
+  accepts. Parties named by an https origin need an injected resolver, which is outside the corpora; without one
+  their signatures do not verify.
 - **require_signatures.** Only the literal false disables signature checks.
 - **Unknown bundle keys** are ignored.
 

@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const SOURCES = [
+  "../task-delegation-bind-v0/ed25519_key.mjs",
   "../task-delegation-bind-v0/strict_json.mjs",
   "../task-delegation-bind-v0/bind.mjs",
   "../task-delegation-bind-v0/sign.mjs",
@@ -59,6 +60,7 @@ export function publicKeyFromDidKey(did) {
   const payload = nenrinB58decode(did.slice("did:key:z".length));
   if (payload[0] !== 0xed || payload[1] !== 0x01) throw new Error("not an ed25519-pub did:key");
   const raw = Buffer.from(payload.slice(2));
+  if (raw.length !== 32 || !ed25519KeyOk(raw)) throw new Error("not a usable Ed25519 key (it must be the canonical encoding of a point in the prime-order subgroup)");
   return createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: raw.toString("base64url") }, format: "jwk" });
 }
 export const didKeyResolver = (id) => { try { return publicKeyFromDidKey(id); } catch (e) { return null; } };

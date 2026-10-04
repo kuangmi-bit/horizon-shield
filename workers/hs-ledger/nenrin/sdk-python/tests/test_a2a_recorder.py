@@ -261,3 +261,17 @@ def test_live_official_sdk(tmp_path):
     dead = [o for e, o in out.items() if e != base][0]
     dv = ar.verify_payload(json.load(open(dead["path"])))
     assert dv["ok"] and dv["summary"]["outcome"] == "FAIL" and dv["summary"]["answered"] == "0/1"
+
+
+def test_noncanonical_base64_is_refused(tmp_path):
+    """0.4.2: the signature and key must be canonical standard base64; a lenient spelling of a valid signature is refused."""
+    rec = _record(tmp_path)
+    p = rec.flush(final=True)[0]
+    payload = json.load(open(p["path"]))
+    assert ar.verify_payload(payload)["ok"]
+    sig, pub = payload["signature_ed25519_b64"], payload["public_key_ed25519_b64"]
+    for field, v in (("signature_ed25519_b64", sig.rstrip("=")), ("signature_ed25519_b64", sig[:10] + " " + sig[10:]),
+                     ("signature_ed25519_b64", sig + "\n"), ("public_key_ed25519_b64", pub.rstrip("=")),
+                     ("public_key_ed25519_b64", pub.replace("+", "-").replace("/", "_") if ("+" in pub or "/" in pub) else pub + "\n")):
+        v2 = ar.verify_payload(dict(payload, **{field: v}))
+        assert not v2["ok"] and any("canonical standard base64" in x for x in v2["problems"]), (field, v, v2["problems"])

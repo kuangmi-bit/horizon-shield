@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const SOURCES = [
   "../agreement-v0/agreement_canonical.mjs",
+  "../task-delegation-bind-v0/ed25519_key.mjs",
   "../recovery-v0/recovery_schema.mjs",
   "../recovery-v0/witness_draw.mjs",
   "../recovery-v0/recovery_verify.mjs",

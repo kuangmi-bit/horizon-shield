@@ -9,6 +9,7 @@
 // independence (R1), and verifies witness_sig and edge_sig. Run: node verify_fixture.mjs
 import { readFileSync } from "node:fs";
 import { createPublicKey } from "node:crypto";
+import { ed25519KeyOk } from "./ed25519_key.mjs";
 import { verifyObservation, evidenceId } from "./bind.mjs";
 import { verifySigned } from "./sign.mjs";
 
@@ -46,6 +47,7 @@ export function publicKeyFromDidKey(did) {
   const payload = b58decode(did.slice("did:key:z".length));
   if (payload[0] !== 0xed || payload[1] !== 0x01) throw new Error("not an ed25519-pub did:key");
   const raw = Buffer.from(payload.slice(2));
+  if (raw.length !== 32 || !ed25519KeyOk(raw)) throw new Error("not a usable Ed25519 key (it must be the canonical encoding of a point in the prime-order subgroup)");
   return createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: raw.toString("base64url") }, format: "jwk" });
 }
 

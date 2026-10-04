@@ -19,7 +19,7 @@ import { verifySignedExecution, reconcileSigned } from "../task-execution-bind-v
 import { verifyEvidence } from "../task-execution-bind-v0/outcome_evidence.mjs";
 import { verifyPreflight, verifyIntentSig, intentMatchesReceipt } from "../task-execution-bind-v0/preflight.mjs";
 
-export const VERIFIER_VERSION = "0.1.4";
+export const VERIFIER_VERSION = "0.1.5";
 export const LINK_PREFIX = "nenrin-exec://";
 
 // R3 generalized to a SET with possibly several witnesses per hop: seqs contiguous from 0, every root has a

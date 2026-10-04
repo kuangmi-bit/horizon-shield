@@ -72,6 +72,34 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.4.2 (2026-10-04): no key with nothing behind it, and base64 read strictly in the TSUGI verifier too
+
+An independent attack on the verifiers, run before this release, found two things.
+
+- Keys outside the prime-order subgroup. OpenSSL, and so Node's crypto and WebCrypto, verify against any 32 bytes
+  that decode to a curve point. For a point of small order (the identity, for example, AQAA...AA=), R = the identity
+  and S = 0 is a valid signature on every message, with no private key at all. A second round of the attack, run
+  against the first fix, found the mixed-order case: a real key A plus a small-order point T is a different string
+  that A's private key can sign for, so one witness could cast several votes in a TSUGI quorum, and a party could
+  pose as its own independent witness in provenance R1. Both verifiers in this package now accept a key only if it
+  is the canonical encoding of a point of the prime-order subgroup: in nenrin_verify.mjs any other did:key does not
+  resolve (verifier_version 0.1.5, see ../provenance-v0/VERIFIER.md section 5), and in tsugi_verify.mjs the record is
+  bad_signature. The check is ../task-delegation-bind-v0/ed25519_key.mjs, the same rule the agreement verifier
+  already applied.
+- Base64 in the TSUGI verifier. 0.4.1 made the provenance verifier accept only canonical standard base64;
+  tsugi_verify.mjs still decoded a record's key and signature with Buffer.from. From verifier 0.3.1 the key must be
+  canonical standard base64 of exactly 32 bytes and the signature of exactly 64 bytes. That also removes the one
+  refusal whose text depended on the Node release.
+
+Also in TSUGI 0.3.1: one key, one vote. Without a pool nothing ties a witness key to a domain, so one key could sign
+for two domains and count twice toward the quorum; now a key counts once. With a pool the key was already bound.
+
+Every interop-v0 and interop-v0.1 verdict and every frozen parity case is unchanged; the real chains in
+../recovery-v0 verify as before. ../conformance-v0/strict_rules.test.mjs checks each rule. The Python package moves
+with it (provenance.did_key_resolver, tsugi.py, and the signature checks in a2a_recorder and policy), and both
+packages carry 0.4.2. The agreement verifier is unchanged: it already read base64 canonically and required the
+prime-order subgroup.
+
 ## 0.4.1 (2026-10-04): two rules made strict, same version as the Python package
 
 The first independent implementation of interop-v0 (A2A Discussion #1631) and two blind reimplementations written

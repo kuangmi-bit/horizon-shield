@@ -75,10 +75,10 @@ the recorder and the policy together): [integrations/FRAMEWORKS.md](https://gith
 
 | module | what | held to |
 |---|---|---|
-| `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.3.0 (`nenrin_verify.mjs`, verifier 0.1.3; the same file as in 0.2.3): the same report, key for key |
+| `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.4.2 (`nenrin_verify.mjs`, verifier 0.1.5): the same report, key for key |
 | `agreement_verify.verify`, `nenrin-agreement-verify` | a two-party agreement record (`a2a-agreement-v1`, `v1.1`), including key succession across a rotation | the repository's own Python verifier, unchanged but for one import line and a header comment; it and the JavaScript verifier return the same report on 5,286 frozen cases, and from npm nenrin-verify 0.3.0 the JavaScript command `nenrin-agreement-verify` prints what this one prints |
 | `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.7), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
-| `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.0): the same stdout, byte for byte, and the same exit code |
+| `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.1): the same stdout, byte for byte, and the same exit code |
 
 ## How "same report" is checked
 
@@ -125,6 +125,18 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 `report_sha256(report)` is the sha256 of the report with keys sorted by UTF-16 code unit at every depth, no
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
+
+## 0.4.2 (2026-10-04)
+
+Every signature check in this package now accepts a key only if it is the canonical encoding of a point of the
+prime-order subgroup. A small-order Ed25519 key (the identity point, for example) verifies R = identity, S = 0 on
+every message with no private key, and a mixed-order key (a real key plus a small-order point) lets one private key
+pose as a second key; both are refused everywhere this package checks a signature: `provenance.did_key_resolver`
+(verifier_version 0.1.5, in step with nenrin_verify.mjs), `tsugi` (verifier 0.3.1, in step with tsugi_verify.mjs),
+`a2a_recorder.verify_payload` and the record check in `policy` (`provenance.ed25519_key_ok`). The base64 rule of
+0.4.1 now covers them all too (`provenance.b64_exact`), and a TSUGI witness key counts once toward a quorum. The
+frozen corpora were regenerated from the JavaScript files; no verdict changed. The agreement verifier is unchanged;
+it already applied the same subgroup rule.
 
 ## 0.4.1 (2026-10-04)
 

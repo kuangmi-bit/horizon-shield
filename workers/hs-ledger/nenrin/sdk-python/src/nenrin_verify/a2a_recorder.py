@@ -500,12 +500,21 @@ def verify_payload(payload, private=None):
     signed = False
     sig, pub = payload.get("signature_ed25519_b64"), payload.get("public_key_ed25519_b64")
     if sig or pub:
-        try:
-            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-            Ed25519PublicKey.from_public_bytes(base64.b64decode(pub)).verify(base64.b64decode(sig), rc.encode("utf-8"))
-            signed = True
-        except Exception:
-            problems.append("signature does not verify over record_canonical")
+        from .provenance import b64_exact, ed25519_key_ok
+        pk, sb = b64_exact(pub, 32), b64_exact(sig, 64)
+        if pk is None or sb is None:
+            problems.append("signature_ed25519_b64 and public_key_ed25519_b64 must be canonical standard base64 "
+                            "(a 64-byte signature and a 32-byte key)")
+        elif not ed25519_key_ok(pk):
+            problems.append("public_key_ed25519_b64 is not a usable Ed25519 key (it must be the canonical encoding "
+                            "of a point in the prime-order subgroup)")
+        else:
+            try:
+                from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+                Ed25519PublicKey.from_public_bytes(pk).verify(sb, rc.encode("utf-8"))
+                signed = True
+            except Exception:
+                problems.append("signature does not verify over record_canonical")
     if w.get("key_url") and not signed:
         problems.append("key_url on an unsigned record")
     c, v, nodes = rec.get("calls") or {}, rec.get("verdict") or {}, rec.get("nodes") or []
