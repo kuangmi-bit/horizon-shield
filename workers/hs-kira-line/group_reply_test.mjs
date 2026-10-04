@@ -121,7 +121,44 @@ console.log("\n5) hearing の返事が空なら、呼ばれていても返さな
   bridgeReply = "ok";
 }
 
-const EXPECT = 14;
+const pushes = () => calls.filter((c) => c.url.includes("/v2/bot/message/push"));
+const quoteMsg = (text) => ({
+  type: "message", replyToken: "rt_quote", source: { type: "group", groupId: GID, userId: UID },
+  message: { type: "text", id: "2", text, quotedMessageId: "600000000000000001" },
+});
+
+console.log("\n6) @ が無い「引用で返信」(2026-10-04 森下さんの了承の返事)");
+{
+  calls = []; bridgeReply = "ご回答ありがとうございます。いただいた内容は担当の大賀が確認し、掲載に反映します。";
+  const morishita = "お世話になっております。\n\n1については問題ございません。\n\n2については、金額についてはm単価との認識で問題ございません。\n\nただ、記載内容について、職人さんによっても異なることもあり、一例に過ぎないため";
+  await send(makeEnv(), [quoteMsg(morishita)]);
+  check("hearing には渡す(取り込みは従来どおり)", bridges().length === 1);
+  check("グループに受け取りの一言を返した", replies().length === 1, String(replies().length));
+  const txt = replies()[0] && replies()[0].body && replies()[0].body.messages[0].text;
+  check("返した文は受け取りの一言で、hearing の定型(掲載に反映)ではない", !!txt && txt.includes("大賀") && !txt.includes("反映"), txt);
+  check("大賀に本文を知らせた(push)", pushes().length === 1, String(pushes().length));
+  const pt = pushes()[0] && pushes()[0].body && pushes()[0].body.messages[0].text;
+  check("知らせに引用返信の印と本文が入る", !!pt && pt.includes("引用で返信") && pt.includes("m単価"), pt && pt.slice(0, 40));
+  check("知らせの宛先は LINE_USER_ID", pushes()[0] && pushes()[0].body.to === "U" + "c".repeat(32));
+}
+
+console.log("\n7) @ で呼ばれた発言も、大賀に知らせる");
+{
+  calls = []; bridgeReply = "ok";
+  await send(makeEnv(), [groupMsg("@HORIZON SHIELD 質問です", true)]);
+  check("返事を返した", replies().length === 1);
+  check("大賀に知らせた", pushes().length === 1, String(pushes().length));
+}
+
+console.log("\n8) 呼ばれず引用でもない発言は、返さず知らせもしない");
+{
+  calls = [];
+  await send(makeEnv(), [groupMsg("森下さん、明日の現場よろしくです", false)]);
+  check("返さない", replies().length === 0);
+  check("知らせない", pushes().length === 0, String(pushes().length));
+}
+
+const EXPECT = 24;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");

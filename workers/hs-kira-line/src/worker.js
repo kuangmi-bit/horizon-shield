@@ -264,7 +264,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v10-group-reply-20260930", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v11-group-quote-20261004", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -373,6 +373,19 @@ async function processEvents(events, env) {
             if (_reply && event.replyToken && isAddressedToBot(event)) {
               await replyToLine(event.replyToken, _reply, env.LINE_CHANNEL_TOKEN);
               console.log("[group] replied (addressed) gid=" + gid);
+            } else if (event.replyToken && isQuoteReply(event)) {
+              // HS-KIRA-GROUP-QUOTE-20261004: 加盟店さんが @ を付けず「引用で返信」した発言。
+              //   10/4 07:55 に森下さんが記事の了承依頼へ引用で返信したが、@ が無いので黙り、
+              //   誰にも知らせず 15 時間止まっていた。中身(数字の直しの依頼など)は機械が答えてよい話ではないので、
+              //   受け取ったことだけを返し、本文は大賀に知らせる。hearing の定型(「掲載に反映します」等)は使わない。
+              await replyToLine(event.replyToken, QUOTE_ACK_TEXT, env.LINE_CHANNEL_TOKEN);
+              console.log("[group] acked (quote) gid=" + gid);
+            }
+            // 呼ばれた発言・引用での返信は、hearing が返事をしたかに関わらず、本文を大賀に知らせる(人が読むまで止めない)。
+            if (isAddressedToBot(event) || isQuoteReply(event)) {
+              try {
+                await pushToLine(env.LINE_USER_ID, "\u3010\u52a0\u76df\u5e97\u30b0\u30eb\u30fc\u30d7 \u8981\u78ba\u8a8d\u3011" + (isQuoteReply(event) ? "(\u5f15\u7528\u3067\u8fd4\u4fe1)" : "(@\u3067\u547c\u3073\u304b\u3051)") + "\n" + gt.slice(0, 400) + (gt.length > 400 ? "\u2026" : ""), env.LINE_CHANNEL_TOKEN);
+              } catch (_e) {}
             }
           }
         } catch (_e) {}
@@ -1522,6 +1535,14 @@ async function ingestPartnerSilently(userMessage, userId, groupId, env) {
     try { await pushToLine(env.LINE_USER_ID, "【KIRAから hearing への転送エラー】" + String(e).slice(0, 120) + "。要確認。", env.LINE_CHANNEL_TOKEN); } catch (_e2) {}
     return "";
   }
+}
+// 2026-10-04 引用での返信か。LINE の text message は、引用して返したとき quotedMessageId を持つ。
+//   誰の発言を引用したかは webhook では分からない(大賀が OA Manager から手で送った文の id は手元に無い)。
+//   加盟店グループでの引用返信は、こちらへの返事であることがほとんどなので、受け取りの一言と大賀への知らせに使う。
+const QUOTE_ACK_TEXT = "\u3054\u8fd4\u4fe1\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059\u3002\u5185\u5bb9\u3092\u78ba\u8a8d\u3057\u3066\u3001\u62c5\u5f53\u306e\u5927\u8cc0\u304b\u3089\u3042\u3089\u305f\u3081\u3066\u304a\u8fd4\u4e8b\u3057\u307e\u3059\u3002";
+function isQuoteReply(event) {
+  const m = event && event.message;
+  return !!(m && typeof m.quotedMessageId === "string" && m.quotedMessageId.length > 0);
 }
 // 2026-09-30 公式アカウントが @ で呼ばれたか。LINE の mention.mentionees[].isSelf を第一に見て、
 //   無い場合は本文の「@HORIZON SHIELD」で見る。
