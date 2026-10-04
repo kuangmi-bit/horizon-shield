@@ -74,6 +74,10 @@ jobs:
           echo "published:"; npm view "nenrin-verify@$WANT" version dist.integrity dist.tarball
           echo "attestation:"; npm view "nenrin-verify@$WANT" dist.attestations
           T=$(mktemp -d); cd "$T"; npm init -y >/dev/null 2>&1
-          npm install --ignore-scripts "nenrin-verify@$WANT" >/dev/null 2>&1
-          echo "provenance check (npm audit signatures):"
-          npm audit signatures
+          ok=""
+          for i in $(seq 1 30); do
+            echo "provenance check (install, then npm audit signatures), try $i of 30:"
+            if npm install --ignore-scripts --prefer-online "nenrin-verify@$WANT" && npm audit signatures; then ok=1; break; fi
+            echo "the registry does not serve the package or its attestation yet, waiting 10s"; sleep 10
+          done
+          if [ -z "$ok" ]; then echo "refuse: the attestation for nenrin-verify@$WANT was not served within 5 minutes"; exit 1; fi
