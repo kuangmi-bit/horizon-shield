@@ -305,3 +305,7 @@ ops/second_record_prep_out/
 
 # 2026-09-30 note 連載の見出し画像と画面の記録(Actions の成果物として残す。git には入れない)
 note-post/debug/
+
+# GRAVITY (citation formula, radar, experiments) is private: copies in hs-core-private/gravity_private
+tools/gravity/
+experiments/
