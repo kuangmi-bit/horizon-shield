@@ -137,6 +137,96 @@ def b58decode(s):
     return b"\x00" * pad + body
 
 
+# ---- Ed25519 point arithmetic, for the section 5 key rule -------------------
+# A public key resolves only if it is the canonical encoding (y < p, and not
+# x = 0 with the sign bit set) of a point P of the prime-order subgroup (P is
+# not the identity and L * P is the identity).  OpenSSL alone accepts small-order
+# and mixed-order keys, so the check cannot be delegated to it.
+_P = 2 ** 255 - 19
+_N = 2 ** 252 + 27742317777372353535851937790883648493  # the group order L
+_DP = (-121665 * pow(121666, _P - 2, _P)) % _P           # curve constant d
+_SQRT_M1 = pow(2, (_P - 1) // 4, _P)
+
+
+def _recover_x(y, sign):
+    """x of the point with this y, or None; refuses x = 0 with the sign bit set."""
+    if y >= _P:
+        return None
+    xx = (y * y - 1) * pow(_DP * y * y + 1, _P - 2, _P) % _P
+    x = pow(xx, (_P + 3) // 8, _P)
+    if (x * x - xx) % _P != 0:
+        x = x * _SQRT_M1 % _P
+    if (x * x - xx) % _P != 0:
+        return None
+    if x == 0 and sign:
+        return None
+    if x % 2 != sign:
+        x = _P - x
+    return x
+
+
+def _ext(x, y):
+    return (x, y, 1, x * y % _P)
+
+
+def _add(A, B):
+    X1, Y1, Z1, T1 = A
+    X2, Y2, Z2, T2 = B
+    a = (Y1 - X1) * (Y2 - X2) % _P
+    b = (Y1 + X1) * (Y2 + X2) % _P
+    c = 2 * T1 * T2 * _DP % _P
+    d = 2 * Z1 * Z2 % _P
+    return ((b - a) * (d - c) % _P, (d + c) * (b + a) % _P,
+            (d - c) * (d + c) % _P, (b - a) * (b + a) % _P)
+
+
+def _double(A):
+    X1, Y1, Z1, _ = A
+    a = X1 * X1 % _P
+    b = Y1 * Y1 % _P
+    c = 2 * Z1 * Z1 % _P
+    d = (-a) % _P
+    e = ((X1 + Y1) ** 2 - a - b) % _P
+    g = (d + b) % _P
+    f = (g - c) % _P
+    h = (d - b) % _P
+    return (e * f % _P, g * h % _P, f * g % _P, e * h % _P)
+
+
+def _affine(A):
+    X, Y, Z, _ = A
+    if Z % _P == 0:
+        return None
+    zi = pow(Z, _P - 2, _P)
+    return (X * zi % _P, Y * zi % _P)
+
+
+def _mul(pt, n):
+    R = (0, 1, 1, 0)
+    Q = _ext(pt[0], pt[1])
+    while n:
+        if n & 1:
+            R = _add(R, Q)
+        Q = _double(Q)
+        n >>= 1
+    return _affine(R)
+
+
+def key_is_prime_order(raw):
+    """Section 5 key rule: canonical encoding of a non-identity prime-order point."""
+    if not isinstance(raw, (bytes, bytearray)) or len(raw) != 32:
+        return False
+    v = int.from_bytes(raw, "little")
+    sign = (v >> 255) & 1
+    y = v & ((1 << 255) - 1)
+    x = _recover_x(y, sign)          # also refuses y >= p
+    if x is None:
+        return False
+    if (x, y) == (0, 1):             # the identity
+        return False
+    return _mul((x, y), _N) == (0, 1)
+
+
 def resolve_key(ident):
     """did:key z<base58btc> with payload 0xed01 + exactly 32 bytes."""
     if not isinstance(ident, str) or not ident.startswith("did:key:z"):
@@ -147,6 +237,8 @@ def resolve_key(ident):
         return None
     if len(raw) != 34 or raw[:2] != b"\xed\x01":
         return None
+    if not key_is_prime_order(raw[2:]):
+        return None  # small-order, mixed-order or non-canonical: no key resolves
     return Ed25519PublicKey.from_public_bytes(raw[2:])
 
 
@@ -287,6 +379,15 @@ def verify(bundle):
     obs = bundle_list(bundle, "observations")
     grant = bundle_value(bundle, "grant")
     intent = bundle_value(bundle, "intent")
+    # Section 5, "Malformed records": a record slot that is present but neither an
+    # object nor null/false is malformed: one refusal in its own step, and in every
+    # other respect it is not presented.
+    grant_malformed = grant is not None and not isinstance(grant, dict)
+    intent_malformed = intent is not None and not isinstance(intent, dict)
+    raw_receipt = bundle_value(bundle, "receipt")
+    receipt_malformed = raw_receipt is not None and not isinstance(raw_receipt, dict)
+    bad_receipt_elems = sum(1 for r in bundle_list(bundle, "receipts")
+                            if not isinstance(r, dict))
     if not isinstance(grant, dict):
         grant = None
     if not isinstance(intent, dict):
@@ -321,7 +422,8 @@ def verify(bundle):
     else:
         for i, o in enumerate(obs):
             if not isinstance(o, dict):
-                rep.refuse("delegation_observation_invalid", f"obs[{i}] not object")
+                rep.refuse("delegation_observation_invalid",
+                           f"obs[{i}] record_not_object")
                 continue
             hop = o.get("hop") if isinstance(o.get("hop"), dict) else {}
             # R1 witness independence
@@ -415,6 +517,12 @@ def verify(bundle):
             rep.find("witness_disagreement")
 
     # ---- step 2, execution
+    if receipt_malformed:
+        rep.refuse("execution_invalid", "receipt slot record_not_object")
+    for _ in range(bad_receipt_elems):
+        rep.refuse("execution_invalid", "receipts element record_not_object")
+    if grant_malformed:
+        rep.refuse("execution_invalid", "grant slot record_not_object")
     if not grant and not recs:
         rep.find("no_execution_records")
     elif (grant and not recs) or (recs and not grant):
@@ -514,6 +622,8 @@ def verify(bundle):
                     r for r in recs if r.get("receipt_id") in authentic)
 
     # ---- step 3, preflight
+    if intent_malformed:
+        rep.refuse("preflight_invalid", "intent slot record_not_object")
     if intent is not None:
         if not grant:
             rep.refuse("preflight_without_grant", "intent presented alone")

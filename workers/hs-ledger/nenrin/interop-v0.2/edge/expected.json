@@ -2,7 +2,7 @@
   "schema": "nenrin-interop-expected-v0",
   "version": "0.1.0",
   "verifier": "independent Python implementation (verify_edge.py), written from VERIFIER.md; the reference was not read",
-  "note": "the canonical verdict signature each fixture must reproduce: verdict, sorted refusal codes, sorted finding codes. Cases marked OPEN in INTEROP.md are proposals, not settled rules.",
+  "note": "the canonical verdict signature each fixture must reproduce: verdict, sorted refusal codes, sorted finding codes.",
   "cases": {
     "ts_real_day_ok": {
       "intent": "executed_at on a real leap day (2024-02-29) inside the window; accepted",
@@ -355,34 +355,38 @@
       }
     },
     "receipts_element_not_object": {
-      "intent": "OPEN: receipts = [\"x\"] with a grant. Proposal: a non-object element is not a receipt, the set is empty, execution_incomplete_pair",
+      "intent": "Malformed records: a receipts element that is not an object adds execution_invalid and does not enter the receipt set, so the grant has no receipts: execution_incomplete_pair",
       "task_id": "task_interop_edge",
       "expect": {
         "verdict": "refused",
         "refusals": [
-          "execution_incomplete_pair"
+          "execution_incomplete_pair",
+          "execution_invalid"
         ],
         "findings": []
       }
     },
     "receipt_key_not_object": {
-      "intent": "OPEN: receipt = 5. Proposal: a record key that is present but not an object is not presented, so receipts[0] is the primary",
+      "intent": "Malformed records: receipt = 5 adds execution_invalid and is not presented, so receipts[0] is the primary and step 4 still runs",
       "task_id": "task_interop_edge",
       "expect": {
-        "verdict": "accepted",
-        "refusals": [],
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
         "findings": [
           "evidence_bound_unchecked"
         ]
       }
     },
     "grant_key_not_object": {
-      "intent": "OPEN: grant = \"g\" with a receipt. Proposal: not presented, so the receipt set has no grant, execution_incomplete_pair",
+      "intent": "Malformed records: grant = \"g\" adds execution_invalid and is not presented, so the receipt set has no grant: execution_incomplete_pair",
       "task_id": "task_interop_edge",
       "expect": {
         "verdict": "refused",
         "refusals": [
-          "execution_incomplete_pair"
+          "execution_incomplete_pair",
+          "execution_invalid"
         ],
         "findings": [
           "evidence_bound_unchecked"
@@ -390,11 +394,69 @@
       }
     },
     "intent_key_not_object": {
-      "intent": "OPEN: intent = 5. Proposal: not presented, so step 3 emits nothing",
+      "intent": "Malformed records: intent = 5 adds preflight_invalid and is not presented, so step 3 runs as if the slot were null",
       "task_id": "task_interop_edge",
       "expect": {
-        "verdict": "accepted",
-        "refusals": [],
+        "verdict": "refused",
+        "refusals": [
+          "preflight_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_identity_small_order": {
+      "intent": "section 5 key rule: a did:key naming the identity point does not resolve, so the forged provider_sig (R = identity, S = 0) does not verify: execution_signature_invalid. OpenSSL accepts that signature",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_identity_noncanonical_signbit": {
+      "intent": "section 5 key rule: the same forgery under the same key with the sign bit set, which is neither canonical (x = 0 with the sign bit set) nor prime order. OpenSSL accepts the signature; the key must not resolve",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_order8_small_order": {
+      "intent": "section 5 key rule: a did:key naming a point of order 8 does not resolve, so the forged provider_sig (R = identity, S = 0, the receipt ground over 17 instants so that [k]T is the identity) does not verify: execution_signature_invalid. OpenSSL accepts it, and a verifier without the rule accepts the bundle",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_mixed_order": {
+      "intent": "section 5 key rule (R1): a did:key naming A + T, a mixed-order point. The holder of A's private key signed this receipt as A + T (0 instants ground so that [k]T is the identity), so one key poses as a second, independent party. The key must not resolve: execution_signature_invalid",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
         "findings": [
           "evidence_bound_unchecked"
         ]

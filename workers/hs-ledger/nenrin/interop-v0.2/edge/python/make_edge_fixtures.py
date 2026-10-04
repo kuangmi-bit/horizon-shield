@@ -304,28 +304,232 @@ def cases():
     b.pop("receipt")
     b["receipts"] = ["x"]
     out["receipts_element_not_object"] = (
-        "OPEN: receipts = [\"x\"] with a grant. Proposal: a non-object element "
-        "is not a receipt, the set is empty, execution_incomplete_pair", b)
+        "Malformed records: a receipts element that is not an object adds "
+        "execution_invalid and does not enter the receipt set, so the grant has "
+        "no receipts: execution_incomplete_pair", b)
     c = Case()
     b = c.clean()
     good = b["receipt"]
     b["receipt"] = 5
     b["receipts"] = [good]
     out["receipt_key_not_object"] = (
-        "OPEN: receipt = 5. Proposal: a record key that is present but not an "
-        "object is not presented, so receipts[0] is the primary", b)
+        "Malformed records: receipt = 5 adds execution_invalid and is not "
+        "presented, so receipts[0] is the primary and step 4 still runs", b)
     c = Case()
     b = c.clean()
     b["grant"] = "g"
     out["grant_key_not_object"] = (
-        "OPEN: grant = \"g\" with a receipt. Proposal: not presented, so the "
-        "receipt set has no grant, execution_incomplete_pair", b)
+        "Malformed records: grant = \"g\" adds execution_invalid and is not "
+        "presented, so the receipt set has no grant: execution_incomplete_pair", b)
     c = Case()
     b = c.clean()
     b["intent"] = 5
     out["intent_key_not_object"] = (
-        "OPEN: intent = 5. Proposal: not presented, so step 3 emits nothing", b)
+        "Malformed records: intent = 5 adds preflight_invalid and is not "
+        "presented, so step 3 runs as if the slot were null", b)
+    key_rule_cases(out, KEY_RULE_NOTES)
     return out
+
+
+# ---- section 5, the Ed25519 key rule --------------------------------------
+# Four keys OpenSSL accepts and section 5 refuses. Each sits on the provider
+# slot, so a verifier without the rule accepts the bundle and one with the rule
+# refuses it. Cases 3 and 4 need a ground record: the forgery verifies only for
+# messages where [k]T is the identity (T the torsion part), which is 1 in 8.
+import hashlib as _hashlib  # noqa: E402
+import random as _random  # noqa: E402
+
+from verify_edge import (_N, _P, _add, _affine, _mul, _recover_x,  # noqa: E402
+                         key_is_prime_order)
+from cryptography.exceptions import InvalidSignature  # noqa: E402
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey  # noqa: E402
+
+_RAW = serialization.Encoding.Raw
+_PUB = serialization.PublicFormat.Raw
+_ID_SIG = (1).to_bytes(32, "little") + bytes(32)   # R = identity, S = 0
+
+
+def _enc(pt, sign=None):
+    x, y = pt
+    return (y | (((x & 1) if sign is None else sign) << 255)).to_bytes(32, "little")
+
+
+def _decompress(raw):
+    v = int.from_bytes(raw, "little")
+    return (_recover_x(v & ((1 << 255) - 1), (v >> 255) & 1), v & ((1 << 255) - 1))
+
+
+def _ext(pt):
+    return (pt[0], pt[1], 1, pt[0] * pt[1] % _P)
+
+
+def _base_point():
+    y = 4 * pow(5, _P - 2, _P) % _P
+    return (_recover_x(y, 0), y)
+
+
+def _scalar_of(sk):
+    seed = sk.private_bytes(_RAW, serialization.PrivateFormat.Raw,
+                            serialization.NoEncryption())
+    h = bytearray(_hashlib.sha512(seed).digest()[:32])
+    h[0] &= 248
+    h[31] &= 127
+    h[31] |= 64
+    return int.from_bytes(bytes(h), "little")
+
+
+def _torsion8():
+    """A point of order 8: L * Q for some curve point Q."""
+    seed = 11
+    while True:
+        seed += 1
+        y = int.from_bytes(_hashlib.sha512(str(seed).encode()).digest(), "little")
+        y &= (1 << 254) - 1
+        sign = 0 if _recover_x(y, 0) is not None else (
+            1 if _recover_x(y, 1) is not None else None)
+        if sign is None:
+            continue
+        t = _mul((_recover_x(y, sign), y), _N)
+        if t is not None and t != (0, 1) and _mul(t, 8) == (0, 1):
+            return t
+
+
+def _k(R_enc, A_enc, msg):
+    return int.from_bytes(_hashlib.sha512(R_enc + A_enc + msg).digest(),
+                          "little") % _N
+
+
+def _openssl_accepts(raw, sig, msg):
+    try:
+        Ed25519PublicKey.from_public_bytes(raw).verify(sig, msg)
+        return True
+    except (InvalidSignature, ValueError):
+        return False
+
+
+def _did_of(raw):
+    return "did:key:z" + b58encode(b"\xed\x01" + raw)
+
+
+def _link_observations(c, g, r):
+    link = "nenrin-exec://" + r["receipt_id"]
+    o0 = c.obs(0, None, link=link)
+    o1 = c.obs(1, o0["evidence_id"], witness=1, link=link)
+    return [o0, o1]
+
+
+def _grind(c, g, r, condition, make_sig):
+    """Set executed_at until `condition(receipt preimage bytes)` holds."""
+    for i in range(3000):
+        minutes = 10 + i // 60          # inside the grant window 00:00-01:00
+        seconds = i % 60
+        r["executed_at"] = f"2026-10-04T00:{minutes:02d}:{seconds:02d}.000Z"
+        msg = cbytes(without(r, RECEIPT_DERIVED))
+        if condition(msg):
+            r["receipt_id"] = digest(without(r, RECEIPT_DERIVED))
+            r["provider_sig"] = make_sig(msg)
+            return i
+    raise RuntimeError("no ground instant found")
+
+
+def key_rule_cases(out, notes):
+    t = _torsion8()
+    t_enc = _enc(t)
+    identity = (1).to_bytes(32, "little")
+    noncanonical = bytearray(identity)
+    noncanonical[31] |= 0x80
+
+    def simple(name, raw_key, intent):
+        c = Case()
+        did = _did_of(raw_key)
+        g = c.grant(provider_id=did)
+        r = c.receipt(g, provider_id=did)
+        r["provider_sig"] = base64.b64encode(_ID_SIG).decode("ascii")
+        b = {"task_id": c.task, "observations": _link_observations(c, g, r),
+             "grant": g, "receipt": r}
+        out[name] = (intent, b)
+        return c, b, r, did
+
+    _, b1, r1, did1 = simple(
+        "key_identity_small_order", identity,
+        "section 5 key rule: a did:key naming the identity point does not "
+        "resolve, so the forged provider_sig (R = identity, S = 0) does not "
+        "verify: execution_signature_invalid. OpenSSL accepts that signature")
+    _, b2, r2, did2 = simple(
+        "key_identity_noncanonical_signbit", bytes(noncanonical),
+        "section 5 key rule: the same forgery under the same key with the sign "
+        "bit set, which is neither canonical (x = 0 with the sign bit set) nor "
+        "prime order. OpenSSL accepts the signature; the key must not resolve")
+    notes.append(("key_identity_small_order", _openssl_accepts(
+        identity, base64.b64decode(r1["provider_sig"]),
+        cbytes(without(r1, RECEIPT_DERIVED)))))
+    notes.append(("key_identity_noncanonical_signbit", _openssl_accepts(
+        bytes(noncanonical), base64.b64decode(r2["provider_sig"]),
+        cbytes(without(r2, RECEIPT_DERIVED)))))
+
+    # order-8 key: the forgery verifies only where 8 divides k, so grind.
+    c = Case()
+    did3 = _did_of(t_enc)
+    g3 = c.grant(provider_id=did3)
+    r3 = c.receipt(g3, provider_id=did3)
+    tries = _grind(c, g3, r3, lambda m: _mul(t, _k(_ID_SIG[:32], t_enc, m)) == (0, 1),
+                   lambda m: base64.b64encode(_ID_SIG).decode("ascii"))
+    out["key_order8_small_order"] = (
+        "section 5 key rule: a did:key naming a point of order 8 does not "
+        "resolve, so the forged provider_sig (R = identity, S = 0, the receipt "
+        f"ground over {tries} instants so that [k]T is the identity) does not "
+        "verify: execution_signature_invalid. OpenSSL accepts it, and a "
+        "verifier without the rule accepts the bundle", 
+        {"task_id": c.task, "observations": _link_observations(c, g3, r3),
+         "grant": g3, "receipt": r3})
+    notes.append(("key_order8_small_order", _openssl_accepts(
+        t_enc, base64.b64decode(r3["provider_sig"]),
+        cbytes(without(r3, RECEIPT_DERIVED)))))
+
+    # mixed-order key A + T, signed by the holder of A's private key (R1 attack).
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    sk = Ed25519PrivateKey.generate()
+    a_raw = sk.public_key().public_bytes(_RAW, _PUB)
+    at_enc = _enc(_affine(_add(_ext(_decompress(a_raw)), _ext(t))))
+    a_int = _scalar_of(sk)
+    rng = _random.Random(4242)
+    c = Case()
+    did4 = _did_of(at_enc)
+    g4 = c.grant(provider_id=did4)
+    r4 = c.receipt(g4, provider_id=did4)
+
+    def make_sig(msg):
+        while True:
+            k = _k(b"", b"", b"")  # placeholder, replaced below
+            break
+    state = {}
+
+    def condition(msg):
+        r = rng.randrange(1, _N)
+        R_enc = _enc(_mul(_base_point(), r))
+        kp = _k(R_enc, at_enc, msg)
+        if _mul(t, kp) != (0, 1):
+            return False
+        state["sig"] = base64.b64encode(
+            R_enc + ((r + kp * a_int) % _N).to_bytes(32, "little")).decode("ascii")
+        return True
+
+    tries4 = _grind(c, g4, r4, condition, lambda m: state["sig"])
+    out["key_mixed_order"] = (
+        "section 5 key rule (R1): a did:key naming A + T, a mixed-order point. "
+        "The holder of A's private key signed this receipt as A + T "
+        f"({tries4} instants ground so that [k]T is the identity), so one key "
+        "poses as a second, independent party. The key must not resolve: "
+        "execution_signature_invalid",
+        {"task_id": c.task, "observations": _link_observations(c, g4, r4),
+         "grant": g4, "receipt": r4})
+    notes.append(("key_mixed_order", _openssl_accepts(
+        at_enc, base64.b64decode(r4["provider_sig"]),
+        cbytes(without(r4, RECEIPT_DERIVED)))))
+    return out
+
+
+KEY_RULE_NOTES = []
 
 
 def main():
@@ -338,8 +542,7 @@ def main():
         "verifier": "independent Python implementation (verify_edge.py), "
                     "written from VERIFIER.md; the reference was not read",
         "note": "the canonical verdict signature each fixture must reproduce: "
-                "verdict, sorted refusal codes, sorted finding codes. Cases "
-                "marked OPEN in INTEROP.md are proposals, not settled rules.",
+                "verdict, sorted refusal codes, sorted finding codes.",
         "cases": {},
     }
     bad = 0
@@ -358,6 +561,9 @@ def main():
               f"refusals={sig['refusals']} findings={sig['findings']}")
     (out_dir / "expected.json").write_text(
         json.dumps(expected, indent=2) + "\n")
+    for name, discriminating in KEY_RULE_NOTES:
+        print(f"   {'discriminating' if discriminating else 'NOT discriminating'}: {name} "
+              "(does this OpenSSL build accept the forgery?)")
     print(f"\n{len(built)} fixtures -> {out_dir} (self-check mismatches: {bad})")
 
 
