@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use HORIZON SHIELD, JCCDB, or the PTKA model, please cite it as below."
+message: "If you use HORIZON SHIELD, JCCDB, the PTKA model or the NENRIN verifier, please cite it as below (the NENRIN verifier and its vectors under references)."
 title: "HORIZON SHIELD KIRA: a verifiable third-party auditor for Japanese construction estimates (MCP / A2A server)"
 type: software
 authors:
@@ -47,3 +47,15 @@ preferred-citation:
       affiliation: "The HORIZONs Co., Ltd."
   year: 2026
   url: "https://shield.the-horizons-innovation.com"
+references:
+  - type: software
+    title: "NENRIN provenance verifier: normative procedure (VERIFIER.md), interoperability vectors and reference verifiers (nenrin-verify 0.4.4)"
+    authors:
+      - family-names: Oga
+        given-names: Toshikatsu
+        orcid: "https://orcid.org/0009-0000-9180-903X"
+    doi: "10.5281/zenodo.23136978"
+    version: "0.4.4"
+    year: 2026
+    url: "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/provenance-v0/VERIFIER.md"
+    license: MIT

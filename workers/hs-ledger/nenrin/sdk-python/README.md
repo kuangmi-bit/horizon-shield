@@ -205,3 +205,8 @@ to the JavaScript SDK, to the agreement verifier, to the TSUGI chains and to MUS
 (`.github/workflows/nenrin-verify-py.yml`).
 
 MIT. The HORIZONs Co., Ltd.
+
+## Citing
+Oga, T. (2026). NENRIN provenance verifier: normative procedure (VERIFIER.md), interoperability vectors and reference verifiers (nenrin-verify 0.4.4). Zenodo. https://doi.org/10.5281/zenodo.23136978
+
+The deposit holds the verification procedure (VERIFIER.md), the interoperability vectors and this package as published.

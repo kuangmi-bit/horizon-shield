@@ -232,3 +232,7 @@ from that ledger entry's OpenTimestamps proof. Every refusal has a code and an E
 with does_not_establish. A real chain to try: workers/hs-ledger/nenrin/recovery-v0/incident_20260920_resign_chain.json
 (operator key served at https://gate.horizonshield.dev/keys/operator.json, anchored as JIDEC entry 50).
 
+## Citing
+Oga, T. (2026). NENRIN provenance verifier: normative procedure (VERIFIER.md), interoperability vectors and reference verifiers (nenrin-verify 0.4.4). Zenodo. https://doi.org/10.5281/zenodo.23136978
+
+The deposit holds the verification procedure (VERIFIER.md), the interoperability vectors and this package as published.

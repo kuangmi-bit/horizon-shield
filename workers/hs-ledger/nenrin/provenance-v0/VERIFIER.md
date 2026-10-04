@@ -228,3 +228,10 @@ weakness it is said so, with the fix.
 ## 6. What this does not cover
 Ledger-side behaviour (publication consent, HTTP status codes), stateful nonce uniqueness, and the injected lookup's
 own semantics. None of these affects an offline verdict signature.
+
+## 7. How to cite
+Oga, T. (2026). NENRIN provenance verifier: normative procedure (VERIFIER.md), interoperability vectors and reference verifiers (nenrin-verify 0.4.4). Zenodo. https://doi.org/10.5281/zenodo.23136978
+
+The deposit fixes this text as of nenrin-verify 0.4.4, the interop-v0 and interop-v0.1 vectors with their expected
+verdict signatures, and the npm and PyPI packages byte for byte. An implementation that reproduces the vectors can
+name the DOI as what it was checked against. Later versions of this text become new versions of the same record.
