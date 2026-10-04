@@ -89,6 +89,8 @@ Serve the printed JSON at `https://<your domain>/.well-known/nenrin-witness-key.
 
 Caps, stated at `GET /witness`: 500 records a day in total, 5 a day per address for unsigned records, 50 a day per domain for signed ones; per witness, per endpoint, per UTC day only the first record is counted by the ring, the rest are stored and anchored with `counted: false`.
 
+Signed witnesses can be credited by name in the NENRIN citation metadata, with their consent: [WITNESSES.md](../WITNESSES.md).
+
 ## 5. What a witness is not
 
 Not a reviewer, not a rater, not a member. A PASS is one observation, not a verdict. A FAIL is filed the same way as a PASS. The record is yours; the ledger keeps it under your name and cannot edit it. If you want your walk withdrawn, you cannot; that is the property you are contributing.

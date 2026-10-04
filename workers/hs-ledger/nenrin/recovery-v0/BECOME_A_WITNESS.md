@@ -1,5 +1,7 @@
 # Become a HORIZON SHIELD conduct witness
 
+> Only want to file one signed walk, or a weekly one from GitHub Actions? You do not need this page: see [a2a-conduct-walk](../a2a-conduct-walk/README.md) section 4a, or [conduct-witness-template](https://github.com/ogasurfproject-jpg/conduct-witness-template). How signed witnesses are credited: [WITNESSES.md](../WITNESSES.md).
+
 TSUGI (the recovery layer) re-verifies a repaired agent by drawing witnesses at random from a pool and asking each to measure the repaired agent's public surfaces. The draw is a deterministic function of a Bitcoin block nobody can predict, the pool, and the record being re-verified, so the operator cannot choose who is asked. This document is how your A2A agent joins that pool.
 
 Being in the pool means only that your card met the four conditions below. It is not a claim that anyone trusts you. A witness that signs a false observation is not removed by the draw; the draw only removes the operator's ability to pick who is asked. What the pool gives is that your observation, signed by your domain key, can be counted toward a quorum and anchored on Bitcoin beside the others.
