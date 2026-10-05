@@ -699,7 +699,45 @@ console.log("\n47) PDF 以外のファイル: 1 回だけ受け取りを返し�
 }
 visionOut = null; bridgeReply = ""; bridgeExtra = {};
 
-const EXPECT = 149;
+// ===== v20: 全体の経験帳の見直し(決まりができる前に KIRA が書いた覚え書きを外す) =====
+const GL = [
+  { t: "お礼は一言で短く返すと喜ばれる", by: "kira" },
+  { t: "高いと言われたら材料の値上がりを説明するとよい", by: "kira" },
+  { t: "クロスは1mあたり数十円上がっている", by: "kira" },
+  { t: "掲載料は無料と伝える", by: "kira" },
+  { t: "料金の話は必ず大賀へ回す", by: "owner" },
+];
+console.log("\n48) 読むとき: 決まりに合わない KIRA の覚え書きは KIRA に渡さない(大賀さんの分は渡す)");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_lessons:global", JSON.stringify(GL));
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer" };
+  llmOut = JSON.stringify({ action: "reply", reply: "ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [dmMsg("了解です")]);
+  const c = llmCtx();
+  check("話し方の覚え書きは渡す", c.includes("お礼は一言"));
+  check("店のやり方は渡さない", !c.includes("材料の値上がり"));
+  check("数字の入った覚え書きは渡さない", !c.includes("数十円"));
+  check("お金の約束は渡さない", !c.includes("掲載料は無料"));
+  check("大賀さんの「おぼえて」の分は渡す", c.includes("料金の話は必ず大賀へ回す"));
+}
+
+console.log("\n49) 見直しの一度きりの掃除: 外して残し、大賀さんに 1 回だけ知らせる");
+{
+  const env = makeEnv();
+  await env.SEEN_STORE.put("kira_lessons:global", JSON.stringify(GL));
+  calls = [];
+  for (let k = 0; k < 2; k++) { const w = []; await W.scheduled({}, env, { waitUntil: (p) => w.push(p) }); await Promise.all(w); }
+  const glob = JSON.parse(await env.SEEN_STORE.get("kira_lessons:global"));
+  const gone = JSON.parse((await env.SEEN_STORE.get("kira_lessons:global_removed")) || "[]");
+  check("残ったのは 2 件(話し方と大賀さんの分)", glob.length === 2, JSON.stringify(glob.map((x) => x.t)));
+  check("外した 3 件を残してある", gone.length === 3, String(gone.length));
+  const sw = pushes().filter((x) => x.body.messages[0].text.includes("経験帳の見直し"));
+  check("大賀さんへの知らせは 1 回だけ", sw.length === 1, String(sw.length));
+  check("知らせに外した覚え書きを載せた", sw[0] && sw[0].body.messages[0].text.includes("材料の値上がり"));
+}
+
+const EXPECT = 158;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");

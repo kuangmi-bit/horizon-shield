@@ -245,8 +245,36 @@ console.log("\n6) kiraDecides: 窓口は返事を作らず、kind と材料だ�
   globalThis.fetch = realFetch;
 }
 
+/* --- 7. 2026-10-05 窓口の AI が約束の言い方(「掲載に反映いたします」)を出しても、そのまま返さない --------
+   KIRA を通らない入口(hearing 直の LINE、メールの提案文)に残っていた約束の定型。 */
+console.log("\n7) 窓口の AI の約束の言い方を止める");
+{
+  const mk = (replyText) => {
+    const env = makeEnv();
+    env.AI = { run: async (_m, opts) => {
+      const sys = String((opts.messages && opts.messages[0] && opts.messages[0].content) || "");
+      if (sys.includes("窓口担当")) return { response: replyText };
+      return { response: JSON.stringify({ company: "さざなみ訪問看護ステーション", area: "平塚市", works: ["点滴の管理"] }) };
+    } };
+    return env;
+  };
+  let env = mk("ご回答ありがとうございます。いただいた内容は掲載に反映いたします。");
+  let store = seedStore(env);
+  let out = await H.handlePartnerInbound(env, SID, store, "1) 常勤4名です\n2) 加算は2つ取っています", "line");
+  check("回答: 「反映」の約束を返さない", !/反映/.test(out.reply), out.reply);
+  check("回答: 大賀が確認すると返す", out.reply.includes("担当の大賀が確認"), out.reply);
+  env = mk("ご質問ありがとうございます。ご希望どおり対応いたします。");
+  store = seedStore(env);
+  out = await H.handlePartnerInbound(env, SID, store, "記事の写真を差し替えてもらえますか？", "line");
+  check("質問: 「対応いたします」の約束を返さない", !/対応いたします/.test(out.reply), out.reply);
+  env = mk("内窓の事例3件、ありがとうございます。");
+  store = seedStore(env);
+  out = await H.handlePartnerInbound(env, SID, store, "1) 平塚市 内窓 3件です", "line");
+  check("約束の無い返事はそのまま返す", out.reply === "内窓の事例3件、ありがとうございます。", out.reply);
+}
+
 /* 走らなかった試験は、通った試験と見分けがつかない。数を数えて、減ったら落とす。 */
-const EXPECT = 42;
+const EXPECT = 46;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) {
   console.log("  NG   試験がまるごと走っていません。途中で止まっていないか見てください。");

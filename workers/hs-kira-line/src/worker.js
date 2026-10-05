@@ -261,11 +261,12 @@ var worker_default = {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runFollowups(env));
     ctx.waitUntil(sendKiraDigest(env).catch((e) => console.log("[digest] " + String(e))));
+    ctx.waitUntil(kiraGlobalSweep(env).catch((e) => console.log("[sweep] " + String(e))));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v19-estset-20261005", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v20-sweep-20261005", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -1718,6 +1719,30 @@ const KIRA_FORCE_ESCALATE_RE = /(料金|費用|月額|請求|支払|振込|値�
 // 全体の経験帳に自動で入れてはいけない覚え書き(お金・約束の決まり・上書きの指示)。店の中には残す。
 // 2026-10-05 予行で、加盟店さんのお客さんへの説明の仕方(「高いと言われたら材料の値上がりを説明」)を KIRA が全体に上げた。店のやり方は店の中に留める。
 const KIRA_GLOBAL_DENY_RE = /(料金|費用|円|無料|値引|値上|値下|値段|単価|原価|材料|手間|相場|お客|施主|支払|契約|掲載|保証|約束|指示に従|無視|上書|従うこと|伝えること|必ず)/;
+// 2026-10-05 v20: 全体の経験帳の覚え書きは、今の決まり(数字なし・お金/店のやり方/約束/上書きの語なし)に合うものだけ使う。
+//   決まりは v15・v17 で足したので、それより前に KIRA が書いた覚え書きが残っていても、読むときに外す。大賀さんが「おぼえて」で足した分(by:owner)はそのまま使う。
+function kiraGlobalOk(l) {
+  if (!l || !l.t) return false;
+  if (l.by === "owner") return true;
+  return !/[0-9０-９]/.test(l.t) && !KIRA_GLOBAL_DENY_RE.test(l.t);
+}
+// 決まりに合わない覚え書きを全体の帳から一度だけ外し、外した分を kira_lessons:global_removed に残して大賀さんに知らせる(決まりが変わったら印の版を上げる)。
+const KIRA_SWEEP_MARK = "kira_global_swept:v20";
+async function kiraGlobalSweep(env) {
+  if (await env.SEEN_STORE.get(KIRA_SWEEP_MARK)) return false;
+  const all = await kiraKvJson(env, "kira_lessons:global", []);
+  const keep = all.filter(kiraGlobalOk), gone = all.filter((l) => !kiraGlobalOk(l));
+  if (gone.length) {
+    const old = await kiraKvJson(env, "kira_lessons:global_removed", []);
+    await env.SEEN_STORE.put("kira_lessons:global_removed", JSON.stringify(old.concat(gone.map((l) => Object.assign({}, l, { removed_at: new Date().toISOString(), why: "v20 の決まりに合わない" }))).slice(-200)));
+    await env.SEEN_STORE.put("kira_lessons:global", JSON.stringify(keep));
+  }
+  await env.SEEN_STORE.put(KIRA_SWEEP_MARK, String(Date.now()));
+  try {
+    await pushToLine(env.LINE_USER_ID, "【KIRA 経験帳の見直し】全体の帳 " + all.length + " 件のうち、" + gone.length + " 件を外しました(数字・お金・店のやり方・約束・上書きの語を含む、KIRA が自分で書いたもの)。" + (gone.length ? "\n" + gone.map((l, i) => (i + 1) + ". " + l.t).join("\n").slice(0, 1500) + "\n外した分は kira_lessons:global_removed に残してあります。" : "") + "\n残り " + keep.length + " 件。大賀さんの「おぼえて」の分は外していません。", env.LINE_CHANNEL_TOKEN);
+  } catch (_e) {}
+  return true;
+}
 const KIRA_PARTNER_SYSTEM = [
   "あなたは KIRA です。HORIZON SHIELD(The HORIZ音s株式会社、代表 大賀俊勝)の公式アカウントの担当として、加盟店さん(施工会社や、訪問看護などの事業所)とのグループや 1 対 1 のトークで返事をします。相手の業種に合わない言葉(施工・工事など)を当てはめない。",
   "書き方: 丁寧なビジネスの日本語(です・ます)。関西弁は使わない。短く、結論から。絵文字、長いダッシュ、区切り線は使わない。名前は、発言か会話か経験帳に出ているときだけ「〇〇さん」と呼ぶ。出ていなければ名前を付けない(作らない)。決まり文句をそのまま写さず、相手が書いた中身を具体的に受け取ったと分かる言い方にする。",
@@ -1784,7 +1809,7 @@ async function kiraPartnerDecide(env, gid, text, hearingHint, opts) {
   if (!env.ANTHROPIC_API_KEY) return { ok: false, err: "no_key" };
   const o = opts || {};
   const own = await kiraKvJson(env, "kira_lessons:" + gid, []);
-  const glob = await kiraKvJson(env, "kira_lessons:global", []);
+  const glob = (await kiraKvJson(env, "kira_lessons:global", [])).filter(kiraGlobalOk);
   const conv = await kiraKvJson(env, "kira_gconv:" + (o.convKey || gid), []);
   const ctx = kiraDecideContext(own, glob, conv, text, o);
   const ac = new AbortController();
