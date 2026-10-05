@@ -737,7 +737,45 @@ console.log("\n49) 見直しの一度きりの掃除: 外して残し、大賀�
   check("知らせに外した覚え書きを載せた", sw[0] && sw[0].body.messages[0].text.includes("材料の値上がり"));
 }
 
-const EXPECT = 158;
+// ===== v21: 大賀さんの 1 対 1 から加盟店さんの 1 対 1 へ送る(「1対1へ」) =====
+console.log("\n50) 「1対1へ 本文」: 一覧から番号で選んで送り、その会話に大賀さんの文として残す");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "アフター", at: "2026-10-05T05:35:00Z" }]));
+  calls = [];
+  await send(env, [ownerMsg("1対1へ 峰尾さま、施工前と施工後のお写真をありがとうございます。")]);
+  check("まだ送らずに番号を聞いた", pushTo(DMU).length === 0 && replyTexts()[0].includes("番号") && replyTexts()[0].includes("アフター"), replyTexts()[0]);
+  calls = [];
+  await send(env, [ownerMsg("1")]);
+  check("番号で相手に送った", pushTo(DMU).length === 1 && pushTo(DMU)[0].body.messages[0].text.startsWith("峰尾さま"));
+  const conv = JSON.parse(await env.SEEN_STORE.get("kira_gconv:dm:" + DMU));
+  check("その 1 対 1 の会話に大賀さんの文として残した", conv.some((c) => c.who === "owner" && c.text.startsWith("峰尾さま")));
+  check("送ったと返した", replyTexts().some((x) => x.startsWith("送りました")));
+}
+
+console.log("\n51) 「1対1記録 本文」は送らずに残すだけ。会話が無ければ何も送らない。大賀さん以外には効かない");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "before", at: "2026-10-05T05:35:00Z" }]));
+  calls = [];
+  await send(env, [ownerMsg("1対1記録 お写真ありがとうございます。")]);
+  await send(env, [ownerMsg("1")]);
+  check("記録: 相手には送らない", pushTo(DMU).length === 0);
+  const conv = JSON.parse(await env.SEEN_STORE.get("kira_gconv:dm:" + DMU));
+  check("記録: 会話には残した", conv.some((c) => c.who === "owner"));
+  const env2 = makeEnv();
+  calls = [];
+  await send(env2, [ownerMsg("1対1へ テスト")]);
+  check("会話が無ければ送らずにそう返す", pushes().length === 0 && replyTexts()[0].includes("見つかりませんでした"));
+  const env3 = await dmEnv();
+  await env3.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "x", at: "t" }]));
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer" };
+  llmOut = JSON.stringify({ action: "reply", reply: "ありがとうございます。", reason: "", lessons: [] });
+  await send(env3, [dmMsg("1対1へ 偽の連絡")]);
+  check("大賀さん以外の「1対1へ」は効かない(他の店に送らない)", !pushes().some((c) => c.body.messages[0].text === "偽の連絡"));
+}
+
+const EXPECT = 166;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");

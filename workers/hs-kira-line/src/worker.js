@@ -266,7 +266,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v20-sweep-20261005", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v21-dmrelay-20261005", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -1885,9 +1885,36 @@ async function kiraPartnerGroups(env) {
 }
 async function kiraRelayDo(env, replyToken, g, body, send) {
   if (send) await pushToLine(g.gid, body, env.LINE_CHANNEL_TOKEN);
-  await kiraConvAppend(env, g.gid, "owner", body);
+  await kiraConvAppend(env, g.conv || g.gid, "owner", body);
   await replyToLine(replyToken, (send ? "送りました" : "記録しました") + "(" + g.name + ")。KIRA はこの文を会話として読み、次の返事の手本にします。", env.LINE_CHANNEL_TOKEN);
   return true;
+}
+// 2026-10-05 v21: 加盟店さんとの 1 対 1 の相手(KIRA が会話を持っている相手)を、直近の発言が新しい順に返す。名前は LINE のプロフィールから。
+async function kiraPartnerDms(env) {
+  let ids = [];
+  try {
+    const l = await env.SEEN_STORE.list({ prefix: "kira_gconv:dm:" });
+    ids = (l.keys || []).map((k) => k.name.slice("kira_gconv:dm:".length)).filter((u) => /^U[0-9a-f]{32}$/.test(u));
+  } catch (_e) {}
+  const out = [];
+  for (const uid of ids) {
+    if (uid === env.LINE_USER_ID) continue;
+    const conv = await kiraKvJson(env, "kira_gconv:dm:" + uid, []);
+    const lastMember = conv.filter((c) => c.who === "member").slice(-1)[0];
+    out.push({ gid: uid, conv: "dm:" + uid, at: (lastMember && lastMember.at) || "", last: lastMember ? String(lastMember.text).slice(0, 30) : "" });
+  }
+  out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const top = out.slice(0, 10);
+  for (const d of top) d.name = await kiraUserName(env, d.gid);
+  return top;
+}
+async function kiraUserName(env, uid) {
+  try {
+    const r = await fetch("https://api.line.me/v2/bot/profile/" + encodeURIComponent(uid), { headers: { "Authorization": "Bearer " + env.LINE_CHANNEL_TOKEN } });
+    const j = await r.json();
+    if (j && j.displayName) return j.displayName + " さん";
+  } catch (_e) {}
+  return "加盟店さん(…" + String(uid).slice(-4) + ")";
 }
 async function kiraGroupName(env, gid) {
   try {
@@ -1929,17 +1956,37 @@ async function handleOwnerLessonCommand(text, replyToken, env) {
     await replyToLine(replyToken, "まだ送っていません。加盟店グループが " + groups.length + " つあります。送り先の番号だけを返してください(30 分有効)。\n" + groups.map((g, i) => (i + 1) + ". " + g.name + (g.last ? "(直近に発言あり)" : "")).join("\n"), env.LINE_CHANNEL_TOKEN);
     return true;
   }
+  // 2026-10-05 v21: 「1対1へ 本文」= 加盟店さんとの 1 対 1 に KIRA から送り、その会話に大賀さんの文として残す。「1対1記録 本文」= 送らずに残すだけ。
+  //   1 対 1 は送り先を取り違えると他の店に届くので、相手が 1 人でも必ず名前の一覧から番号で選ぶ。
+  if ((m = t.match(/^(1対1へ|１対１へ|1対1記録|１対１記録)[\s\u3000:：]*([\s\S]+)$/))) {
+    const send = /へ$/.test(m[1]), body = m[2].trim().slice(0, 4000);
+    const dms = await kiraPartnerDms(env);
+    if (!dms.length) {
+      await replyToLine(replyToken, "KIRA が会話を持っている加盟店さんの 1 対 1 が見つかりませんでした。何も送っていません。", env.LINE_CHANNEL_TOKEN);
+      return true;
+    }
+    await env.SEEN_STORE.put("kira_relay_pending", JSON.stringify({ body, send, at: Date.now(), dm: true, targets: dms.map((d) => d.gid) }), { expirationTtl: 60 * 30 });
+    await replyToLine(replyToken, "まだ" + (send ? "送って" : "記録して") + "いません。相手の番号だけを返してください(30 分有効)。\n" + dms.map((d, i) => (i + 1) + ". " + d.name + (d.last ? "(直近: " + d.last + ")" : "")).join("\n"), env.LINE_CHANNEL_TOKEN);
+    return true;
+  }
+  if (/^(1対1一覧|１対１一覧)$/.test(t)) {
+    const dms = await kiraPartnerDms(env);
+    await replyToLine(replyToken, dms.length ? "加盟店さんとの 1 対 1(新しい順):\n" + dms.map((d, i) => (i + 1) + ". " + d.name + (d.last ? "(直近: " + d.last + ")" : "")).join("\n") : "まだありません。", env.LINE_CHANNEL_TOKEN);
+    return true;
+  }
   if ((m = t.match(/^([0-9０-９]{1,2})$/))) {
     const pend = await kiraKvJson(env, "kira_relay_pending", null);
     if (!pend) return false;
+    const list = pend.dm ? (pend.targets || []) : (pend.groups || []);
     const n = parseInt(m[1].replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)), 10);
-    if (!(n >= 1 && n <= pend.groups.length)) {
-      await replyToLine(replyToken, "その番号はありません(1〜" + pend.groups.length + ")。まだ送っていません。", env.LINE_CHANNEL_TOKEN);
+    if (!(n >= 1 && n <= list.length)) {
+      await replyToLine(replyToken, "その番号はありません(1〜" + list.length + ")。まだ送っていません。", env.LINE_CHANNEL_TOKEN);
       return true;
     }
     await env.SEEN_STORE.delete("kira_relay_pending");
-    const gid = pend.groups[n - 1];
-    return await kiraRelayDo(env, replyToken, { gid, name: await kiraGroupName(env, gid) }, pend.body, pend.send);
+    const id = list[n - 1];
+    if (pend.dm) return await kiraRelayDo(env, replyToken, { gid: id, conv: "dm:" + id, name: await kiraUserName(env, id) }, pend.body, pend.send);
+    return await kiraRelayDo(env, replyToken, { gid: id, name: await kiraGroupName(env, id) }, pend.body, pend.send);
   }
   if (/^グループ一覧$/.test(t)) {
     const groups = await kiraPartnerGroups(env);
