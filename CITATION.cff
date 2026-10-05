@@ -68,3 +68,13 @@ references:
     year: 2026
     url: "https://github.com/ogasurfproject-jpg/horizon-shield/issues/27#issuecomment-5895642128"
     notes: "Credited as a witness with his consent (2026-10-05). The credit covers this signed walk only, within the scope stated in the record, which discloses Codex assistance and the collaboration context of issue #27. It does not imply membership of the NENRIN re-verification pool."
+  - type: data
+    title: "Signed witness walks of the HORIZON SHIELD gate, filed in the NENRIN ledger (entries 57 and 61) under api.babyblueviper.com"
+    authors:
+      - family-names: "Blanco Sánchez-Llanos"
+        given-names: Federico
+        affiliation: "invinoveritas"
+        website: "https://invinoveritas.dev"
+    year: 2026
+    url: "https://github.com/ogasurfproject-jpg/horizon-shield/issues/25#issuecomment-5870535144"
+    notes: "Credited as a witness with his consent (2026-10-05). The verifiable reference is the signing identity api.babyblueviper.com, which signed ledger entries 57 and 61."
