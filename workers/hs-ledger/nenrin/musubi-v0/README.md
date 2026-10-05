@@ -23,6 +23,8 @@ The verifier is offline by design. There is no endpoint to trust. You run the sa
     python3 contract_v0.py --sign  contract_unsigned.json --key mykey.json --domain my.domain --out contract_A.json
     python3 contract_v0.py --settle contract.json --exec execution.json   # recompute the settlement verdict
 
+`contract_v0.py --settle` is the first settle, kept as published. It does not authenticate approvals; to settle a real contract run `peer_kit.py settle` (see "Which settle to run" below).
+
 ## What each self check proves
 1. build + two party sign + verify: a well formed contract with two valid signatures is accepted.
 2. tamper after signing: one byte changed after signing is refused.
@@ -34,6 +36,9 @@ The verifier is offline by design. There is no endpoint to trust. You run the sa
 
 ## Break it
 Find a contract that verifies but should not, or a settlement that recomputes to the wrong verdict. Send the input that does it. A finding is worth more than a pass.
+
+## Which settle to run (2026-10-05, Issue #29)
+Run `peer_kit.py settle`, which is settle v1.10 with every layer under it. Every earlier settle is kept unedited as published, so that a settlement made under it can still be recomputed, and the early ones are not safe to settle with: `contract_v0.settle` and settle v1 to v1.3 count an approval when an entry `{"action": X}` is present, signed or not, so a contractor can satisfy a conditional by writing one word in its own record (found by @babyblueviper1, Issue #29). From v1.4 an approval needs the principal's signature, from v1.6 over a2a-approval-v2 bytes that name the terms by contract_sha256, and an unsigned or wrongly signed one is a `forged_approval` deviation. v1.10 adds an approver with no stake in the contract (below).
 
 ## Finding 7, and settle v1 (2026-09-24)
 A red-team question on Bluesky (@quaxworld.art) asked what defines the authoritative event set when action and revocation receipts reach replicas in opposite orders, and whether that choice can be recomputed too. Taking it seriously exposed a real defect in `contract_v0.settle()`: it used the list order of execution records as time order. The same two records, swapped, flip the verdict when an approval and the conditional action it covers sit in different records. List order is arrival order. That is the bug the question described.
@@ -250,6 +255,19 @@ corroboration counts legal entities that measured "done", but the contractor can
 - Nine mutants are each killed by the self tests (counting measurers nobody drew, measurements before the draw, ignoring the method count, counting a party's company, skipping the pool pin, allowing a beacon seen at signing, ignoring the history link, v1.9 not holding finality back, convergence without the spine gate), on top of the eight that settle v1.8 kills.
 - Stated limits: drawn measurers can still collude after the draw. The draw stops the parties choosing them, the method rule makes a lie pass several directions, and the history graph drops measurers already tied to a party; what remains is how many independent entities would have to lie together, and the report counts them. A settler older than v1.9 ignores the block. The pool's fairness rests on both parties having signed its hash.
 
+## settle v1.10: an approver with no stake in the contract (2026-10-05, Issue #29)
+Until v1.9 the only key that could approve a conditional action was the principal's, a party to the contract. A contract between two outside parties may want the approval to come from someone with no stake, whose verdict anyone checks offline. The fields, the signed bytes, the reasons and the nine vectors are @babyblueviper1's ([preaction-governance-conformance@9860841](https://github.com/babyblueviper1/preaction-governance-conformance/tree/9860841/examples/musubi-approver-v2), copied into `fixtures/babyblueviper1_approver_v2/`).
+
+    python3 settle_v1_10.py --selftest      # expect: SELF-TEST PASSED, 13 checks
+
+- `grant.approval_policy.approvers = [{"name", "public_key_ed25519_b64", "actions": [...]}]`. `contract_v0` checks it at the door like `witnesses[]` (canonical 32 byte key, non empty name), plus a non empty list of distinct `grant.conditional` actions, unique names and keys. Both parties sign it. A delegated child must keep the parent's approvers exactly. An approver whose key is a party's (`approver_is_party`) or a witness's (`approver_is_witness`) gives no verdict.
+- The approval is an `approvals[]` entry `{"action", "by": "approver", "approver": <name>, "valid_until_height", "nonce", "single_use", "sig_b64"}`, Ed25519 by the pinned key over `b"a2a-approval-v2\n" + canonical({contract_sha256, action, approver_key, valid_until_height, nonce, single_use})`. contract_sha256 is recomputed from the contract the settler holds, so an approval for other terms or with an edited field does not verify. Settle never fetches a key. `sign_approver_approval` makes one.
+- A gated action counts as approved only with a verifying approver approval. Anything else offered for it (the principal's signature, a bare `{"action"}`, an unpinned key, a field edited after signing) is not counted and is reported as `approval_unverified` with the reason: `not_an_approver_approval`, `malformed`, `approver_not_pinned`, `action_not_permitted_for_approver`, `malformed_key_or_signature`, `bad_signature`. Ordering, expiry and single use are v1.7's walk, unchanged. Actions no approver lists keep v1.6's rule.
+- With no approvers pinned, v1.10 renders v1.9's settlement apart from `schema`, `settled_under`, `establishes` and `approval_gate`, whose reading is `approval_self_asserted`: an approval, if any, comes from a party to the contract (the principal's signature), not from a pinned approver. Checked on synthetic runs and on run0002.
+- The nine vectors agree 9/9 with settle v1.10's own verifier, and their reference verifier also runs 9/9 from the fixture. Three mutants (gate ignored, signature skipped, a party allowed as approver) are each caught.
+- v1.10 reuses v1.7's walk by pointing the classifier name that walk resolves at call time at its own classifier for the length of one call, restored in a finally block (self check 9). No earlier settle file is edited; `contract_v0` gained the approvers door and the delegation rule above.
+- Stated limits: a settler older than v1.10 ignores the approvers and would count a principal's approval for a gated action (a contract_v0 from before 2026-10-05 refuses the key outright). A stolen approver key signs a valid approval. The signature proves the approver signed, not that it judged well.
+
 ## peer_kit and anchor_direct: a contract with nobody from this project in it (2026-10-02)
 Every MUSUBI contract so far had this project as a party, and every execution reached Bitcoin through its ledger. The adoption count reports both: contracts with an outside party 2, contracts with no party from this project 0. These two files are the whole path for two other parties, with no account, key, server or ledger of ours.
 
@@ -257,7 +275,7 @@ Every MUSUBI contract so far had this project as a party, and every execution re
     python3 peer_kit.py selftest            # expect: ALL PASS (peer_kit: 4 checks)
 
 - `anchor_direct.py`: `--stampable` writes canonical(record without "anchor"), whose sha256 is exactly the digest settle starts from; the parties run `ots stamp` on it themselves (OpenTimestamps, public calendars). Once the stamp confirms, `compose_direct` follows the .ots to the header at the attested height and returns a settle anchor with no hexlify, so it is an ordinary merkle path and settle v1.7's batch-leg rule does not apply. The self test settles a signed execution anchored this way: within_grant, final.
-- `peer_kit.py`: `keygen` (Ed25519 PEM, mode 600, never overwrites), `contract` (from a small params JSON, including any of the requirements above), `sign` (refuses a key the contract does not pin), `verify`, `exec` (the contractor signs an execution naming the contract by contract_sha256), `stampable`, `anchor`, `settle` (v1.9). Block headers come from any explorer; `header_view_fetch.py` builds a view from two and checks they agree.
+- `peer_kit.py`: `keygen` (Ed25519 PEM, mode 600, never overwrites), `contract` (from a small params JSON, including any of the requirements above), `sign` (refuses a key the contract does not pin), `verify`, `exec` (the contractor signs an execution naming the contract by contract_sha256), `stampable`, `anchor`, `settle` (v1.10). Block headers come from any explorer; `header_view_fetch.py` builds a view from two and checks they agree.
 - Stated limits: the kit uses these verification files, so the parties run code this project wrote; the code is the protocol, every step is reproducible, and nothing it does talks to us. Publishing each party's public key at its key_url is the parties' job.
 
 ## bond v0: the bond's teeth, without custody (2026-09-25)

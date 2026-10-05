@@ -215,10 +215,33 @@ def grant_type_problems(grant):
             bad("grant.ordering.same_height must be a string or null")
     ap = grant.get("approval_policy")
     if ap is not None:
-        if not isinstance(ap, dict) or set(ap.keys()) - {"allow_unscoped"}:
-            bad("grant.approval_policy must be an object {allow_unscoped}")
-        elif "allow_unscoped" in ap and not isinstance(ap["allow_unscoped"], bool):
-            bad("grant.approval_policy.allow_unscoped must be true or false")
+        if not isinstance(ap, dict) or set(ap.keys()) - {"allow_unscoped", "approvers"}:
+            bad("grant.approval_policy must be an object {allow_unscoped, approvers}")
+        else:
+            if "allow_unscoped" in ap and not isinstance(ap["allow_unscoped"], bool):
+                bad("grant.approval_policy.allow_unscoped must be true or false")
+            if "approvers" in ap:
+                # pinned approvers with no stake (settle v1.10, Issue #29): checked like witnesses[], plus the actions each may approve
+                apv = ap["approvers"]
+                cond_actions = {x.get("action") for x in (grant.get("conditional") or []) if isinstance(x, dict)}
+                if not (isinstance(apv, list) and 1 <= len(apv) <= 16 and all(isinstance(x, dict) for x in apv)):
+                    bad("grant.approval_policy.approvers must be a list of 1 to 16 objects")
+                else:
+                    names, keys = set(), set()
+                    for x in apv:
+                        if set(x.keys()) - {"name", "public_key_ed25519_b64", "actions"}:
+                            bad("every grant.approval_policy.approvers entry is an object {name, public_key_ed25519_b64, actions}")
+                        if not (isinstance(x.get("name"), str) and x["name"]) or b64_raw(x.get("public_key_ed25519_b64"), 32) is None:
+                            bad("every grant.approval_policy.approvers entry needs a non empty string name and a canonical 32 byte public_key_ed25519_b64")
+                            continue
+                        if x["name"] in names or x["public_key_ed25519_b64"] in keys:
+                            bad("grant.approval_policy.approvers names and keys must be unique")
+                        names.add(x["name"]); keys.add(x["public_key_ed25519_b64"])
+                        acts = x.get("actions")
+                        if not (isinstance(acts, list) and acts and all(isinstance(a, str) and a for a in acts) and len(set(acts)) == len(acts)):
+                            bad("every grant.approval_policy.approvers entry needs a non empty list of distinct action names")
+                        elif set(acts) - cond_actions:
+                            bad("grant.approval_policy.approvers may approve only grant.conditional actions (not %s)" % sorted(set(acts) - cond_actions))
     rv = grant.get("revocation")
     if isinstance(rv, dict):
         if set(rv.keys()) - {"effective_at", "ack_window"}:
@@ -358,6 +381,10 @@ def grant_subset(child, parent):
     cap = child.get("approval_policy") if isinstance(child.get("approval_policy"), dict) else {}
     if bool(cap.get("allow_unscoped")) and not bool(pap.get("allow_unscoped")):
         v.append("child allows unscoped approvals but parent does not")
+    # pinned approvers (settle v1.10): who approves is part of the authority, so a child keeps the parent's exactly
+    norm = lambda a: sorted((canonical(x) for x in (a.get("approvers") or [])) if isinstance(a.get("approvers"), list) else [])
+    if norm(pap) != norm(cap):
+        v.append("child changes the pinned approvers (approval_policy.approvers must stay equal to the parent's)")
     return v
 
 

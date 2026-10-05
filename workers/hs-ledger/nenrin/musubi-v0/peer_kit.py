@@ -15,7 +15,7 @@ path, for two parties A and B, using only these verification files, OpenTimestam
     exec            the contractor: a signed a2a-execution-v0 naming the contract by contract_sha256
     stampable       anyone: the bytes to give `ots stamp` (anchor_direct)
     anchor          anyone: the settle anchor from the confirmed .ots and a header view (anchor_direct)
-    settle          anyone: settle v1.9 (v1.8 and v1.7 underneath) on the anchored records
+    settle          anyone: settle v1.10 (v1.9, v1.8 and v1.7 underneath) on the anchored records
 
 Block headers come from any explorer; header_view_fetch.py builds a view from two and checks they agree. Nothing
 here sends anything anywhere, and no step needs an account, a key or a server of ours.
@@ -166,8 +166,8 @@ def main():
         sys.argv = ["anchor_direct.py", "--record", a.record, "--ots", a.ots, "--contract", a.contract, "--view", a.view[0], "--out", a.out]
         return ad.main()
     if a.cmd == "settle":
-        import settle_v1_9 as v19
-        sys.argv = ["settle_v1_9.py", "--settle", a.contract] + sum((["--event", x] for x in a.event), []) + sum((["--view", x] for x in a.view), [])
+        import settle_v1_10 as v19
+        sys.argv = ["settle_v1_10.py", "--settle", a.contract] + sum((["--event", x] for x in a.event), []) + sum((["--view", x] for x in a.view), [])
         return v19.main()
     return 1
 
