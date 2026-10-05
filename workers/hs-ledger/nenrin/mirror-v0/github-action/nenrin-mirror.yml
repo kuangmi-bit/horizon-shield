@@ -1,0 +1,77 @@
+# Hold an independent copy of the NENRIN ledger (nenrin-mirror-v0) in your own GitHub repository.
+#
+# Put this file at .github/workflows/nenrin-mirror.yml in any repository you control (an empty one is fine) and run
+# it once from the Actions tab. It needs no secret and no key: it reads the public ledger, verifies every digest,
+# and commits the copy to a branch of your repository. Nothing is uploaded anywhere else.
+#
+# mirror.py is fetched at a pinned commit and refused unless its sha256 is the one written below, so a change to
+# the upstream file cannot change what runs here until you change the pin yourself.
+#
+# What a copy establishes: that these bytes, with these digests, were obtainable from the ledger at mirrored_at,
+# and that anyone holding the branch can recompute every digest offline (python3 mirror.py verify --dir mirror).
+# What it does not establish: that any claim in the ledger is true, or that an anchor is valid (check the .ots
+# files against Bitcoin headers with any OpenTimestamps client).
+#
+# Two honest mirrors share content_sha256 for the same range. To have yours counted, post that value and the
+# range in an issue on ogasurfproject-jpg/horizon-shield.
+name: NENRIN mirror
+
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nenrin-mirror
+  cancel-in-progress: false
+
+env:
+  MIRROR_PY_URL: https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/0db849a2238f13d035c99930c7ad017122663a80/workers/hs-ledger/nenrin/mirror-v0/mirror.py
+  MIRROR_PY_SHA256: 76cefe5c3eaaacd4ac630a3c8242d644611410497bd59a0a66e3f2f8ee7958bc
+  BRANCH: nenrin-mirror
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the mirror branch (created on the first run)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::${auth}"
+          echo "GIT_AUTH=http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" >> "$GITHUB_ENV"
+          url="https://github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$url" "$BRANCH" >/dev/null 2>&1; then
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" clone --quiet --branch "$BRANCH" "$url" work
+          else
+            mkdir work && cd work && git init --quiet -b "$BRANCH" && git remote add origin "$url"
+          fi
+      - name: Fetch mirror.py at the pinned commit and check its digest
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o mirror.py "$MIRROR_PY_URL"
+          got="$(sha256sum mirror.py | cut -d' ' -f1)"
+          [ "$got" = "$MIRROR_PY_SHA256" ] || { echo "::error::mirror.py sha256 is $got, not the pinned $MIRROR_PY_SHA256"; exit 1; }
+          echo "mirror.py $got"
+      - name: Pull (resumes from what the branch already holds) and verify offline
+        run: |
+          set -uo pipefail
+          python3 mirror.py pull --dir work/mirror --quiet; pull=$?
+          set -e
+          python3 mirror.py verify --dir work/mirror | tee verify.txt
+          [ "$pull" = 0 ] || echo "::warning::pull reported problems; they are listed in manifest.json under problems and the copy is kept"
+          { echo "### NENRIN mirror"; echo; echo '```'; tail -n 3 verify.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the copy
+        run: |
+          set -euo pipefail
+          cd work
+          git add mirror
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          c="$(python3 -c 'import json;m=json.load(open("mirror/manifest.json"));print(m["content_sha256"][:12], m["range"])')"
+          git -c user.name="nenrin-mirror" -c user.email="nenrin-mirror@users.noreply.github.com" commit --quiet -m "nenrin mirror: content_sha256 ${c}"
+          git -c "$GIT_AUTH" push --quiet origin "$BRANCH"

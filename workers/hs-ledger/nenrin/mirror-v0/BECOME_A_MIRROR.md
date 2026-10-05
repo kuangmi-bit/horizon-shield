@@ -12,6 +12,10 @@ The fix is not a promise by the operator to keep serving. It is copies, held by 
 
 Standard library only, Python 3.8 or later. Read only against the ledger; nothing is uploaded anywhere. About one request per file, with a pause between requests.
 
+## Or let GitHub hold it
+
+No server needed: put [`github-action/nenrin-mirror.yml`](github-action/nenrin-mirror.yml) at `.github/workflows/nenrin-mirror.yml` in any repository you control and run it once from the Actions tab. Every six hours it fetches `mirror.py` at a pinned commit (refused unless its sha256 matches the pin in the file), pulls what is new, verifies every digest offline, and commits the copy to the branch `nenrin-mirror` of your repository. No secret, no key, nothing uploaded anywhere else. The job summary prints the `content_sha256` to compare with other mirrors.
+
 ## What lands on your disk
 
     ledger/<n>.json    the entry as served: claim_sha256, ots_status, bitcoin_block, record_canonical
