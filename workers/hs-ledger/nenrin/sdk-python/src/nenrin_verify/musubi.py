@@ -131,14 +131,16 @@ def selftest_all(out=sys.stdout, reuse=True):
     with tempfile.TemporaryDirectory() as cache:
         env = dict(os.environ, MUSUBI_SELFTEST_CACHE=cache if reuse else "", MUSUBI_SELFTEST_HOME=MUSUBI_DIR)
         for name in names:
+            t1 = time.time()
             p = subprocess.run([sys.executable, "-c", _BOOT, path_of(name), "--selftest"], capture_output=True, text=True, env=env)
+            secs = time.time() - t1
             last = (p.stdout.strip().splitlines() or [""])[-1]
             good = p.returncode == 0 and ("PASSED" in last or "ALL PASS" in last)
             ok += good
             if good and reuse:
                 with open(os.path.join(cache, name + ".json"), "w", encoding="utf-8") as f:
                     json.dump({"returncode": p.returncode, "stdout": p.stdout, "stderr": p.stderr}, f)
-            out.write("%s  %-22s %s\n" % ("ok  " if good else "FAIL", name, last[:110]))
+            out.write("%s  %-22s %6.1f s  %s\n" % ("ok  " if good else "FAIL", name, secs, last[:100]))
         log = os.path.join(cache, "reused.log")
         reused = len(open(log, encoding="utf-8").read().split()) if os.path.exists(log) else 0
     out.write("%d/%d MUSUBI modules pass their own self-test (%.0f s; %s)\n" % (

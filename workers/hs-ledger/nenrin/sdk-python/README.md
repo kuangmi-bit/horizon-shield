@@ -126,6 +126,13 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.4.8 (2026-10-06)
+
+`musubi-verify --selftest` prints each module's own wall time next to its result. @pipavlo82 completed the full 0.4.7
+run on Windows 11 (Python 3.12.10, Node 22.15.0): 22/22, exit 0, 25 nested self-tests reused, 1596 s, against 2 s on
+Linux here. Neither of us can say yet where the Windows time goes; the per-module column is what tells it. Nothing
+else changed.
+
 ## 0.4.7 (2026-10-05)
 
 `musubi-verify --selftest` runs the 22 MUSUBI modules lower layers first and lets a nested self-test reuse the exact
