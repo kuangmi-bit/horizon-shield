@@ -59,12 +59,14 @@ async function send(env, events, opts) {
 let calls = [];
 let bridgeReply = "ご回答ありがとうございます。いただいた内容は担当の大賀が確認し、掲載に反映します。";
 let llmOut = null;
-let bridgeExtra = {}, bridgeStatus = 200;
+let bridgeExtra = {}, bridgeStatus = 200, visionOut = null, contentStatus = 200;
 globalThis.fetch = async (url, init) => {
   const u = String(url);
   let body = null; try { body = JSON.parse((init && init.body) || "null"); } catch (_e) { body = null; }
   calls.push({ url: u, body });
   if (u.includes("/kira-bridge")) return bridgeStatus !== 200 ? new Response("down", { status: bridgeStatus }) : new Response(JSON.stringify(Object.assign({ ok: true, reply: bridgeReply }, bridgeExtra)), { status: 200 });
+  if (u.includes("api-data.line.me")) return contentStatus === 200 ? new Response(new Uint8Array([255, 216, 255, 1, 2, 3]), { status: 200 }) : new Response("gone", { status: contentStatus });
+  if (u.includes("api.anthropic.com") && visionOut !== null && body && /写真やファイルを読み/.test(String(body.system || ""))) return new Response(JSON.stringify({ content: [{ type: "text", text: visionOut }] }), { status: 200 });
   if (u.includes("api.anthropic.com") && llmOut !== null) return new Response(JSON.stringify({ content: [{ type: "text", text: llmOut }] }), { status: 200 });
   return new Response("{}", { status: 200 });
 };
@@ -438,7 +440,7 @@ console.log("\n28) KIRA が「大賀から改めて」と返したのに reply �
 const DMU = "U" + "d".repeat(32);
 const dmMsg = (text, id) => ({ type: "message", replyToken: "rt_dm", source: { type: "user", userId: DMU }, message: { type: "text", id: id || ("d" + Math.random().toString(36).slice(2)), text } });
 const llms = () => calls.filter((c) => c.url.includes("api.anthropic.com"));
-const llmCtx = () => { const l = llms()[0]; return (l && l.body && l.body.messages && l.body.messages[0].content) || ""; };
+const llmCtx = () => { const l = llms().find((c) => c.body && c.body.messages && typeof c.body.messages[0].content === "string"); return (l && l.body.messages[0].content) || ""; };
 async function dmEnv(rec) { const env = makeEnv(); await env.SEEN_STORE.put("partner:" + DMU, JSON.stringify(rec || { since: 1 })); return env; }
 const FACTS = ["・ヒアリングの用紙は、途中で止めても大丈夫。送信したところまで保存される。"];
 
@@ -572,7 +574,81 @@ console.log("\n38) 加盟店さんのお客さんへの説明の仕方を、KIRA
 }
 bridgeExtra = {};
 
-const EXPECT = 118;
+// ===== v18: 加盟店さんの写真を読んで返す(峰尾さまの施工前後の写真 4 枚に「見積書ではない書類」と 4 回返した件) =====
+const imgMsg = (id, set, src) => ({ type: "message", replyToken: "rt_img_" + id, source: src || { type: "user", userId: DMU }, message: Object.assign({ type: "image", id }, set ? { imageSet: set } : {}) });
+const SITE = JSON.stringify({ kind: "site_photo", is_estimate: false, estimates: [], summary: "", description: "掃き出し窓に内窓を付ける前の室内側" });
+const replyTexts = () => replies().map((c) => c.body.messages[0].text);
+
+console.log("\n39) 1対1 でまとめて送られた現場の写真 2 枚: 中身を読み、1 回だけ返す");
+{
+  const env = await dmEnv(); env.KIRA_SET_WAIT_MS = "5";
+  calls = []; visionOut = SITE;
+  llmOut = JSON.stringify({ action: "reply", reply: "内窓を付ける前の写真 2 枚、ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [imgMsg("p1", { id: "set1", index: 1, total: 2 }), imgMsg("p2", { id: "set1", index: 2, total: 2 })]);
+  check("返事は 1 回だけ", replies().length === 1, String(replies().length));
+  check("返したのは読み取りに沿った KIRA の文", replyTexts()[0] === "内窓を付ける前の写真 2 枚、ありがとうございます。", replyTexts()[0]);
+  check("「見積書ではない書類」の定型を返さない", !replyTexts().some((t) => t.includes("見積書ではない")));
+  check("KIRA に 2 枚の読み取りを渡した", llmCtx().includes("2 枚") && (llmCtx().match(/内窓を付ける前/g) || []).length >= 2);
+  const ps = pushes().map((c) => c.body.messages[0].text);
+  check("大賀への知らせはまとめて 1 通", ps.length === 1, String(ps.length));
+  check("知らせに読み取りの中身を載せた", ps[0] && ps[0].includes("内窓を付ける前"));
+  const conv = JSON.parse((await env.SEEN_STORE.get("kira_gconv:dm:" + DMU)) || "[]");
+  check("会話に [現場の写真] として残した(続く「before」を KIRA が結び付けられる)", conv.some((c) => c.text.startsWith("[現場の写真]")));
+}
+
+console.log("\n40) 写真の後に届いた短い説明「before」: hearing が何も返さなくても黙らず KIRA が返す");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "[現場の写真] 掃き出し窓に内窓を付ける前の室内側" }, { who: "kira", text: "写真ありがとうございます。" }]));
+  calls = []; bridgeReply = ""; bridgeExtra = {};
+  llmOut = JSON.stringify({ action: "reply", reply: "施工前の写真ですね。ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [dmMsg("before")]);
+  check("KIRA を呼んだ", llms().length === 1);
+  check("KIRA に直前の写真の読み取りを渡した", llmCtx().includes("[現場の写真]"));
+  check("返事をした", replies().length === 1 && replyTexts()[0].includes("施工前"));
+}
+
+console.log("\n41) 1 枚だけの写真(imageSet なし)も 1 回返す。同じ写真の再配達には返さない");
+{
+  const env = await dmEnv();
+  calls = []; visionOut = SITE;
+  llmOut = JSON.stringify({ action: "reply", reply: "写真ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [imgMsg("single1")]);
+  await send(env, [imgMsg("single1")]);
+  check("返事は 1 回", replies().length === 1, String(replies().length));
+}
+
+console.log("\n42) 写真を LINE から取り出せないとき: 定型の受け取りを、まとめての最後の 1 枚にだけ返す");
+{
+  const env = await dmEnv(); env.KIRA_SET_WAIT_MS = "5";
+  calls = []; contentStatus = 410;
+  await send(env, [imgMsg("g1", { id: "set2", index: 1, total: 2 }), imgMsg("g2", { id: "set2", index: 2, total: 2 })]);
+  check("返事は 1 回", replies().length === 1, String(replies().length));
+  check("「見積書ではない書類」と言わない", !replyTexts()[0].includes("見積書ではない"));
+  contentStatus = 200;
+}
+
+console.log("\n43) 加盟店グループに加盟店さんが貼った写真も読んで返す。加盟店グループでない所は知らせだけ");
+{
+  const env = makeEnv(); env.KIRA_SET_WAIT_MS = "5";
+  await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  calls = []; visionOut = SITE;
+  llmOut = JSON.stringify({ action: "reply", reply: "現場の写真、ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [imgMsg("gp1", null, { type: "group", groupId: GID, userId: UID })]);
+  check("グループに返した(replyToken)", replies().length === 1 && replies()[0].body.replyToken === "rt_img_gp1");
+  check("KIRA にグループとして渡した(1対1 と言わない)", !llmCtx().includes("1 対 1 のトーク"));
+  const env2 = makeEnv();
+  calls = [];
+  await send(env2, [imgMsg("gx1", null, { type: "group", groupId: GID, userId: UID })]);
+  check("加盟店グループでない所では返さない", replies().length === 0);
+  check("加盟店グループでない所は大賀へ知らせる", pushes().length === 1);
+  calls = [];
+  await send(env, [imgMsg("go1", null, { type: "group", groupId: GID, userId: "U" + "c".repeat(32) })]);
+  check("大賀さん本人が貼った写真には返さない", replies().length === 0);
+}
+visionOut = null;
+
+const EXPECT = 136;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");
