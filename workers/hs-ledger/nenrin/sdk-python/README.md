@@ -126,6 +126,19 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.4.6 (2026-10-05)
+
+`canonical_v0.mjs`, the Node twin that contract_v0 uses to confirm its canonical bytes, decided whether it was the main
+module by comparing `import.meta.url` with `"file://" + process.argv[1]`. On Windows that string never matches, so the
+twin printed nothing and the contract_v0 self-test failed in a clean Windows venv (reported by @pipavlo82 in Issue #29,
+Node 22.15.0). It now compares against `pathToFileURL(realpathSync(process.argv[1])).href`, which also holds when the file
+is reached through a symlink. Its `--vectors` mode also reads canonical_vectors.json as published (`{rule, note,
+vectors}`); before, it expected a bare list and threw. No canonical rule and no settlement rule changed.
+
+The Python and JavaScript packages are versioned together where they share a verifier: compare Python 0.4.5 or 0.4.6
+with npm nenrin-verify 0.4.4, not with an older npm pin. 0.4.5 and 0.4.6 change only MUSUBI, which has no JavaScript
+twin in the npm package.
+
 ## 0.4.5 (2026-10-05)
 
 MUSUBI settle v1.8, v1.9 and v1.10 now ship with the package, byte for byte from the repository, with what they need:

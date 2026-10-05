@@ -19,7 +19,8 @@
 //   node canonical_v0.mjs --vectors canonical_vectors.json     # prints  <sha256>  <name> per vector
 //   echo '{"b":1,"a":[true,null]}' | node canonical_v0.mjs        # prints the canonical bytes
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const SAFE = 9007199254740991;
 
@@ -75,10 +76,14 @@ export function sha256(s) {
   return createHash("sha256").update(Buffer.from(s, "utf8")).digest("hex");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Main-module check by URL, not by string: on Windows process.argv[1] is C:\\...\\canonical_v0.mjs and
+// "file://" + that never equals import.meta.url, so the CLI printed nothing (pipavlo82, Issue #29, 2026-10-05).
+// realpath as well, because Node resolves import.meta.url through symlinks and argv[1] does not.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const a = process.argv.slice(2);
   if (a[0] === "--vectors") {
-    const vectors = JSON.parse(readFileSync(a[1], "utf8"));
+    const raw = JSON.parse(readFileSync(a[1], "utf8"));
+    const vectors = Array.isArray(raw) ? raw : raw.vectors;   // canonical_vectors.json is {rule, note, vectors}
     for (const vec of vectors) {
       let line;
       try { line = sha256(canonical(vec.value)) + "  " + vec.name; }

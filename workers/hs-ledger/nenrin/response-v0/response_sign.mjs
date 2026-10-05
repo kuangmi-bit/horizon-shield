@@ -8,7 +8,8 @@
 //   curl -sS -X POST https://ledger.horizonshield.dev/response -H 'content-type: application/json' --data-binary @body.json
 //
 // The key_url must serve {"public_key_ed25519_b64": "<the public half of --key>"} on your own host.
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { createPrivateKey, createPublicKey, sign } from "node:crypto";
 
 export function sortKeys(x) {
@@ -43,4 +44,4 @@ async function main(argv) {
   console.log(r.status, await r.text());
   return r.ok ? 0 : 1;
 }
-if (import.meta.url === `file://${process.argv[1]}`) main(process.argv.slice(2)).then((c) => process.exit(c));
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) main(process.argv.slice(2)).then((c) => process.exit(c));

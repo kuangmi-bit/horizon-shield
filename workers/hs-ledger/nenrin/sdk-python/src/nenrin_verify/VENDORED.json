@@ -31,8 +31,8 @@
   },
   "_repo/musubi-v0/canonical_v0.mjs": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/canonical_v0.mjs",
-    "source_sha256": "a9c72e3e44d45d8c44fa884269699a90f5464a93b9ddb6deeeef16f1ca25d2a3",
-    "vendored_sha256": "a9c72e3e44d45d8c44fa884269699a90f5464a93b9ddb6deeeef16f1ca25d2a3"
+    "source_sha256": "6fa4f0eb0ac7ce9fba6ae4921683685565de13a3102ae7478110d6f0317de351",
+    "vendored_sha256": "6fa4f0eb0ac7ce9fba6ae4921683685565de13a3102ae7478110d6f0317de351"
   },
   "_repo/musubi-v0/canonical_vectors.json": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/canonical_vectors.json",
