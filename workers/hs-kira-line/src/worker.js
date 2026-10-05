@@ -265,7 +265,7 @@ var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v18-photo-20261005", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v19-estset-20261005", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -671,13 +671,10 @@ function adaptForPartner(msg, isPartnerFlag) {
 }
 __name(adaptForPartner, "adaptForPartner");
 
-// 中身を取り出せなかったとき(LINE から取れない・読めない)だけ使う。複数枚まとめて送られたときは最後の 1 枚にだけ返す。
-async function partnerMediaHandoff(event, userId, env, kind) {
+// 中身を取り出せなかったとき(LINE から取れない・読めない)だけ使う。まとめて送られたときの返事の数は partnerMediaFinish が 1 回にする。
+async function partnerMediaHandoff(event, userId, env, kind, gid) {
   const label = kind === "pdf" ? "ファイル" : "写真";
-  const set = event.message && event.message.imageSet;
-  if (set && Number(set.total) > 1 && Number(set.index) !== Number(set.total)) return;
-  try { await replyToLine(event.replyToken, label + "を受け取りました。ありがとうございます。担当の大賀が確認します。", env.LINE_CHANNEL_TOKEN); } catch (_e) {}
-  try { await pushToLine(env.LINE_USER_ID, "【加盟店から" + label + "(中身を読み取れなかった)】要対応(人が確認)。ユーザー: " + userId, env.LINE_CHANNEL_TOKEN); } catch (_e) {}
+  await partnerMediaFinish(event, userId, env, kind, gid, { line: "[" + label + "] 中身を取り出せなかった", owner: "[" + label + "] LINE から中身を取り出せなかった(要確認)", failed: true });
 }
 __name(partnerMediaHandoff, "partnerMediaHandoff");
 
@@ -696,7 +693,7 @@ async function handlePartnerEstimateMedia(event, userId, env, kind, gid) {
     const res = await fetch("https://api-data.line.me/v2/bot/message/" + messageId + "/content", { headers: { Authorization: "Bearer " + env.LINE_CHANNEL_TOKEN } });
     if (!res.ok) throw new Error("line_content_" + res.status);
     bytes = new Uint8Array(await res.arrayBuffer());
-  } catch (_e) { await partnerMediaHandoff(event, userId, env, kind); return; }
+  } catch (_e) { await partnerMediaHandoff(event, userId, env, kind, gid); return; }
   let binary = ""; const cs = 8192;
   for (let i = 0; i < bytes.length; i += cs) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + cs));
   const b64 = btoa(binary);
@@ -716,72 +713,87 @@ kind: estimate=見積書、site_photo=現場や施工の写真(施工前・施�
   } catch (_e) { result = { is_estimate: false, estimates: [] }; }
   if (!Array.isArray(result.estimates)) result.estimates = [];
   if (!result.is_estimate) { await partnerMediaDescribe(event, userId, env, kind, result, gid); return; }
-  let summary = String(result.summary || "").replace(/[0-9０-９]+[ 　]*(万円|万|円)/g, "").replace(/[¥￥$][ 　]*[0-9０-９]+/g, "").trim();
-  if (!summary) summary = "見積を審査用にお送りします。";
+  // 2026-10-05 v19: 見積書も、まとめて送られたら 1 回だけ返す。返事は replyToken(これまでは 1 枚ごとに push で、送信数も使っていた)。
+  //   hearing には審査の材料として渡す(kira_decides: 返事は作らせない)。hearing が手続きの文(業種の問い等)を返したときだけ、それをそのまま送る。
+  let summary = String(result.summary || "").replace(/[0-9０-９,，]+[ 　]*(万円|万|円)/g, "").replace(/[¥￥$][ 　]*[0-9０-９,，]+/g, "").trim();
+  if (!summary) summary = "見積書";
   let memberGid = null;
   try { const _rec = await env.SEEN_STORE.get("partner:" + userId); if (_rec) memberGid = (JSON.parse(_rec).groupId) || null; } catch (_e) {}
-  let liveReply = "";
+  let hr = null;
   if (env.KIRA_BRIDGE_KEY) {
     try {
-      const br = await fetch("https://hearing.horizonshield.dev/kira-bridge", { method: "POST", headers: { "Content-Type": "application/json", "X-Bridge-Key": env.KIRA_BRIDGE_KEY }, body: JSON.stringify({ userId, text: summary, groupId: memberGid, estimates: result.estimates }) });
-      if (br.ok) { const data = await br.json(); if (data && data.ok) liveReply = data.reply || ""; }
+      const br = await fetch("https://hearing.horizonshield.dev/kira-bridge", { method: "POST", signal: (typeof AbortSignal !== "undefined" && AbortSignal.timeout) ? AbortSignal.timeout(10000) : undefined, headers: { "Content-Type": "application/json", "X-Bridge-Key": env.KIRA_BRIDGE_KEY }, body: JSON.stringify({ userId, text: summary, groupId: gid || memberGid, estimates: result.estimates, kira_decides: true }) });
+      if (br.ok) { const data = await br.json(); if (data && data.ok) hr = kiraBridgeOut(data); }
     } catch (_e) {}
   }
-  try {
-    const estLines = result.estimates.slice(0, 5).map(function (e) { return "・" + ((e && e.work) || "") + " " + ((e && e.amount) || "") + " " + ((e && e.detail) || ""); }).join(NL);
-    await pushToLine(env.LINE_USER_ID, "【加盟店 審査用の見積を受領】" + NL + "ユーザー: " + userId + " ★加盟店" + NL + estLines + NL + "→ estimates_for_audit に反映(KIRA適正診断の材料)。", env.LINE_CHANNEL_TOKEN);
-  } catch (_e) {}
-  if (liveReply) { await pushToLine(userId, liveReply, env.LINE_CHANNEL_TOKEN); }
-  else { await pushToLine(userId, "見積を受け取りました。担当の大賀が確認してご連絡します。", env.LINE_CHANNEL_TOKEN); }
+  const estLines = result.estimates.slice(0, 5).map(function (e) { return "・" + ((e && e.work) || "") + " " + ((e && e.amount) || "") + " " + ((e && e.detail) || ""); }).join(NL);
+  await partnerMediaFinish(event, userId, env, kind, gid, {
+    line: "[見積書] " + summary.slice(0, 200) + (hr ? "(審査の材料としてこちらの記録に入れた)" : ""),
+    owner: "[見積書] " + summary.slice(0, 120) + NL + estLines + NL + (hr ? "→ estimates_for_audit に反映(KIRA 適正診断の材料)" : "⚠ hearing に渡せなかった。審査の材料に入っていない(手で拾う)"),
+    proc: (hr && !hr.kind && hr.reply) ? hr.reply : ""
+  });
 }
 __name(handlePartnerEstimateMedia, "handlePartnerEstimateMedia");
 // 2026-10-05 v18: 加盟店さんの写真・ファイル(見積書以外)を、読み取った中身に沿って KIRA が返す。
-//   ・まとめて送られた写真(imageSet)には 1 回だけ返す(最後の 1 枚の番で、他の枚の読み取りを少し待ってからまとめる)。
-//   ・読み取りは会話に「[写真] …」として残す。続けて届く「before」「アフター」などの短い説明を KIRA が写真と結び付けられる。
-//   ・使い道(掲載に使うか等)は約束しない。大賀へはまとめて 1 通知らせる(写真の保存と使い道は大賀が決める)。
 async function partnerMediaDescribe(event, userId, env, kind, result, gid) {
   const label = kind === "pdf" ? "ファイル" : "写真";
   const cls = String((result && result.kind) || "other");
   const clsJa = { site_photo: "現場の写真", document: "書類", screenshot: "画面の写し", other: label }[cls] || label;
   const desc = String((result && result.description) || "").replace(/[0-9０-９,，]+[ 　]*(万円|万|円)/g, "").trim().slice(0, 200) || "中身をはっきり読み取れなかった";
   const line = "[" + clsJa + "] " + desc;
+  await partnerMediaFinish(event, userId, env, kind, gid, { line, owner: line });
+}
+__name(partnerMediaDescribe, "partnerMediaDescribe");
+// 写真・ファイルの返事の 1 箇所(見積書・現場の写真・書類・読み取れなかったもの、どれもここを通る)。
+//   ・まとめて送られた写真(imageSet)は、1 枚ずつの結果を kira_imgset:<id>:<index> に置き、最後の 1 枚の番で集めて 1 回だけ返す。
+//   ・読み取りは会話に残す(続く「before」「アフター」を KIRA が写真と結び付けられる)。
+//   ・hearing の手続きの文(proc)があればそれを送る。無ければ KIRA が読み取りに沿って返す。読み取れなかったものだけなら定型の受け取り。
+//   ・使い道(掲載に使うか等)は約束しない。大賀へはまとめて 1 通(写真の保存と使い道は大賀が決める)。
+async function partnerMediaFinish(event, userId, env, kind, gid, entry) {
+  const label = kind === "pdf" ? "ファイル" : "写真";
   let memberGid = null;
   if (!gid) { try { const _rec = await env.SEEN_STORE.get("partner:" + userId); if (_rec) memberGid = (JSON.parse(_rec).groupId) || null; } catch (_e) {} }
   const scope = gid || memberGid || ("u:" + userId);
   const convKey = gid || ("dm:" + userId);
-  await kiraConvAppend(env, convKey, "member", line);
-  let items = [line];
+  await kiraConvAppend(env, convKey, "member", entry.line);
+  let entries = [entry];
   const set = event.message && event.message.imageSet;
   const total = set ? Number(set.total) || 1 : 1;
   if (set && set.id && total > 1) {
     const base = "kira_imgset:" + set.id + ":";
-    try { await env.SEEN_STORE.put(base + Number(set.index), line, { expirationTtl: 60 * 60 }); } catch (_e) {}
+    try { await env.SEEN_STORE.put(base + Number(set.index), JSON.stringify(entry), { expirationTtl: 60 * 60 }); } catch (_e) {}
     if (Number(set.index) !== total) return;
     const waitMs = Number(env.KIRA_SET_WAIT_MS || 1000);
     let got = [];
     for (let t = 0; t < 10; t++) {
       got = [];
-      for (let i = 1; i <= total; i++) { let v = null; try { v = await env.SEEN_STORE.get(base + i); } catch (_e) {} if (v) got.push(v); }
+      for (let i = 1; i <= total; i++) { let v = null; try { v = await env.SEEN_STORE.get(base + i); } catch (_e) {} if (v) { try { got.push(JSON.parse(v)); } catch (_e) {} } }
       if (got.length >= total) break;
       await new Promise((r) => setTimeout(r, waitMs));
     }
-    items = got.length ? got : [line];
+    entries = got.length ? got : [entry];
   }
-  const text = label + " " + total + " " + (kind === "pdf" ? "件" : "枚") + "を受け取った。読み取り(機械による):\n" + items.map((x, i) => (i + 1) + ") " + x).join("\n");
-  const r = await kiraPartnerDecide(env, scope, text, null, { dm: !gid, convKey, kind: "media" });
-  let out = "";
-  if (r && r.ok && r.action !== "silent" && r.reply) out = r.reply;
-  if (!out) out = label + "を受け取りました。ありがとうございます。担当の大賀が確認します。";
+  const unit = kind === "pdf" ? "件" : "枚";
+  const text = label + " " + total + " " + unit + "を受け取った。読み取り(機械による):\n" + entries.map((x, i) => (i + 1) + ") " + x.line).join("\n") + (entries.length < total ? "\n(" + (total - entries.length) + " " + unit + "は読み取りが間に合わなかった)" : "");
+  const proc = (entries.find((x) => x.proc) || {}).proc || "";
+  let r = null, out = "";
+  if (proc) out = proc;
+  else if (entries.every((x) => x.failed)) out = label + "を受け取りました。ありがとうございます。担当の大賀が確認します。";
+  else {
+    r = await kiraPartnerDecide(env, scope, text, null, { dm: !gid, convKey, kind: "media" });
+    if (r && r.ok && r.action !== "silent" && r.reply) out = r.reply;
+    if (!out) out = label + "を受け取りました。ありがとうございます。担当の大賀が確認します。";
+  }
   try { await replyToLine(event.replyToken, out, env.LINE_CHANNEL_TOKEN); } catch (_e) {}
   await kiraConvAppend(env, convKey, "kira", out);
   let added = [];
   if (r && r.ok) added = await kiraLessonsAdd(env, scope, r.lessons, text);
   try {
-    await pushToLine(env.LINE_USER_ID, "【加盟店から" + label + " " + total + (kind === "pdf" ? " 件" : " 枚") + (gid ? "(グループ)" : "(1対1)") + "】保存と使い道は大賀さんが決める(LINE の画面から保存できます)。\nユーザーID: " + userId + "\n" + items.map((x, i) => (i + 1) + ") " + x).join("\n") + "\n\nKIRA が返した文:\n" + out, env.LINE_CHANNEL_TOKEN);
+    await pushToLine(env.LINE_USER_ID, "【加盟店から" + label + " " + total + " " + unit + (gid ? "(グループ)" : "(1対1)") + "】保存と使い道は大賀さんが決める(LINE の画面から保存できます)。\nユーザーID: " + userId + "\n" + entries.map((x, i) => (i + 1) + ") " + x.owner).join("\n") + (entries.length < total ? "\n(" + (total - entries.length) + " " + unit + "は読み取りが間に合わなかった。LINE の画面で確認)" : "") + "\n\nKIRA が返した文:\n" + out, env.LINE_CHANNEL_TOKEN);
   } catch (_e) {}
   await kiraDigestAdd(env, { gid: scope, where: gid ? "グループ" : "1対1", kind: "media", in: text, out, lessons: added });
 }
-__name(partnerMediaDescribe, "partnerMediaDescribe");
+__name(partnerMediaFinish, "partnerMediaFinish");
 
 async function handleImageMessage(event, userId, env, partnerFlag) {
   const replyToken = event.replyToken;
@@ -1245,7 +1257,7 @@ async function handleFileMessage(event, userId, env, partnerFlag) {
   //   加盟店のファイルは、診断せず・金額を言わず、担当(大賀)に渡して人が返す。
   if (partnerFlag) {
     const _fn = (event.message.fileName || "").toLowerCase();
-    if (!_fn.endsWith(".pdf")) { await partnerMediaHandoff(event, userId, env, "pdf"); return; }
+    if (!_fn.endsWith(".pdf")) { await partnerMediaFinish(event, userId, env, "pdf", null, { line: "[ファイル] " + String(event.message.fileName || "名前なし").slice(0, 80) + "(この形式は中身を読み取らない)", owner: "[ファイル] " + String(event.message.fileName || "名前なし").slice(0, 80) + "(PDF 以外は読み取らない。LINE の画面で確認)" }); return; }
     await handlePartnerEstimateMedia(event, userId, env, "pdf");
     return;
   }
@@ -1712,7 +1724,7 @@ const KIRA_PARTNER_SYSTEM = [
   "返す: こちら(HORIZON SHIELD)に向けた発言には必ず返す。答えや情報をもらったら、その中身を一言で言い換えてお礼を言う。「送ります」「終わりました」などの連絡にも「ありがとうございます。お待ちしています」のように短くお礼を返す(「かしこまりました」だけで終えない)。",
   "黙る(silent): 加盟店の社内の人同士のやり取りと、こちらのお礼に対する返礼(「ありがとうございます!」だけ等)で会話が閉じるときだけ。",
   "決めてはいけないこと: 料金・支払い・値引き・契約・掲載の可否や掲載内容の確定・記事の直しの反映・公開や作業の日程・個人情報・こちらの仕組みや体制の決定。これらが要る話は action を escalate にし、受け取った内容を具体的に言い換えてお礼を言い、「確認して、担当の大賀からあらためてお返事します」と伝える。",
-  "約束しない: 「反映します」「掲載します」「直しました」「対応します」など、大賀さんが決めていないことを約束する言い方をしない。言えるのは「受け取りました」「大賀が確認します」まで。決めてはいけない話では「承知しました」「承知いたしました」も引き受けたと取られるので使わない。",
+  "約束しない: 「反映します」「掲載します」「直しました」「対応します」など、大賀さんが決めていないことを約束する言い方をしない。言えるのは「受け取りました」「大賀が確認します」まで。決めてはいけない話では「承知しました」「承知いたしました」も引き受けたと取られるので使わない。「確認しました」「確認させていただきました」も、中身を確かめ終えたと取られるので使わない(確かめるのは大賀)。",
   "数字: 相手が書いた数字だけを使う。数字を作らない、丸めない、相場を言い切らない。",
   "知らないことを作らない: こちらの仕組み・サービス・料金・機能(グループの使い方、スタッフの参加、検証のやり方など)について、経験帳と会話に書かれていないことは答えない。推測で「できます」「自動で〜されます」と言わない。その場合は escalate。ただし【答えてよい事実】が渡されたときは、そこに書かれたことだけは言い換えて答えてよい(書かれていないことを足さない)。",
   "写真・ファイル: 写真やファイルが届いたときは、読み取りに書かれた中身を一言で言い換えてお礼を言う(例: 内窓を付ける前と後の写真)。読み取りは機械によるので言い切りすぎない。使い道(掲載・記事に使う等)は約束しない。写真の前後に届く短い説明(「before」「アフター」「施工前」など)には、どの写真のことか分かったと一言で返す(黙らない)。",

@@ -66,7 +66,7 @@ globalThis.fetch = async (url, init) => {
   calls.push({ url: u, body });
   if (u.includes("/kira-bridge")) return bridgeStatus !== 200 ? new Response("down", { status: bridgeStatus }) : new Response(JSON.stringify(Object.assign({ ok: true, reply: bridgeReply }, bridgeExtra)), { status: 200 });
   if (u.includes("api-data.line.me")) return contentStatus === 200 ? new Response(new Uint8Array([255, 216, 255, 1, 2, 3]), { status: 200 }) : new Response("gone", { status: contentStatus });
-  if (u.includes("api.anthropic.com") && visionOut !== null && body && /写真やファイルを読み/.test(String(body.system || ""))) return new Response(JSON.stringify({ content: [{ type: "text", text: visionOut }] }), { status: 200 });
+  if (u.includes("api.anthropic.com") && visionOut !== null && body && /写真やファイルを読み/.test(String(body.system || ""))) return new Response(JSON.stringify({ content: [{ type: "text", text: Array.isArray(visionOut) ? visionOut.shift() : visionOut }] }), { status: 200 });
   if (u.includes("api.anthropic.com") && llmOut !== null) return new Response(JSON.stringify({ content: [{ type: "text", text: llmOut }] }), { status: 200 });
   return new Response("{}", { status: 200 });
 };
@@ -648,7 +648,58 @@ console.log("\n43) 加盟店グループに加盟店さんが貼った写真も�
 }
 visionOut = null;
 
-const EXPECT = 136;
+// ===== v19: 見積書の写真も、まとめて 1 回だけ replyToken で返す =====
+const EST = JSON.stringify({ kind: "estimate", is_estimate: true, estimates: [{ work: "内窓", amount: "120,000円", detail: "2 箇所" }], summary: "平塚市の内窓の見積 120,000円", description: "" });
+const pushTo = (to) => pushes().filter((c) => c.body && c.body.to === to);
+
+console.log("\n44) 1対1 で見積書の写真 2 枚: 返事は replyToken で 1 回、相手への push は無し、大賀への知らせは 1 通");
+{
+  const env = await dmEnv(); env.KIRA_SET_WAIT_MS = "5";
+  calls = []; visionOut = EST; bridgeReply = ""; bridgeExtra = { kind: "answer" };
+  llmOut = JSON.stringify({ action: "reply", reply: "見積書 2 枚、ありがとうございます。審査の材料として確認します。", reason: "", lessons: [] });
+  await send(env, [imgMsg("e1", { id: "set3", index: 1, total: 2 }), imgMsg("e2", { id: "set3", index: 2, total: 2 })]);
+  check("返事は 1 回", replies().length === 1, String(replies().length));
+  check("相手への push は無し(送信数を使わない)", pushTo(DMU).length === 0, String(pushTo(DMU).length));
+  check("hearing には 2 枚とも審査の材料として渡した", bridges().length === 2 && bridges().every((b) => Array.isArray(b.body.estimates) && b.body.kira_decides === true));
+  check("hearing に渡す文に金額を入れない", bridges().every((b) => !/[0-9]+円/.test(b.body.text)), bridges().map((b) => b.body.text).join("|"));
+  const ps = pushTo("U" + "c".repeat(32)).map((c) => c.body.messages[0].text);
+  check("大賀への知らせは 1 通", ps.length === 1, String(ps.length));
+  check("大賀への知らせには金額の行がある", ps[0] && ps[0].includes("120,000円"));
+  check("KIRA に渡す文に金額を入れない", !/[0-9,]+円/.test(llmCtx()), llmCtx().slice(-200));
+}
+
+console.log("\n45) 見積書で hearing が手続きの文(業種の問い)を返したら、KIRA を通さずそれを送る");
+{
+  const env = await dmEnv();
+  calls = []; visionOut = EST; bridgeReply = "御社のご業種は、次のどれに近いですか。"; bridgeExtra = {};
+  llmOut = JSON.stringify({ action: "reply", reply: "x", reason: "", lessons: [] });
+  await send(env, [imgMsg("e3")]);
+  check("手続きの文を返した", replies().length === 1 && replyTexts()[0] === bridgeReply, replyTexts()[0]);
+  check("KIRA の返事は作らない", !llmCtx());
+}
+
+console.log("\n46) 見積書と現場の写真が混ざった 2 枚: 返事は 1 回、大賀への知らせに両方");
+{
+  const env = await dmEnv(); env.KIRA_SET_WAIT_MS = "5";
+  calls = []; visionOut = [EST, SITE]; bridgeReply = ""; bridgeExtra = { kind: "answer" };
+  llmOut = JSON.stringify({ action: "reply", reply: "見積書と現場の写真、ありがとうございます。", reason: "", lessons: [] });
+  await send(env, [imgMsg("x1", { id: "set4", index: 1, total: 2 }), imgMsg("x2", { id: "set4", index: 2, total: 2 })]);
+  check("返事は 1 回", replies().length === 1, String(replies().length));
+  const ps = pushTo("U" + "c".repeat(32)).map((c) => c.body.messages[0].text);
+  check("大賀への知らせは 1 通で、見積書と現場の写真の両方", ps.length === 1 && ps[0].includes("[見積書]") && ps[0].includes("[現場の写真]"));
+}
+
+console.log("\n47) PDF 以外のファイル: 1 回だけ受け取りを返し、大賀にはファイル名を知らせる");
+{
+  const env = await dmEnv();
+  calls = []; llmOut = JSON.stringify({ action: "reply", reply: "ファイルをありがとうございます。", reason: "", lessons: [] });
+  await send(env, [{ type: "message", replyToken: "rt_f", source: { type: "user", userId: DMU }, message: { type: "file", id: "f1", fileName: "施工一覧.xlsx" } }]);
+  check("返事は 1 回", replies().length === 1);
+  check("大賀にファイル名を知らせた", pushes().some((c) => c.body.messages[0].text.includes("施工一覧.xlsx")));
+}
+visionOut = null; bridgeReply = ""; bridgeExtra = {};
+
+const EXPECT = 149;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");
