@@ -37,8 +37,14 @@ def day(v):
 
 def status(key, urls):
     for u in urls:
-        time.sleep(2)   # GetUrlInfo は連続 10 回ほどで ThrottleHost を返す
-        st, txt = call("GetUrlInfo", key, {"siteUrl": SITE, "url": u})
+        # GetUrlInfo は連続 10 回ほどで ThrottleHost を返す(2026-10-05、2 秒間隔でも 3 本目から返った)。
+        # 間隔を 4 秒にし、ThrottleHost のときは 15・30・60 秒待って読み直す。送信(SubmitUrlBatch)とは別の枠。
+        time.sleep(4)
+        for wait in (15, 30, 60, None):
+            st, txt = call("GetUrlInfo", key, {"siteUrl": SITE, "url": u})
+            if not (st == 400 and "ThrottleHost" in txt) or wait is None:
+                break
+            time.sleep(wait)
         if st != 200:
             print("  %-90s HTTP %s %s" % (u.replace(SITE, "/"), st, txt[:120])); continue
         d = json.loads(txt).get("d") or {}
