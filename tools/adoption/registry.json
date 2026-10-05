@@ -84,6 +84,13 @@
       "what": "A second, separate verifier built from the text of VERIFIER.md alone: 18 of 18 on interop-v0 and interop-v0.1 (8 of 18 for the build from the older text), then the 36 fixtures of interop-v0.2/edge (merged as PR #30), whose expectations it cut",
       "evidence": "https://github.com/a2aproject/A2A/discussions/1631#discussioncomment-18739314",
       "date": "2026-10-04"
+    },
+    {
+      "who": "babyblueviper1",
+      "subject": "musubi-approval-v2",
+      "what": "A reference verifier of his own for pinned-approver approvals (a2a-approval-v2 with approver_key in the signed bytes) and 9 vectors; MUSUBI settle v1.10 adopted the fields and both implementations agree 9 of 9",
+      "evidence": "https://github.com/ogasurfproject-jpg/horizon-shield/issues/29#issuecomment-5987427704",
+      "date": "2026-10-05"
     }
   ],
   "open_calls": {
