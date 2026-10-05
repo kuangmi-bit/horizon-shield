@@ -126,6 +126,17 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.4.7 (2026-10-05)
+
+`musubi-verify --selftest` runs the 22 MUSUBI modules lower layers first and lets a nested self-test reuse the exact
+result (exit code, stdout, stderr) of the same command when it already passed earlier in the same run. Most settle
+self-tests end by running the self-test of the layer below, so the all-modules run used to repeat the lower layers many
+times; it was too slow to finish on Windows (reported by @pipavlo82 in Issue #29). Measured here: 32 s before, 2 s
+after, 22/22 either way. A module that failed is never reused, any other command runs for real, and the repository's
+files are untouched (three are fingerprinted by correction_v0). A module run on its own (`musubi-verify settle_v1_10
+--selftest`) still runs every layer under it, and `musubi-verify --selftest --no-reuse` runs every nested self-test
+again. Checked against a broken settle_v1_8: v1.8, v1.9 and v1.10 all fail with reuse on, as they should.
+
 ## 0.4.6 (2026-10-05)
 
 `canonical_v0.mjs`, the Node twin that contract_v0 uses to confirm its canonical bytes, decided whether it was the main

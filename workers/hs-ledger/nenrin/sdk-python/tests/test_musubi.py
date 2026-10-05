@@ -4,6 +4,7 @@ recomputing to the hashes its README publishes, and the library entry point impo
 
 MUSUBI has no JavaScript twin; the Python in musubi-v0 is the reference, so there is no second report to agree with.
 What these tests guard is that installing the package changes nothing about how MUSUBI runs."""
+import io
 import json
 import os
 
@@ -48,3 +49,16 @@ def test_cli():
     assert musubi.main(["--list"]) == 0
     assert musubi.main(["no_such_module"]) == 2
     assert musubi.main([]) == 2
+
+
+def test_selftest_all_reuses_lower_layers_and_still_passes():
+    buf = io.StringIO()
+    assert musubi.selftest_all(out=buf), buf.getvalue()
+    text = buf.getvalue()
+    assert "nested self-tests answered with a result that passed earlier in this run" in text, text[-400:]
+
+
+def test_layer_order_puts_nested_layers_first():
+    order = musubi._layer_order(musubi.modules())
+    assert order.index("settle_v1_8") < order.index("settle_v1_9") < order.index("settle_v1_10")
+    assert order.index("convergence_v0") < order.index("settle_v1_9")
