@@ -19,8 +19,8 @@ Credit says that you measured, signed and were counted. It is not an endorsement
 
 | signed_domain | ledger entries | credited in citation metadata |
 |---|---|---|
-| api.babyblueviper.com | 57, 61 | not yet asked |
-| pipavlo82.github.io | 65 | not yet asked |
+| api.babyblueviper.com | 57, 61 | asked 2026-10-05 ([#25](https://github.com/ogasurfproject-jpg/horizon-shield/issues/25#issuecomment-5985698608)) |
+| pipavlo82.github.io | 65 | yes, as Pavlo Tvardovskyi (pipavlo82), 2026-10-05 ([#27](https://github.com/ogasurfproject-jpg/horizon-shield/issues/27)). In CITATION.cff now; in the next Zenodo version when it is published. Scope: this signed walk only, with the Codex assistance and the collaboration context disclosed in the record; not a member of the re-verification pool. |
 
 The table is kept by hand. `tools/adoption/count_adoption.py` reads the signed domains straight from the ledger export (`https://ledger.horizonshield.dev/ledger/export.jsonl`) and writes them to `ops/adoption/latest.json`; if that and this table disagree, the ledger is right and this table is wrong.
 
