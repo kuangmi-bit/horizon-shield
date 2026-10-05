@@ -76,6 +76,7 @@ Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_
 | Re-verification pool | 1 control cluster(s), 2 needed for a quorum | `workers/hs-ledger/nenrin/recovery-v0/pool_report.json` |
 | MUSUBI contracts signed with an outside party | 2 (with no party from this project: 0) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |
 | Outside identities that signed evidence (walk, contract or agreement) | 2 | the three rows above and the agreement records |
+| Outside TRACE signing keys whose records were pinned with trace-pin-v0 | not measured | every `nenrin-trace-pin-batch-v0` entry on the ledger and the pending pool |
 | Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | 0 | GitHub API |
 
 Open: A NENRIN provenance verifier by a further author, in any language, that reproduces the verdict signatures of interop-v0, interop-v0.1 and interop-v0.2/edge. Two so far, both by kuangmi-bit: workers/hs-ledger/nenrin/interop-v0/INTEROP.md

@@ -15,6 +15,10 @@ Five numbers, each from a source a stranger can read, none typed by hand:
                                Source: the signed contracts committed under workers/hs-ledger/nenrin/musubi-v0.
   external_evidence_producers  distinct outside identities that signed anything the evidence layer keeps: a
                                ledger witness walk, a contract, an agreement record. The union of the above.
+  outside_trace_pins           distinct TRACE signing keys (RFC 7638 thumbprints) not listed as ours whose records
+                               were pinned with trace-pin-v0. Source: every nenrin-trace-pin-batch-v0 entry on the
+                               ledger plus the pending pool (GET /evidence/trace/pending). The TRACE registry asked
+                               for this count before it would consider holding a copy of the ledger.
   third_party_ci_reproductions public repositories, not owned by this project, created from
                                conduct-witness-template whose weekly reproduce workflow succeeded in the last 30
                                days. Source: the GitHub REST API (search, repository, workflow runs).
@@ -97,7 +101,7 @@ def implementations(reg):
 def ledger_witnesses(our, our_names=()):
     head = get_json(LEDGER + "/ledger/head")
     n = int(head["n"])
-    signed, unsigned, batches, unreadable = {}, {}, 0, []
+    signed, unsigned, batches, unreadable, trace = {}, {}, 0, [], []
     for i in range(1, n + 1):
         try:
             e = get_json("%s/ledger/%d" % (LEDGER, i))
@@ -105,6 +109,16 @@ def ledger_witnesses(our, our_names=()):
             unreadable.append(i)
             continue
         rc = e.get("record_canonical")
+        if isinstance(rc, str) and "nenrin-trace-pin-batch-v0" in rc:
+            try:
+                tb = json.loads(rc)
+            except Exception:
+                tb = {}
+            if tb.get("schema") == "nenrin-trace-pin-batch-v0":
+                for r in tb.get("records") or []:
+                    if r.get("key_thumbprint"):
+                        trace.append({"key_thumbprint": r["key_thumbprint"], "subject": r.get("subject"), "sha": r.get("sha"), "entry": i})
+            continue
         if not isinstance(rc, str) or "nenrin-witness-batch-v1" not in rc:
             continue
         try:
@@ -123,7 +137,27 @@ def ledger_witnesses(our, our_names=()):
                 unsigned.setdefault(r["witness_name"], []).append(i)
     return {"ledger_n": n, "ledger_head": head.get("head"), "witness_batches": batches, "unreadable_entries": unreadable,
             "signed_domains": {k: sorted(set(v)) for k, v in sorted(signed.items())},
-            "unsigned_names": {k: sorted(set(v)) for k, v in sorted(unsigned.items())}}
+            "unsigned_names": {k: sorted(set(v)) for k, v in sorted(unsigned.items())}, "trace_pins_anchored": trace}
+
+
+def trace_pins(anchored, our_thumbprints):
+    """Outside TRACE producers who pinned a record: anchored batches plus the pending pool, by key thumbprint."""
+    rows = list(anchored or [])
+    pend = get_json(LEDGER + "/evidence/trace/pending")
+    for r in pend.get("pending") or []:
+        if r.get("key_thumbprint"):
+            rows.append({"key_thumbprint": r["key_thumbprint"], "subject": r.get("subject"), "sha": r.get("sha"), "entry": None})
+    keys = {}
+    for r in rows:
+        if r["key_thumbprint"] in our_thumbprints:
+            continue
+        k = keys.setdefault(r["key_thumbprint"], {"key_thumbprint": r["key_thumbprint"], "records": 0, "anchored": 0, "subjects": set()})
+        k["records"] += 1
+        k["anchored"] += r["entry"] is not None
+        if r.get("subject"):
+            k["subjects"].add(r["subject"].split("/run/")[0])
+    out = [{**v, "subjects": sorted(v["subjects"])} for v in keys.values()]
+    return {"count": len(out), "keys": sorted(out, key=lambda x: x["key_thumbprint"]), "pending_pool": pend.get("count")}
 
 
 def published_contracts(reg, our):
@@ -249,6 +283,14 @@ def measure():
                                 "generated_at": pool.get("generated_at"), "quorum_of_independent_controls_needed": 2},
     }
 
+    try:
+        if w is None:
+            raise RuntimeError("the ledger was not readable")
+        m["outside_trace_pins"] = trace_pins(w.get("trace_pins_anchored"), set(reg.get("our_trace_key_thumbprints", [])))
+    except Exception as e:
+        m["outside_trace_pins"] = {"count": None}
+        not_measured.append({"metric": "outside_trace_pins", "reason": "not readable: %s" % e})
+
     pub, pub_problems = published_contracts(reg, our)
     c = contracts(our, pub, pub_problems)
     m["external_contracts"] = {"count": c["with_an_outside_party"], **c}
@@ -310,6 +352,7 @@ def readme_block(d):
         "| Re-verification pool | %d control cluster(s), %d needed for a quorum | `%s` |" % (len(pool["admitted"]), pool["quorum_of_independent_controls_needed"], pool["file"]),
         "| MUSUBI contracts signed with an outside party | %d (with no party from this project: %d) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |" % (con["with_an_outside_party"], con["with_no_party_from_us"]),
         "| Outside identities that signed evidence (walk, contract or agreement) | %s | the three rows above and the agreement records |" % fmt(pro["count"]),
+        "| Outside TRACE signing keys whose records were pinned with trace-pin-v0 | %s | every `nenrin-trace-pin-batch-v0` entry on the ledger and the pending pool |" % fmt((m.get("outside_trace_pins") or {}).get("count")),
         "| Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | %s | GitHub API |" % fmt(ci.get("count")),
         "",
         "Open: %s" % "; ".join(imp["open_calls"].values()) if imp.get("open_calls") else "",

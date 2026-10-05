@@ -16,6 +16,10 @@ Standard library only, Python 3.8 or later. Read only against the ledger; nothin
 
 No server needed: put [`github-action/nenrin-mirror.yml`](github-action/nenrin-mirror.yml) at `.github/workflows/nenrin-mirror.yml` in any repository you control and run it once from the Actions tab. Every six hours it fetches `mirror.py` at a pinned commit (refused unless its sha256 matches the pin in the file), pulls what is new, verifies every digest offline, and commits the copy to the branch `nenrin-mirror` of your repository. No secret, no key, nothing uploaded anywhere else. The job summary prints the `content_sha256` to compare with other mirrors.
 
+## If your organisation will not run fetched code
+
+`github-action/nenrin-mirror-vendored.yml` does the same job with no code fetched at run time. You read `mirror.py` once ([REVIEW.md](REVIEW.md) lists its five GET requests and its only write location), commit it into your own repository at `tools/nenrin-mirror/mirror.py`, and the workflow refuses to run unless the file's sha256 matches the pin written in it. Put it in a repository created only for the mirror, so its token can write to that repository and nothing else. Nothing changes what runs until you commit a new copy and a new pin yourself.
+
 ## What lands on your disk
 
     ledger/<n>.json    the entry as served: claim_sha256, ots_status, bitcoin_block, record_canonical
