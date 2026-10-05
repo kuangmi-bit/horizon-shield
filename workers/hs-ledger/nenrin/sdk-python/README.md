@@ -77,7 +77,7 @@ the recorder and the policy together): [integrations/FRAMEWORKS.md](https://gith
 |---|---|---|
 | `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.4.4 (`nenrin_verify.mjs`, verifier 0.1.6): the same report, key for key |
 | `agreement_verify.verify`, `nenrin-agreement-verify` | a two-party agreement record (`a2a-agreement-v1`, `v1.1`), including key succession across a rotation | the repository's own Python verifier, unchanged but for one import line and a header comment; it and the JavaScript verifier return the same report on 5,286 frozen cases, and from npm nenrin-verify 0.3.0 the JavaScript command `nenrin-agreement-verify` prints what this one prints |
-| `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.7), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
+| `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.10), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
 | `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.1): the same stdout, byte for byte, and the same exit code |
 
 ## How "same report" is checked
@@ -125,6 +125,16 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 `report_sha256(report)` is the sha256 of the report with keys sorted by UTF-16 code unit at every depth, no
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
+
+## 0.4.5 (2026-10-05)
+
+MUSUBI settle v1.8, v1.9 and v1.10 now ship with the package, byte for byte from the repository, with what they need:
+convergence_v0 and recovery-v0/recovery_verify.py (v1.9), and babyblueviper1's approver vectors (v1.10, CC0 vectors and
+MIT code, their LICENSE included). `musubi-verify settle_v1_10 --selftest` runs from a plain venv, and
+`musubi-verify settle_v1_10 --settle contract.json --event exec.json --view view.json` settles a contract whose
+conditional actions require a pinned approver. The v1.10 self-test gained the rest of the approval lifecycle asked for
+in Issue #29: a repeatable approval covering two executions, an approval for one action carried with another, and an
+approval past valid_until_height. No settlement rule changed.
 
 ## 0.4.2 (2026-10-04)
 
