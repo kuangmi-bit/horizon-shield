@@ -262,11 +262,12 @@ var worker_default = {
     ctx.waitUntil(runFollowups(env));
     ctx.waitUntil(sendKiraDigest(env).catch((e) => console.log("[digest] " + String(e))));
     ctx.waitUntil(kiraGlobalSweep(env).catch((e) => console.log("[sweep] " + String(e))));
+    ctx.waitUntil(kiraCatchUp(env).catch((e) => console.log("[catchup] " + String(e))));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ status: "ok", version: "v21-dmrelay-20261005", service: "hs-kira-line" });
+      return json({ status: "ok", version: "v22-catchup-20261005", service: "hs-kira-line" });
     }
     if (url.pathname === "/diagnosis" && request.method === "POST") {
       return handleDiagnosis(request, env, ctx);
@@ -397,6 +398,7 @@ async function processEvents(events, env) {
             try { _pg = !!(await env.SEEN_STORE.get("groupPartner:" + gid)); } catch (_e) {}
             const _forUs = !_aside && (_addressed || _quoted || _pg);
             if (_pg) await kiraConvAppend(env, gid, "member", gt);
+            if (_pg && _aside) await kiraConvAppend(env, gid, "silent", "(社内の人への一言なので返さなかった)");
             if (_pg && _forUs) {
               try { await env.SEEN_STORE.put("kira_last_gid", gid); } catch (_e) {}
               const r = await kiraPartnerDecide(env, gid, gt, null, { kind: _hr.kind, asked: _hr.asked, facts: _hr.facts });
@@ -404,6 +406,9 @@ async function processEvents(events, env) {
                 if (r.action !== "silent" && r.reply && event.replyToken) {
                   await replyToLine(event.replyToken, r.reply, env.LINE_CHANNEL_TOKEN);
                   await kiraConvAppend(env, gid, "kira", r.reply);
+                } else if (r.action === "silent") {
+                  // 黙ると決めた印を残す(返事漏れの拾い直しが、わざと黙った発言を拾い直さないように)。
+                  await kiraConvAppend(env, gid, "silent", "(返さなかった)");
                 }
                 const _added = await kiraLessonsAdd(env, gid, r.lessons, gt);
                 const _force = KIRA_FORCE_ESCALATE_RE.test(gt);
@@ -1798,10 +1803,11 @@ function kiraDecideContext(own, glob, conv, text, opts) {
   ];
   if (o.dm) lines.push("【場所】加盟店さんとの 1 対 1 のトーク(グループではない。社内の人同士のやり取りは無い)");
   if (o.kind === "media") lines.push("【届いたもの】写真やファイル。中身は下の発言の読み取り(機械による)のとおり");
+  if (o.kind === "late") lines.push("【遅れての返事】下の発言(まとめて)に、こちらはまだ返していない。こちらの仕組みの不具合で返事が漏れていた。返すなら、遅くなったことを一言おわびしてから中身に返す。加盟店の社内の人同士のやり取りや、こちらへのお礼で閉じた会話なら silent");
   if (o.kind === "question" && Array.isArray(o.facts) && o.facts.length) lines.push("【答えてよい事実(運営の台帳。ここに書かれたことだけは答えてよい)】", ...o.facts);
   if (o.asked && /^answer/.test(o.kind || "")) lines.push("【こちらが尋ねていた設問】", String(o.asked), "(届いた発言は、この設問への答えとしてこちらの記録に取り込み済み)");
   if (o.kind === "answer-missing") lines.push("(記録の都合: 社名・地域・対応の内容のどれかがまだ分かっていない。聞き返すなら、分かるところだけで良いと添えて 1 つだけ聞く)");
-  lines.push("【" + (o.dm ? "このトーク" : "このグループ") + "の直近の会話(古い順。kira は KIRA の返事、大賀は大賀さんが送った文。大賀さんの書き方と判断を手本にする)】", ...conv.map((c) => (c.who === "kira" ? "kira: " : (c.who === "owner" ? "大賀: " : "加盟店: ")) + c.text));
+  lines.push("【" + (o.dm ? "このトーク" : "このグループ") + "の直近の会話(古い順。kira は KIRA の返事、大賀は大賀さんが送った文。大賀さんの書き方と判断を手本にする)】", ...conv.map((c) => (c.who === "kira" || c.who === "silent" ? "kira: " : (c.who === "owner" ? "大賀: " : "加盟店: ")) + c.text));
   lines.push("【いま届いた発言】", text);
   return lines.join("\n");
 }
@@ -1888,6 +1894,60 @@ async function kiraRelayDo(env, replyToken, g, body, send) {
   await kiraConvAppend(env, g.conv || g.gid, "owner", body);
   await replyToLine(replyToken, (send ? "送りました" : "記録しました") + "(" + g.name + ")。KIRA はこの文を会話として読み、次の返事の手本にします。", env.LINE_CHANNEL_TOKEN);
   return true;
+}
+// 2026-10-05 v22: 返事漏れの拾い直し(毎時)。TOshi「たかしだけじゃないぞ」= 直す前の KIRA が返さなかった・返せなかった発言を、加盟店さん全員について拾い直す。
+//   ・KIRA が会話を持っている加盟店さん(1 対 1 と加盟店グループ)で、最後が加盟店さんの発言のまま 10 分〜3 日たっているもの。
+//   ・その発言に 1 回だけ(kira_catchup:<会話>:<時刻>)、KIRA が遅れたおわびを添えて返す。返事の権利(replyToken)は切れているので push。
+//   ・1 回の巡回で送るのは 5 件まで。送ったら大賀さんにも同じ中身を知らせる。KIRA が silent と決めたものは送らない。
+//   ・大賀さんが LINE の画面から手で返した文は KIRA に見えないので、手で返した相手には先に「1対1記録」「記録」で残しておく。
+async function kiraCatchUp(env, nowMs) {
+  const now = nowMs || Date.now();
+  let keys = [];
+  try { keys = ((await env.SEEN_STORE.list({ prefix: "kira_gconv:" })).keys || []).map((k) => k.name); } catch (_e) {}
+  let sent = 0;
+  for (const name of keys) {
+    if (sent >= 5) break;
+    const convKey = name.slice("kira_gconv:".length);
+    const isDm = convKey.startsWith("dm:");
+    const to = isDm ? convKey.slice(3) : convKey;
+    if (!/^[UCR][0-9a-f]{32}$/.test(to) || to === env.LINE_USER_ID) continue;
+    if (!isDm) { let pg = null; try { pg = await env.SEEN_STORE.get("groupPartner:" + to); } catch (_e) {} if (!pg) continue; }
+    const conv = await kiraKvJson(env, name, []);
+    if (!conv.length) continue;
+    const last = conv[conv.length - 1];
+    if (!last || last.who !== "member" || !last.at) continue;
+    const age = now - Date.parse(last.at);
+    if (!(age >= 10 * 60 * 1000 && age <= 3 * 24 * 3600 * 1000)) continue;
+    const doneKey = "kira_catchup:" + convKey + ":" + last.at;
+    let done = null;
+    try { done = await env.SEEN_STORE.get(doneKey); } catch (_e) {}
+    if (done) continue;
+    try { await env.SEEN_STORE.put(doneKey, "1", { expirationTtl: 60 * 60 * 24 * 7 }); } catch (_e) {}
+    let i = conv.length - 1;
+    while (i > 0 && conv[i - 1].who === "member") i--;
+    const pending = conv.slice(i).map((c) => c.text).join("\n").slice(0, 1500);
+    let scope = to;
+    if (isDm) {
+      scope = "u:" + to;
+      try { const _rec = await env.SEEN_STORE.get("partner:" + to); if (_rec) scope = (JSON.parse(_rec).groupId) || scope; } catch (_e) {}
+    }
+    const r = await kiraPartnerDecide(env, scope, pending, null, { dm: isDm, convKey, kind: "late" });
+    const where = isDm ? "1対1" : "グループ";
+    if (r && r.ok && r.action !== "silent" && r.reply) {
+      // 予行で KIRA がおわびを落とした(「前後の写真をいただきました」だけ)。遅れて届く返事には、必ずおわびを頭に付ける。
+      if (!/(遅く|遅れ|失礼|申し訳)/.test(r.reply)) r.reply = "お返事が遅くなり失礼しました。" + r.reply;
+      try { await pushToLine(to, r.reply, env.LINE_CHANNEL_TOKEN); } catch (_e) { continue; }
+      await kiraConvAppend(env, convKey, "kira", r.reply);
+      sent++;
+      const added = await kiraLessonsAdd(env, scope, r.lessons, pending);
+      const force = KIRA_FORCE_ESCALATE_RE.test(pending);
+      try { await pushToLine(env.LINE_USER_ID, "【KIRA 返事漏れの拾い直し(" + where + ")】" + (r.action === "escalate" || force ? "大賀さんの判断が要る話です。" : "") + "\n" + (isDm ? "ユーザーID: " : "グループ: ") + to + "\n\n届いていた発言:\n" + pending.slice(0, 600) + "\n\nKIRA が送った文:\n" + r.reply, env.LINE_CHANNEL_TOKEN); } catch (_e) {}
+      await kiraDigestAdd(env, { gid: scope, where, kind: "late-" + r.action, in: pending, out: r.reply, lessons: added });
+    } else if (!(r && r.ok)) {
+      try { await pushToLine(env.LINE_USER_ID, "【KIRA 返事漏れ 要確認(" + where + ")】KIRA が返事を作れなかった(" + ((r && r.err) || "?") + ")。\n" + (isDm ? "ユーザーID: " : "グループ: ") + to + "\n" + pending.slice(0, 600), env.LINE_CHANNEL_TOKEN); } catch (_e) {}
+    }
+  }
+  return sent;
 }
 // 2026-10-05 v21: 加盟店さんとの 1 対 1 の相手(KIRA が会話を持っている相手)を、直近の発言が新しい順に返す。名前は LINE のプロフィールから。
 async function kiraPartnerDms(env) {
@@ -2113,6 +2173,8 @@ TEL\uFF1A0463-74-5917
     if (r.action !== "silent" && r.reply) {
       await replyToLine(replyToken, r.reply, env.LINE_CHANNEL_TOKEN);
       await kiraConvAppend(env, convKey, "kira", r.reply);
+    } else if (r.action === "silent") {
+      await kiraConvAppend(env, convKey, "silent", "(返さなかった)");
     }
     const added = await kiraLessonsAdd(env, scope, r.lessons, userMessage);
     const force = KIRA_FORCE_ESCALATE_RE.test(userMessage);

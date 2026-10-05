@@ -775,7 +775,115 @@ console.log("\n51) 「1対1記録 本文」は送らずに残すだけ。会話�
   check("大賀さん以外の「1対1へ」は効かない(他の店に送らない)", !pushes().some((c) => c.body.messages[0].text === "偽の連絡"));
 }
 
-const EXPECT = 166;
+// ===== v22: 返事漏れの拾い直し(毎時) =====
+const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
+const runCron = async (env) => { const w = []; await W.scheduled({}, env, { waitUntil: (p) => w.push(p) }); await Promise.all(w); };
+const OWNER = "U" + "c".repeat(32);
+console.log("\n52) 1対1 で最後が加盟店さんの発言のまま 30 分: 遅れたおわびを添えて 1 回だけ送る");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_global_swept:v20", "1");
+  await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "before", at: ago(31) }, { who: "member", text: "アフター", at: ago(30) }]));
+  calls = []; llmOut = JSON.stringify({ action: "reply", reply: "お返事が遅くなり失礼しました。施工前と施工後の写真の件、ありがとうございます。", reason: "", lessons: [] });
+  await runCron(env);
+  check("相手に送った(push)", pushTo(DMU).length === 1 && pushTo(DMU)[0].body.messages[0].text.startsWith("お返事が遅くなり"));
+  check("KIRA に遅れての返事だと伝え、漏れた発言をまとめて渡した", llmCtx().includes("遅れての返事") && llmCtx().includes("before") && llmCtx().includes("アフター"));
+  check("大賀さんにも知らせた", pushTo(OWNER).some((c) => c.body.messages[0].text.includes("返事漏れの拾い直し")));
+  const conv = JSON.parse(await env.SEEN_STORE.get("kira_gconv:dm:" + DMU));
+  check("会話に KIRA の返事として残した", conv[conv.length - 1].who === "kira");
+  calls = [];
+  await runCron(env);
+  check("次の巡回では送らない", pushTo(DMU).length === 0 && llms().length === 0);
+}
+
+console.log("\n52b) KIRA がおわびを落としても、遅れて届く返事には頭におわびを付ける");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_global_swept:v20", "1");
+  await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "写真あとで送ります", at: ago(30) }]));
+  calls = []; llmOut = JSON.stringify({ action: "reply", reply: "ありがとうございます。お待ちしています。", reason: "", lessons: [] });
+  await runCron(env);
+  check("おわびを頭に付けた", pushTo(DMU)[0] && pushTo(DMU)[0].body.messages[0].text === "お返事が遅くなり失礼しました。ありがとうございます。お待ちしています。", pushTo(DMU)[0] && pushTo(DMU)[0].body.messages[0].text);
+}
+
+console.log("\n53) 届いて 10 分たっていない発言・3 日より古い発言・黙ると決めた発言・大賀さんの文で終わる会話は拾わない");
+{
+  for (const [label, conv] of [
+    ["2 分前", [{ who: "member", text: "了解です", at: ago(2) }]],
+    ["4 日前", [{ who: "member", text: "了解です", at: ago(60 * 24 * 4) }]],
+    ["黙った印", [{ who: "member", text: "ありがとうございます!", at: ago(30) }, { who: "silent", text: "(返さなかった)", at: ago(30) }]],
+    ["大賀さんの文", [{ who: "member", text: "写真送ります", at: ago(40) }, { who: "owner", text: "ありがとうございます", at: ago(35) }]],
+  ]) {
+    const env = await dmEnv();
+    await env.SEEN_STORE.put("kira_global_swept:v20", "1");
+    await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify(conv));
+    calls = []; llmOut = JSON.stringify({ action: "reply", reply: "x", reason: "", lessons: [] });
+    await runCron(env);
+    check(label + ": 送らない", pushTo(DMU).length === 0 && llms().length === 0);
+  }
+}
+
+console.log("\n54) 加盟店グループも拾う。加盟店グループでない所は拾わない");
+{
+  const env = makeEnv();
+  await env.SEEN_STORE.put("kira_global_swept:v20", "1");
+  await env.SEEN_STORE.put("groupPartner:" + GID, "1");
+  await env.SEEN_STORE.put("kira_gconv:" + GID, JSON.stringify([{ who: "member", text: "写真送ります", at: ago(20) }]));
+  const G2 = "C" + "e".repeat(32);
+  await env.SEEN_STORE.put("kira_gconv:" + G2, JSON.stringify([{ who: "member", text: "こんにちは", at: ago(20) }]));
+  calls = []; llmOut = JSON.stringify({ action: "reply", reply: "お返事が遅くなり失礼しました。お写真お待ちしています。", reason: "", lessons: [] });
+  await runCron(env);
+  check("加盟店グループに送った", pushTo(GID).length === 1);
+  check("加盟店グループでない所には送らない", pushTo(G2).length === 0);
+  check("KIRA にグループとして渡した", !llmCtx().includes("1 対 1 のトーク"));
+}
+
+console.log("\n55) KIRA が silent と決めたら送らず、二度と聞き直さない。お金の話は大賀さんに判断が要ると知らせる");
+{
+  const env = await dmEnv();
+  await env.SEEN_STORE.put("kira_global_swept:v20", "1");
+  await env.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "ありがとうございました!", at: ago(30) }]));
+  calls = []; llmOut = JSON.stringify({ action: "silent", reply: "", reason: "閉じた", lessons: [] });
+  await runCron(env);
+  check("silent なら送らない", pushTo(DMU).length === 0);
+  calls = [];
+  await runCron(env);
+  check("二度と聞き直さない", llms().length === 0);
+  const env2 = await dmEnv();
+  await env2.SEEN_STORE.put("kira_global_swept:v20", "1");
+  await env2.SEEN_STORE.put("kira_gconv:dm:" + DMU, JSON.stringify([{ who: "member", text: "掲載の料金はいくらですか", at: ago(30) }]));
+  calls = []; llmOut = JSON.stringify({ action: "escalate", reply: "お返事が遅くなり失礼しました。料金は担当の大賀からあらためてお返事します。", reason: "料金", lessons: [] });
+  await runCron(env2);
+  check("お金の話は大賀さんに判断が要ると知らせた", pushTo(OWNER).some((c) => c.body.messages[0].text.includes("判断が要る")));
+}
+
+console.log("\n56) 1 回の巡回で送るのは 5 件まで");
+{
+  const env = makeEnv();
+  await env.SEEN_STORE.put("kira_global_swept:v20", "1");
+  for (let k = 0; k < 7; k++) {
+    const u = "U" + String(k).repeat(32);
+    await env.SEEN_STORE.put("partner:" + u, JSON.stringify({ since: 1 }));
+    await env.SEEN_STORE.put("kira_gconv:dm:" + u, JSON.stringify([{ who: "member", text: "了解です", at: ago(30) }]));
+  }
+  calls = []; llmOut = JSON.stringify({ action: "reply", reply: "遅くなり失礼しました。ありがとうございます。", reason: "", lessons: [] });
+  await runCron(env);
+  const toPartners = pushes().filter((c) => c.body.to !== OWNER);
+  check("送ったのは 5 件", toPartners.length === 5, String(toPartners.length));
+}
+
+console.log("\n57) 生の返事で KIRA が黙ったら、黙った印を会話に残す(拾い直しで蒸し返さない)");
+{
+  const env = await dmEnv();
+  calls = []; bridgeReply = ""; bridgeExtra = { kind: "answer" };
+  llmOut = JSON.stringify({ action: "silent", reply: "", reason: "閉じた", lessons: [] });
+  await send(env, [dmMsg("ありがとうございました!")]);
+  const conv = JSON.parse(await env.SEEN_STORE.get("kira_gconv:dm:" + DMU));
+  check("黙った印を残した", conv[conv.length - 1].who === "silent");
+}
+bridgeReply = ""; bridgeExtra = {};
+
+const EXPECT = 184;
 console.log("\n確かめた数: " + checks + " (最低 " + EXPECT + ")");
 if (checks < EXPECT) { console.log("  NG   試験がまるごと走っていません。"); fail++; }
 console.log(fail ? fail + " 件 失敗" : "グループの返事と署名の門 すべて通過");
