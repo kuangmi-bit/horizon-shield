@@ -68,7 +68,18 @@ MONTHS = {
                   "sha256": "a94b1b33adb70f1a93ee0923f748d09df8ff6d6e1eb388c8f27a1dca3a97576c",
                   "cover": [(1, "（令和８年１０月）"), (2, "令和８年１０月１日以降に入札を行う工事")]},
     },
-    "thr": {"r8_04": {}},
+    "thr": {
+        "r8_04": {},
+        # 土木工事設計材料（公表）単価一覧表（2026年10月単価）。年2回(4月と10月)の改定。2026-10-05 取得
+        # 値は写さない(2頁の取扱いの条文が複製・転載を禁止)。行は observations_restricted/ に置き、公開の組み立てには件数だけ。
+        "r8_10": {"source_id": "thr-zairyo-r8-10", "pdf": "raw_restricted/thr-zairyo-r8-10.pdf",
+                  "url": "https://www.thr.mlit.go.jp/bumon/b00097/k00910/h12-hp/html/rodo/tanka/R08_10_01tanka.pdf",
+                  "period": "2026-10",
+                  "out": "observations_restricted/jp/material_thr_zairyo_r8_10.csv",
+                  "sha256": "27add3a48f83b8dbed7e7097d4d3af50d83cd7194f47b2eb0ff3ed0615012e79",
+                  "cover": [(1, "（2026年10月単価）"), (1, "東北地方整備局"),
+                            (2, "全部または一部を、無断で複製・転載・磁気媒体入力・販売することを禁止")]},
+    },
     "ogb": {
         "r8_04": {},
         # 令和８年度 労務・資材局統一単価(建設系)令和８年１０月。2026-10-04 取得
