@@ -1,19 +1,19 @@
 {
   "anchors": {
-    "confirmed": 68,
+    "confirmed": 70,
     "explorers": [
       "blockstream.info",
       "mempool.space"
     ],
     "failed": [],
     "first_block": 959118,
-    "last_block": 969518,
+    "last_block": 970108,
     "pending": []
   },
   "chain": {
     "broken_at": null,
-    "head": "ad7586e6a696517b7175a5d2ee36d86afda44e0a698da2054e1d28b6a081dd60",
-    "rebuilt_through": 68,
+    "head": "b42cde7291d9e00c0613b5461891dfcbd4fa093523405aa2fa4dbb524bb19d84",
+    "rebuilt_through": 70,
     "stamped_heads": [
       {
         "carried_by": 58,
@@ -44,13 +44,18 @@
         "carried_by": 68,
         "head_n": 67,
         "result": "match"
+      },
+      {
+        "carried_by": 70,
+        "head_n": 69,
+        "result": "match"
       }
     ],
-    "stamped_heads_matched": 6
+    "stamped_heads_matched": 7
   },
   "digests": {
     "failed": [],
-    "ok": 68
+    "ok": 70
   },
   "does_not_establish": [
     "that any claim in the ledger is true",
@@ -58,8 +63,8 @@
     "that two explorers agreeing is Bitcoin consensus; check headers against your own node for that",
     "anything about entries whose proofs are still pending; they are listed, not counted"
   ],
-  "drill_at": "2026-10-05T10:32:38Z",
-  "entries": 68,
+  "drill_at": "2026-10-06T10:24:30Z",
+  "entries": 70,
   "establishes": [
     "these ledger bytes were rebuilt from the named custodian without connecting to any operator host",
     "every digest, the jidec-chain-v1 head, the stamped heads and the Bitcoin anchors were recomputed from the copy and two public explorers"
@@ -72,18 +77,18 @@
   "outcome": "rebuilt",
   "range": [
     1,
-    68
+    70
   ],
-  "report_sha256": "c484b52a8f6fc65a689f73534f0f4f827839e6063e91ee48ec073d7e66b7185a",
+  "report_sha256": "0ee760ebd83f4857fbe1d0ca6c7042815c2b1c2abffd08bb7c6eb3755452b503",
   "schema": "nenrin-survive-drill-v0",
   "source": {
-    "archive_sha256": "2e34736b23323e3c4b1bfc80c142e8fdec5b41d57606f84651f7d304dab8a364",
+    "archive_sha256": "ef54099fd40a465c7ec520bba279fbc1095bea8c0ab391a16e9b3be2924b6331",
     "custodian": "software-heritage",
-    "directory": "swh:1:dir:05294c1dae3a94d2f4a7efa79ec1751268f5aa11",
+    "directory": "swh:1:dir:5dcefb00e46e4e0f969333a37519bf209b588f03",
     "operator_controlled": false,
-    "revision": "01ac6c8f453e766b97587f115be990f83138fee4",
-    "snapshot": "75b0d27c6cb92a93fef1ea8f2866c77d74515456",
-    "visit_date": "2026-10-04T21:54:09.502000+00:00"
+    "revision": "ff957954c934b56acf4b80d7b055cff8192ef49a",
+    "snapshot": "eceea3d2afc24c6328bd16783642550850a1053d",
+    "visit_date": "2026-10-06T10:23:58.834000+00:00"
   },
   "version": "0.1.0"
 }
