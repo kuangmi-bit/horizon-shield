@@ -741,7 +741,7 @@ def _selftest():
              "prohibited_actions": ["payment", "delete", "redelegate", "send_pii"],
              "conditional": [{"action": "spend", "threshold_jpy": 100000, "requires": "human_approval"}],
              "delegation": {"allowed": []}, "data_access": ["public_endpoint"], "max_hops": 1, "privacy": "no_external_retention"}
-    establishes = ["that both parties signed these grant bytes at the stated time",
+    establishes = ["that both parties signed these grant bytes",
                    "that each party named the grant it accepted"]
     does_not_establish = [
         "that HS enforced any of this at runtime",
@@ -749,6 +749,7 @@ def _selftest():
         "that HS judges liability or fault; the verdict is a function anyone recomputes",
         "that a prohibited action was impossible, only that performing one is a provable deviation",
         "that this is a legal contract or determines legal responsibility",
+        "when either signature was produced; agreed_at is the declared drafting time, not a proven signing time",
     ]
 
     rec = build_contract(principal, contractor, task, grant, establishes, does_not_establish,
