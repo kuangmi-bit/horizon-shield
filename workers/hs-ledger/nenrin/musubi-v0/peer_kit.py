@@ -56,8 +56,9 @@ DNE = ["that anyone enforced any of this at runtime; the grant is proved against
        "that the contractor obeyed the grant, only that its recorded acts match or deviate from it",
        "that anyone judges liability or fault; the verdict is a function anyone recomputes from the contract, the records and the headers",
        "that a prohibited action was impossible, only that performing one is a provable deviation",
-       "that this is a legal contract or determines legal responsibility"]
-EST = ["that both parties signed these grant bytes at the stated time"]
+       "that this is a legal contract or determines legal responsibility",
+       "when either signature was produced; agreed_at is the declared drafting time, not a proven signing time"]
+EST = ["that both parties signed these grant bytes"]
 
 
 def keygen(out):
