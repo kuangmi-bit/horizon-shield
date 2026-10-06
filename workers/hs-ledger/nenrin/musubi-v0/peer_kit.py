@@ -12,6 +12,7 @@ path, for two parties A and B, using only these verification files, OpenTimestam
     contract        either party: the unsigned contract from a small JSON of parameters
     sign            each party: add its signature (contract_v0.sign_contract; refuses a key the contract does not pin)
     verify          anyone: contract_v0.verify_contract
+    approve         an approver both parties pinned (optional): an a2a-approval-v2 approval for one conditional action
     exec            the contractor: a signed a2a-execution-v0 naming the contract by contract_sha256
     stampable       anyone: the bytes to give `ots stamp` (anchor_direct)
     anchor          anyone: the settle anchor from the confirmed .ots and a header view (anchor_direct)
@@ -25,6 +26,8 @@ here sends anything anywhere, and no step needs an account, a key or a server of
     python3 peer_kit.py sign --contract c.unsigned.json --key a.pem --domain a.example --out c.A.json
     python3 peer_kit.py sign --contract c.A.json --key b.pem --domain b.example --out c.AB.json
     python3 peer_kit.py exec --contract c.AB.json --key b.pem --actions read --nenrin-ref <64 hex> --out e.json
+    (with a pinned approver: python3 peer_kit.py approve --contract c.AB.json --key z.pem --name z.example
+     --action emit_witness --valid-until <height> --out ap.json, then exec ... --approval ap.json)
     python3 peer_kit.py stampable --record e.json --out e.stamp && ots stamp e.stamp     (later: ots upgrade e.stamp.ots)
     python3 peer_kit.py anchor --record e.json --ots e.stamp.ots --contract c.AB.json --view headers.json --out e.anchored.json
     python3 peer_kit.py settle --contract c.AB.json --event e.anchored.json --view headers.json
@@ -32,7 +35,13 @@ here sends anything anywhere, and no step needs an account, a key or a server of
 params.json: {"principal": {"domain", "key_url", "public_key_ed25519_b64"}, "contractor": {same}, "task": {"purpose",
 "payload_digest"}, "authorized_actions": [...], "prohibited_actions": [...], "witnesses": [{"name",
 "public_key_ed25519_b64"}], "lower_bound": {"kind": "bitcoin_block", "height", "hash"}, "finality_depth": 6,
-"expiry_height": null, "requirements": {...} (optional: terms, independence, corroboration, spine, convergence)}.
+"expiry_height": null, "requirements": {...} (optional: terms, independence, corroboration, spine, convergence),
+"conditional": [{"action", "requires"}] (optional), "approvers": [{"name", "public_key_ed25519_b64", "actions"}]
+(optional, settle v1.10: each listed action is approved only by that key; it must be a conditional action, and the key
+may not be a party's or a witness's)}.
+
+An approver is pinned in the grant, so it is part of contract_sha256: agree on it before either party signs. The
+approval signs contract_sha256, which leaves out the signatures, so the approver can sign as soon as the terms are fixed.
 """
 import argparse, base64, json, os, secrets, sys, tempfile
 
@@ -64,11 +73,13 @@ def keygen(out):
 
 def build(params):
     g = {"authorized_actions": list(params["authorized_actions"]), "prohibited_actions": list(params.get("prohibited_actions") or []),
-         "conditional": [], "delegation": {"allowed": []}, "revocation": {"effective_at": "anchor"},
+         "conditional": list(params.get("conditional") or []), "delegation": {"allowed": []}, "revocation": {"effective_at": "anchor"},
          "finality": {"depth": int(params.get("finality_depth", 6)), "max_target_bits": params.get("max_target_bits", "17080000")},
          "witnesses": list(params.get("witnesses") or [])}
     if params.get("expiry_height") is not None:
         g["expiry_height"] = params["expiry_height"]
+    if params.get("approvers"):
+        g["approval_policy"] = {"allow_unscoped": False, "approvers": [dict(a) for a in params["approvers"]]}
     task = dict(params["task"])
     return v0.build_contract(dict(params["principal"]), dict(params["contractor"]), task, g, EST, DNE,
                              requirements=params.get("requirements") or {"evidence": "nenrin_required", "recovery": "n/a"},
@@ -82,7 +93,18 @@ def sign(contract, pem, domain):
     return contract
 
 
-def make_exec(contract, pem, actions, nenrin_ref):
+def approve(contract, pem, name, action, valid_until_height):
+    import settle_v1_10 as v110
+    key, pub = v0._load_priv(pem)
+    pin = next((a for a in v110.approvers(contract) if a.get("name") == name), None)
+    if pin is None or pin.get("public_key_ed25519_b64") != pub:
+        raise SystemExit("this key is not the approver key the contract pins under that name")
+    if action not in (pin.get("actions") or []):
+        raise SystemExit("the contract does not let this approver approve %r" % action)
+    return v110.sign_approver_approval(key, contract, action, int(valid_until_height), secrets.token_hex(16), name, pub)
+
+
+def make_exec(contract, pem, actions, nenrin_ref, approvals=()):
     key, pub = v0._load_priv(pem)
     me = next((p for p in contract["parties"] if p.get("role") == "contractor"), {})
     if me.get("public_key_ed25519_b64") != pub:
@@ -90,7 +112,7 @@ def make_exec(contract, pem, actions, nenrin_ref):
     r = {"schema": EXEC_SCHEMA,
          "contract_ref": {"contract_id": contract["contract_id"], "payload_digest": (contract.get("task") or {}).get("payload_digest"),
                           "contract_sha256": contract_sha256(contract)},
-         "performed_actions": list(actions), "approvals": [], "delegated_to": [], "nenrin_ref": nenrin_ref}
+         "performed_actions": list(actions), "approvals": list(approvals), "delegated_to": [], "nenrin_ref": nenrin_ref}
     return v12.sign_record(r, key, "contractor")
 
 
@@ -134,15 +156,37 @@ def _selftest():
     r = subprocess.run([sys.executable, os.path.join(HERE, "anchor_direct.py"), "--selftest"], capture_output=True, text=True)
     assert r.returncode == 0 and "ALL PASS" in r.stdout, r.stdout[-300:]
     n += 1; print("[4] the stampable bytes for the execution, and anchor_direct (stamp, anchor, settle v1.7 final) pass")
+    import settle_v1_10 as v110
+    pz = keygen(os.path.join(t, "z.pem"))
+    p2 = dict(params, conditional=[{"action": "emit_witness", "requires": "approver"}],
+              approvers=[{"name": "z.example", "public_key_ed25519_b64": pz, "actions": ["emit_witness"]}])
+    c2 = build(p2)
+    ap1 = approve(c2, os.path.join(t, "z.pem"), "z.example", "emit_witness", 970000)
+    sign(c2, os.path.join(t, "a.pem"), "a.example"); sign(c2, os.path.join(t, "b.pem"), "b.example")
+    assert v0.verify_contract(c2)["verdict"] == "accepted"
+    assert v110.verify_approver_approval(c2, ap1)[0] == "approved", v110.verify_approver_approval(c2, ap1)
+    for bad in ((os.path.join(t, "a.pem"), "z.example", "emit_witness"), (os.path.join(t, "z.pem"), "z.example", "read")):
+        try:
+            approve(c2, bad[0], bad[1], bad[2], 970000); raise AssertionError("approve accepted %r" % (bad,))
+        except SystemExit:
+            pass
+    e2 = make_exec(c2, os.path.join(t, "b.pem"), ["emit_witness"], "9" * 64, [ap1])
+    assert v12.authenticate(e2, c2) is None and e2["approvals"] == [ap1]
+    p3 = dict(p2, approvers=[{"name": "z.example", "public_key_ed25519_b64": pa, "actions": ["emit_witness"]}])
+    c3 = build(p3); sign(c3, os.path.join(t, "a.pem"), "a.example"); sign(c3, os.path.join(t, "b.pem"), "b.example")
+    assert {"reason": "approver_is_party", "detail": "approvers[0] uses the key of a party to this contract"} in v110._party_problems(c3)
+    n += 1; print("[5] a pinned approver from params: signed before the parties (contract_sha256 leaves out signatures) and still approved after; a party key or an unlisted action is refused at approve; the approval rides in the execution; a party's key as approver is flagged approver_is_party")
     print("ALL PASS (peer_kit: %d checks)" % n)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["selftest", "keygen", "contract", "sign", "verify", "exec", "stampable", "anchor", "settle"])
+    ap.add_argument("cmd", choices=["selftest", "keygen", "contract", "sign", "verify", "approve", "exec", "stampable", "anchor", "settle"])
     ap.add_argument("--out"); ap.add_argument("--params"); ap.add_argument("--contract"); ap.add_argument("--key"); ap.add_argument("--domain")
     ap.add_argument("--actions"); ap.add_argument("--nenrin-ref"); ap.add_argument("--record"); ap.add_argument("--ots")
     ap.add_argument("--view", action="append", default=[]); ap.add_argument("--event", action="append", default=[])
+    ap.add_argument("--name"); ap.add_argument("--action"); ap.add_argument("--valid-until", type=int)
+    ap.add_argument("--approval", action="append", default=[])
     a = ap.parse_args()
     rd = lambda p: parse_strict(open(p, encoding="utf-8").read())
     wr = lambda obj: open(a.out, "w", encoding="utf-8", newline="").write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
@@ -157,8 +201,10 @@ def main():
         c = sign(rd(a.contract), a.key, a.domain); wr(c); print(json.dumps({"wrote": a.out, "signatures": len(c["signatures"])})); return 0
     if a.cmd == "verify":
         print(json.dumps(v0.verify_contract(rd(a.contract)), indent=2)); return 0
+    if a.cmd == "approve":
+        e = approve(rd(a.contract), a.key, a.name, a.action, a.valid_until); wr(e); print(json.dumps({"wrote": a.out})); return 0
     if a.cmd == "exec":
-        e = make_exec(rd(a.contract), a.key, [x for x in a.actions.split(",") if x], a.nenrin_ref); wr(e)
+        e = make_exec(rd(a.contract), a.key, [x for x in a.actions.split(",") if x], a.nenrin_ref, [rd(x) for x in a.approval]); wr(e)
         print(json.dumps({"wrote": a.out})); return 0
     if a.cmd == "stampable":
         sys.argv = ["anchor_direct.py", "--stampable", a.record, "--out", a.out]; return ad.main()
