@@ -849,9 +849,24 @@ export async function activityAdd(env, ev) {
     await env.HS_HEARING_KV.put("activity:index", JSON.stringify(idx.slice(0, 100)));
   } catch (_e) {}
 }
+// 同じ店の同じ種類の記録は、新しい1行だけを残す。回答のたびに1行積まれるので、
+// 畳まないとモールの「YAKUMO NOW」に同じ行が並ぶ(2026-10-05、No.002 の「ヒアリング」が6行)。
+// member_no が無い記録は、種類と文言が同じものだけを畳む。並びは新しい順のまま。
+export function activityCollapse(items) {
+  const seen = new Set();
+  const out = [];
+  for (const it of Array.isArray(items) ? items : []) {
+    if (!it || typeof it !== "object") continue;
+    const key = it.member_no ? "m|" + it.type + "|" + it.member_no : "t|" + it.type + "|" + it.text;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(it);
+  }
+  return out;
+}
 export async function activityList(env, n = 30) {
   const idx = (await env.HS_HEARING_KV.get("activity:index", "json")) || [];
-  return idx.slice(0, n);
+  return activityCollapse(idx).slice(0, n);
 }
 
 /* ------------------------------ 紹介プログラム ------------------------------ */
