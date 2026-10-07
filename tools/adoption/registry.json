@@ -92,6 +92,13 @@
       "what": "A reference verifier of his own for pinned-approver approvals (a2a-approval-v2 with approver_key in the signed bytes) and 9 vectors; MUSUBI settle v1.10 adopted the fields and both implementations agree 9 of 9",
       "evidence": "https://github.com/ogasurfproject-jpg/horizon-shield/issues/29#issuecomment-5987427704",
       "date": "2026-10-05"
+    },
+    {
+      "who": "a2aproject/a2a-python (reviewed and merged by Iwaniukooo11)",
+      "subject": "a2a-card-sign-v01",
+      "what": "The official Python SDK merged the five s0-control vectors of a2a-card-sign-v01 into its own test suite: its canonicalizer reproduces canonical_utf8_hex byte for byte for one card signed by a2a-sdk, @a2a-js/sdk, a2a-go and a reference signer, the four signatures verify, the card edited after signing is rejected, and its CI runs them on every change",
+      "evidence": "https://github.com/a2aproject/a2a-python/pull/1286",
+      "date": "2026-10-07"
     }
   ],
   "open_calls": {
