@@ -93,9 +93,27 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   chk("next_actions.actions に find_verified_contractor", !!yak);
   chk("  url が /yakumo/", !!yak && /\/yakumo\/$/.test(yak.url), yak && yak.url);
   chk("  紹介料なしを両言語で明記", !!yak && /紹介料なし/.test(yak.label_ja) && /no referral/.test(yak.label_en));
-  chk("actions は 6 本、全部 id/when/label_ja/label_en/url を持つ", acts.length === 6 && acts.every(a => a.id && a.when && a.label_ja && a.label_en && /^https:\/\//.test(a.url)), acts.length);
+  chk("actions は 7 本、全部 id/when/label_ja/label_en/url を持つ", acts.length === 7 && acts.every(a => a.id && a.when && a.label_ja && a.label_en && /^https:\/\//.test(a.url)), acts.length);
   chk("actions の id は重複無し", new Set(acts.map(a => a.id)).size === acts.length);
   chk("neutrality に『推奨ではなく』", /推奨ではなく/.test((o.next_actions && o.next_actions.neutrality) || ""));
+  // 2026-10-07: 見積もりを取る前の人向けの行(逆見積もり)が先頭にあり、url に照会した工事名が入る。
+  const rev = acts[0] || {};
+  const WORK_URL = "https://shield.the-horizons-innovation.com/hs-reverse-estimate/?work=" + encodeURIComponent("外壁塗装");
+  chk("actions の先頭は reverse_estimate", rev.id === "reverse_estimate", rev.id);
+  chk("  when は見積もりを取る前の人(両言語)", /見積もりを取る前に、自分の家の条件で適正価格の幅を知りたい/.test(rev.when || "") && /wants a fair price range for their own house before getting quotes/.test(rev.when || ""), rev.when);
+  chk("  label_ja は指示どおり", rev.label_ja === "自分の家の条件で適正価格の幅を出す(無料・登録なし)", rev.label_ja);
+  chk("  url に照会した工事名(?work=外壁塗装)", rev.url === WORK_URL, rev.url);
+  chk("  next_actions.reverse_estimate も同じ url", o.next_actions.reverse_estimate === WORK_URL, o.next_actions.reverse_estimate);
+  const fd = acts.find(a => a.id === "full_diagnosis");
+  chk("full_diagnosis は見積書がある人の明細診断のまま(url に work を付けない)", !!fd && fd.label_ja === "見積書の明細診断(逆見積もり)" && /内訳付き見積もりを項目ごとに診断したい/.test(fd.when) && /\/hs-reverse-estimate\/$/.test(fd.url) && /\/hs-reverse-estimate\/$/.test(o.next_actions.full_diagnosis), fd && fd.url);
+  chk("reverse_estimate の行に金額が無い", !/[0-9]\s*(円|万)|¥/.test(JSON.stringify(rev)));
+  const en = await call("get_price_range", { query: "exterior wall painting", region: "kanagawa" });
+  chk("英語の工事名で引いても url の work は日本語に写した名前", en.next_actions && en.next_actions.actions[0].url === "https://shield.the-horizons-innovation.com/hs-reverse-estimate/?work=" + encodeURIComponent(en.query), en.next_actions && en.next_actions.actions[0].url);
+  const long = await call("get_price_range", { query: "外壁" + "塗装".repeat(12) });
+  chk("24 字を超える工事名は url に付けない(当たらなければ next_actions 自体が無い)", !long.next_actions || /\/hs-reverse-estimate\/$/.test(long.next_actions.actions[0].url), JSON.stringify(long.next_actions && long.next_actions.actions[0]));
+  const cat = await call("list_cost_categories", {});
+  chk("工事名の無い道具では work 無しの url(先頭は同じ行)", cat.next_actions.actions[0].id === "reverse_estimate" && /\/hs-reverse-estimate\/$/.test(cat.next_actions.actions[0].url), cat.next_actions.actions[0].url);
+  chk("別の呼び出しの工事名が共通の行に残らない", (await call("list_cost_categories", {})).next_actions.reverse_estimate === "https://shield.the-horizons-innovation.com/hs-reverse-estimate/");
   chk("provenance + next_actions にダッシュ無し", !DASH.test(JSON.stringify({ p: o.provenance, n: o.next_actions })));
 }
 
@@ -108,7 +126,9 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   chk("full_diagnosis(旧キー)が残る", typeof o.full_diagnosis === "string");
   chk("provenance が付く", o.provenance && o.provenance.dataset === "HORIZON SHIELD souba-db");
   chk("provenance.data_version = _meta.version", o.provenance && o.provenance.data_version === DB._meta.version);
-  chk("next_actions.actions が付く", o.next_actions && Array.isArray(o.next_actions.actions) && o.next_actions.actions.length === 6);
+  chk("next_actions.actions が付く", o.next_actions && Array.isArray(o.next_actions.actions) && o.next_actions.actions.length === 7);
+  chk("先頭は reverse_estimate で、url に照会した工事名(?work=屋根塗装)", o.next_actions.actions[0].id === "reverse_estimate" && o.next_actions.actions[0].url === "https://shield.the-horizons-innovation.com/hs-reverse-estimate/?work=" + encodeURIComponent("屋根塗装"), o.next_actions.actions[0].url);
+  chk("full_diagnosis(旧キー)は work 無しのまま", /\/hs-reverse-estimate\/$/.test(o.full_diagnosis) && /\/hs-reverse-estimate\/$/.test(o.next_actions.full_diagnosis));
   chk("provenance + next_actions にダッシュ無し", !DASH.test(JSON.stringify({ p: o.provenance, n: o.next_actions })));
 }
 
@@ -144,6 +164,15 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   chk("書く 2 本も destructiveHint:false", tl.filter(t => writers.includes(t.name)).every(t => t.annotations.destructiveHint === false));
   chk("全部に outputSchema(object)", tl.every(t => t.outputSchema && t.outputSchema.type === "object"), tl.filter(t => !t.outputSchema).map(t => t.name).join(","));
   chk("outputSchema にダッシュ無し", !DASH.test(JSON.stringify(tl.map(t => t.outputSchema))));
+  // 2026-10-07: reverse_estimate の行を返す 2 本は、説明文と outputSchema でもそれを言う。
+  for (const n of ["get_price_range", "audit_estimate"]) {
+    const tool = tl.find(t => t.name === n);
+    chk(n + " の outputSchema が next_actions を宣言し reverse_estimate を説明", !!(tool.outputSchema.properties && tool.outputSchema.properties.next_actions && /reverse_estimate/.test(tool.outputSchema.properties.next_actions.description)));
+  }
+  const gp = tl.find(t => t.name === "get_price_range").description;
+  chk("get_price_range の説明文に reverse_estimate(両言語、金額無し)", /id: reverse_estimate/.test(gp) && /id reverse_estimate/.test(gp) && /無料・登録なし/.test(gp));
+  const ins2 = String((await rpc("initialize", { protocolVersion: "2025-06-18" })).instructions || "");
+  chk("instructions の next_actions の説明に、見積もりを取る前の人向けの入口", /before getting quotes/.test(ins2) && /見積もりを取る前に自分の家の条件で適正価格の幅を出す逆見積もり/.test(ins2) && !DASH.test(ins2));
 }
 
 console.log(fail ? ("FAIL " + fail) : "ALL PASS");

@@ -126,7 +126,7 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   chk("  名前無しの行は pending にも出さん", a.pending_stores.every(p => p.name && p.name.length > 0) && a.pending_count === 0, JSON.stringify(a.pending_stores));
   chk("  directory_size: 掲載 2(名前無しは除外)、検証済み 1", a.directory_size && a.directory_size.total_listed === 2 && a.directory_size.verified_total === 1, JSON.stringify(a.directory_size));
   chk("  source は live", /live/.test(a.source));
-  chk("  neutrality と mall と next_actions", /紹介料/.test(a.neutrality) && /\/yakumo\/$/.test(a.mall) && a.next_actions && a.next_actions.actions.length === 6);
+  chk("  neutrality と mall と next_actions", /紹介料/.test(a.neutrality) && /\/yakumo\/$/.test(a.mall) && a.next_actions && a.next_actions.actions.length === 7);
 
   const b = await call("find_verified_contractor", { area: "愛知県" });
   chk("愛知県: verified 0、pending 1(スコア無し)", b.verified_count === 0 && b.pending_count === 1 && b.pending_stores[0].fairness_score === undefined && b._lookup === "absent", JSON.stringify(b).slice(0, 300));
