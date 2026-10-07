@@ -4169,6 +4169,11 @@ async function runDailySweep(env, opts) {
 // gate is able to distinguish. Every field named here already existed in the
 // objects these tools return ,  nothing about a verdict changes, so a published
 // record_sha256 still recomputes to the same value.
+// 2026-10-07. 6 本とも、実際に返す最上位の項目を全部宣言する(型と一行の説明)。それまでは get_conditions が 3 項目を
+// 宣言して 19 項目を返し、lookup_server が 7 項目を宣言して場合により 16 項目を返し、preflight_agent は outputSchema が無かった。
+// 返す中身は 1 バイトも変えていない。返していなかった宣言(get_conditions の not_verified、check_conformance の pass と
+// conditions)は外した。additionalProperties は true のまま。test/output_schema.test.mjs が、呼んで返った項目が全部ここに在ることを見る。
+const outProp = (type, description) => ({ type, description });
 const GATE_CONDITIONS_SCHEMA = {
   type: "object",
   description:
@@ -4177,39 +4182,84 @@ const GATE_CONDITIONS_SCHEMA = {
     "score it as unable to hold the difference between a failed read and an empty one. " +
     "That score is correct and is left standing: this tool has no read to fail. Adding a " +
     "state field it can never use would make the number look better and mean less.",
-  properties: { conditions: { type: ["array", "object"] }, not_verified: { type: ["array", "object", "string"] }, tiers: { type: ["array", "object"] } },
+  properties: {
+    gate: outProp("string", "Name of this gate."),
+    version: outProp("string", "Version of the gate code that produced this document."),
+    gate_commit: outProp("string", "Git commit of the deployed gate, or a sentence saying the deployment did not pin one."),
+    what_this_verifies: outProp("array", "The claims a verdict from this gate supports, as sentences."),
+    what_this_does_not_verify: outProp("array", "What a verdict from this gate never supports, as sentences."),
+    conditions: outProp("object", "The measured conditions, keyed by condition id, each with what is measured and how."),
+    reachability: outProp("string", "How an answer from the server is told apart from a failure to reach it (pending versus held)."),
+    consent: outProp("string", "When this gate calls a tool on a checked server, and what counts as the owner's consent."),
+    establishes_and_does_not_establish: outProp("object", "What a verdict establishes and what it does not, as two lists."),
+    lookup: outProp("object", "How to read the register for one endpoint before connecting (GET /register/lookup)."),
+    number_safety: outProp("object", "How numbers in a verdict are kept recomputable across JSON implementations."),
+    record_bytes: outProp("object", "Where the exact bytes that record_sha256 hashes are served, and since when."),
+    instant_coordinate: outProp("object", "How the time of a scheduled measurement and the measured tool are derived rather than chosen."),
+    well_known_consent: outProp("object", "The consent file an origin can publish, its path and its fields."),
+    red_team: outProp("string", "The adversarial test suite this gate is run against, with its scores by version."),
+    also_measured_no_verdict: outProp("object", "Measurements that are disclosed and never change a verdict."),
+    tiers: outProp("object", "The status words a verdict can carry and what each one means."),
+    operator: outProp("string", "Who operates this gate."),
+    self_applied: outProp("string", "Statement that this gate is measured under its own conditions."),
+  },
   additionalProperties: true,
 };
 const GATE_CHECK_SCHEMA = {
   type: "object",
   properties: {
-    endpoint: { type: "string" },
+    gate: outProp("string", "Name of this gate."),
+    gate_version: outProp("string", "Version of the gate code that took this measurement."),
+    gate_commit: outProp("string", "Git commit of the deployed gate, or a sentence saying the deployment did not pin one."),
+    endpoint: outProp("string", "The MCP endpoint that was measured."),
+    checked_at: outProp("string", "When the measurement started, ISO 8601 UTC."),
     reachable: {
+      type: ["boolean", "null"],
       description:
         "Three-valued on purpose (gate58). true = measured and answered. false = measured " +
         "and did not answer. null = NOT MEASURED. null is never to be read as a failing " +
         "endpoint; it means this gate has nothing to say.",
     },
-    pass: { type: ["boolean", "null"] },
-    conditions: { type: ["array", "object"] },
-    record_sha256: { type: "string", description: "Hash of this verdict with record_sha256 and recompute_note removed. Recompute it yourself; verify_verdict does the same arithmetic." },
-    recompute_note: { type: "string" },
+    status: outProp("string", "verified = every measured condition passed. pending = measured, not all passing. held = could not be reached, nothing established."),
+    scope_note: outProp("string", "What this measurement covers and what it does not."),
+    tools_called: outProp("string", "Whether a tool on the checked server was executed, in words."),
+    coordinate_derivation: outProp("object", "How the measured tool and instant were derived, or that the legacy rule applied."),
+    consent_basis: outProp("string", "On what basis a tool call was or was not made."),
+    consent_source: outProp("string", "Where the consent came from: operator_list, well_known, requester or none."),
+    consent_lookup: outProp("object", "Present when no proven consent was found: the consent file that was read, the result, and how to consent."),
+    probed_via: outProp("string", "The network path the probe took (relay or direct)."),
+    measurement_note: outProp("string", "Present only when the gate's own relay failed, so that nothing here is read as a statement about the target."),
+    checks: outProp("object", "One entry per condition, each with whether it was measured, whether it passed, and the detail."),
+    absence_vs_failure: outProp("object", "Condition 06, disclosed and never a verdict: whether the server's tools can tell a failed lookup from an empty one."),
+    canonicalization: outProp("object", "Condition 07, disclosed and never a verdict: whether the declared tool surface canonicalizes under RFC 8785."),
+    establishes: outProp("array", "What this verdict establishes, as sentences."),
+    does_not_establish: outProp("array", "What this verdict does not establish, as sentences."),
+    number_safety: outProp("object", "Whether every number in this verdict survives a JSON round trip unchanged."),
+    record_sha256: outProp("string", "Hash of this verdict with record_sha256 and recompute_note removed. Recompute it yourself; verify_verdict does the same arithmetic."),
+    recompute_note: outProp("string", "How to recompute record_sha256. Not part of the hashed bytes."),
   },
   additionalProperties: true,
 };
 const GATE_VERIFY_SCHEMA = {
   type: "object",
   properties: {
-    verified: { type: ["boolean", "null"], description: "true = the verdict hashes to its own record_sha256, so it was not altered after issue. false = it was altered. This is a finding about the record, not an error." },
-    method: { type: "string" },
-    note: { type: "string" },
+    verified: outProp("boolean", "true = the verdict hashes to its own record_sha256, so it was not altered after issue. false = it was altered, or it carries no record_sha256. This is a finding about the record, not an error."),
+    expected_sha256: outProp(["string", "number", "boolean", "object", "array"], "The record_sha256 found in the record you passed, echoed as given (a string in any verdict this gate issued). Absent when the record had none."),
+    recomputed_sha256: outProp("string", "SHA-256 this call computed from the record. Absent when there was nothing to compare it with."),
+    method: outProp("string", "The arithmetic used, so you can repeat it without this gate."),
+    note: outProp("string", "What a match or a mismatch does and does not prove."),
+    reason: outProp("string", "Present instead of the hashes when the input could not be checked: not an object, or no record_sha256."),
   },
   additionalProperties: true,
 };
 const GATE_LOOKUP_SCHEMA = {
   type: "object",
+  description:
+    "Returns one record (not a list): what this register holds for the single endpoint you named. " +
+    "Fields after on_register depend on its value: an absent endpoint carries register_size, how_to_appear and fresh_reading; " +
+    "an endpoint on the register carries the rest.",
   properties: {
-    endpoint: { type: "string" },
+    endpoint: outProp("string", "The endpoint you asked about, echoed."),
     on_register: {
       type: "boolean",
       description:
@@ -4218,11 +4268,23 @@ const GATE_LOOKUP_SCHEMA = {
         "not returned: the call comes back as a tool error (isError), because absence and " +
         "not-knowing are different answers.",
     },
-    register_size: { type: "number" },
-    standing: { type: ["string", "null"] },
-    latest: { type: ["object", "null"] },
-    means: { type: ["string", "object"] },
-    does_not_mean: { type: ["string", "object"] },
+    register_size: outProp("integer", "Absent endpoint only: how many endpoints are on the watchlist."),
+    how_to_appear: outProp("string", "Absent endpoint only: how anyone can add it to the register."),
+    fresh_reading: outProp("string", "Absent endpoint only: how to measure it right now."),
+    tier: outProp("string", "On the register: free, paid or self. The verdict is the same for every tier."),
+    cadence: outProp("string", "On the register: how often it is re-measured (weekly or daily)."),
+    added_at: outProp(["string", "null"], "On the register: when the row was added, or null if not recorded."),
+    alerted_on_change: outProp("boolean", "On the register: whether someone asked to be notified when the row changes."),
+    measurements: outProp("integer", "On the register: how many measurements are stored for this endpoint."),
+    standing: outProp("string", "On the register: measured, or a sentence saying it is watched and not yet measured."),
+    first_measured_at: outProp(["string", "null"], "On the register: time of the first stored measurement, or null."),
+    last_measured_at: outProp(["string", "null"], "On the register: time of the latest stored measurement, or null."),
+    latest: outProp(["object", "null"], "On the register: the latest stored measurement as a summary with its record_sha256, or null if none."),
+    history: outProp("array", "On the register: the most recent stored measurements, oldest first, at most 20."),
+    history_truncated: outProp("boolean", "On the register: true when history leaves out older measurements."),
+    full_history_url: outProp("string", "On the register: URL of the complete history for this endpoint."),
+    means: outProp("string", "What this answer means."),
+    does_not_mean: outProp("string", "What this answer must not be read as."),
   },
   additionalProperties: true,
 };
@@ -4239,14 +4301,50 @@ const GATE_ISVERIFIED_SCHEMA = {
     "says which case it is, so a consumer can tell 'not verified here' apart from 'the lookup failed' " +
     "(that returns as a tool error, isError) and from 'measured and passing'.",
   properties: {
-    endpoint: { type: "string" },
-    verified: { type: ["boolean", "null"], description: "true = latest measurement passed all measured conditions. null = not established here (see state). Never false: unmeasured or not-yet-passing is not a failure." },
+    endpoint: outProp("string", "The endpoint you asked about, echoed."),
+    gate: outProp("string", "Name of this gate."),
+    gate_commit: outProp("string", "Git commit of the deployed gate, or a sentence saying the deployment did not pin one."),
+    recompute_url: outProp("string", "Where to fetch what record_sha256 can be checked against: record_url when it exists, otherwise the history."),
+    record_url: outProp(["string", "null"], "URL of the exact bytes that record_sha256 hashes, or null for a verdict stored before those bytes were kept."),
+    history_url: outProp("string", "URL of the stored measurements for this endpoint."),
+    recompute_note: outProp("string", "How to recompute record_sha256 from record_url, or why it cannot be recomputed."),
+    verified_meaning: outProp("string", "What verified true and null mean."),
+    not_an_endorsement: outProp("string", "What a verified reading does not claim."),
+    on_register: outProp("boolean", "true = the endpoint has a row here. false = the register was read and it has none."),
     state: { type: "string", enum: ["verified", "pending", "held", "watched", "absent"], description: "verified = passed all measured conditions. pending = measured but not passing every one (often only because determinism needs the owner's consent). held = could not be reached. watched = on the list, not yet measured. absent = no row here at all." },
-    on_register: { type: "boolean" },
-    measured_at: { type: ["string", "null"] },
-    record_sha256: { type: ["string", "null"], description: "Hash of the latest verdict. Recompute it via recompute_url; no trust in this gate required." },
-    recompute_url: { type: "string" },
-    conditions: { type: ["object", "null"] },
+    verified: outProp(["boolean", "null"], "true = latest measurement passed all measured conditions. null = not established here (see state). Never false: unmeasured or not-yet-passing is not a failure."),
+    measured_at: outProp(["string", "null"], "Time of the latest stored measurement, or null when there is none."),
+    record_sha256: outProp(["string", "null"], "Hash of the latest verdict. Recompute it via recompute_url; no trust in this gate required."),
+    conditions: outProp(["object", "null"], "Per condition: true passed, false did not pass, null not measured. null as a whole when nothing was measured."),
+    absence_vs_failure: outProp(["object", "null"], "Measured endpoints only: condition 06 from the latest measurement, disclosed and never a verdict."),
+    measurements: outProp("integer", "Measured endpoints only: how many measurements are stored."),
+    reason: outProp("string", "One sentence saying why state has the value it has."),
+    how_to_appear: outProp(["string", "null"], "Absent endpoint only: how anyone can add it to the register."),
+  },
+  additionalProperties: true,
+};
+const GATE_PREFLIGHT_SCHEMA = {
+  type: "object",
+  description:
+    "What the agent's public card declares and what this register holds for the endpoints it names. " +
+    "Counts and pointers, never a score. A card that could not be fetched or read comes back as a tool error (isError), not as this object.",
+  properties: {
+    schema: outProp("string", "Format name of this object: gate-preflight-v1."),
+    agent: outProp("string", "The agent's https origin."),
+    card_url: outProp("string", "The agent card URL that was fetched."),
+    card_status: outProp(["integer", "null"], "HTTP status the card URL answered with."),
+    extension_declared: outProp("boolean", "true = the card declares the A2A Conduct Extension. false is not a negative verdict."),
+    declared_uri: outProp(["string", "null"], "The extension URI the card declared, or null."),
+    compensation: outProp(["object", "null"], "Who the agent says pays it, as declared and not verified, or null when it says nothing."),
+    compensation_source: outProp(["string", "null"], "Where the compensation declaration was read: extension params or card top-level."),
+    card_signature_present: outProp("boolean", "Whether the card carries a signature. Presence only; the signature is not verified here."),
+    measured_endpoints: outProp("array", "The https endpoints the card asks to be measured on, at most 5."),
+    register: outProp("array", "This register's stored reading for each of those endpoints: state, verified (true or null, never false), record_sha256."),
+    witness_intake: outProp(["string", "null"], "Where the card says witness records can be filed, or null."),
+    conduct_record: outProp(["string", "null"], "Where the card says its conduct record is published, or null."),
+    how_to_file: outProp("string", "How to walk the agent yourself and file your own record."),
+    does_not_establish: outProp("array", "What this reading does not establish, as sentences."),
+    ok: outProp("boolean", "Always true in this object: the card was fetched and read."),
   },
   additionalProperties: true,
 };
@@ -4319,6 +4417,7 @@ const MCP_TOOLS = [
     title: "Look up an MCP server on this register",
     annotations: { title: "Look up an MCP server on this register", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     description:
+      "Returns one record (not a list). " +
       "Look up what this register already holds about an MCP endpoint: whether it is watched, how " +
       "often it is re-measured, how many measurements exist, when the first and latest were taken, " +
       "and the latest verdict with the record_sha256 you can recompute yourself. Reads stored " +
@@ -4366,6 +4465,7 @@ const MCP_TOOLS = [
     // 確かめられるようにする。pip の a2a_conduct.preflight() と同じ問いを、扉が MCP の道具として答える。
     // 読むのは相手の公開 card 1 枚(外へ出る fetch はそれだけ)と、この扉の登録簿(KV、測り直しはせん)。
     name: "preflight_agent",
+    outputSchema: GATE_PREFLIGHT_SCHEMA,
     title: "Before delegating: check an A2A agent's card, who pays it, and its register reading",
     annotations: { title: "Before delegating: check an A2A agent's card, who pays it, and its register reading", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     description:
