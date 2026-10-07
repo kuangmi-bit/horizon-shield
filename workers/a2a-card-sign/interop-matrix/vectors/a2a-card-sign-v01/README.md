@@ -11,6 +11,13 @@ Layer **C** of the Agent Card canonicalization corpus: which **signatures** a ve
 Layers A and B pin bytes. A card in the wild arrives with a signature, and the verifier has to decide which bytes
 that signature covers. This corpus pins that decision.
 
+## Where these vectors run
+
+| where | what | since |
+|---|---|---|
+| [a2aproject/a2a-python](https://github.com/a2aproject/a2a-python/pull/1286) (official A2A Python SDK, main at `494a8ece`) | the five `s0-control` vectors, with only the fields its tests read, in [`tests/utils/signing_interop_vectors.json`](https://github.com/a2aproject/a2a-python/blob/494a8ece0ad9815afd8ebd59e9a818e286eb0d80/tests/utils/signing_interop_vectors.json); [`test_signing_interop.py`](https://github.com/a2aproject/a2a-python/blob/494a8ece0ad9815afd8ebd59e9a818e286eb0d80/tests/utils/test_signing_interop.py) checks that S0-001 to S0-004 verify and canonicalize to `canonical_utf8_hex`, and that S0-REJECT-005 is rejected | 2026-10-07 |
+| [a2aproject/a2a-tck#246](https://github.com/a2aproject/a2a-tck/pull/246) (open) | the whole corpus and a runner, `tck/conformance/card_sign.py` | proposed 2026-10-01 |
+
 ## Readings
 
 The bytes a card signature covers are read in three ways today:

@@ -16,6 +16,7 @@ An [MCP](https://modelcontextprotocol.io) server that lets AI agents check wheth
 [![GitHub stars](https://img.shields.io/github/stars/ogasurfproject-jpg/horizon-shield?style=social)](https://github.com/ogasurfproject-jpg/horizon-shield/stargazers)
 [![HORIZON SHIELD KIRA on Glama](https://glama.ai/mcp/servers/ogasurfproject-jpg/horizon-shield/badges/score.svg)](https://glama.ai/mcp/servers/ogasurfproject-jpg/horizon-shield)
 [![Smithery](https://img.shields.io/badge/Smithery-listed-e35f34)](https://smithery.ai/servers/oga-surf-project/horizon-shield)
+[![A2A Python SDK: our signature vectors merged](https://img.shields.io/badge/A2A%20Python%20SDK-our%20signature%20vectors%20merged-6f42c1)](https://github.com/a2aproject/a2a-python/pull/1286)
 
 </div>
 
@@ -44,12 +45,13 @@ Each row is one question a homeowner in Japan asks, the page that answers it wit
 
 ---
 
-## Independent evidence, as of 2026-10-06
+## Independent evidence, as of 2026-10-08
 
 What people who do not work for this project have measured, signed or reproduced. Every row links to something you can fetch and recompute. The last two rows are the counts that are still small, stated as plainly as the rest.
 
 | What | Who | Check it |
 |------|-----|----------|
+| Merged the five s0-control vectors of our a2a-card-sign-v01 corpus into the official A2A Python SDK's own test suite. On every change, its CI now checks that one Agent Card signed by a2a-sdk, @a2a-js/sdk, a2a-go and a reference signer verifies, canonicalizes to the shared bytes, and that the same card edited after signing is rejected. The review asked us to drop the vector fields the tests do not read and our frozen production card; we did, and it was approved and merged | `a2aproject/a2a-python`, reviewed and merged by Iwaniukooo11 (2026-10-07) | [#1286](https://github.com/a2aproject/a2a-python/pull/1286), [the vectors on main](https://github.com/a2aproject/a2a-python/blob/494a8ece0ad9815afd8ebd59e9a818e286eb0d80/tests/utils/signing_interop_vectors.json), [the tests](https://github.com/a2aproject/a2a-python/blob/494a8ece0ad9815afd8ebd59e9a818e286eb0d80/tests/utils/test_signing_interop.py) |
 | Wrote a NENRIN provenance verifier from our specifications without reading any of our source, reproduced the 5 verdict signatures and 21 digests of interop-v0, and reported the 5 places where the text forced a guess; we fixed the text (interop-v0.1). A second implementation, written from VERIFIER.md alone, matches 18 of 18, and their runner cut the expectations for the 36 edge vectors now in the tree (interop-v0.2/edge) | Kuang Mi (`kuangmi-bit`), A2A Discussion #1631 and PR #30 (2026-10-04 and 2026-10-05) | [INTEROP.md](workers/hs-ledger/nenrin/interop-v0/INTEROP.md), [#1631](https://github.com/a2aproject/A2A/discussions/1631), [PR #30](https://github.com/ogasurfproject-jpg/horizon-shield/pull/30) |
 | Reviewed the NENRIN crosswalk to the agent governance vocabulary against commit a2c1c0b4: checked the cited lines of `worker.js`, `agreement_verify.py`, `key_succession.py` and `RESUME_SPEC_v1.md`, and recomputed the run0002 MUSUBI settlement byte for byte offline (anchor `b13a3869...`, settlement `11c27fcf...`, exit 0). Two review rounds moved three rows down (governance_attestation left out until a reader can verify a signed witness record, bilateral_receipt and baseline_revision to false_analog), and the file was merged as reviewed | `aeoess`, maintainer of agent-governance-vocabulary (2026-10-05) | [his review](https://github.com/aeoess/agent-governance-vocabulary/pull/192#issuecomment-5999460575), [the merged file](https://github.com/aeoess/agent-governance-vocabulary/blob/18181dd56829d02861d0b331d65ac8bc63f8dc26/crosswalk/nenrin.yaml) |
 | Found that an unsigned `{"action": ...}` passed as approval of a conditional action in settle v0 to v1.3, and that no settle version let anyone but the principal approve. He wrote the approver fields and 9 vectors with a reference verifier of his own; settle v1.10 adopts them, and both implementations agree 9/9 | Federico Blanco Sánchez-Llanos (`babyblueviper1`), Issue #29 (2026-10-05) | [his report](https://github.com/ogasurfproject-jpg/horizon-shield/issues/29#issuecomment-5986387324), [his vectors](https://github.com/babyblueviper1/preaction-governance-conformance), [settle_v1_10.py](workers/hs-ledger/nenrin/musubi-v0/settle_v1_10.py) |
