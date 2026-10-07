@@ -1,5 +1,5 @@
 {
-  "board_sha256": "fecccb91a1bc580f96550493b6dd438b457de6b77e0842a5430f2a0d558a89fd",
+  "board_sha256": "7447ade9ec99e16aeec4ce7d7b82a6e50dd6572e6165a045157fa7542989b7a5",
   "implementations": {
     "a2aproject-a2a-python": {
       "author": "a2aproject (the official A2A Python SDK)",
@@ -14,7 +14,7 @@
     "babyblueviper1-approval-v2": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "bcf6592903abf6585cccf3a270312bc6ac99eb21",
+      "commit": "a6de6246b1775b405f9635f4ff72e3f9d119f168",
       "id": "babyblueviper1-approval-v2",
       "language": "Python",
       "license": "MIT",
@@ -24,7 +24,7 @@
     "hs-nenrin-reference": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
       "id": "hs-nenrin-reference",
       "language": "JavaScript",
       "license": null,
@@ -34,7 +34,7 @@
     "hs-settle-v1.10-approval": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
       "id": "hs-settle-v1.10-approval",
       "language": "Python",
       "license": null,
@@ -54,7 +54,7 @@
     "probity-a2a-card-readers": {
       "author": "Sankalp Gilda (astrogilda), Probity AI",
       "clone_error": null,
-      "commit": "8272f89107b529640065b334ae8298b437f9967f",
+      "commit": "26313d0397359a095349c117d829dc5a7ecee595",
       "id": "probity-a2a-card-readers",
       "language": "Python",
       "license": "Apache-2.0",
@@ -62,7 +62,7 @@
       "repo": "https://github.com/probityai/agent-evidence-vectors.git"
     }
   },
-  "measured_at": "2026-10-07T16:01:54Z",
+  "measured_at": "2026-10-07T23:18:54Z",
   "pairs": [
     {
       "a": "babyblueviper1-approval-v2",
@@ -95,10 +95,10 @@
       "what": "both reproduce every frozen verdict signature"
     }
   ],
-  "repository_commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+  "repository_commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
   "runs": [
     {
-      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -113,7 +113,7 @@
       "stdout_sha256": "c6f611352d4a2eba70c7ee502a0cdc86ad7b57800f04cba76b8d855b7e06dff5"
     },
     {
-      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -123,7 +123,7 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 13,
-      "seconds": 0.2,
+      "seconds": 0.1,
       "status": "ran",
       "stdout_sha256": "0dbacd29fed94f67291c053fc2771b438fc061cf19cb6e13eef141fd4740d46d"
     },
@@ -138,7 +138,7 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 5,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "status": "ran",
       "stdout_sha256": "b97c6088c71964e16445d2293aa18ec011e890d40b13887d2eefb866c74a9295"
     },
@@ -153,7 +153,7 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 13,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "status": "ran",
       "stdout_sha256": "e1e79096aedc01ad60a3182d8ce6392c82501e8fee491a89f67552696ef233e0"
     },
@@ -168,12 +168,12 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 36,
-      "seconds": 0.5,
+      "seconds": 0.3,
       "status": "ran",
       "stdout_sha256": "021478294fa83a94a2dc7aef8e77830b1eace07cbea7cef9a67ff720e25f386e"
     },
     {
-      "commit": "bcf6592903abf6585cccf3a270312bc6ac99eb21",
+      "commit": "a6de6246b1775b405f9635f4ff72e3f9d119f168",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -234,7 +234,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -295,7 +295,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "8272f89107b529640065b334ae8298b437f9967f",
+      "commit": "26313d0397359a095349c117d829dc5a7ecee595",
       "corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)",
       "exit": 0,
       "expected_total": 13,
@@ -363,7 +363,7 @@
       "stdout_sha256": "c20aeb271eb52ccd54b5bea5b1fe107db16d894eda4f50a22d1b332895c498e4"
     },
     {
-      "commit": "8272f89107b529640065b334ae8298b437f9967f",
+      "commit": "26313d0397359a095349c117d829dc5a7ecee595",
       "corpus": "a2a-card-sign-v01/s4-dual-name",
       "exit": 0,
       "expected_total": 5,
@@ -394,7 +394,7 @@
         }
       },
       "reproduced": 5,
-      "seconds": 0.1,
+      "seconds": 0.0,
       "status": "ran",
       "stdout_sha256": "bf88276f294a4815a0a88d888b87a8b744fcae33710dcfef6ce2f6042112c93b"
     },
@@ -409,9 +409,9 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 10,
-      "seconds": 2.0,
+      "seconds": 1.4,
       "status": "ran",
-      "stdout_sha256": "aa3b08c10d6f5981ebf0d46e1ee770eeab66e44245d950bc97237a8e5c384f79"
+      "stdout_sha256": "43be76faac9efd4be375832f561a486305184383c6b630dc6c8c894fcba83aa1"
     }
   ],
   "schema": "hs-tsunagi-board-v0",
