@@ -1,7 +1,7 @@
 {
   "note": "the GetTask response the witness fetched through the official A2A Python SDK, as proto JSON",
   "a2a_sdk": "a2a-sdk 1.2.1",
-  "server": "http://127.0.0.1:54751/",
+  "server": "http://127.0.0.1:56954/",
   "witness_checks": {
     "skill_recomputes": true,
     "receipt_result_is_served": true,
@@ -9,89 +9,89 @@
     "same_task": true
   },
   "task": {
-    "id": "79c849d4-fc2c-45c2-8f2a-38307d93dd58",
-    "contextId": "f0dfdd71-5f80-4037-a912-31bdf5979af5",
+    "id": "5eb57865-64aa-432e-a105-6cbc234cc695",
+    "contextId": "55d2aa0c-a7e2-4f19-a109-3b164ca81c5c",
     "status": {
       "state": "TASK_STATE_COMPLETED",
-      "timestamp": "2026-10-01T12:25:35.771660Z"
+      "timestamp": "2026-10-07T07:56:47.257069Z"
     },
     "artifacts": [
       {
-        "artifactId": "304262a5-0db6-44ef-8052-44ea40aa113c",
+        "artifactId": "282443c6-e6cd-4f1e-8fba-37799059426a",
         "name": "sha256-of-text",
         "parts": [
           {
-            "text": "9555c5f128244f4d7b516505d2dbd55290fffb683a2e654364239a2e0cafb3d6"
+            "text": "3258c90f1efb513a23bf18dc6ce81ada7903a424a051904fd4ea0266ef02a0e4"
           }
         ],
         "metadata": {
-          "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/intent": {
-            "schema": "task-execution-bind-v0/intent",
-            "proposed_action": {
-              "tool": "a2a.SendMessage",
-              "target": "http://127.0.0.1:54751/#skill=sha256-of-text",
-              "args_sha256": "fcdcc62bcf1f436697af7eeb05b13695fd0537542accc9a3e74d0627bf2d7261"
-            },
-            "declared_at": "2026-10-01T12:25:35Z",
-            "intent_id": "d44835c3cf735b0fba7c141d0acba93e19fb2a04045c0e7a8dc37e336d095f5d",
-            "grant_ref": "0e1890fa84c82df9d0af585fd913451cb95f76a4430c512035a266354ba1452a",
-            "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
-            "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
-            "intent_sig": "KJPY8wZbI5vEb4fEv7xBNAS7oVuyYuXPjVKMVxY6d9it3ljweYXdPKGRvje5LHyovC8KYGhfHsasCZvrpwxMAQ=="
-          },
           "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/receipt": {
-            "schema": "task-execution-bind-v0/receipt",
-            "provider_sig": "inP0ABn7xpXKCBrvjPlpMP99rYHndB9E34M8ZJhz7EJmq+lUeHzIFt5gKUDMqy6/2o5XnMDMOszIQcfiv6STCA==",
-            "executed_at": "2026-10-01T12:25:35Z",
-            "executed_action": {
-              "tool": "a2a.SendMessage",
-              "target": "http://127.0.0.1:54751/#skill=sha256-of-text",
-              "args_sha256": "fcdcc62bcf1f436697af7eeb05b13695fd0537542accc9a3e74d0627bf2d7261"
-            },
-            "grant_ref": "0e1890fa84c82df9d0af585fd913451cb95f76a4430c512035a266354ba1452a",
+            "executed_at": "2026-10-07T07:56:47Z",
+            "task_id": "a2a-context:55d2aa0c-a7e2-4f19-a109-3b164ca81c5c",
             "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
-            "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
             "outcome": {
               "status": "completed",
-              "result_sha256": "46f6a1b458019e5400e8c81e0f8a5bc6c294129345463b9e74835984cf53e2bb",
               "evidence": {
-                "ref": "46f6a1b458019e5400e8c81e0f8a5bc6c294129345463b9e74835984cf53e2bb",
-                "system": "a2a GetTask http://127.0.0.1:54751/ task 79c849d4-fc2c-45c2-8f2a-38307d93dd58 artifact sha256-of-text (sha256 of the artifact text)",
-                "kind": "document_sha256"
-              }
+                "ref": "bfc22189c9ec9f6bca4191f5e3a44c89f291c4982059201684cf93d3a7230980",
+                "kind": "document_sha256",
+                "system": "a2a GetTask http://127.0.0.1:56954/ task 5eb57865-64aa-432e-a105-6cbc234cc695 artifact sha256-of-text (sha256 of the artifact text)"
+              },
+              "result_sha256": "bfc22189c9ec9f6bca4191f5e3a44c89f291c4982059201684cf93d3a7230980"
             },
-            "receipt_id": "a50b8cf26d1723582c0daae2aac4dd6556cffd1a69a0fd12cc9b60aa747cb487"
+            "executed_action": {
+              "target": "http://127.0.0.1:56954/#skill=sha256-of-text",
+              "args_sha256": "ae4c88e67d47316e842521c94e3bb99ff06dadd998085f9a25965120a3cf0636",
+              "tool": "a2a.SendMessage"
+            },
+            "provider_sig": "sin/bdotT0afKeBPQRbaVJ4/R2i90s6grzfzeYLb0Hfw3n3ROL12s+S/SZ5igLsgchzvRn5d0819uMco3gGoAw==",
+            "receipt_id": "82c553bcc74dfe0dedb2659eb5e13412044f7f1bbd6fb2dcd72d52e28043b81d",
+            "schema": "task-execution-bind-v0/receipt",
+            "grant_ref": "483b3fbe087a253c6554b3a73b5c8bcee8b7071fc0f39709611188660d11ef15"
+          },
+          "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/intent": {
+            "intent_id": "f5101dba0c7ffe82e594fc2f176e6c9577c047d5494ad82b54f0463faf170ee0",
+            "task_id": "a2a-context:55d2aa0c-a7e2-4f19-a109-3b164ca81c5c",
+            "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
+            "intent_sig": "/EPgugiMziSIRKCGFF0SD/8T5wM681kP5igE/mS5JYPdOAeSjcGb+VGa6iKZtv0cw7BMGmssvv+4/ISPzKv5Ag==",
+            "proposed_action": {
+              "target": "http://127.0.0.1:56954/#skill=sha256-of-text",
+              "args_sha256": "ae4c88e67d47316e842521c94e3bb99ff06dadd998085f9a25965120a3cf0636",
+              "tool": "a2a.SendMessage"
+            },
+            "declared_at": "2026-10-07T07:56:47Z",
+            "schema": "task-execution-bind-v0/intent",
+            "grant_ref": "483b3fbe087a253c6554b3a73b5c8bcee8b7071fc0f39709611188660d11ef15"
           }
         }
       }
     ],
     "history": [
       {
-        "messageId": "070e17f9-d817-41e0-a6cb-55cb92abd18e",
-        "contextId": "f0dfdd71-5f80-4037-a912-31bdf5979af5",
-        "taskId": "79c849d4-fc2c-45c2-8f2a-38307d93dd58",
+        "messageId": "eab3c7c4-66b1-4cc2-83a6-d3670c5567dd",
+        "contextId": "55d2aa0c-a7e2-4f19-a109-3b164ca81c5c",
+        "taskId": "5eb57865-64aa-432e-a105-6cbc234cc695",
         "role": "ROLE_USER",
         "parts": [
           {
-            "text": "a2a-python-e2e-v0 honest b78de81950fe43009ca49c63bb6cf3dc"
+            "text": "a2a-python-e2e-v0 honest 6060e7f52f844861b2a0e454a74252b2"
           }
         ],
         "metadata": {
           "https://horizonshield.dev/nenrin/a2a-python-e2e-v0/grant": {
-            "not_before": "2026-10-01T12:24:35Z",
-            "not_after": "2026-10-01T12:35:35Z",
-            "caller_id": "did:key:z6MkevZb8Fa54gtJ9BEiVvhckH7JLhz5H76WmDSeh7uHFYCs",
-            "schema": "task-execution-bind-v0/grant",
-            "action": {
-              "tool": "a2a.SendMessage",
-              "target": "http://127.0.0.1:54751/#skill=sha256-of-text",
-              "args_sha256": "fcdcc62bcf1f436697af7eeb05b13695fd0537542accc9a3e74d0627bf2d7261"
-            },
-            "grant_ref": "0e1890fa84c82df9d0af585fd913451cb95f76a4430c512035a266354ba1452a",
+            "caller_sig": "vl5M/OxGox4O+MAJle4bERBWKAW9Q5ZLXgTXjmkvt1xVzf5y5eIiakYLyxdSwk9w5pyLHwWHgryWgICendklAQ==",
+            "task_id": "a2a-context:55d2aa0c-a7e2-4f19-a109-3b164ca81c5c",
             "provider_id": "did:key:z6MkqmpD5r4Ty1ikiC45QWdHMaULWXjYVdEc1EMwQZYfEbSK",
-            "task_id": "a2a-context:f0dfdd71-5f80-4037-a912-31bdf5979af5",
-            "caller_sig": "52Cz2DXdTOeMP2tATPQXQ4SdXIqZz6FTosYLy/PomNIxxSAYPgcKuUVdgCpRzP4SE8kjLjgG4v72/zGl6osJAw==",
-            "nonce": "540af0f1971b4019a443429454c78278"
+            "nonce": "f3d3c40b83a9467186c537e772b23c54",
+            "not_after": "2026-10-07T08:06:47Z",
+            "not_before": "2026-10-07T07:55:47Z",
+            "caller_id": "did:key:z6MkevZb8Fa54gtJ9BEiVvhckH7JLhz5H76WmDSeh7uHFYCs",
+            "action": {
+              "target": "http://127.0.0.1:56954/#skill=sha256-of-text",
+              "tool": "a2a.SendMessage",
+              "args_sha256": "ae4c88e67d47316e842521c94e3bb99ff06dadd998085f9a25965120a3cf0636"
+            },
+            "schema": "task-execution-bind-v0/grant",
+            "grant_ref": "483b3fbe087a253c6554b3a73b5c8bcee8b7071fc0f39709611188660d11ef15"
           }
         }
       }

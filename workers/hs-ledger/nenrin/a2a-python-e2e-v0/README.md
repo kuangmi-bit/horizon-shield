@@ -18,7 +18,7 @@ bundle {grant, intent, receipt, observation}  +  transcript (the GetTask respons
 ## Run
 
 ```
-pip install "a2a-sdk[http-server]==1.2.1" nenrin-verify==0.3.0 uvicorn
+pip install "a2a-sdk[http-server]==1.2.1" nenrin-verify==0.4.8 uvicorn
 python e2e.py --check     # the committed fixtures, verified by both verifiers; no server, no network
 python e2e.py             # run both cases live on 127.0.0.1 and verify what they produce
 ```
