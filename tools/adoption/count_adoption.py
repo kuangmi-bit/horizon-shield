@@ -90,7 +90,9 @@ def implementations(reg):
         except Exception as e:
             ok, status = None, type(e).__name__
         alive += ok is True
-        items.append({**row, "link_status": status, "link_ok": ok})
+        # The row's free-text "what" stays in registry.json and is not copied here: a dated snapshot is kept forever,
+        # so wording that has to change later (a name withheld until a fix ships, say) must live in one place only.
+        items.append({**{k: v for k, v in row.items() if k != "what"}, "link_status": status, "link_ok": ok})
     by_subject = {}
     for r in items:
         by_subject[r["subject"]] = by_subject.get(r["subject"], 0) + 1

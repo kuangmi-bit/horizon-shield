@@ -113,7 +113,18 @@ def main():
         "external_contracts": {"with_an_outside_party": 0, "with_no_party_from_us": 0},
         "external_evidence_producers": {"count": None}, "third_party_ci_reproductions": {"count": None}}}
     blk = C.readme_block(d)
-    check("an unreadable source prints 'not measured', never 0", blk.count("not measured"), 3)
+    check("an unreadable source prints 'not measured', never 0 (witnesses, producers, TRACE pins, CI)", blk.count("not measured"), 4)
+    real_get = C.get
+    C.get = lambda url, accept="", timeout=20: (200, b"")
+    try:
+        imp = C.implementations({"implementations": [
+            {"who": "A", "subject": "s1", "what": "free text naming CASE-001", "evidence": "https://example.com/1", "date": "2026-10-02"},
+            {"who": "B", "subject": "s1", "what": "more free text", "evidence": "https://example.com/2", "date": "2026-10-03"}]})
+    finally:
+        C.get = real_get
+    check("the snapshot counts the registry rows", (imp["count"], imp["distinct_authors"], imp["links_answering"], imp["by_subject"]), (2, 2, 2, {"s1": 2}))
+    check("a row keeps who, subject, evidence and date", sorted(imp["items"][0]), ["date", "evidence", "link_ok", "link_status", "subject", "who"])
+    check("the free-text 'what' of a registry row is not copied into the snapshot", "CASE-001" in json.dumps(imp), False)
     print("\n%s" % ("all passed" if not bad else "%d failed" % bad))
     sys.exit(1 if bad else 0)
 
