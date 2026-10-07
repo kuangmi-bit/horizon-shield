@@ -182,11 +182,23 @@
   }
   // ワーカーに送る物。会話の中身と状況だけ。指示文(system)は送らない。
   var PLAN_BUTTON_TEXT = "今の情報で概算を出してください";
-  function chatPayload(history, mode, work) {
-    return { messages: history.map(function (m) { return { role: m.role, content: m.content }; }), mode: mode === "estimate" ? "estimate" : "reverse", work: work || "" };
+  function chatPayload(history, mode, work, from) {
+    return { messages: history.map(function (m) { return { role: m.role, content: m.content }; }), mode: mode === "estimate" ? "estimate" : "reverse", work: work || "",
+      from: from === "box" || from === "work" ? from : "direct" };
   }
+
+  // ---- 9. 入口(どこから来たか)。ワーカーが会話の 1 通目で数えるために送る。個人を特定する物は送らない ----------
+  // box: 相場ページ(/souba/ の下)の箱(data-cta=reverse-v1)から来た。work: ?work= 付きで他から来た(AI の案内など)。direct: ?work= 無し。
+  // 送るのはこの 3 つの語のどれかだけ。来た元の URL そのものは送らない。
+  function entryFrom(search, referrer, origin) {
+    if (!workFromQuery(search)) return "direct";
+    var ref = String(referrer || ""), o = String(origin || "");
+    return o && ref.indexOf(o + "/souba/") === 0 ? "box" : "work";
+  }
+  // ¥5,500 のボタンを押した時に送る物。出来事の名前だけ。
+  function buyClickBody() { return JSON.stringify({ event: "buy_click" }); }
 
   return { USED_KEY: USED_KEY, RESULT_KEY: RESULT_KEY, shouldMarkUsed: shouldMarkUsed, makeSnapshot: makeSnapshot, readSnapshot: readSnapshot, loadState: loadState,
     PLAN_BUTTON_TEXT: PLAN_BUTTON_TEXT, chatPayload: chatPayload, sanitizeReply: sanitizeReply, hasDirective: hasDirective, matchSoubaRow: matchSoubaRow, man: man, rangeText: rangeText,
-    checkItems: checkItems, provenance: provenance, buildView: buildView, workFromQuery: workFromQuery, ymd: ymd };
+    checkItems: checkItems, provenance: provenance, buildView: buildView, workFromQuery: workFromQuery, ymd: ymd, entryFrom: entryFrom, buyClickBody: buyClickBody };
 });

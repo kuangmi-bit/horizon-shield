@@ -93,10 +93,10 @@ for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒ�
 {
   const hist = [{ role: "user", content: "外壁塗装をしたい", extra: 1 }, { role: "assistant", content: "築年数は？" }, { role: "user", content: "15年" }];
   const p = L.chatPayload(hist, "reverse", "外壁塗装");
-  t("送る物の欄は messages・mode・work だけ", JSON.stringify(Object.keys(p).sort()) === '["messages","mode","work"]');
+  t("送る物の欄は messages・mode・work・from だけ", JSON.stringify(Object.keys(p).sort()) === '["from","messages","mode","work"]');
   t("会話はそのまま（役と中身だけ）", JSON.stringify(p.messages) === JSON.stringify(hist.map((m) => ({ role: m.role, content: m.content }))));
   t("知らない状況は STEP 02 として送る", L.chatPayload(hist, "x", "").mode === "reverse" && L.chatPayload(hist, "estimate", "").mode === "estimate");
-  t("index.html: 送る所は chatPayload を 2 か所で使う", (INDEX.match(/JSON\.stringify\(HSReverse\.chatPayload\(conversationHistory, currentMode, WORK_FROM_QUERY\)\)/g) || []).length === 2);
+  t("index.html: 送る所は chatPayload を 2 か所で使う", (INDEX.match(/JSON\.stringify\(HSReverse\.chatPayload\(conversationHistory, currentMode, WORK_FROM_QUERY, ENTRY_FROM\)\)/g) || []).length === 2);
   t("ボタンの文はワーカーと同じ", L.PLAN_BUTTON_TEXT === "今の情報で概算を出してください");
 }
 
@@ -125,6 +125,27 @@ for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒ�
   t("index.html: 開き直した人に結果と ¥5,500 の案内を出す", INDEX.includes("function showStoredResult") && INDEX.includes("¥5,500のレポートに入ります"));
 }
 
+// ---- 8. 入口(どこから来たか)と ¥5,500 のボタン。数えるための最小の物だけを送る ----
+{
+  const O = "https://shield.the-horizons-innovation.com";
+  const Q = "?work=" + encodeURIComponent("外壁塗装");
+  t("相場ページの箱から来た: box", L.entryFrom(Q, O + "/souba/gaiheki/", O) === "box");
+  t("?work= 付きで他のサイトから(AI の案内など): work", L.entryFrom(Q, "https://chatgpt.com/", O) === "work" && L.entryFrom(Q, "", O) === "work");
+  t("?work= 付きでも、相場ページ以外の自サイトのページからは work", L.entryFrom(Q, O + "/yakumo/", O) === "work" && L.entryFrom(Q, O + "/hs-reverse-estimate/" + Q, O) === "work");
+  t("似た名前の別サイトを箱と数えない", L.entryFrom(Q, O + ".evil.example/souba/gaiheki/", O) === "work" && L.entryFrom(Q, "https://evil.example/?x=" + O + "/souba/", O) === "work");
+  t("?work= 無し: direct（相場ページから来ても）", L.entryFrom("", O + "/souba/gaiheki/", O) === "direct" && L.entryFrom("?admin=reset", "", O) === "direct");
+  t("使えない工事名(長すぎ)は direct", L.entryFrom("?work=" + "あ".repeat(25), O + "/souba/gaiheki/", O) === "direct");
+  const hist = [{ role: "user", content: "外壁塗装をしたい" }];
+  t("chatPayload: from は box・work・direct のどれか", L.chatPayload(hist, "reverse", "外壁塗装", "box").from === "box" && L.chatPayload(hist, "reverse", "外壁塗装", "work").from === "work" && L.chatPayload(hist, "reverse", "", undefined).from === "direct" && L.chatPayload(hist, "reverse", "", "https://x/").from === "direct");
+  t("来た元の URL そのものは送らない", !JSON.stringify(L.chatPayload(hist, "reverse", "外壁塗装", L.entryFrom(Q, O + "/souba/gaiheki/?utm=abc", O))).includes("souba"));
+  t("ボタンで送る物は出来事の名前だけ", L.buyClickBody() === '{"event":"buy_click"}');
+  t("index.html: 入口は 1 か所で決める", (INDEX.match(/HSReverse\.entryFrom\(location\.search, document\.referrer, location\.origin\)/g) || []).length === 1);
+  t("index.html: ¥5,500 のボタン 2 つは openTermsFirst を通り、そこで 1 回送る", (INDEX.match(/onclick="openTermsFirst\((\'bank\')?\)"/g) || []).length === 2 && /function openTermsFirst\(mode\) \{\n  reportBuyClick\(\);/.test(INDEX) && (INDEX.match(/reportBuyClick\(\)/g) || []).length === 2);
+  t("index.html: 送り先は /rev-event だけで、cookie・localStorage・userAgent を一緒に送らない", (INDEX.match(/\/rev-event/g) || []).length === 2 && !/rev-event[^\n]*(cookie|localStorage|userAgent)/.test(INDEX));
+  const m = /function reportBuyClick\(\) \{[\s\S]*?\n\}/.exec(INDEX);
+  t("index.html: 送れなくても購入の流れを止めない(try で囲む)", !!m && /try \{/.test(m[0]) && /catch \(_e\) \{\}/.test(m[0]));
+}
+
 console.log("");
 if (fail) { console.log("FAIL " + fail + " of " + (pass + fail) + " (reverse_logic)"); process.exit(1); }
-console.log("PASS " + pass + "/" + pass + " (reverse_logic v2: 竹の幅が相場ページと一致、指示文を持たない、印は結果の後)");
+console.log("PASS " + pass + "/" + pass + " (reverse_logic v3: 竹の幅が相場ページと一致、指示文を持たない、印は結果の後、入口と購入ボタンは数だけ)");

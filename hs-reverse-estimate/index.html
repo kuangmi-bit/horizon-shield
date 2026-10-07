@@ -505,6 +505,16 @@ function chatErrorText(status, e) {
 }
 // 指示文はこのページに置かない。ワーカー(hs-kira-proxy)の中で組み立てる。ここから送るのは会話の中身と状況だけ。
 const WORK_FROM_QUERY = HSReverse.workFromQuery(location.search);
+// 入口(相場ページの箱から来たか、?work= 付きで他から来たか、どちらでもないか)。ワーカーが 1 通目で数える。送るのは 3 つの語のどれかだけ。
+const ENTRY_FROM = HSReverse.entryFrom(location.search, document.referrer, location.origin);
+// ¥5,500 のボタンが押された数。出来事の名前だけを 1 つ送る(個人を特定する物は送らない)。送れなくても購入の流れは止めない。
+function reportBuyClick() {
+  try {
+    var b = HSReverse.buyClickBody();
+    if (navigator.sendBeacon) navigator.sendBeacon(KIRA_PROXY + '/rev-event', b);
+    else fetch(KIRA_PROXY + '/rev-event', { method: 'POST', body: b, keepalive: true, mode: 'no-cors' }).catch(function () {});
+  } catch (_e) {}
+}
 
 const EXAMPLES = {
   1:"築15年マンション。\n6畳和室2部屋をフローリングに張り替えたい。\nキッチンもI型2550mmを手頃なものに交換。\n予算は全部で300万以内。",
@@ -649,7 +659,7 @@ async function sendToKira() {
     const res = await fetch(KIRA_PROXY + '/gyaku-mitsumori-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(HSReverse.chatPayload(conversationHistory, currentMode, WORK_FROM_QUERY))
+      body: JSON.stringify(HSReverse.chatPayload(conversationHistory, currentMode, WORK_FROM_QUERY, ENTRY_FROM))
     });
     if (!res.ok) {
       const e = await res.json().catch(function() { return {}; });
@@ -705,7 +715,7 @@ async function requestFinalPlan() {
     const res = await fetch(KIRA_PROXY + '/gyaku-mitsumori-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(HSReverse.chatPayload(conversationHistory, currentMode, WORK_FROM_QUERY))
+      body: JSON.stringify(HSReverse.chatPayload(conversationHistory, currentMode, WORK_FROM_QUERY, ENTRY_FROM))
     });
     const data = await res.json();
     const reply = HSReverse.sanitizeReply((data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '');
@@ -956,6 +966,7 @@ function purchaseBankTransfer() {
 }
 
 function openTermsFirst(mode) {
+  reportBuyClick();
   if (!lastParsedResult) { alert('先にヒアリングを完了してください'); return; }
   window._termsMode = mode || 'paypal';
   document.getElementById('terms-modal-hs').style.display = 'block';
