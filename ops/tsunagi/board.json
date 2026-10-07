@@ -1,0 +1,430 @@
+{
+  "board_sha256": "fecccb91a1bc580f96550493b6dd438b457de6b77e0842a5430f2a0d558a89fd",
+  "implementations": {
+    "a2aproject-a2a-python": {
+      "author": "a2aproject (the official A2A Python SDK)",
+      "clone_error": null,
+      "commit": "494a8ece0ad9815afd8ebd59e9a818e286eb0d80",
+      "id": "a2aproject-a2a-python",
+      "language": "Python",
+      "license": "Apache-2.0",
+      "ours": false,
+      "repo": "https://github.com/a2aproject/a2a-python.git"
+    },
+    "babyblueviper1-approval-v2": {
+      "author": "babyblueviper1",
+      "clone_error": null,
+      "commit": "bcf6592903abf6585cccf3a270312bc6ac99eb21",
+      "id": "babyblueviper1-approval-v2",
+      "language": "Python",
+      "license": "MIT",
+      "ours": false,
+      "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git"
+    },
+    "hs-nenrin-reference": {
+      "author": "ogasurfproject-jpg",
+      "clone_error": null,
+      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "id": "hs-nenrin-reference",
+      "language": "JavaScript",
+      "license": null,
+      "ours": true,
+      "repo": null
+    },
+    "hs-settle-v1.10-approval": {
+      "author": "ogasurfproject-jpg",
+      "clone_error": null,
+      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "id": "hs-settle-v1.10-approval",
+      "language": "Python",
+      "license": null,
+      "ours": true,
+      "repo": null
+    },
+    "kuangmi-bit-nenrin-independent-verifiers": {
+      "author": "kuangmi-bit",
+      "clone_error": null,
+      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "id": "kuangmi-bit-nenrin-independent-verifiers",
+      "language": "Python",
+      "license": "MIT",
+      "ours": false,
+      "repo": "https://github.com/kuangmi-bit/nenrin-independent-verifiers.git"
+    },
+    "probity-a2a-card-readers": {
+      "author": "Sankalp Gilda (astrogilda), Probity AI",
+      "clone_error": null,
+      "commit": "8272f89107b529640065b334ae8298b437f9967f",
+      "id": "probity-a2a-card-readers",
+      "language": "Python",
+      "license": "Apache-2.0",
+      "ours": false,
+      "repo": "https://github.com/probityai/agent-evidence-vectors.git"
+    }
+  },
+  "measured_at": "2026-10-07T16:01:54Z",
+  "pairs": [
+    {
+      "a": "babyblueviper1-approval-v2",
+      "agree": true,
+      "b": "hs-settle-v1.10-approval",
+      "corpus": "musubi-approval-v2",
+      "differ": [],
+      "of": 9,
+      "same": 9,
+      "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"
+    },
+    {
+      "a": "hs-nenrin-reference",
+      "agree": true,
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "basis": "both reproduce every expectation of the corpus",
+      "corpus": "nenrin-interop-v0",
+      "of": null,
+      "same": null,
+      "what": "both reproduce every frozen verdict signature"
+    },
+    {
+      "a": "hs-nenrin-reference",
+      "agree": true,
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "basis": "both reproduce every expectation of the corpus",
+      "corpus": "nenrin-interop-v0.1",
+      "of": null,
+      "same": null,
+      "what": "both reproduce every frozen verdict signature"
+    }
+  ],
+  "repository_commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+  "runs": [
+    {
+      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "corpus": "nenrin-interop-v0",
+      "exit": 0,
+      "expected_total": 5,
+      "implementation": "hs-nenrin-reference",
+      "of": 5,
+      "ours": true,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 5,
+      "seconds": 0.1,
+      "status": "ran",
+      "stdout_sha256": "c6f611352d4a2eba70c7ee502a0cdc86ad7b57800f04cba76b8d855b7e06dff5"
+    },
+    {
+      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "corpus": "nenrin-interop-v0.1",
+      "exit": 0,
+      "expected_total": 13,
+      "implementation": "hs-nenrin-reference",
+      "of": 13,
+      "ours": true,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 13,
+      "seconds": 0.2,
+      "status": "ran",
+      "stdout_sha256": "0dbacd29fed94f67291c053fc2771b438fc061cf19cb6e13eef141fd4740d46d"
+    },
+    {
+      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "corpus": "nenrin-interop-v0",
+      "exit": 0,
+      "expected_total": 5,
+      "implementation": "kuangmi-bit-nenrin-independent-verifiers",
+      "of": 5,
+      "ours": false,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 5,
+      "seconds": 0.1,
+      "status": "ran",
+      "stdout_sha256": "b97c6088c71964e16445d2293aa18ec011e890d40b13887d2eefb866c74a9295"
+    },
+    {
+      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "corpus": "nenrin-interop-v0.1",
+      "exit": 0,
+      "expected_total": 13,
+      "implementation": "kuangmi-bit-nenrin-independent-verifiers",
+      "of": 13,
+      "ours": false,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 13,
+      "seconds": 0.1,
+      "status": "ran",
+      "stdout_sha256": "e1e79096aedc01ad60a3182d8ce6392c82501e8fee491a89f67552696ef233e0"
+    },
+    {
+      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "corpus": "nenrin-interop-v0.2-edge",
+      "exit": 0,
+      "expected_total": 36,
+      "implementation": "kuangmi-bit-nenrin-independent-verifiers",
+      "of": 36,
+      "ours": false,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 36,
+      "seconds": 0.5,
+      "status": "ran",
+      "stdout_sha256": "021478294fa83a94a2dc7aef8e77830b1eace07cbea7cef9a67ff720e25f386e"
+    },
+    {
+      "commit": "bcf6592903abf6585cccf3a270312bc6ac99eb21",
+      "corpus": "musubi-approval-v2",
+      "exit": 0,
+      "expected_total": 9,
+      "implementation": "babyblueviper1-approval-v2",
+      "of": 9,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "v2-action-not-permitted": {
+          "ok": true,
+          "reason": "action_not_permitted_for_approver",
+          "result": "approval_unverified"
+        },
+        "v2-approver-not-pinned": {
+          "ok": true,
+          "reason": "approver_not_pinned",
+          "result": "approval_unverified"
+        },
+        "v2-bare-action-string": {
+          "ok": true,
+          "reason": "not_an_approver_approval",
+          "result": "approval_unverified"
+        },
+        "v2-forged-unpinned-key": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified"
+        },
+        "v2-malformed-nonce": {
+          "ok": true,
+          "reason": "malformed",
+          "result": "approval_unverified"
+        },
+        "v2-no-approver-pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "approval_self_asserted"
+        },
+        "v2-replayed-to-other-contract": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified"
+        },
+        "v2-tampered-after-signing": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified"
+        },
+        "v2-valid-approval": {
+          "ok": true,
+          "reason": null,
+          "result": "approved"
+        }
+      },
+      "reproduced": 9,
+      "seconds": 0.0,
+      "status": "ran",
+      "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
+    },
+    {
+      "commit": "0b50e70df5e3a38e665c5bf6fb576be32a81b45d",
+      "corpus": "musubi-approval-v2",
+      "exit": 0,
+      "expected_total": 9,
+      "implementation": "hs-settle-v1.10-approval",
+      "of": 9,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "v2-action-not-permitted": {
+          "ok": true,
+          "reason": "action_not_permitted_for_approver",
+          "result": "approval_unverified"
+        },
+        "v2-approver-not-pinned": {
+          "ok": true,
+          "reason": "approver_not_pinned",
+          "result": "approval_unverified"
+        },
+        "v2-bare-action-string": {
+          "ok": true,
+          "reason": "not_an_approver_approval",
+          "result": "approval_unverified"
+        },
+        "v2-forged-unpinned-key": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified"
+        },
+        "v2-malformed-nonce": {
+          "ok": true,
+          "reason": "malformed",
+          "result": "approval_unverified"
+        },
+        "v2-no-approver-pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "approval_self_asserted"
+        },
+        "v2-replayed-to-other-contract": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified"
+        },
+        "v2-tampered-after-signing": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified"
+        },
+        "v2-valid-approval": {
+          "ok": true,
+          "reason": null,
+          "result": "approved"
+        }
+      },
+      "reproduced": 9,
+      "seconds": 0.2,
+      "status": "ran",
+      "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
+    },
+    {
+      "commit": "8272f89107b529640065b334ae8298b437f9967f",
+      "corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)",
+      "exit": 0,
+      "expected_total": 13,
+      "implementation": "probity-a2a-card-readers",
+      "of": 13,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "S3-001": {
+          "canonical_sha256": "4535dd37ee9349a4879e87d1ddbb4fe3e068459cbcbb43dcdc7e14e49da44e27",
+          "ok": true
+        },
+        "S3-002": {
+          "canonical_sha256": "4535dd37ee9349a4879e87d1ddbb4fe3e068459cbcbb43dcdc7e14e49da44e27",
+          "ok": true
+        },
+        "S3-003": {
+          "canonical_sha256": "c2faffbaa3eec4d6bdb8af24cd3d18247bb0dd5a9747949439ea748cf7966e8d",
+          "ok": true
+        },
+        "S3-004": {
+          "canonical_sha256": "c2faffbaa3eec4d6bdb8af24cd3d18247bb0dd5a9747949439ea748cf7966e8d",
+          "ok": true
+        },
+        "S3-005": {
+          "canonical_sha256": "3089a8791bc92ecfd0c4e9617ab1ba43f2179cb3dc5a96d5b39cb4cb7b057b95",
+          "ok": true
+        },
+        "S3-006": {
+          "canonical_sha256": "3089a8791bc92ecfd0c4e9617ab1ba43f2179cb3dc5a96d5b39cb4cb7b057b95",
+          "ok": true
+        },
+        "S3-007": {
+          "canonical_sha256": "24bf0333f30113eeb4d51ee7d5d98dff5343de252e7d1dffb140481b78cdf1d4",
+          "ok": true
+        },
+        "S3-008": {
+          "canonical_sha256": "24bf0333f30113eeb4d51ee7d5d98dff5343de252e7d1dffb140481b78cdf1d4",
+          "ok": true
+        },
+        "S3-009": {
+          "canonical_sha256": "11c59821c967c9da38ebe28dba5f41aa5b917ed275f34ffa1a302e516207c8da",
+          "ok": true
+        },
+        "S3-010": {
+          "canonical_sha256": "11c59821c967c9da38ebe28dba5f41aa5b917ed275f34ffa1a302e516207c8da",
+          "ok": true
+        },
+        "S3-D-012": {
+          "canonical_sha256": "4535dd37ee9349a4879e87d1ddbb4fe3e068459cbcbb43dcdc7e14e49da44e27",
+          "ok": true
+        },
+        "S3-D-013": {
+          "canonical_sha256": "9212c8c4028c8336429639374c72503229c2fb0a49d8bd15bd6c968760eb4b50",
+          "ok": true
+        },
+        "S3-T-011": {
+          "canonical_sha256": "9212c8c4028c8336429639374c72503229c2fb0a49d8bd15bd6c968760eb4b50",
+          "ok": true
+        }
+      },
+      "reproduced": 13,
+      "seconds": 0.1,
+      "status": "ran",
+      "stdout_sha256": "c20aeb271eb52ccd54b5bea5b1fe107db16d894eda4f50a22d1b332895c498e4"
+    },
+    {
+      "commit": "8272f89107b529640065b334ae8298b437f9967f",
+      "corpus": "a2a-card-sign-v01/s4-dual-name",
+      "exit": 0,
+      "expected_total": 5,
+      "implementation": "probity-a2a-card-readers",
+      "of": 5,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "S4-001": {
+          "canonical_sha256": "a8973bf9954a8241a6c4364f946183cec3c36e7289824cbfbc8f72e4bdf88061",
+          "ok": true
+        },
+        "S4-002": {
+          "canonical_sha256": "d16f72c57629531fd53937b2cad701a9dfc8c92363550a3f3fd61e80d96316b8",
+          "ok": true
+        },
+        "S4-003": {
+          "canonical_sha256": "d1c9ae67a9a2967c36803ca9f96a9fe2d9b19b4420efe3623c01bcf5eaa44aa3",
+          "ok": true
+        },
+        "S4-004": {
+          "canonical_sha256": "4ce20bf6917fbf813b204b75c3618848c547bb2677865c9f876da7eea302d896",
+          "ok": true
+        },
+        "S4-REJECT-005": {
+          "canonical_sha256": "a8973bf9954a8241a6c4364f946183cec3c36e7289824cbfbc8f72e4bdf88061",
+          "ok": true
+        }
+      },
+      "reproduced": 5,
+      "seconds": 0.1,
+      "status": "ran",
+      "stdout_sha256": "bf88276f294a4815a0a88d888b87a8b744fcae33710dcfef6ce2f6042112c93b"
+    },
+    {
+      "commit": "494a8ece0ad9815afd8ebd59e9a818e286eb0d80",
+      "corpus": "a2a-card-sign-v01/s0-control",
+      "exit": 0,
+      "expected_total": 10,
+      "implementation": "a2aproject-a2a-python",
+      "of": 10,
+      "ours": false,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 10,
+      "seconds": 2.0,
+      "status": "ran",
+      "stdout_sha256": "aa3b08c10d6f5981ebf0d46e1ee770eeab66e44245d950bc97237a8e5c384f79"
+    }
+  ],
+  "schema": "hs-tsunagi-board-v0",
+  "summary": {
+    "not_run": 0,
+    "outside_authors_passing": [
+      "Sankalp Gilda (astrogilda), Probity AI",
+      "a2aproject (the official A2A Python SDK)",
+      "babyblueviper1",
+      "kuangmi-bit"
+    ],
+    "outside_passed": 7,
+    "passed": 10,
+    "runs": 10
+  }
+}
