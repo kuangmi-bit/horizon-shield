@@ -1,0 +1,43 @@
+{
+  "schema": "hs-tsunagi-board-v0",
+  "what_this_is": "The implementations TSUNAGI runs every night. Each row is code that lives in its author's own repository; the board clones it at the default branch head, runs it against the corpus named in the row, and records the commit it ran, the exit code, the counts, and per-vector results where the implementation prints them. A row is added with one pull request that names a public repository and a command. Rows marked ours are this project's own implementations: one column among the others, not the referee.",
+  "implementations": [
+    {"id": "hs-nenrin-reference", "ours": true, "author": "ogasurfproject-jpg", "repo": null, "language": "JavaScript",
+     "runs": [
+       {"corpus": "nenrin-interop-v0", "cwd": "@hs/workers/hs-ledger/nenrin/interop-v0", "cmd": ["node", "run_interop.mjs"], "parse": "all_pass", "total": 5},
+       {"corpus": "nenrin-interop-v0.1", "cwd": "@hs/workers/hs-ledger/nenrin/interop-v0.1", "cmd": ["node", "run_interop.mjs"], "parse": "all_pass", "total": 13}
+     ]},
+    {"id": "kuangmi-bit-nenrin-independent-verifiers", "ours": false, "author": "kuangmi-bit", "repo": "https://github.com/kuangmi-bit/nenrin-independent-verifiers.git", "language": "Python",
+     "license": "MIT", "written_from": "VERIFIER.md alone, without reading the reference implementation (the author's statement in the repository README)",
+     "runs": [
+       {"corpus": "nenrin-interop-v0", "cwd": "@impl", "env": {"PYTHONPATH": "verifiers"}, "cmd": ["python3", "runners/run_corpus.py", "@hs/workers/hs-ledger/nenrin/interop-v0", "nenrin_verify_v0"], "parse": "count_line", "total": 5},
+       {"corpus": "nenrin-interop-v0.1", "cwd": "@impl", "env": {"PYTHONPATH": "verifiers"}, "cmd": ["python3", "runners/run_corpus.py", "@hs/workers/hs-ledger/nenrin/interop-v0.1", "nenrin_verify_v0"], "parse": "count_line", "total": 13},
+       {"corpus": "nenrin-interop-v0.2-edge", "cwd": "@impl", "cmd": ["python3", "runners/run_edge.py", "@hs/workers/hs-ledger/nenrin/interop-v0.2/edge"], "parse": "count_line", "total": 36}
+     ]},
+    {"id": "babyblueviper1-approval-v2", "ours": false, "author": "babyblueviper1", "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git", "language": "Python",
+     "license": "MIT",
+     "runs": [
+       {"corpus": "musubi-approval-v2", "cwd": "@impl/examples/musubi-approver-v2", "cmd": ["python3", "verify_approval_v2.py"], "parse": "approval_lines", "total": 9, "vectors": "@impl/examples/musubi-approver-v2/vectors.json"}
+     ]},
+    {"id": "hs-settle-v1.10-approval", "ours": true, "author": "ogasurfproject-jpg", "repo": null, "language": "Python",
+     "runs": [
+       {"corpus": "musubi-approval-v2", "cwd": "@hs/workers/hs-ledger/nenrin/musubi-v0", "cmd": ["python3", "@board/hs_approval_on.py", "@vectors:musubi-approval-v2"], "parse": "approval_lines", "total": 9}
+     ]},
+    {"id": "probity-a2a-card-readers", "ours": false, "author": "Sankalp Gilda (astrogilda), Probity AI", "repo": "https://github.com/probityai/agent-evidence-vectors.git", "language": "Python",
+     "license": "Apache-2.0", "note": "Probity's readers run against their own frozen copy of our s3 and s4 vectors (source-lock.json in each directory names the commit)",
+     "runs": [
+       {"corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)", "cwd": "@impl/interop/a2a-s3-retain-2026-10-01", "cmd": ["python3", "run_regression.py"], "parse": "json_results", "total": 13},
+       {"corpus": "a2a-card-sign-v01/s4-dual-name", "cwd": "@impl/interop/a2a-s4-dual-name-2026-10-02", "cmd": ["python3", "run_dual_name.py"], "parse": "json_results", "total": 5}
+     ]},
+    {"id": "a2aproject-a2a-python", "ours": false, "author": "a2aproject (the official A2A Python SDK)", "repo": "https://github.com/a2aproject/a2a-python.git", "language": "Python",
+     "license": "Apache-2.0", "note": "The SDK's own copy of our five s0-control vectors, merged in a2aproject/a2a-python#1286",
+     "runs": [
+       {"corpus": "a2a-card-sign-v01/s0-control", "cwd": "@impl", "setup": ["uv", "sync", "-q", "--all-extras"], "cmd": ["uv", "run", "-q", "pytest", "-q", "tests/utils/test_signing_interop.py"], "parse": "pytest", "total": 10}
+     ]}
+  ],
+  "pairs": [
+    {"corpus": "musubi-approval-v2", "a": "babyblueviper1-approval-v2", "b": "hs-settle-v1.10-approval", "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"},
+    {"corpus": "nenrin-interop-v0", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"},
+    {"corpus": "nenrin-interop-v0.1", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"}
+  ]
+}

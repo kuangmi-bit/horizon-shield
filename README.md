@@ -49,6 +49,8 @@ Each row is one question a homeowner in Japan asks, the page that answers it wit
 
 What people who do not work for this project have measured, signed or reproduced. Every row links to something you can fetch and recompute. The last two rows are the counts that are still small, stated as plainly as the rest.
 
+Every night the [TSUNAGI board](ops/tsunagi/BOARD.md) runs these outside implementations again, cloned from their authors' own repositories at their latest commit, against the corpora in this repository, and keeps every disagreement on the board. A reproduction is checked again each day, not only on the day it was made. Add your implementation with one pull request to [`tools/tsunagi/implementations.json`](tools/tsunagi/implementations.json).
+
 | What | Who | Check it |
 |------|-----|----------|
 | Merged the five s0-control vectors of our a2a-card-sign-v01 corpus into the official A2A Python SDK's own test suite. On every change, its CI now checks that one Agent Card signed by a2a-sdk, @a2a-js/sdk, a2a-go and a reference signer verifies, canonicalizes to the shared bytes, and that the same card edited after signing is rejected. The review asked us to drop the vector fields the tests do not read and our frozen production card; we did, and it was approved and merged | `a2aproject/a2a-python`, reviewed and merged by Iwaniukooo11 (2026-10-07) | [#1286](https://github.com/a2aproject/a2a-python/pull/1286), [the vectors on main](https://github.com/a2aproject/a2a-python/blob/494a8ece0ad9815afd8ebd59e9a818e286eb0d80/tests/utils/signing_interop_vectors.json), [the tests](https://github.com/a2aproject/a2a-python/blob/494a8ece0ad9815afd8ebd59e9a818e286eb0d80/tests/utils/test_signing_interop.py) |

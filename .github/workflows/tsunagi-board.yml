@@ -1,0 +1,73 @@
+# TSUNAGI (繋): every night, run every registered implementation against the corpora and publish where they agree.
+#
+# Each implementation lives in its author's own repository (tools/tsunagi/implementations.json). The run job clones
+# them at their default branch head and runs them with a read-only token and no secrets, because it executes code this
+# project did not write. Only the second job, which runs no outside code, can write: it takes the board the first job
+# produced and commits it to ops/tsunagi/.
+#
+# A run of someone else's code that fails is written on the board as a failure, never hidden, and the workflow stays
+# green: the board is the finding. Only a broken board tool (the offline test fails, python crashes) is red.
+name: tsunagi-board
+
+on:
+  schedule:
+    - cron: "41 18 * * *"     # every day 18:41 UTC (03:41 JST)
+  workflow_dispatch:
+
+concurrency:
+  group: tsunagi-board
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: What the implementations need (pinned)
+        run: python -m pip install --disable-pip-version-check "cryptography==46.0.7" "rfc8785==0.1.4" "uv==0.8.22"
+      - name: How the board reads each output, offline
+        run: python3 tools/tsunagi/run_board_test.py
+      - name: Run every implementation
+        run: python3 tools/tsunagi/run_board.py --out board-out | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tsunagi-board
+          path: board-out/
+          retention-days: 30
+
+  keep:
+    needs: run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tsunagi-board
+          path: board-out
+      - name: Keep the board
+        run: |
+          python3 -c "import json,hashlib;b=json.load(open('board-out/board.json'));c=json.dumps({k:v for k,v in b.items() if k!='board_sha256'},ensure_ascii=False,sort_keys=True,separators=(',',':'));assert hashlib.sha256(c.encode()).hexdigest()==b['board_sha256'],'board sha mismatch';print('board',b['board_sha256'])"
+          mkdir -p ops/tsunagi
+          cp board-out/board.json board-out/BOARD.md ops/tsunagi/
+          git config user.name "horizon-shield-tsunagi"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add ops/tsunagi/
+          if git diff --cached --quiet; then
+            echo "nothing changed" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "tsunagi: nightly board $(date -u +%Y-%m-%d)"
+          git pull --rebase origin main
+          git push
