@@ -9,7 +9,9 @@ project 0. The protocol is only a protocol if that second number can move withou
 path, for two parties A and B, using only these verification files, OpenTimestamps and public block headers:
 
     keygen          each party, on its own machine: an Ed25519 key (PEM) and its public key (base64)
-    contract        either party: the unsigned contract from a small JSON of parameters
+    contract        either party: the unsigned contract from a small JSON of parameters. With contract_id, nonce and
+                    agreed_at in the params (or --pins-from an earlier draft), both parties build the same bytes, so
+                    neither has to publish a draft for the other: each builds, compares contract_sha256 (--expect), signs
     sign            each party: add its signature (contract_v0.sign_contract; refuses a key the contract does not pin)
     verify          anyone: contract_v0.verify_contract
     approve         an approver both parties pinned (optional): an a2a-approval-v2 approval for one conditional action
@@ -23,6 +25,8 @@ here sends anything anywhere, and no step needs an account, a key or a server of
 
     python3 peer_kit.py keygen --out a.pem
     python3 peer_kit.py contract --params params.json --out c.unsigned.json
+    (the other party, same bytes: python3 peer_kit.py contract --params params.json --pins-from c.unsigned.json
+     --expect <contract_sha256> --out c.unsigned.json)
     python3 peer_kit.py sign --contract c.unsigned.json --key a.pem --domain a.example --out c.A.json
     python3 peer_kit.py sign --contract c.A.json --key b.pem --domain b.example --out c.AB.json
     python3 peer_kit.py exec --contract c.AB.json --key b.pem --actions read --nenrin-ref <64 hex> --out e.json
@@ -38,12 +42,14 @@ params.json: {"principal": {"domain", "key_url", "public_key_ed25519_b64"}, "con
 "expiry_height": null, "requirements": {...} (optional: terms, independence, corroboration, spine, convergence),
 "conditional": [{"action", "requires"}] (optional), "approvers": [{"name", "public_key_ed25519_b64", "actions"}]
 (optional, settle v1.10: each listed action is approved only by that key; it must be a conditional action, and the key
-may not be a party's or a witness's)}.
+may not be a party's or a witness's), "contract_id", "nonce" (32 lowercase hex each) and "agreed_at"
+("YYYY-MM-DDTHH:MM:SSZ") (optional: pin them and every build of these params is byte-identical; left out, a build
+draws fresh ones and prints them)}.
 
 An approver is pinned in the grant, so it is part of contract_sha256: agree on it before either party signs. The
 approval signs contract_sha256, which leaves out the signatures, so the approver can sign as soon as the terms are fixed.
 """
-import argparse, base64, json, os, secrets, sys, tempfile
+import argparse, base64, json, os, re, secrets, sys, tempfile, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -72,7 +78,32 @@ def keygen(out):
     return base64.b64encode(k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
 
 
+PINS = ("contract_id", "nonce", "agreed_at")
+_HEX32 = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _check_pins(pins):
+    for f in ("contract_id", "nonce"):
+        if f in pins and not (isinstance(pins[f], str) and _HEX32.match(pins[f])):
+            raise SystemExit("%s must be 32 lowercase hex" % f)
+    if "agreed_at" in pins:
+        a = pins["agreed_at"]
+        try:
+            ok = isinstance(a, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", a) and \
+                time.strftime("%Y-%m-%dT%H:%M:%SZ", time.strptime(a, "%Y-%m-%dT%H:%M:%SZ")) == a
+        except ValueError:
+            ok = False
+        if not ok:
+            raise SystemExit("agreed_at must be a real UTC time written YYYY-MM-DDTHH:MM:SSZ")
+
+
+def pins_from(contract):
+    return {f: contract[f] for f in PINS if f in contract}
+
+
 def build(params):
+    pins = {f: params[f] for f in PINS if params.get(f) is not None}
+    _check_pins(pins)
     g = {"authorized_actions": list(params["authorized_actions"]), "prohibited_actions": list(params.get("prohibited_actions") or []),
          "conditional": list(params.get("conditional") or []), "delegation": {"allowed": []}, "revocation": {"effective_at": "anchor"},
          "finality": {"depth": int(params.get("finality_depth", 6)), "max_target_bits": params.get("max_target_bits", "17080000")},
@@ -85,7 +116,8 @@ def build(params):
     return v0.build_contract(dict(params["principal"]), dict(params["contractor"]), task, g, EST, DNE,
                              requirements=params.get("requirements") or {"evidence": "nenrin_required", "recovery": "n/a"},
                              bond=params.get("bond"), lower_bound=params["lower_bound"],
-                             contract_id=params.get("contract_id") or secrets.token_hex(16), nonce=secrets.token_hex(16))
+                             contract_id=pins.get("contract_id") or secrets.token_hex(16),
+                             nonce=pins.get("nonce") or secrets.token_hex(16), agreed_at=pins.get("agreed_at"))
 
 
 def sign(contract, pem, domain):
@@ -177,6 +209,22 @@ def _selftest():
     c3 = build(p3); sign(c3, os.path.join(t, "a.pem"), "a.example"); sign(c3, os.path.join(t, "b.pem"), "b.example")
     assert {"reason": "approver_is_party", "detail": "approvers[0] uses the key of a party to this contract"} in v110._party_problems(c3)
     n += 1; print("[5] a pinned approver from params: signed before the parties (contract_sha256 leaves out signatures) and still approved after; a party key or an unlisted action is refused at approve; the approval rides in the execution; a party's key as approver is flagged approver_is_party")
+    pinned = dict(params, contract_id="1" * 32, nonce="2" * 32, agreed_at="2026-10-08T00:00:00Z")
+    b1 = build(pinned); b2 = build(json.loads(json.dumps(pinned)))
+    assert canonical(b1) == canonical(b2) and contract_sha256(b1) == contract_sha256(b2)
+    fresh = build(params)
+    b3 = build(dict(params, **pins_from(fresh)))
+    assert contract_sha256(b3) == contract_sha256(fresh) and canonical(b3) == canonical(fresh)
+    old = dict(fresh, establishes=["that both parties signed these grant bytes at the stated time"])
+    b4 = build(dict(params, **pins_from(old)))
+    assert pins_from(b4) == pins_from(old) and b4["establishes"] == EST and contract_sha256(b4) != contract_sha256(old)
+    for bad in ({"nonce": "XYZ"}, {"contract_id": "1" * 31}, {"agreed_at": "2026-02-30T00:00:00Z"}, {"agreed_at": "2026-10-08T24:00:00Z"},
+                {"agreed_at": "2026-10-08T00:00:00Z\n"}):
+        try:
+            build(dict(params, **bad)); raise AssertionError("build accepted %r" % (bad,))
+        except SystemExit:
+            pass
+    n += 1; print("[6] pinned contract_id, nonce and agreed_at: two builds of the same params are byte-identical; --pins-from an earlier draft keeps its three values and takes the current wording; malformed pins (not hex, Feb 30, hour 24, trailing newline) are refused")
     print("ALL PASS (peer_kit: %d checks)" % n)
 
 
@@ -188,6 +236,7 @@ def main():
     ap.add_argument("--view", action="append", default=[]); ap.add_argument("--event", action="append", default=[])
     ap.add_argument("--name"); ap.add_argument("--action"); ap.add_argument("--valid-until", type=int)
     ap.add_argument("--approval", action="append", default=[])
+    ap.add_argument("--pins-from"); ap.add_argument("--expect")
     a = ap.parse_args()
     rd = lambda p: parse_strict(open(p, encoding="utf-8").read())
     wr = lambda obj: open(a.out, "w", encoding="utf-8", newline="").write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
@@ -197,7 +246,18 @@ def main():
         print(json.dumps({"private_key_file": a.out, "public_key_ed25519_b64": keygen(a.out),
                           "next": "publish the public key at your key_url; keep the PEM on this machine"}, indent=2)); return 0
     if a.cmd == "contract":
-        c = build(rd(a.params)); wr(c); print(json.dumps({"wrote": a.out, "contract_sha256": contract_sha256(c)})); return 0
+        params = rd(a.params)
+        if a.pins_from:
+            params = dict(params, **pins_from(rd(a.pins_from)))
+        c = build(params); sha = contract_sha256(c)
+        if a.expect and a.expect != sha:
+            print(json.dumps({"contract_sha256": sha, "expected": a.expect, "match": False, "pins": pins_from(c)}))
+            return 2
+        wr(c); out = {"wrote": a.out, "contract_sha256": sha, "pins": pins_from(c)}
+        if a.expect:
+            out["match"] = True
+        print(json.dumps(out))
+        return 0
     if a.cmd == "sign":
         c = sign(rd(a.contract), a.key, a.domain); wr(c); print(json.dumps({"wrote": a.out, "signatures": len(c["signatures"])})); return 0
     if a.cmd == "verify":
