@@ -2595,8 +2595,8 @@ export default {
 
     // 公開: 活動フィード(認知ループ)。金額・連絡先・個人情報なしの文言のみ。
     if (path === "/activity.json") {
-      const items = await AP.activityList(env, 30);
-      return json({ items: items.filter((x) => x.type !== "tick"), updated_at: new Date().toISOString() },
+      const items = AP.activityPublic(await AP.activityList(env, 100)).slice(0, 30);
+      return json({ items, updated_at: new Date().toISOString() },
         200, { "Cache-Control": "public, max-age=60" });
     }
 

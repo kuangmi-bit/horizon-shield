@@ -864,6 +864,17 @@ export function activityCollapse(items) {
   }
   return out;
 }
+// 公開の活動フィード(/activity.json、モールの「YAKUMO NOW」)に出してよい種類。
+// 巡回・詰まり解除・頁の作り直し・ヒアリングの切り替え・業種つきの開始は内部の作業で、
+// 文言に店の内部番号(kira-…、hs-partner-…)や建設業以外の業種が入る(2026-10-07、
+// あっぷす様の kira-wbbk99p9 が公開の一覧に出ていた)。許す種類だけを通し、念のため
+// 内部番号を含む文言も落とす。保存してある記録は消さない。
+const PUBLIC_ACTIVITY_TYPES = new Set(["answered", "published", "verified", "estimate", "estimate_file", "joined", "note"]);
+const INTERNAL_ID = /\b(kira-[a-z0-9]+|hs-partner-[0-9a-z-]+)\b/i;
+export function activityPublic(items) {
+  return (Array.isArray(items) ? items : []).filter((it) => it && typeof it === "object"
+    && PUBLIC_ACTIVITY_TYPES.has(it.type) && !INTERNAL_ID.test(String(it.text || "")));
+}
 export async function activityList(env, n = 30) {
   const idx = (await env.HS_HEARING_KV.get("activity:index", "json")) || [];
   return activityCollapse(idx).slice(0, n);
