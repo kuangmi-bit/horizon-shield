@@ -146,6 +146,26 @@ for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒ�
   t("index.html: 送れなくても購入の流れを止めない(try で囲む)", !!m && /try \{/.test(m[0]) && /catch \(_e\) \{\}/.test(m[0]));
 }
 
+// ---- 有料レポートの松・梅は画面の竹と同じ物差し(2026-10-08) ----
+{
+  const row = L.matchSoubaRow(DB, CASES[0].text);
+  const v = L.buildView({ plan: { koji: "外壁塗装", take: [26, 42] }, row, meta: DB._meta, now: NOW });
+  const p = L.alignPaidPlans(v, [26, 42], [34, 60], [18, 30]);
+  t("松・梅: KIRA が竹 26〜42 万と出しても、松・梅は souba-db の竹 70〜115 万に合わせて同じ倍率で動く", p.basis === "scaled" && p.matsu[0] === 92.5 && p.matsu[1] === 163.2 && p.ume[0] === 49 && p.ume[1] === 81.6, JSON.stringify(p));
+  t("松・梅: 梅 ≤ 竹 ≤ 松(下端どうし、上端どうし)", p.ume[0] <= v.take[0] && p.ume[1] <= v.take[1] && p.matsu[0] >= v.take[0] && p.matsu[1] >= v.take[1], JSON.stringify([p.ume, v.take, p.matsu]));
+  const takeMid = Math.round((v.take[0] + v.take[1]) / 2);
+  t("松・梅: PDF に渡す 3 つの額が 梅 < 竹 < 松 の順(松は上端、竹は真ん中、梅は下端)", p.ume[0] < takeMid && takeMid < p.matsu[1], [p.ume[0], takeMid, p.matsu[1]].join(" "));
+  const bad = L.alignPaidPlans(v, [26, 42], [20, 30], [40, 60]);
+  t("松・梅: KIRA の比が逆さ(松が竹より安い)なら竹の両端から作る", bad.basis === "ratio" && bad.matsu[0] === 115 && bad.matsu[1] === 155.3 && bad.ume[0] === 52.5 && bad.ume[1] === 70, JSON.stringify(bad));
+  const none = L.alignPaidPlans(v, [0, 0], [0, 0], [0, 0]);
+  t("松・梅: KIRA の数字が読めない時も竹の両端から作る(0 円のまま PDF に渡さない)", none.basis === "ratio" && none.matsu[1] > 115 && none.ume[0] > 0, JSON.stringify(none));
+  const kv = L.buildView({ plan: { koji: "特殊な工事", take: [40, 60] }, row: null, meta: DB._meta, now: NOW });
+  const kp = L.alignPaidPlans(kv, [40, 60], [55, 80], [30, 40]);
+  t("松・梅: 竹が KIRA の積み上げ(行が無い)なら、同じ物差しなので触らない", kp.basis === "kira" && kp.matsu[0] === 55 && kp.ume[1] === 40, JSON.stringify(kp));
+  t("松・梅: 画面の view には今も松・梅の欄が無い", !Object.keys(v).some((k) => /matsu|ume/i.test(k)));
+  t("松・梅: index.html は lastParsedResult に揃えた松・梅を入れる", INDEX.includes("HSReverse.alignPaidPlans(view, tR, mR, uR)") && INDEX.includes("matsu: paid.matsu") && INDEX.includes("ume: paid.ume") && !INDEX.includes("plans: { matsu: mR, take: view.take || tR, ume: uR }"));
+}
+
 console.log("");
 if (fail) { console.log("FAIL " + fail + " of " + (pass + fail) + " (reverse_logic)"); process.exit(1); }
-console.log("PASS " + pass + "/" + pass + " (reverse_logic v3: 竹の幅が相場ページと一致、指示文を持たない、印は結果の後、入口と購入ボタンは数だけ)");
+console.log("PASS " + pass + "/" + pass + " (reverse_logic v4: 竹の幅が相場ページと一致、有料の松・梅も同じ物差し、指示文を持たない、印は結果の後、入口と購入ボタンは数だけ)");

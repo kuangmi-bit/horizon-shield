@@ -138,6 +138,29 @@
     };
   }
 
+  // ---- 6b. 有料レポートの松・梅を、画面の竹と同じ物差しに揃える ---------------------------------------------
+  // 2026-10-08 に足した理由。竹を souba-db の行に差し替えた後も、松・梅は KIRA の積み上げのままだった。KIRA が外壁塗装 30 坪で
+  // 竹 26〜42 万と出すと、松 34〜60 万が画面の竹 70〜115 万より安くなり、¥5,500 のレポートで「松が竹より安い」になる。
+  // 直し方: KIRA が出した松・竹・梅の比はそのまま使い、KIRA の竹の真ん中が souba-db の竹の真ん中に重なるように、松・梅を同じ倍率で動かす。
+  // 動かした後も「梅 ≤ 竹 ≤ 松」が崩れる時と、KIRA の数字が読めない時だけ、竹の両端から決まった比で作る(basis: "ratio")。
+  // 竹が KIRA の積み上げ(行が無い)の時は、松・梅も同じ KIRA の物差しなので触らない(basis: "kira")。
+  function okRange(r) { return Array.isArray(r) && r.length === 2 && r[0] > 0 && r[1] > 0 && r[0] <= r[1]; }
+  function r1(x) { return Math.round(x * 10) / 10; }
+  function alignPaidPlans(view, kiraTake, kiraMatsu, kiraUme) {
+    var take = view && view.take;
+    if (!view || view.takeSource !== "souba-db" || !okRange(take)) {
+      return { matsu: kiraMatsu || [0, 0], ume: kiraUme || [0, 0], basis: "kira", factor: 1 };
+    }
+    if (okRange(kiraTake) && okRange(kiraMatsu) && okRange(kiraUme)) {
+      var k = ((take[0] + take[1]) / 2) / ((kiraTake[0] + kiraTake[1]) / 2);
+      var m = [r1(kiraMatsu[0] * k), r1(kiraMatsu[1] * k)], u = [r1(kiraUme[0] * k), r1(kiraUme[1] * k)];
+      if (u[0] <= take[0] && u[1] <= take[1] && m[0] >= take[0] && m[1] >= take[1]) {
+        return { matsu: m, ume: u, basis: "scaled", factor: Math.round(k * 1000) / 1000 };
+      }
+    }
+    return { matsu: [take[1], r1(take[1] * 1.35)], ume: [r1(take[0] * 0.75), take[0]], basis: "ratio", factor: null };
+  }
+
   // ---- 7. ?work= で渡された工事名 ---------------------------------------------------------------------
   function workFromQuery(search) {
     var m = /[?&]work=([^&#]*)/.exec(String(search || ""));
@@ -200,5 +223,5 @@
 
   return { USED_KEY: USED_KEY, RESULT_KEY: RESULT_KEY, shouldMarkUsed: shouldMarkUsed, makeSnapshot: makeSnapshot, readSnapshot: readSnapshot, loadState: loadState,
     PLAN_BUTTON_TEXT: PLAN_BUTTON_TEXT, chatPayload: chatPayload, sanitizeReply: sanitizeReply, hasDirective: hasDirective, matchSoubaRow: matchSoubaRow, man: man, rangeText: rangeText,
-    checkItems: checkItems, provenance: provenance, buildView: buildView, workFromQuery: workFromQuery, ymd: ymd, entryFrom: entryFrom, buyClickBody: buyClickBody };
+    checkItems: checkItems, provenance: provenance, buildView: buildView, alignPaidPlans: alignPaidPlans, workFromQuery: workFromQuery, ymd: ymd, entryFrom: entryFrom, buyClickBody: buyClickBody };
 });

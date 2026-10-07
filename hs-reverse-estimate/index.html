@@ -783,7 +783,9 @@ function parsePlanNow(text) {
     document.getElementById('cv-ume').textContent   = cvUme   ? cvUme   + '%' : 'N/A';
     document.getElementById('cv-section').style.display = 'block';
   }
-  lastParsedResult = { koji: koji.trim(), plans: { matsu: mR, take: view.take || tR, ume: uR }, advice: adv.trim(), souba_row: row ? row.id : null, souba_version: soubaVer() };
+  // 有料レポートの松・梅は、画面の竹(souba-db)と同じ物差しに揃えてから持つ(reverse_logic.js の alignPaidPlans)。
+  var paid = HSReverse.alignPaidPlans(view, tR, mR, uR);
+  lastParsedResult = { koji: koji.trim(), plans: { matsu: paid.matsu, take: view.take || tR, ume: paid.ume }, plans_basis: paid.basis, advice: adv.trim(), souba_row: row ? row.id : null, souba_version: soubaVer() };
 
   // 「1 回限り」の印は、結果を出した今ここで付ける(最初の 1 通では付けない)。出した結果は控えて、開き直した人にもう一度見せる。
   if (HSReverse.shouldMarkUsed(view)) {
