@@ -148,6 +148,45 @@
     return w.length > 24 ? "" : w;
   }
 
-  return { sanitizeReply: sanitizeReply, hasDirective: hasDirective, matchSoubaRow: matchSoubaRow, man: man, rangeText: rangeText,
+  // ---- 8. 「無料診断は 1 回限り」の印と、出した結果の控え ---------------------------------------------
+  // 印は、結果(竹の幅を含む結果画面)を出した後にだけ付ける。最初の 1 通では付けない。
+  // 開き直した時: 控えがあれば、出した結果をもう一度見せる。控えが無ければ(結果がまだ出ていない、または
+  // 2026-10-07 より前の版が最初の 1 通で付けた印だけが残っている)、印を消して会話を最初からやり直せるようにする。
+  var USED_KEY = "hs_reverse_used", RESULT_KEY = "hs_reverse_result";
+  function shouldMarkUsed(view) { return !!(view && view.take && view.takeText); }
+  function str(x, n) { return typeof x === "string" ? x.slice(0, n) : ""; }
+  function makeSnapshot(o) {
+    var v = o.view || {};
+    return { v: 1, at: (o.now || new Date()).toISOString(), koji: str(v.koji, 120),
+      view: { koji: str(v.koji, 120), take: v.take ? [Number(v.take[0]), Number(v.take[1])] : null, takeText: v.takeText ? str(v.takeText, 40) : null,
+        takeSource: str(v.takeSource, 12), takeNote: str(v.takeNote, 300), dangerText: v.dangerText ? str(v.dangerText, 20) : null,
+        checklist: (v.checklist || []).slice(0, 6).map(function (c) { return str(c, 120); }), provenance: str(v.provenance, 300) },
+      advice: str(o.advice, 600), hash: /^[a-f0-9]{8,64}$/i.test(o.hash || "") ? o.hash : "",
+      last: o.last || null };
+  }
+  function readSnapshot(raw) {
+    var s;
+    try { s = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (_e) { return null; }
+    if (!s || s.v !== 1 || !s.view || typeof s.view !== "object") return null;
+    var v = s.view;
+    if (!Array.isArray(v.take) || v.take.length !== 2 || !(v.take[1] > 0) || typeof v.takeText !== "string" || !v.takeText) return null;
+    if (!Array.isArray(v.checklist) || !v.checklist.every(function (c) { return typeof c === "string"; })) return null;
+    if (typeof v.provenance !== "string") return null;
+    return s;
+  }
+  // 開いた時に何をするか。返り値: { state: "restore", snapshot } か { state: "fresh", clearUsed: 真偽 }。
+  function loadState(usedFlag, rawSnapshot) {
+    var snap = readSnapshot(rawSnapshot);
+    if (snap) return { state: "restore", snapshot: snap };
+    return { state: "fresh", clearUsed: !!usedFlag || !!rawSnapshot };
+  }
+  // ワーカーに送る物。会話の中身と状況だけ。指示文(system)は送らない。
+  var PLAN_BUTTON_TEXT = "今の情報で概算を出してください";
+  function chatPayload(history, mode, work) {
+    return { messages: history.map(function (m) { return { role: m.role, content: m.content }; }), mode: mode === "estimate" ? "estimate" : "reverse", work: work || "" };
+  }
+
+  return { USED_KEY: USED_KEY, RESULT_KEY: RESULT_KEY, shouldMarkUsed: shouldMarkUsed, makeSnapshot: makeSnapshot, readSnapshot: readSnapshot, loadState: loadState,
+    PLAN_BUTTON_TEXT: PLAN_BUTTON_TEXT, chatPayload: chatPayload, sanitizeReply: sanitizeReply, hasDirective: hasDirective, matchSoubaRow: matchSoubaRow, man: man, rangeText: rangeText,
     checkItems: checkItems, provenance: provenance, buildView: buildView, workFromQuery: workFromQuery, ymd: ymd };
 });

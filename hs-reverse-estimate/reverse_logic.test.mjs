@@ -80,15 +80,51 @@ t("長すぎる値は使わない", L.workFromQuery("?work=" + encodeURIComponen
 t("無ければ空", L.workFromQuery("") === "" && L.workFromQuery("?x=1") === "");
 
 // ---- 5. ページそのもの（index.html）に残っていてはいけない文字 ----
-const GONE = ["AI比較", "ChatGPT", "Gemini", "v2.1.0", "2026年5月", "3,350", "souba-db v15", "過剰請求リスクスコア", "検出された過剰請求パターン", "万超過", "WORST CASE", "削減できる可能性", "他のAIには", "プロセス1", "プロセス5"];
+const GONE = ["AI比較", "ChatGPT", "Gemini", "v2.1.0", "2026年5月", "3,350", "souba-db v15", "過剰請求リスクスコア", "検出された過剰請求パターン", "万超過", "WORST CASE", "削減できる可能性", "他のAIには", "プロセス1", "プロセス5", "プロセス"];
 for (const g of GONE) t("index.html に「" + g + "」が無い", !INDEX.includes(g));
 t("index.html: 「見積もりを取ったら、ここを確かめる」がある", INDEX.includes("見積もりを取ったら、ここを確かめる"));
 t("index.html: 竹の箱がある（無料で見せる）", INDEX.includes('id="take-price"') && !/竹[^<]{0,40}🔒/.test(INDEX));
 t("index.html: 松・梅は ¥5,500 のまま鍵つき", (INDEX.match(/🔒 ¥5,500のレポートで確認/g) || []).length === 2 && INDEX.includes('<div class="cta-price">¥5,500</div>'));
 t("index.html: 検証番号で再計算できる、の説明は残る", INDEX.includes("同じ条件で再計算すれば、同じ番号になります"));
 t("index.html: reverse_logic.js を読み込む", INDEX.includes('<script src="reverse_logic.js"></script>'));
-t("index.html: 版と日付は関数から（固定の文字ではない）", INDEX.includes("__SOUBA_VER__") && INDEX.includes("__CALC_DATE__") && INDEX.includes("function calcDate()"));
+
+// ---- 6. 指示文はページに置かない。ワーカーに送るのは会話と状況だけ ----
+for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒアリング5項目", "【強制指示】", "[指示：", "system:", "max_tokens", "__SOUBA_VER__"]) t("index.html に「" + g + "」が無い（指示文を持たない）", !INDEX.includes(g));
+{
+  const hist = [{ role: "user", content: "外壁塗装をしたい", extra: 1 }, { role: "assistant", content: "築年数は？" }, { role: "user", content: "15年" }];
+  const p = L.chatPayload(hist, "reverse", "外壁塗装");
+  t("送る物の欄は messages・mode・work だけ", JSON.stringify(Object.keys(p).sort()) === '["messages","mode","work"]');
+  t("会話はそのまま（役と中身だけ）", JSON.stringify(p.messages) === JSON.stringify(hist.map((m) => ({ role: m.role, content: m.content }))));
+  t("知らない状況は STEP 02 として送る", L.chatPayload(hist, "x", "").mode === "reverse" && L.chatPayload(hist, "estimate", "").mode === "estimate");
+  t("index.html: 送る所は chatPayload を 2 か所で使う", (INDEX.match(/JSON\.stringify\(HSReverse\.chatPayload\(conversationHistory, currentMode, WORK_FROM_QUERY\)\)/g) || []).length === 2);
+  t("ボタンの文はワーカーと同じ", L.PLAN_BUTTON_TEXT === "今の情報で概算を出してください");
+}
+
+// ---- 7. 「1 回限り」の印は結果を出した後。開き直したら結果をもう一度見せる ----
+{
+  const row = L.matchSoubaRow(DB, CASES[0].text);
+  const view = L.buildView({ plan: { koji: "外壁塗装 30坪 シリコン", take: [77, 127] }, row, meta: DB._meta, now: NOW });
+  t("結果（竹の幅）が出たら印を付ける", L.shouldMarkUsed(view) === true);
+  t("竹の幅が出せなかった時は印を付けない", L.shouldMarkUsed(L.buildView({ plan: { koji: "x", take: [0, 0] }, row: null, meta: null, now: NOW })) === false);
+  t("結果が無い時は印を付けない", L.shouldMarkUsed(null) === false);
+  const snap = L.makeSnapshot({ view, advice: "相見積もりを。", hash: "0123abcd4567ef89", now: NOW, last: { koji: view.koji } });
+  const raw = JSON.stringify(snap);
+  const back = L.readSnapshot(raw);
+  t("控えは読み戻せて、竹は 70〜115 万のまま", back && back.view.take[0] === 70 && back.view.take[1] === 115 && back.view.takeText === "70万〜115万円" && back.hash === "0123abcd4567ef89");
+  t("控えに松・梅・最悪額・削減額の欄は無い", !/matsu|ume|worst|saving/i.test(Object.keys(back.view).join(",")));
+  const st = L.loadState("1", raw);
+  t("結果を出した後に開き直す: 結果をもう一度見せる", st.state === "restore" && st.snapshot.view.takeText === "70万〜115万円");
+  t("結果を出す前に開き直す（印も控えも無い）: 最初からやり直せる", JSON.stringify(L.loadState(null, null)) === '{"state":"fresh","clearUsed":false}');
+  t("前の版が最初の 1 通で付けた印だけが残っている: 印を消してやり直せる", JSON.stringify(L.loadState("1", null)) === '{"state":"fresh","clearUsed":true}');
+  t("壊れた控え: 見せずに、印を消してやり直せる", L.loadState("1", "{").state === "fresh" && L.loadState("1", "{").clearUsed === true);
+  t("竹の幅の無い控えは使わない", L.readSnapshot(JSON.stringify({ ...snap, view: { ...snap.view, take: null, takeText: null } })) === null);
+  t("控えの検証番号は 16 進だけ", L.makeSnapshot({ view, hash: "<script>" }).hash === "");
+  t("index.html: 最初の 1 通で印を付ける行が無い", !/conversationHistory\.length === 0\)\s*\{\s*localStorage\.setItem/.test(INDEX));
+  t("index.html: 印を付けるのは 1 か所で、結果を出した所", (INDEX.match(/localStorage\.setItem\(HSReverse\.USED_KEY/g) || []).length === 1 && INDEX.indexOf("localStorage.setItem(HSReverse.USED_KEY") > INDEX.indexOf("function parsePlanNow") && INDEX.indexOf("localStorage.setItem(HSReverse.USED_KEY") < INDEX.indexOf("function renderView"));
+  t("index.html: 「FREE LIMIT REACHED」だけの画面が無い", !INDEX.includes("FREE LIMIT REACHED") && !/main\.main'\)\.style\.display = 'none'/.test(INDEX));
+  t("index.html: 開き直した人に結果と ¥5,500 の案内を出す", INDEX.includes("function showStoredResult") && INDEX.includes("¥5,500のレポートに入ります"));
+}
 
 console.log("");
 if (fail) { console.log("FAIL " + fail + " of " + (pass + fail) + " (reverse_logic)"); process.exit(1); }
-console.log("PASS " + pass + "/" + pass + " (reverse_logic: 3 件とも竹の幅が相場ページと一致、指示文なし、検出なし)");
+console.log("PASS " + pass + "/" + pass + " (reverse_logic v2: 竹の幅が相場ページと一致、指示文を持たない、印は結果の後)");

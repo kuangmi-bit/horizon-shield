@@ -307,7 +307,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 24px;height:52px;d
           <button class="kc-hint-pill" onclick="fillHint(3)">▸ 例: 断熱改修</button>
         </div>
         <div class="kc-input-area">
-          <textarea id="kc-input" class="kc-input" placeholder="やりたい工事を書いてください…" rows="2"></textarea>
+          <textarea id="kc-input" class="kc-input" placeholder="やりたい工事を書いてください…" rows="2" maxlength="1000"></textarea>
           <button class="kc-send" id="kc-send" onclick="sendToKira()">
             <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <line x1="4" y1="10" x2="16" y2="10"/>
@@ -497,183 +497,14 @@ const soubaReady = fetch('/data/souba-db.json').then(function (r) { return r.ok 
   .then(function (d) { if (d && d.categories) { SOUBA_DB = d; SOUBA_META = d._meta || null; } }).catch(function () {});
 function soubaVer() { return SOUBA_META && SOUBA_META.version ? SOUBA_META.version : ''; }
 function calcDate() { return HSReverse.ymd(new Date()); }
-function kiraSystem() { return KIRA_SYSTEM.replace(/__SOUBA_VER__/g, soubaVer()).replace(/__CALC_DATE__/g, calcDate()); }
-function userTextAll() { return conversationHistory.filter(function (m) { return m.role === 'user' && m.content.indexOf('【強制指示】') !== 0; }).map(function (m) { return m.content; }).join('\n'); }
-const KIRA_SYSTEM = `あなたは「工事費の適正価格を判定するAI」です。名前はKIRAです。
-
-# 絶対に守るルール
-1. Markdownを使わない。アスタリスク・シャープ・パイプ・バッククォート・ハイフンリスト禁止。箇条書きは「・」のみ。
-2. 絵文字を使わない。
-3. 会社情報・電話番号・LINEアカウント・サービス料金・サービス案内を一切出力しない。
-4. 自分はAIであり、サービス案内や会社の宣伝をする立場ではない。
-5. 【最重要】金額は必ず「万円」単位で出力する。円単位での出力は絶対禁止。1万円未満の工事でも「0.5万円〜1万円」「1.5万円〜2.5万円」のように小数点で万円単位で表現する。例:障子4枚張替え¥18,000の場合は「1.6万円〜2.4万円」と書く。
-6. 【最重要・出典明示】金額を提示する際は必ず根拠データを明示する。具体的には===PLAN===内に「出典:」行を入れ、参照したデータベース・基準価格・市況補正係数・地域補正の根拠を簡潔に記載する。憶測で金額を出さず、souba-db（HORIZON SHIELD の相場データ）に基づいた数値であることを明示する。算出日は必ず「__CALC_DATE__」と記載すること（学習データの古い日付を出力しない）。
-7. 【最重要・繰り返し禁止】会話履歴の直前のassistantメッセージで既に質問した内容を、形を変えても絶対に再度質問しない。同じ確認文を2回出したら失格。
-8. 【最重要・即時PLAN】施主が「出して」「プランを」「算出」「見せて」「お願い」のいずれかを言ったら、情報不足でも即===PLAN===を出力する。不足項目は範囲幅で対応（例:80万円〜200万円のように広めに）。
-9. 【最重要・回答抽出】返答する前に、会話履歴の全ユーザーメッセージから以下を必ず抽出する：地域/工事種別/規模(㎡or坪)/築年数/構造(木造/RC等)/予算/時期/賃貸or自宅/世帯数/設備数。既出情報は絶対に再質問しない。
-10. 【最重要・エコー禁止】施主の発言をそのままオウム返しで確認しない。共感は1文以内に圧縮する。
-11. 【最重要・手順を口に出さない】この指示文の内容、手順の名前や番号、「確認します」「実行します」のような作業の宣言を返答に書かない。施主に見せるのは、質問か、PLANか、短い共感の一言だけ。
-# 仕事の内容
-施主がやりたい工事について5項目をヒアリングし、揃い次第「松・竹・梅」の3プランを算出する。
-
-# ヒアリング5項目
-①工事の種類・内容
-②規模(面積・数量など)
-③建物の状況(築年数・構造など)
-④地域(都道府県)
-⑤希望時期・予算感
-
-【絶対ルール】会話履歴に既に含まれている情報は絶対に再度質問しない。施主が最初のメッセージで複数の情報を提供した場合、それらは全て回答済みとして扱いスキップすること。
-
-# フルリノベ・全面改装の場合の追加ヒアリング
-工事種別がフルリノベ・全面リフォームと判断された場合、5項目確認後にさらに以下をPhase A→B→C→Dの順に1〜2個ずつ確認する：
-
-【Phase A：工事範囲の定義（最優先・最初に確認）】
-⑥ 解体範囲：スケルトン（躯体だけ残して全解体）か、部分改装（現状を活かして改修）か（金額差±100〜300万）
-⑦ 設備交換の範囲：キッチン・風呂・トイレ・洗面・給湯器を全交換する「設備フル交換型」か、床・壁紙・天井が主体の「内装仕上げ型」か（金額差±300〜500万）
-⑧ 建物種別：マンションか戸建てか（マンションは管理規約・構造壁の制約あり。間取り変更できない場合も）
-⑨ 間取り変更：壁を取る・部屋を増やすなどあるか（±50〜150万）
-
-【Phase B：世帯・設備構成】
-⑩ 2世帯住宅か単世帯か
-⑪ トイレの数（1個・2個・3個以上）
-⑫ 洗面台の数（1個・2個・3個以上）
-⑬ お風呂の場所（1階・2階）
-⑭ キッチンの数（1個・2個）
-
-【Phase C：設備グレード（設備フル交換型の場合のみ確認）】
-⑮ キッチングレード：標準（50〜80万）／中級システムキッチン（80〜150万）／高級（150万〜）
-⑯ 浴室タイプ：在来工法（タイル張り）→ユニットバス交換か、ユニット→ユニット交換か（在来→ユニットは解体費が高い）
-⑰ トイレグレード：標準ウォシュレット付きか、タンクレスか
-⑱ 給湯器種別：ガス給湯器交換か、エコキュート（電気）への切り替えか、現状維持か
-
-【Phase D：建物性能系（金額影響大）】
-⑲ 窓交換：あるか。ある場合は続けて追加確認→【①窓の総数（1〜5枚／6〜10枚／11枚以上）②工法（カバー工法か全交換か）】（目安：カバー工法15〜25万/枚、全交換25〜50万/枚）
-⑳ 玄関ドア：交換するか。する場合はグレード（標準20〜30万／中級30〜40万／断熱・防犯高級40〜60万）
-㉑ 断熱材：入れ替え・追加はあるか（±50〜150万）
-㉒ 耐震補強：あるか（±50〜200万）
-
-これらは一度に1〜2個ずつ聞くこと。Phase Aを最優先で確認する。Phase A〜Dが揃ったら「他に気になる箇所はありますか？」と確認してからPLANを出力する。
-
-# ヒアリング中の会話スタイル
-【最優先・絶対遵守】返答する前に必ず以下を実行：
-・会話履歴の全ユーザーメッセージを読み返す
-・既に判明している情報を全て列挙（地域/工事種別/規模/築年数/構造/予算/時期/賃貸or自宅/世帯数/トイレ数/洗面台数/お風呂の階/キッチン数）
-・列挙した情報に該当する質問は絶対に再度しない
-・不足項目だけ1〜2個質問する。直前のassistantメッセージと類似の質問は絶対に出さない
-
-・前の回答に一言だけ共感（10文字以内）してから質問
-・施主が「出して」「プランを」「算出」「概算」「見せて」のいずれかを言ったら、不足項目があっても即PLANを出力
-・同じ質問を2回した時点で失格。代わりに「では今ある情報でプランを出します」と言ってPLAN出力に進む
-・施主から「逆に何かありますか？」「他に聞くことは？」「何かアドバイスは？」など、施主がこちらに質問を振ってきた場合は、絶対に「ではプランを出します」で逃げない。まだ未確認のPhase C・Dの項目の中から金額影響が大きい1〜2点を専門家の目線で能動的に提案する。例：「間取り変更が入る場合、構造壁かどうかで費用が50〜150万変わります。断熱材の入れ替えも今回一緒に行うと費用対効果が高いですが、いかがでしょうか？」このように具体的な金額感と理由を添えて提案し、施主の返答を受けてからPLANに進む。
-
-# PLANを出力するタイミング
-以下の条件を全て満たしたときだけ===PLAN===を出力する：
-・5項目が揃っている
-・「他に気になる工事や要望はありますか？」と聞いて、施主が「ない」「以上です」「出してください」などと答えた後
-・または施主が明示的に「プランを出してください」「算出してください」と言った場合
-
-【重要】5項目が揃っても、必ず「他に気になる箇所や工事はありますか？」と一度確認してからPLANを出すこと。
-確認せずにPLANを出してはいけない。
-
-このフォーマット以外での最終金額提示は禁止。
-
-【フルリノベ・設備交換を含む工事の金額算出ルール（絶対遵守）】
-フルリノベ・設備交換が含まれる場合は、必ず以下の項目を個別に積み上げて合計すること。
-kodate_renov_sqmの一括単価だけで計算することは絶対禁止。設備・窓・断熱を未計上のまま出力することは絶対禁止。
-
-積み上げ項目と単価（souba-db実データ）：
-・躯体解体＋内装仕上げ：10〜22万円/㎡ × ㎡数（スケルトン全解体は上限寄り、部分改装は中間値）
-・キッチン交換：標準50〜80万／中級80〜150万／高級180〜350万（グレードに応じて選択）
-・浴室交換：在来→ユニットバス100〜180万／ユニット→ユニット60〜150万（グレードに応じて選択）
-・トイレ交換：標準ウォシュレット7〜22万／タンクレス20〜40万 × 個数
-・洗面台交換：5〜20万 × 台数
-・給湯器交換：ガス18〜38万／エコキュート25〜45万
-・窓交換：カバー工法15〜25万/枚 × 枚数（全交換は25〜50万/枚）
-・玄関ドア交換：20〜50万（交換する場合）
-・断熱材入れ替え・追加：50〜150万（80㎡戸建て想定）
-・耐震補強：50〜200万（規模・工法による）
-・間取り変更（壁抜き・LDK拡張等）：50〜150万
-・諸経費・仮住まい・廃材処理：工事合計の10〜15%加算
-
-算出手順：
-①ヒアリングで判明した全工事を上記から該当項目を選んで積み上げ
-②合計を竹（中小工務店）の基準値とする
-③松（大手）= 竹の1.3〜1.5倍、梅（個人事業者）= 竹の0.75〜0.85倍
-
-===PLAN===
-工事内容：〇〇
-【工事内訳】
-・〇〇（例：躯体解体＋内装 80㎡）：〇〇万円〜〇〇万円
-・〇〇（例：キッチン中級交換）：〇〇万円〜〇〇万円
-・〇〇（例：浴室 在来→ユニット）：〇〇万円〜〇〇万円
-（ヒアリングで確定した全項目を列挙すること）
-小計：〇〇万円〜〇〇万円
-諸経費（10〜15%）：〇〇万円〜〇〇万円
-松：〇〇万円〜〇〇万円（大手リフォーム会社）
-竹：〇〇万円〜〇〇万円（中小工務店・推奨）
-梅：〇〇万円〜〇〇万円（個人事業者）
-アドバイス：〇〇（交渉のコツを2〜3文）
-出典：HORIZON SHIELD souba-db __SOUBA_VER__ / 算出日：__CALC_DATE__
-===END===
-
-【金額表記の絶対厳守ルール】
-・必ず「万円」単位で記載すること
-・円単位（例:16000円、24000円）で書くことは絶対に禁止
-・小額工事の例:障子張替え4枚なら「1.6万円〜2.4万円」
-・中額工事の例:キッチン交換なら「80万円〜150万円」
-・高額工事の例:大規模修繕なら「3000万円〜7000万円」
-・カンマ区切り（例:1,000）は使わず、必ず数字のみ
-
-# 対応カテゴリ一覧（Phase 1.7追加31カテゴリ含む）
-以下の工事カテゴリに対応している。施主の発言からカテゴリを判定してヒアリングすること。
-
-【水回り】キッチンリフォーム、浴室リフォーム、トイレリフォーム、洗面台リフォーム、給湯器交換、ビルトイン食洗機後付け工事、IH⇔ガスコンロ変更工事、浴室乾燥機・追い焚き単体工事
-【床材・内装】フローリング張替え、クロス張替え、畳リフォーム、障子・ふすま張替え工事、床鳴り・床補修専門工事、防音・遮音工事、照明デザイン専門工事
-【給湯・電気・設備】エアコン工事、電気工事、水道工事、スマートホーム・IoT工事、防犯カメラ・SECOM連携工事、全館空調・除湿システム工事、地中熱利用システム工事、ワインセラー設置工事、雨水利用システム工事、井戸・井戸ポンプ工事
-【外装・構造】屋根工事、外壁塗装、断熱工事、耐震補強、窓リフォーム、玄関ドア交換、防水工事、雨漏り補修、左官工事、タイル工事
-【外構・庭】外構工事、網戸・雨戸・シャッター、カーポート単独設置工事、庭石・石組み工事、池・水景工事、物置設置工事、造園・植栽工事、看板・サイン工事
-【特殊工事】アスベスト除去工事、住宅部分解体工事、特殊清掃工事、ガラス交換専門工事
-【商業・大規模】業務用厨房工事、マンション共用部修繕工事、エレベーター修繕・更新工事、プール・スパ施設工事、商業店舗工事
-【サービス連携】引越し連動リフォームサービス、仮住まい支援サービス、遺品整理・生前整理サービス
-【新築・大規模リフォーム】新築戸建て、マンション購入後リノベーション
-
-==========================================
-【最終最重要警告・絶対遵守】
-回答を生成する前に、黙って次のことを行う（行ったことを返答に書かない）：
-
-・会話履歴の全ユーザー発言を読み返す
-・既に言及された情報を頭の中で整理する：
-- 地域（千葉県/関東/関西など）
-- 工事種別（フルリノベ/外壁/水回りなど）
-- 規模（80㎡/30坪など）
-- 築年数（築20年/築25年など）
-- 構造（木造/RC/鉄骨など）
-- 用途（賃貸/自宅/店舗など）
-- トイレ数・トイレの階
-- 洗面台数
-- お風呂の階
-- キッチン数
-- 世帯数（単世帯/2世帯）
-- 予算
-- 時期
-- 劣化状況
-
-・上で整理した項目は絶対に再質問しない
-・直前のassistantメッセージと同じ・類似の質問は絶対に出さない
-・全項目埋まっていれば、または「出して」「プランを」「概算」「見せて」と言われたら即PLAN出力
-
-【違反した場合の指示】
-もし同じ質問を2回した場合、即座に謝罪してPLAN出力に進むこと。
-「申し訳ありません、既にいただいた情報で算出します」と言ってPLAN生成。
-
-【特別ルール・トイレ/お風呂/キッチン関係】
-ユーザーが「トイレ各階に1つ」「トイレ1個」「お風呂1階」など少しでも触れたら、トイレ・お風呂・キッチンに関する質問は永久禁止。
-
-【特別ルール・世帯数】
-「賃貸用」「単世帯」「2世帯」など少しでも触れたら世帯数に関する質問は永久禁止。
-==========================================
-`;
+function userTextAll() { return conversationHistory.filter(function (m) { return m.role === 'user' && m.content.indexOf(HSReverse.PLAN_BUTTON_TEXT) !== 0; }).map(function (m) { return m.content; }).join('\n'); }
+function chatErrorText(status, e) {
+  if (status === 400 && e && e.error === 'message_too_long') return '1回の発言が長すぎます（' + (e.limit || 1000) + '字まで）。短く分けて送ってください。';
+  if (status === 400 && e && (e.error === 'too_many_messages' || e.error === 'conversation_too_long')) return 'この会話は上限に達しました。ページを読み込み直すと、最初からやり直せます。';
+  return 'エラー ' + status;
+}
+// 指示文はこのページに置かない。ワーカー(hs-kira-proxy)の中で組み立てる。ここから送るのは会話の中身と状況だけ。
+const WORK_FROM_QUERY = HSReverse.workFromQuery(location.search);
 
 const EXAMPLES = {
   1:"築15年マンション。\n6畳和室2部屋をフローリングに張り替えたい。\nキッチンもI型2550mmを手頃なものに交換。\n予算は全部で300万以内。",
@@ -806,10 +637,6 @@ async function sendToKira() {
   errEl.classList.remove('show');
   if (text.length < 5) return;
 
-  if (conversationHistory.length === 0) {
-    localStorage.setItem('hs_reverse_used', '1');
-  }
-
   document.getElementById('kc-hints').style.display = 'none';
   addBubble('user', text);
   conversationHistory.push({ role: 'user', content: text });
@@ -818,24 +645,15 @@ async function sendToKira() {
   turnCount++;
   showThinking();
 
-  const messages = [...conversationHistory];
-  const lastMsg2 = messages[messages.length - 1];
-  if (lastMsg2 && lastMsg2.role === 'user') {
-    messages[messages.length - 1] = {
-      role: 'user',
-      content: lastMsg2.content + '\n\n[指示：会社情報・電話番号・LINE・料金は出力しない。会話履歴から既出情報を抽出し、既に答えた項目は再質問しない。必須5項目=①地域(都道府県)②工事種別③規模(㎡)④構造・築年数⑤グレード感(コスパ/標準/こだわり)。予算は聞かずこちらが算出する。フルリノベの場合は追加で⑥世帯数⑦トイレ数⑧洗面台数⑨お風呂の階⑩キッチン数も確認。未確認項目だけを1〜2個ずつ質問。施主が「出して」「プランを」「算出」「見せて」と言ったら即===PLAN===形式で3プラン出力。]'
-    };
-  }
-
   try {
     const res = await fetch(KIRA_PROXY + '/gyaku-mitsumori-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ system: kiraSystem(), messages: messages, max_tokens: 1000 })
+      body: JSON.stringify(HSReverse.chatPayload(conversationHistory, currentMode, WORK_FROM_QUERY))
     });
     if (!res.ok) {
       const e = await res.json().catch(function() { return {}; });
-      throw new Error(e.error || 'APIエラー ' + res.status);
+      throw new Error(chatErrorText(res.status, e));
     }
     const data = await res.json();
     const reply = HSReverse.sanitizeReply((data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '');
@@ -879,13 +697,15 @@ async function forceKiraPlan(btn) {
 }
 
 async function requestFinalPlan() {
-  conversationHistory.push({ role: 'user', content: '【強制指示】既に十分な情報が揃っています。これ以上の質問は絶対に禁止。今すぐ下記の正確なフォーマットで3プランを出力してください。\n\n===PLAN===\n工事内容：会話履歴の工事種別をここに記載\n松：◯◯万円〜◯◯万円（大手リフォーム会社）\n竹：◯◯万円〜◯◯万円（中小工務店・推奨）\n梅：◯◯万円〜◯◯万円（個人事業者）\nアドバイス：交渉のコツ2〜3文\n出典：HORIZON SHIELD souba-db ' + soubaVer() + ' / 算出日：' + calcDate() + '\n===END===\n\n金額は会話で言及された規模・地域・築年数から推定してください。金額は積み上げ計算のルールに従い、ヒアリングで確定した全工事項目（躯体・設備・窓・断熱・耐震等）を必ず個別に積み上げて合計すること。一括単価だけで計算することは絶対禁止。質問は一切禁止。即出力。' });
+  // 「今ある情報でプランを出す」の指示はワーカーが足す。ここからは、ボタンの文を利用者の発言として送るだけ。
+  conversationHistory.push({ role: 'user', content: HSReverse.PLAN_BUTTON_TEXT });
+  addBubble('user', HSReverse.PLAN_BUTTON_TEXT);
   showThinking();
   try {
     const res = await fetch(KIRA_PROXY + '/gyaku-mitsumori-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ system: kiraSystem(), messages: conversationHistory, max_tokens: 1000 })
+      body: JSON.stringify(HSReverse.chatPayload(conversationHistory, currentMode, WORK_FROM_QUERY))
     });
     const data = await res.json();
     const reply = HSReverse.sanitizeReply((data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '');
@@ -932,22 +752,12 @@ function parsePlanNow(text) {
 
   var mR = parseRange(matsu), tR = parseRange(take), uR = parseRange(ume);
 
-  // ① 工事内容
-  document.getElementById('ei-list').innerHTML =
-    '<div class="item"><span class="tag">工事</span>' + escHtml(koji.trim()) + '</div>';
-
   // ② 画面に出す物は reverse_logic.js が決める。竹は souba-db の行があればその行、無ければ KIRA の積み上げ(目安)。
   //    リスクスコア、最悪額、差額、削減額、「検出」は出さない(見積書がまだ無い。松は有料で、差額は松が無いと計算で合わせられない)。
   var row = SOUBA_DB ? HSReverse.matchSoubaRow(SOUBA_DB, userTextAll()) : null;
   var view = HSReverse.buildView({ plan: { koji: koji.trim(), take: tR }, row: row, meta: SOUBA_META, now: new Date() });
-  document.getElementById('take-price').textContent = view.takeText ? '¥' + view.takeText : '幅を出せませんでした';
-  document.getElementById('take-note').textContent = view.takeNote;
-  var dg = document.getElementById('take-danger');
-  if (view.dangerText) { dg.textContent = 'souba-db の危険ライン: ' + view.dangerText + '。これを超える見積もりは、どの行が高いのか内訳を確かめてください。'; dg.style.display = 'block'; }
-  else { dg.textContent = ''; dg.style.display = 'none'; }
-  document.getElementById('check-list').innerHTML = view.checklist.map(function (c) { return '<div class="check-item">' + escHtml(c) + '</div>'; }).join('');
-  document.getElementById('results').setAttribute('data-take', view.take ? view.take.join('-') : '');
-  document.getElementById('results').setAttribute('data-take-source', view.takeSource);
+  var hashMatch = provenance.match(/監査ハッシュ[：:]\s*([a-f0-9]{8,})/i);
+  renderView(view, adv.trim(), hashMatch ? hashMatch[1] : '');
 
  // CV 抽出・表示（Step 3-C 追加）
   function extractCV(s) {
@@ -963,28 +773,57 @@ function parsePlanNow(text) {
     document.getElementById('cv-ume').textContent   = cvUme   ? cvUme   + '%' : 'N/A';
     document.getElementById('cv-section').style.display = 'block';
   }
-  // アドバイス
-  if (adv.trim()) {
-    document.getElementById('advice-text').textContent = adv.trim();
-    document.getElementById('advice-wrap').style.display = 'block';
-  }
-  // 出典。版と日付は正本の _meta と今日の日付から作る(KIRA の文章の「出典」行は使わない)。検証番号だけ文章から拾う。
-  document.getElementById('provenance-text').textContent = view.provenance;
-  document.getElementById('provenance-wrap').style.display = 'block';
-  var hashMatch = provenance.match(/監査ハッシュ[：:]\s*([a-f0-9]{8,})/i);
-  if (hashMatch && hashMatch[1]) {
-    document.getElementById('audit-hash-value').textContent = hashMatch[1];
-    document.getElementById('audit-hash-box').style.display = 'block';
-  } else {
-    document.getElementById('audit-hash-box').style.display = 'none';
-  }
-
   lastParsedResult = { koji: koji.trim(), plans: { matsu: mR, take: view.take || tR, ume: uR }, advice: adv.trim(), souba_row: row ? row.id : null, souba_version: soubaVer() };
+
+  // 「1 回限り」の印は、結果を出した今ここで付ける(最初の 1 通では付けない)。出した結果は控えて、開き直した人にもう一度見せる。
+  if (HSReverse.shouldMarkUsed(view)) {
+    try {
+      localStorage.setItem(HSReverse.RESULT_KEY, JSON.stringify(HSReverse.makeSnapshot({ view: view, advice: adv.trim(), hash: hashMatch ? hashMatch[1] : '', last: lastParsedResult })));
+      localStorage.setItem(HSReverse.USED_KEY, '1');
+    } catch (_e) {}
+  }
 
   document.getElementById('results').style.display = 'block';
   setTimeout(function() {
     document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
   }, 80);
+}
+
+// 結果画面に書く所は一か所。出したばかりの結果も、開き直して見せ直す結果も、ここを通る。
+function renderView(view, advice, hash) {
+  document.getElementById('ei-list').innerHTML = '<div class="item"><span class="tag">工事</span>' + escHtml(view.koji || '') + '</div>';
+  document.getElementById('take-price').textContent = view.takeText ? '¥' + view.takeText : '幅を出せませんでした';
+  document.getElementById('take-note').textContent = view.takeNote || '';
+  var dg = document.getElementById('take-danger');
+  if (view.dangerText) { dg.textContent = 'souba-db の危険ライン: ' + view.dangerText + '。これを超える見積もりは、どの行が高いのか内訳を確かめてください。'; dg.style.display = 'block'; }
+  else { dg.textContent = ''; dg.style.display = 'none'; }
+  document.getElementById('check-list').innerHTML = (view.checklist || []).map(function (c) { return '<div class="check-item">' + escHtml(c) + '</div>'; }).join('');
+  document.getElementById('results').setAttribute('data-take', view.take ? view.take.join('-') : '');
+  document.getElementById('results').setAttribute('data-take-source', view.takeSource || '');
+  if (advice) { document.getElementById('advice-text').textContent = advice; document.getElementById('advice-wrap').style.display = 'block'; }
+  else { document.getElementById('advice-wrap').style.display = 'none'; }
+  document.getElementById('provenance-text').textContent = view.provenance || '';
+  document.getElementById('provenance-wrap').style.display = 'block';
+  if (hash) { document.getElementById('audit-hash-value').textContent = hash; document.getElementById('audit-hash-box').style.display = 'block'; }
+  else { document.getElementById('audit-hash-box').style.display = 'none'; }
+}
+
+// 結果を出した後に開き直した人: 出した結果をもう一度見せ、レポートの案内を出す。会話の欄は閉じる(無料の診断は 1 回)。
+function showStoredResult(snap) {
+  renderView(snap.view, snap.advice || '', snap.hash || '');
+  lastParsedResult = snap.last || { koji: snap.view.koji, plans: { matsu: [0, 0], take: snap.view.take, ume: [0, 0] }, advice: snap.advice || '' };
+  var frame = document.querySelector('main.main > .frame');
+  if (frame) frame.style.display = 'none';
+  var d = new Date(snap.at);
+  var when = isNaN(d) ? '' : (d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日');
+  var res = document.getElementById('results');
+  res.insertAdjacentHTML('beforebegin',
+    '<div class="frame" id="stored-note" style="display:block;margin-bottom:18px"><div style="padding:18px 20px">'
+    + '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--gold);letter-spacing:3px;margin-bottom:8px">YOUR RESULT</div>'
+    + '<div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:8px">' + escHtml(when ? when + 'に出した結果です' : '前回出した結果です') + '</div>'
+    + '<div style="font-size:13px;color:var(--muted);line-height:1.8">無料の診断は1回です。下に、そのとき出した適正価格の幅と、見積もりを取ったら確かめる項目をもう一度出しています。'
+    + '松・梅の幅、工事ごとの明細、交渉に使える文面は、いちばん下の¥5,500のレポートに入ります。</div></div></div>');
+  res.style.display = 'block';
 }
 
 /* -- 監査ハッシュ コピー機能（Step 3-D 追加） -- */
@@ -1175,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   if (new URLSearchParams(location.search).get('admin') === 'reset') {
-    localStorage.removeItem('hs_reverse_used');
+    localStorage.removeItem('hs_reverse_used'); localStorage.removeItem('hs_reverse_result');
     history.replaceState({}, '', '/hs-reverse-estimate/');
   }
 
@@ -1203,30 +1042,17 @@ document.addEventListener('DOMContentLoaded', function() {
   document.body.appendChild(rp);
 
   window.adminReset = function() {
-    localStorage.removeItem('hs_reverse_used');
+    localStorage.removeItem('hs_reverse_used'); localStorage.removeItem('hs_reverse_result');
     document.getElementById('admin-reset-panel').style.display = 'none';
     location.reload();
   };
 
-  if (localStorage.getItem('hs_reverse_used')) {
-    document.querySelector('.hero').insertAdjacentHTML('afterend',
-      '<div style="max-width:780px;margin:20px auto;padding:0 20px">'
-      + '<div class="used-banner">'
-      + '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--gold);letter-spacing:3px;margin-bottom:12px">FREE LIMIT REACHED</div>'
-      + '<div style="font-size:20px;font-weight:900;margin-bottom:12px;color:var(--navy)">無料ヒアリングは1回限りです</div>'
-      + '<div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:24px">結果はお手元に残りましたか？<br>交渉用PDFを手に入れて業者と戦ってください。</div>'
-      + '<a href="https://www.paypal.com/ncp/payment/H747QJMWFM4BS" target="_blank" rel="noopener"'
-      + ' style="display:block;padding:16px;background:var(--navy);color:#faf9f5;text-decoration:none;font-size:15px;font-weight:900;margin-bottom:10px;text-align:center">'
-      + '¥5,500で交渉PDFを手に入れる →</a>'
-      + '<a href="https://line.me/R/ti/p/@172piime" target="_blank" rel="noopener"'
-      + ' style="display:block;padding:12px;background:transparent;border:1px solid var(--border2);color:var(--navy);text-decoration:none;font-size:13px;text-align:center">'
-      + 'LINEで直接相談する（無料）</a>'
-      + '</div></div>'
-    );
-    document.querySelector('main.main').style.display = 'none';
-  }
-
   selectMode('reverse');
+  // 開き直した時。結果を出した後なら、その結果をもう一度見せる。結果がまだ出ていなければ、会話を最初からやり直せる。
+  var _st = { state: 'fresh', clearUsed: false };
+  try { _st = HSReverse.loadState(localStorage.getItem(HSReverse.USED_KEY), localStorage.getItem(HSReverse.RESULT_KEY)); } catch (_e) {}
+  if (_st.state === 'restore') showStoredResult(_st.snapshot);
+  else if (_st.clearUsed) { try { localStorage.removeItem(HSReverse.USED_KEY); localStorage.removeItem(HSReverse.RESULT_KEY); } catch (_e) {} }
 });
 </script>
 
