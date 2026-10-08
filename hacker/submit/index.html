@@ -192,8 +192,8 @@ footer{border-top:2px solid var(--rule);background:var(--paper);padding:28px 22p
     <div class="gate-ic">
       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h2>投稿にはログインが必要です</h2>
-    <p>あなたの投稿を管理し、掲載状況をマイページで確認できるようにするため、ログインをお願いしています。受け取った見積書は、KIRAが匿名化して掲載候補にします。</p>
+    <h2>掲載するには、ログインが必要です</h2>
+    <p>ここまでの解剖の結果は、ログインのあとにそのまま引き継ぎます。ログインは、あなたの投稿を管理し、掲載の状況をマイページで確かめられるようにするためです。</p>
     <div class="gate-btns">
       <button class="gate-btn line" onclick="login()"><span class="dot"></span>LINEでログイン</button>
       <button class="gate-btn google" onclick="loginGoogle()"><span class="dot"></span>Googleでログイン</button>
@@ -207,14 +207,14 @@ footer{border-top:2px solid var(--rule);background:var(--paper);padding:28px 22p
     <div class="hero">
       <div class="eyebrow">SUBMIT YOUR ESTIMATE</div>
       <h1>あなたの見積もりを、<b>解剖して共有</b>する。</h1>
-      <p class="lead">受け取った見積書をアップロードするだけ。KIRAが内容を読み取り、業者名・個人情報を伏せて「どこが過剰か」という構造だけを抽出します。あなたの一枚が、次に同じ工事をする誰かの判断材料になる。</p>
+      <p class="lead">受け取った見積書をアップロードするだけ。解剖までは無料で、ログインもいりません。KIRAが内容を読み取り、業者名・個人情報を伏せて「どこが過剰か」という構造だけを抽出します。あなたの一枚が、次に同じ工事をする誰かの判断材料になる。</p>
     </div>
 
     <div class="flow">
       <div class="flow-step"><div class="flow-n">STEP 01</div><div class="flow-t">見積書をアップ</div><div class="flow-d">PDF / 画像</div></div>
       <div class="flow-step"><div class="flow-n">STEP 02</div><div class="flow-t">KIRAが解剖</div><div class="flow-d">匿名化・構造化</div></div>
       <div class="flow-step"><div class="flow-n">STEP 03</div><div class="flow-t">内容を確認</div><div class="flow-d">あなたが最終確認</div></div>
-      <div class="flow-step"><div class="flow-n">STEP 04</div><div class="flow-t">投稿</div><div class="flow-d">運営確認後に掲載</div></div>
+      <div class="flow-step"><div class="flow-n">STEP 04</div><div class="flow-t">投稿</div><div class="flow-d">ここで初めてログイン</div></div>
     </div>
 
     <!-- STEP1+2: アップロード -->
@@ -247,7 +247,7 @@ footer{border-top:2px solid var(--rule);background:var(--paper);padding:28px 22p
         <span class="hint-label">この見積もり、今まさに検討中ですか?</span>
         <select id="phaseSelect" style="font-family:var(--sans);font-size:14px;padding:9px 11px;width:100%;border:1px solid var(--rule);background:var(--paper);color:var(--ink);outline:none">
           <option value="archive" selected>いいえ / 過去に受け取ったものの共有</option>
-          <option value="active">はい / 今まさに検討中（業者に説明を求められます）</option>
+          <option value="active">はい / 今まさに検討中（14日間「検討中」に並び、その工種と地域を登録した業者に知らせが届きます。説明や提案はコメントで届きます）</option>
         </select>
       </div>
       <div class="hint-row">
@@ -337,6 +337,8 @@ let TOKEN=null,USER=null;
 let FILE=null,FILE_B64=null,FILE_MEDIA=null,TYPE_HINT='';
 let CARD=null; // KIRA解剖結果
 let ANALYSIS_ID=''; // 読み取り結果の控えの番号(投稿で送る。金額やジャンルは運営側の控えの値が使われる)
+let CLAIM=''; // 2026-10-09: ログイン前に解剖したときの引換の番号(掲載のときに送り、ログインした本人の解剖として結ぶ)
+const DRAFT_KEY='ehn_draft';
 
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function yen(a){if(a===''||a==null)return '';const n=Number(String(a).replace(/[^0-9]/g,''));if(!n)return '';return '\u00a5'+n.toLocaleString('ja-JP');}
@@ -346,14 +348,35 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 /* ===== セッション ===== */
 function loadSession(){
   try{TOKEN=localStorage.getItem('ehn_token');const u=localStorage.getItem('ehn_user');USER=u?JSON.parse(u):null;}catch(e){}
-  if(TOKEN&&USER){
-    document.getElementById('gate').classList.add('hide');
-    document.getElementById('app').classList.remove('hide');
-    renderUser();
-  }else{
-    document.getElementById('gate').classList.remove('hide');
-    document.getElementById('app').classList.add('hide');
-  }
+  // 2026-10-09: ログインしていなくても、アップロードと解剖まではできる。ログインを求めるのは掲載のときだけ。
+  document.getElementById('gate').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  if(TOKEN&&USER){renderUser();}else{renderGuest();}
+}
+function renderGuest(){
+  const el=document.getElementById('tbRight');
+  if(el)el.innerHTML=`<a class="tb-back" href="/hacker/">← 一覧</a>`;
+}
+function saveDraft(){
+  try{localStorage.setItem(DRAFT_KEY,JSON.stringify({at:Date.now(),analysis_id:ANALYSIS_ID,claim:CLAIM,card:CARD,
+    region:(document.getElementById('regionSelect')||{}).value||'',phase:(document.getElementById('phaseSelect')||{}).value||'archive',
+    initial:(document.getElementById('initialInput')||{}).value||''}));
+    localStorage.setItem('ehn_return','/hacker/submit/?resume=1');}catch(e){}
+}
+function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);localStorage.removeItem('ehn_return');}catch(e){}}
+function resumeDraft(){
+  let d=null;try{d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');}catch(e){}
+  if(!d||!d.card||!d.analysis_id||!(Date.now()-(d.at||0)<20*3600*1000)){clearDraft();return false;}
+  CARD=d.card;ANALYSIS_ID=d.analysis_id;CLAIM=d.claim||'';
+  try{document.getElementById('regionSelect').value=d.region||'';document.getElementById('phaseSelect').value=d.phase||'archive';document.getElementById('initialInput').value=d.initial||'';}catch(e){}
+  renderPreview();showStep('stepPreview');
+  if(TOKEN)toast('ログインしました。内容を確かめて、投稿してください');
+  return true;
+}
+function askLogin(){
+  saveDraft();
+  const g=document.getElementById('gate');g.classList.remove('hide');
+  g.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderUser(){
   const el=document.getElementById('tbRight');
@@ -437,7 +460,7 @@ async function analyze(){
   try{
     const r=await fetch(API+'/hacker/analyze',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+      headers:TOKEN?{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}:{'Content-Type':'application/json'},
       body:JSON.stringify({file_base64:FILE_B64,media_type:FILE_MEDIA,type_hint:TYPE_HINT}),
       signal:_ctrl.signal
     });
@@ -446,7 +469,7 @@ async function analyze(){
     stopAnaLog();
     if(r.status===401){toast('ログインの有効期限が切れました');setTimeout(()=>{logout();},1500);return;}
     if(!d.ok||!d.card){toast(d.error||'解剖に失敗しました。もう一度お試しください');showStep('stepUpload');return;}
-    CARD=d.card;ANALYSIS_ID=d.analysis_id||'';renderPreview();showStep('stepPreview');
+    CARD=d.card;ANALYSIS_ID=d.analysis_id||'';CLAIM=d.claim||'';renderPreview();showStep('stepPreview');
   }catch(e){
     clearTimeout(_to);stopAnaLog();
     if(e&&e.name==='AbortError'){toast('解剖に時間がかかっています。通信の良い場所でもう一度お試しください');}
@@ -496,6 +519,7 @@ async function submitCard(){
   if(!CARD){toast('解剖結果がありません');return;}
   const agreed=['ck1','ck2','ck3'].every(id=>{const e=document.getElementById(id);return e&&e.checked;});
   if(!agreed){toast('投稿前の確認にすべてチェックしてください');return;}
+  if(!TOKEN){askLogin();return;}
   const btn=document.getElementById('submitBtn');
   btn.disabled=true;btn.querySelector('span').textContent='送信中...';
   // 空traitを除去
@@ -507,10 +531,10 @@ async function submitCard(){
     const r=await fetch(API+'/hacker/submit-card',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
-      body:JSON.stringify({analysis_id:ANALYSIS_ID,card:CARD,region:(document.getElementById('regionSelect')||{}).value||'',phase:(document.getElementById('phaseSelect')||{}).value||'archive',agreed:true})
+      body:JSON.stringify({analysis_id:ANALYSIS_ID,claim:CLAIM,card:CARD,region:(document.getElementById('regionSelect')||{}).value||'',phase:(document.getElementById('phaseSelect')||{}).value||'archive',agreed:true})
     });
     const d=await r.json();
-    if(d.ok){showStep('stepDone');}
+    if(d.ok){clearDraft();showStep('stepDone');}
     else if(r.status===401){toast('ログインの有効期限が切れました');setTimeout(()=>logout(),1500);}
     else{toast(d.error||'投稿に失敗しました');btn.disabled=false;btn.querySelector('span').textContent='この内容で投稿する';}
   }catch(e){toast('通信エラーが発生しました');btn.disabled=false;btn.querySelector('span').textContent='この内容で投稿する';}
@@ -519,6 +543,16 @@ async function submitCard(){
 function logout(){try{localStorage.removeItem('ehn_token');localStorage.removeItem('ehn_user');}catch(e){}TOKEN=null;USER=null;loadSession();}
 
 loadSession();
+if(/[?&]resume=1/.test(location.search))resumeDraft();
+// 2026-10-09: どこから投稿の画面に来たかを数える(同じタブでは 1 回、数だけ。個人を特定する物は送らない)。
+(function(){try{
+  if(/[?&]resume=1/.test(location.search))return;
+  if(sessionStorage.getItem('ehn_land_sent'))return;
+  var m=location.search.match(/[?&]from=([a-z]+)/);var f=m?m[1]:'';
+  var ev=['top','box','kantei','coupon'].indexOf(f)>=0?('ehn_land_'+f):'ehn_land_other';
+  sessionStorage.setItem('ehn_land_sent','1');
+  fetch(API+'/rev-event',{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({event:ev})});
+}catch(e){}})();
 </script>
 
 <div style="max-width:860px;margin:24px auto 0;padding:14px 18px;background:#fbfaf8;font-size:.82rem;line-height:1.6;color:#5b6b78;border-top:1px solid #e6e2db;text-align:center;">HORIZON SHIELD（運営 The HORIZ音s株式会社）は、施工業者から紹介手数料や送客の報酬を受け取らない独立した第三者です。相場の検証設計は<a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6964439" style="color:#1E6B43;">配布論文SSRN 6964439</a>で公開。監修 <a href="https://orcid.org/0009-0000-9180-903X" style="color:#1E6B43;">大賀俊勝（ORCID 0009-0000-9180-903X）</a>。</div>

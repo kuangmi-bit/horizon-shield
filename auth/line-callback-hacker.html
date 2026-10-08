@@ -94,6 +94,15 @@ body{
 <script>
 const VERIFY_URL = 'https://hs-kira-proxy.oga-surf-project.workers.dev/auth/line-login-verify';
 const HOME_URL   = '/hacker/';
+// 2026-10-09: 投稿の途中でログインした人は、投稿の画面に戻す(このサイトの /hacker/ の下だけ)。
+function ehnReturnUrl(){
+  try{
+    var r=localStorage.getItem('ehn_return')||'';
+    localStorage.removeItem('ehn_return');
+    if(/^\/hacker\/[A-Za-z0-9_\-\/?=&.]*$/.test(r)&&r.indexOf('//')<0) return r;
+  }catch(e){}
+  return HOME_URL;
+}
 
 async function handleCallback() {
   const params = new URLSearchParams(window.location.search);
@@ -142,7 +151,7 @@ async function handleCallback() {
         }
       } catch (e) {}
       updateStatus('✅ ログイン成功。移動します...');
-      setTimeout(function(){ window.location.href = HOME_URL; }, 700);
+      setTimeout(function(){ window.location.href = ehnReturnUrl(); }, 700);
       return;
     }
 
