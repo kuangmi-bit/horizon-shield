@@ -124,6 +124,12 @@ t("control", "iat 299 s ahead is inside the tolerance and accepted", (await refu
   t("control", "...and every answer says the key is not established to belong to the subject", DOES_NOT_ESTABLISH.some((s) => /not authenticity/.test(s) && /key_thumbprint/.test(s)));
 }
 t("control", "the profile constant is TRACE's v0.2 tag", TRACE_PROFILE_V0_2 === FX.valid.record.eat_profile);
+{
+  const env = { cmcp_version: "0.1", trace: clone(V), gateway: { id: "gw" }, signature: "AA" };
+  t("attack", "a cMCP RuntimeClaim envelope is refused by name (enveloped_form), not as a wrong profile", (await refusal(env)) === "enveloped_form", await refusal(env));
+  const r = clone(V); r.cmcp_version = "0.1"; r.trace = {};
+  t("control", "...a bare record that merely carries extra cmcp_version and trace members still gets its own check", (await refusal(r)) !== "enveloped_form", await refusal(r));
+}
 
 // ---- report -----------------------------------------------------------------------------------------------
 const kinds = {};

@@ -117,6 +117,11 @@ export async function checkTraceRecord(record, nowSec) {
   const bytes = enc.encode(recordJcs);
   if (bytes.length > MAX_RECORD_BYTES) throw new Refusal("too_large", "the RFC 8785 form is " + bytes.length + " bytes; the cap is " + MAX_RECORD_BYTES, 413);
 
+  // A cMCP RuntimeClaim (cmcp_version, trace, gateway, signature) is valid TRACE carried in an envelope whose signature
+  // is the gateway's. v0 reads only a bare Trust Record with an embedded signature, so the envelope is refused by name
+  // rather than reported as a wrong profile (trace-tests vector valid_cmcp_runtime.json).
+  if ("cmcp_version" in record && "trace" in record && !("eat_profile" in record))
+    throw new Refusal("enveloped_form", "this is a cMCP RuntimeClaim envelope; it is valid TRACE, but v0 of this ledger reads only a bare Trust Record with an embedded signature. Submit the inner record if it carries its own signature");
   const prof = record.eat_profile;
   if (prof === TRACE_PROFILE_V0_1) throw new Refusal("superseded_profile", "eat_profile is the v0.1 identifier, which TRACE v0.2 requires verifiers to reject (spec, Changes from v0.1)");
   if (prof !== TRACE_PROFILE_V0_2) throw new Refusal("unsupported_profile", "eat_profile must be " + TRACE_PROFILE_V0_2 + "; this ledger checks no other profile");
