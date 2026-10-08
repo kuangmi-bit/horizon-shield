@@ -86,6 +86,19 @@ function isCompanyCheck(text) {
   return triggers.some(t => text.includes(t));
 }
 
+// 2026-10-08: LINE webhook の署名検査(x-line-signature = base64(HMAC-SHA256(channel secret, 生の本文)))。
+// 秘密が未設定なら受け付けない(fail closed)。比較は定数時間。
+async function lineSignatureOk(raw, sig, secret) {
+  if (!secret || !sig) return false;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(raw)));
+  let bin = ''; for (const b of mac) bin += String.fromCharCode(b);
+  const expect = btoa(bin);
+  if (expect.length !== sig.length) return false;
+  let d = 0; for (let i = 0; i < expect.length; i++) d |= expect.charCodeAt(i) ^ sig.charCodeAt(i);
+  return d === 0;
+}
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -229,7 +242,7 @@ defectsが空配列の場合はseverityを「低」にしてください。`;
         });
 
       } catch(e) {
-        return new Response(JSON.stringify({ error: e.message }), {
+        return new Response(JSON.stringify({ error: 'internal_error' }), {
           status: 500, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
         });
       }
@@ -238,15 +251,20 @@ defectsが空配列の場合はseverityを「低」にしてください。`;
 
     // -- 施工不良診断通知（フォールバック用） --
     if (url.pathname === '/notify-inspection' && req.method === 'POST') {
+      // 2026-10-08: 無認証で TOshi の LINE に任意文を送れたので、IP 単位の rate limit と長さの上限を付ける。
+      if (env.GYOSHA_RL) { const rl = await env.GYOSHA_RL.limit({ key: 'notify:' + (req.headers.get('cf-connecting-ip') || 'anon') }); if (!rl.success) return new Response(JSON.stringify({ error: '短時間に多すぎます。少し待って再度お試しください。' }), { status: 429, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }); }
       try {
-        const { name, email, type, note, imageCount } = await req.json();
+        const _b = await req.json();
+        const cut = (v, n) => String(v ?? '').replace(/[\u0000-\u001f]/g, ' ').slice(0, n);
+        const name = cut(_b.name, 60), email = cut(_b.email, 120), type = cut(_b.type, 40), note = cut(_b.note, 500);
+        const imageCount = Math.max(0, Math.min(50, parseInt(_b.imageCount, 10) || 0));
         const msg = `📸 施工不良診断依頼！\n━━━━━━━━━━\n名前: ${name}\nメール: ${email}\n工事種別: ${type||'未選択'}\n写真: ${imageCount}枚\n\n気になる箇所:\n${note||'記載なし'}\n━━━━━━━━━━\n24時間以内にメールで返信してください。`;
         await pushLine(env.LINE_CHANNEL_TOKEN, env.LINE_USER_ID, msg);
         return new Response(JSON.stringify({ ok: true }), {
           headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
         });
       } catch(e) {
-        return new Response(JSON.stringify({ error: e.message }), {
+        return new Response(JSON.stringify({ error: 'internal_error' }), {
           status: 500, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
         });
       }
@@ -254,7 +272,11 @@ defectsが空配列の場合はseverityを「低」にしてください。`;
 
     // -- LINE Webhook --
     if (url.pathname === '/webhook' && req.method === 'POST') {
-      const body = await req.json();
+      const raw = await req.text();
+      if (!(await lineSignatureOk(raw, req.headers.get('x-line-signature') || '', env.LINE_CHANNEL_SECRET))) {
+        return new Response('forbidden', { status: 403 });
+      }
+      let body; try { body = JSON.parse(raw); } catch (_e) { return new Response('bad request', { status: 400 }); }
       ctx.waitUntil((async () => {
         for (const event of body.events || []) {
           if (event.type !== 'message' || event.message.type !== 'text') continue;
@@ -284,11 +306,6 @@ defectsが空配列の場合はseverityを「低」にしてください。`;
       return new Response('OK', { status: 200 });
     }
 
-    // -- テスト --
-    if (url.pathname === '/test') {
-      const result = await checkContractor('テスト工務店株式会社', env.ANTHROPIC_API_KEY);
-      return new Response(result, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-    }
 
     return new Response('HORIZON SHIELD 業者チェッカー v3', { status: 200 });
   }

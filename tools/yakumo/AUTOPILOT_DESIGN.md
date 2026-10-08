@@ -104,7 +104,7 @@ cron: 毎日 06:17 JST(wrangler.jsonc triggers.crons = "17 21 * * *" UTC)
 1. `git am`でパッチ適用 -> push(または sources 追加でClaudeが直接push)。
 2. ワーカー再デプロイ: `cd workers/hs-hearing && wrangler deploy`(cron有効化に必須)。
 3. No.001のトークン後付け(旧レコード対応):
-   `curl -X POST .../admin/link-token -H "X-Admin-Key: <key>" -d '{"store_id":"hs-partner-001","token":"ht_0e25f1dd9e25b469133b301957cdff9b"}'`
+   `curl -X POST .../admin/link-token -H "X-Admin-Key: <key>" -d '{"store_id":"hs-partner-001","token":"<token>"}'`
 4. メール自動送信を生かすなら RESEND_API_KEY、LINEを生かすなら LINE_CHANNEL_SECRET / LINE_CHANNEL_ACCESS_TOKEN を secret 登録(未設定でも他は動く)。
 5. 任意: KV news:sources にRSSを設定(/admin/news-sources)。GH secrets に HEARING_ADMIN_SECRET を入れると
    ActionsからKV台帳同期・活動コールバックが有効化(未設定でもfail-openで動く)。

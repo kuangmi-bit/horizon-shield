@@ -38,6 +38,13 @@ export default {
   async fetch(req, env, ctx) {
     const path = new URL(req.url).pathname;
     if (path === '/post') {
+      // 2026-10-08: 誰でも記事生成(有料 API・main への commit・LINE)を起動できたので、POST と Bearer を必須にする。
+      // BLOG_POST_TOKEN が未設定なら手動起動は閉じる(毎日の cron はそのまま動く)。
+      const auth = req.headers.get('authorization') || '';
+      const want = env.BLOG_POST_TOKEN ? 'Bearer ' + env.BLOG_POST_TOKEN : '';
+      let same = want.length > 0 && auth.length === want.length;
+      for (let i = 0; same && i < want.length; i++) if (auth.charCodeAt(i) !== want.charCodeAt(i)) same = false;
+      if (req.method !== 'POST' || !same) return new Response('not found', { status: 404 });
       ctx.waitUntil(triggerGitHubActions(env));
       return new Response('GitHub Actions トリガー開始', { status: 200 });
     }
