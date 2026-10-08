@@ -19754,6 +19754,29 @@ function hsDecodeSjisIpnField(rawEncoded) {
   }
 }
 __name(hsDecodeSjisIpnField, "hsDecodeSjisIpnField");
+// 2026-10-08: IPN の照合。hs-us-report/src/paypal.js の checkIpnAgainstOrder と同じやり方。
+// PayPal が VERIFIED と言うのは「PayPal が出した通知」という意味だけで、誰宛ての、いくらの支払いかは言わない。
+// 受取人(PAYPAL_MERCHANT_ID か PAYPAL_RECEIVER_EMAIL、どちらも未設定なら誰も通さない)、通貨、金額をここで確かめる。
+var HS_IPN_PRICE_JPY = 5500;
+function hsCheckIpn(params, env) {
+  const status = params.get("payment_status");
+  if (status !== "Completed") return { ok: false, reason: "status " + status };
+  const mine = [env.PAYPAL_MERCHANT_ID, env.PAYPAL_RECEIVER_EMAIL].filter(Boolean).map((v) => String(v).toLowerCase());
+  const receivers = [params.get("receiver_id"), params.get("receiver_email"), params.get("business")].filter(Boolean).map((v) => String(v).toLowerCase());
+  if (!mine.length || !receivers.some((r) => mine.includes(r))) return { ok: false, reason: "receiver mismatch" };
+  if (params.get("mc_currency") !== "JPY") return { ok: false, reason: "currency mismatch" };
+  const gross = Number(params.get("mc_gross"));
+  if (!(Math.abs(gross - HS_IPN_PRICE_JPY) < 0.005)) return { ok: false, reason: "amount mismatch " + gross + " vs " + HS_IPN_PRICE_JPY };
+  const txnId = String(params.get("txn_id") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
+  if (!txnId) return { ok: false, reason: "no txn id" };
+  return { ok: true, txnId, gross };
+}
+__name(hsCheckIpn, "hsCheckIpn");
+// custom は支払う側が書ける欄。文字列だけを、長さを絞って読む。
+function hsIpnStr(v, max) {
+  return typeof v === "string" ? v.slice(0, max) : "";
+}
+__name(hsIpnStr, "hsIpnStr");
 async function hsProcessPaidOrder(order, origin, env) {
   const orderId = order.orderId;
   const { pdfBuffer, orderInfo, diagnosis } = await generatePlanPDFAuto({
@@ -20404,18 +20427,39 @@ var worker_default = {
             } catch (e22) {
             }
           }
-          const txnId = params.get("txn_id") || "unknown";
-          const orderId = customData.orderId || `paypal-${txnId}`;
-          const kojiType = customData.koji_type || "gaiheki_30tsubo";
-          const teijiKingaku = customData.teiji_kingaku || 15e5;
-          const region = customData.region || "kanto";
+          if (!customData || typeof customData !== "object") customData = {};
+          // 2026-10-08: \u53D7\u53D6\u4EBA\u30FB\u901A\u8CA8\u30FB\u91D1\u984D(5500 JPY)\u30FBtxn_id \u3092\u78BA\u304B\u3081\u308B\u3002\u5408\u308F\u306A\u3044\u901A\u77E5\u306F\u8A18\u9332\u3060\u3051\u6B8B\u3057\u3066 200 \u3067\u8FD4\u3059(PayPal \u306B\u518D\u9001\u3055\u305B\u306A\u3044)\u3002
+          const hsIpn = hsCheckIpn(params, env);
+          if (!hsIpn.ok) {
+            const hsSkipTxn = String(params.get("txn_id") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
+            try {
+              await env.ORDERS.put("ipn-skip:" + (hsSkipTxn || crypto.randomUUID()), JSON.stringify({ at: new Date().toISOString(), reason: hsIpn.reason }), { expirationTtl: 30 * 86400 });
+            } catch (e11) {}
+            // \u53D7\u53D6\u4EBA\u306F\u5408\u3063\u3066\u3044\u308B\u306E\u306B\u91D1\u984D\u304B\u901A\u8CA8\u304C\u9055\u3046\u5165\u91D1\u306F\u3001TOshi \u306B\u77E5\u3089\u305B\u308B(\u3053\u306E\u5165\u53E3\u3067\u306F PDF \u3092\u4F5C\u3089\u306A\u3044)\u3002
+            if (/^(amount|currency)/.test(hsIpn.reason)) {
+              try {
+                await sendLineMessage(env.LINE_USER_ID, "PayPal \u306E\u5165\u91D1\u304C 5,500 \u5186\u3068\u5408\u308F\u306A\u3044: " + hsIpn.reason + " / txn " + hsSkipTxn + "\u3002\u3053\u306E\u5165\u53E3\u3067\u306F PDF \u3092\u4F5C\u3089\u306A\u3044\u3002", env);
+              } catch (e12) {}
+            }
+            return Response.json({ ok: true, skipped: hsIpn.reason });
+          }
+          const txnId = hsIpn.txnId;
+          // \u540C\u3058 txn_id \u306F 1 \u56DE\u3060\u3051\u51E6\u7406\u3059\u308B(\u5370\u306F PDF \u304C\u3067\u304D\u305F\u5F8C\u306B\u66F8\u304F\u306E\u3067\u3001\u5931\u6557\u3057\u305F\u901A\u77E5\u306E\u518D\u9001\u306F\u51E6\u7406\u3055\u308C\u308B)\u3002
+          if (await env.ORDERS.get("txn:" + txnId)) {
+            return Response.json({ ok: true, duplicate: true });
+          }
+          // \u6CE8\u6587\u306E\u540D\u524D\u3068 R2 \u306E\u7F6E\u304D\u5834\u306F txn_id \u304B\u3089\u4F5C\u308B\u3002custom \u306E orderId \u306F\u4F7F\u308F\u306A\u3044(\u4ED6\u306E\u6CE8\u6587\u306E PDF \u3092\u4E0A\u66F8\u304D\u3055\u305B\u306A\u3044)\u3002
+          const orderId = `paypal-${txnId}`;
+          const kojiType = hsIpnStr(customData.koji_type, 60) || "gaiheki_30tsubo";
+          const teijiKingaku = Number(customData.teiji_kingaku) > 0 ? Number(customData.teiji_kingaku) : 15e5;
+          const region = hsIpnStr(customData.region, 20) || "kanto";
           const hsRawFirstName = hsGetRawIpnField(body, "first_name");
           const hsCharset = params.get("charset") || "";
           const hsDecodedFirstName = hsRawFirstName && /shift_jis/i.test(hsCharset) ? hsDecodeSjisIpnField(hsRawFirstName) : params.get("first_name");
-          const customerName = customData.customer_name || hsDecodedFirstName || "\u65BD\u4E3B\u69D8";
-          const customerEmail = customData.customer_email || params.get("payer_email") || "";
-          const amount = params.get("mc_gross") || customData.amount || "55000";
-          const serviceType = customData.service_type || "\u5EFA\u8A2D\u8CBB\u8A3A\u65AD";
+          const customerName = hsIpnStr(customData.customer_name, 60) || hsIpnStr(hsDecodedFirstName, 60) || "\u65BD\u4E3B\u69D8";
+          const customerEmail = hsIpnStr(customData.customer_email, 254) || hsIpnStr(params.get("payer_email"), 254) || "";
+          const amount = String(hsIpn.gross);
+          const serviceType = hsIpnStr(customData.service_type, 40) || "\u5EFA\u8A2D\u8CBB\u8A3A\u65AD";
           const hsExistingRaw = await env.ORDERS.get(`order:${orderId}`);
           const hsExisting = hsExistingRaw ? JSON.parse(hsExistingRaw) : null;
           if (!hsExisting) {
@@ -20458,6 +20502,8 @@ var worker_default = {
               return Response.json({ error: "pdf generation failed, will retry via IPN" }, { status: 500 });
             }
           }
+          // 注文と PDF が先、重複の印が後。
+          await env.ORDERS.put("txn:" + txnId, orderId);
           try {
             const lineMsg = [
               "\u{1F4B0} PayPal\u6C7A\u6E08\u5B8C\u4E86\uFF01",
