@@ -200,8 +200,9 @@ def main():
         #   測りに行く先は、こちらの想定どおりに答えるとは限らない。
         #   1件の異常は1件として記録し、走行は続ける。
         try:
-            if not W.robots_allows(t["url"]):
-                verdict, note, extra = "skipped", "robots disallowed at recheck time", {}
+            ok, rnote = W.robots_allows(t["url"])   # (ok, note) を返す。タプルのまま if に掛けると常に真
+            if not ok:
+                verdict, note, extra = "skipped", "robots disallowed at recheck time: " + rnote, {}
             else:
                 code, text, err = discover(t["url"])
                 verdict, note, extra = judge(code, text, err)

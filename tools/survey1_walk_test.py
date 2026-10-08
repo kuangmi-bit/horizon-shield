@@ -28,6 +28,12 @@ def fake_urlopen(req, timeout=None):
     return fn(req, url)
 
 urllib.request.urlopen = fake_urlopen
+_real_robots_open = W._robots_open
+W._robots_open = fake_urlopen   # robots.txt は転送を追う専用の opener で取るので、そこも差し替える
+
+def robots404(url):
+    """robots.txt が無い(404)。RFC 9309 では unavailable = 許可。"""
+    raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
 
 def reset():
     SCENARIOS.clear()
@@ -70,7 +76,7 @@ assert r["compensation_disclosed"] is True
 # --- 2. SSE で返すサーバー ---
 reset()
 def sse_host(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"): raise urllib.error.URLError("none")
     body = json.loads(req.data.decode())
     if body.get("method") == "initialize":
@@ -88,6 +94,10 @@ assert r["speaks_mcp"] is True and r["tool_count"] == 1, "SSE を読めていな
 
 # --- 3. 到達できない: held であり、相手についての主張にしないこと ---
 reset()
+def unreachable(req, url):
+    if url.endswith("/robots.txt"): robots404(url)   # robots.txt が届かなければ当てない(28)ので、ここは 404
+    raise urllib.error.URLError("no route")
+SCENARIOS["unreachable.test"] = unreachable
 r = W.measure("https://unreachable.test/mcp")
 print("3) 到達できないサーバー(規則2)")
 show("結果", r, ["state", "answered", "speaks_mcp", "reason"])
@@ -109,7 +119,7 @@ assert r["state"] == "skipped" and r["answered"] is None
 # --- 5. HTTPで応答するが MCP を話さない: pending(held ではない) ---
 reset()
 def not_mcp(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
 SCENARIOS["notmcp.test"] = not_mcp
 r = W.measure("https://notmcp.test/mcp")
@@ -138,7 +148,7 @@ print("基本7項目 通過")
 # --- 8. 401: 鍵がかかっているだけ。pending にせず、speaks_mcp を false と書かない ---
 reset()
 def needs_auth(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     raise urllib.error.HTTPError(url, 401, "Unauthorized", {}, None)
 SCENARIOS["auth.test"] = needs_auth
 r = W.measure("https://auth.test/mcp")
@@ -153,7 +163,7 @@ assert r["answered"] is True, "応答はしている。それは事実として�
 for code in (502, 521, 530):
     reset()
     def gw(req, url, _c=code):
-        if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+        if url.endswith("/robots.txt"): robots404(url)
         raise urllib.error.HTTPError(url, _c, "gw", {}, None)
     SCENARIOS["gw.test"] = gw
     r = W.measure("https://gw.test/mcp")
@@ -164,7 +174,7 @@ print("9) 中継エラー(502/521/530) -> held / gateway_error / speaks_mcp=None
 # --- 10. 405: 宛先がストリーム側の可能性。測れていないと書く ---
 reset()
 def m405(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     raise urllib.error.HTTPError(url, 405, "Method Not Allowed", {}, None)
 SCENARIOS["m405.test"] = m405
 r = W.measure("https://m405.test/mcp")
@@ -176,7 +186,7 @@ assert r["state"] == "held" and r["outcome"] == "method_not_allowed" and r["spea
 reset()
 hops = {"n": 0}
 def redir(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"): raise urllib.error.URLError("none")
     if "/old" in url:
         hops["n"] += 1
@@ -201,8 +211,7 @@ assert hops["n"] == 1, "リダイレクトを追いすぎている"
 # --- 12. 404 は測定である(pending のまま) ---
 reset()
 SCENARIOS["gone.test"] = lambda req, url: (_ for _ in ()).throw(
-    urllib.error.URLError("none") if url.endswith("/robots.txt")
-    else urllib.error.HTTPError(url, 404, "NF", {}, None))
+    urllib.error.HTTPError(url, 404, "NF", {}, None))
 r = W.measure("https://gone.test/mcp")
 print("12) 宣言された住所に何も無い(404)")
 show("結果", r, ["state", "outcome", "speaks_mcp"])
@@ -215,7 +224,7 @@ print("追加分もすべて通過")
 # --- 13. initialize は通ったが tools/list が返らない: MCPは話している ---
 reset()
 def init_only(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"): raise urllib.error.URLError("none")
     body = json.loads(req.data.decode())
     if body.get("method") == "initialize":
@@ -279,7 +288,10 @@ SCENARIOS["shield.the-horizons-innovation.com"] = control_route
 SCENARIOS["www.cloudflare.com"] = control_route
 def dead(req, url):
     raise urllib.error.URLError(OSError(61, "Connection refused"))
-SCENARIOS["dead.test"] = dead
+def dead_endpoint(req, url):
+    if url.endswith("/robots.txt"): robots404(url)
+    raise urllib.error.URLError(OSError(61, "Connection refused"))
+SCENARIOS["dead.test"] = dead_endpoint
 
 recs = [W.measure_guarded("https://dead.test/mcp%d" % i, verbose=False) for i in range(6)]
 print("16) 相手が届かないが、対照先は生きている")
@@ -312,7 +324,7 @@ SCENARIOS["www.cloudflare.com"] = control_route
 flap = {"n": 0}
 def flapping(req, url):
     if url.endswith("/robots.txt"):
-        raise urllib.error.URLError("none")
+        robots404(url)
     if url.endswith("agent-card.json"):
         raise urllib.error.URLError("none")
     flap["n"] += 1
@@ -364,7 +376,9 @@ SCENARIOS["shield.the-horizons-innovation.com"] = control_route
 SCENARIOS["www.cloudflare.com"] = control_route
 hiccup = {"n": 0}
 def once_then_ok(req, url):
-    if url.endswith("/robots.txt") or url.endswith("agent-card.json"):
+    if url.endswith("/robots.txt"):
+        robots404(url)
+    if url.endswith("agent-card.json"):
         raise urllib.error.URLError("none")
     hiccup["n"] += 1
     if hiccup["n"] == 1:
@@ -391,7 +405,7 @@ reset(); health_reset(trip=99, wait=1)
 CONTROL["up"] = True
 SCENARIOS["shield.the-horizons-innovation.com"] = control_route
 SCENARIOS["www.cloudflare.com"] = control_route
-SCENARIOS["gone.test"] = dead
+SCENARIOS["gone.test"] = dead_endpoint
 r = W.measure_guarded("https://gone.test/mcp", verbose=False)
 print("21) 何度試しても居ない相手")
 show("結果", r, ["state", "outcome", "speaks_mcp", "retried"])
@@ -408,7 +422,7 @@ CONTROL["up"] = True
 SCENARIOS["shield.the-horizons-innovation.com"] = control_route
 SCENARIOS["www.cloudflare.com"] = control_route
 def mcp_ok_card_broken(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"):
         raise urllib.error.URLError(OSError(60, "Operation timed out"))
     body = json.loads(req.data.decode())
@@ -431,7 +445,7 @@ assert "errno 60" in r["agent_card_note"]
 # --- 23. 404 のときだけ「無い」と書いてよい ---
 reset(); health_reset(trip=99, wait=1)
 def card404(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"):
         raise urllib.error.HTTPError(url, 404, "nf", {}, None)
     body = json.loads(req.data.decode())
@@ -452,7 +466,7 @@ assert r["compensation_disclosed"] is None, "カードが無い以上、開示�
 # --- 24. 開示は我々の語彙以外でも拾う ---
 reset(); health_reset(trip=99, wait=1)
 def card_pricing(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"):
         return Resp(json.dumps({"name": "P", "pricing": {"per_call_usd": 0.01}}))
     body = json.loads(req.data.decode())
@@ -474,7 +488,7 @@ assert r["compensation_fields"] == ["pricing"], \
 # --- 25. 空のカードで開示ありと数えない ---
 reset(); health_reset(trip=99, wait=1)
 def card_bare(req, url):
-    if url.endswith("/robots.txt"): raise urllib.error.URLError("none")
+    if url.endswith("/robots.txt"): robots404(url)
     if url.endswith("agent-card.json"):
         return Resp(json.dumps({"name": "B", "pricing": {}, "compensation": ""}))
     body = json.loads(req.data.decode())
@@ -494,3 +508,137 @@ assert r["compensation_fields"] == []
 
 print()
 print("22/23/24/25 も通過  ―― 全25本")
+
+# =====================================================================
+# robots.txt を RFC 9309 どおりに読む (2026-10-09)
+#   survey7_robots_recheck.py の再確認で、Allow を読まなかったために 116 行を誤って
+#   skipped にしていたことが分かった。取れなければ許可とみなしていた(fail open)のも改めた。
+# =====================================================================
+
+def mcp_answers(req, url):
+    if url.endswith("agent-card.json"):
+        raise urllib.error.HTTPError(url, 404, "nf", {}, None)
+    body = json.loads(req.data.decode())
+    if body.get("method") == "initialize":
+        return Resp(json.dumps({"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"name":"x"}}}),
+                    headers={"content-type":"application/json"})
+    if body.get("method") == "tools/list":
+        return Resp(json.dumps({"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"t"}]}}),
+                    headers={"content-type":"application/json"})
+    return Resp(b"", status=202)
+
+# --- 26. Disallow /api/ と Allow /api/mcp: 長い方の Allow が勝つので測る ---
+reset(); health_reset(trip=99, wait=1)
+def allow_inside(req, url):
+    if url.endswith("/robots.txt"):
+        return Resp("User-agent: *\nDisallow: /api/\nAllow: /api/mcp\n")
+    return mcp_answers(req, url)
+SCENARIOS["allow.test"] = allow_inside
+r = W.measure("https://allow.test/api/mcp")
+print()
+print("26) Disallow /api/ の中で Allow /api/mcp")
+show("結果", r, ["state", "outcome", "robots", "robots_status"])
+assert r["state"] == "measured" and r["outcome"] == "speaks_mcp_and_lists_tools", "Allow を読んでいない"
+assert r["robots_status"] == {"http_status": 200, "error": None, "class": "ok_2xx", "rule": ["allow", "/api/mcp"]}
+r = W.measure("https://allow.test/api/other")
+assert r["outcome"] == "robots_disallowed" and r["robots_status"]["rule"] == ["disallow", "/api/"]
+assert r["robots"] == "robots.txt disallows /api/ (fetched, RFC 9309)"
+
+# --- 27. robots.txt が 503: 届かない = 全面禁止。当てない ---
+reset(); health_reset(trip=99, wait=1)
+def r503(req, url):
+    if url.endswith("/robots.txt"):
+        raise urllib.error.HTTPError(url, 503, "Service Unavailable", {}, None)
+    raise AssertionError("robots.txt が 503 なのに接触した")
+SCENARIOS["r503.test"] = r503
+r = W.measure("https://r503.test/mcp")
+print("27) robots.txt が 503")
+show("結果", r, ["state", "outcome", "robots"])
+assert r["state"] == "skipped" and r["outcome"] == "robots_unreachable", "robots_disallowed と混ぜない"
+assert r["robots_status"] == {"http_status": 503, "error": None, "class": "unreachable", "rule": None}
+assert "2.3.1.4" in r["robots"] and r["answered"] is None and r["speaks_mcp"] is None
+r = W.measure_guarded("https://r503.test/mcp", verbose=False)
+assert r["outcome"] == "robots_unreachable" and not r.get("retried"), "503 は相手の答え。測り直さない"
+
+# --- 28. robots.txt に通信が届かない: 届かない = 全面禁止。当てない ---
+reset(); health_reset(trip=99, wait=1)
+CONTROL["up"] = True
+SCENARIOS["shield.the-horizons-innovation.com"] = control_route
+SCENARIOS["www.cloudflare.com"] = control_route
+nrobots = {"n": 0}
+def rnet(req, url):
+    if url.endswith("/robots.txt"):
+        nrobots["n"] += 1
+        raise urllib.error.URLError(TimeoutError(60, "Operation timed out"))
+    raise AssertionError("robots.txt に届かないのに接触した")
+SCENARIOS["rnet.test"] = rnet
+r = W.measure("https://rnet.test/mcp")
+print("28) robots.txt に通信が届かない")
+show("結果", r, ["state", "outcome", "robots"])
+assert r["state"] == "skipped" and r["outcome"] == "robots_unreachable"
+assert r["robots_status"]["class"] == "unreachable" and r["robots_status"]["http_status"] is None
+assert "errno 60" in r["robots_status"]["error"] and r["robots_status"]["rule"] is None
+assert r["robots"] == "robots.txt unreachable (TimeoutError), complete disallow (RFC 9309 2.3.1.4)"
+# 何の応答も無かったので、自分を疑い、robots.txt を取り直してから行を書く
+W._robots_cache.clear(); nrobots["n"] = 0
+r = W.measure_guarded("https://rnet.test/mcp2", verbose=False)
+assert r["outcome"] == "robots_unreachable" and r.get("retried") and "attempts:" in r["reason"]
+assert nrobots["n"] == 2, "測り直しで robots.txt を取り直していない(キャッシュを使い回した)"
+
+# --- 29. robots.txt が 404: 無い = 許可。測る ---
+reset(); health_reset(trip=99, wait=1)
+def r404(req, url):
+    if url.endswith("/robots.txt"):
+        robots404(url)
+    return mcp_answers(req, url)
+SCENARIOS["r404.test"] = r404
+r = W.measure("https://r404.test/mcp")
+print("29) robots.txt が 404")
+show("結果", r, ["state", "outcome", "robots"])
+assert r["state"] == "measured" and r["outcome"] == "speaks_mcp_and_lists_tools"
+assert r["robots_status"] == {"http_status": 404, "error": None, "class": "unavailable_4xx", "rule": None}
+assert r["robots"] == "robots.txt 404, unavailable, allowed (RFC 9309 2.3.1.3)"
+
+# --- 30. robots_status はどの行にも入る ---
+reset(); health_reset(trip=99, wait=1)
+SCENARIOS["blocked.test"] = blocked
+r = W.measure("https://blocked.test/mcp")
+assert r["robots_status"]["class"] == "ok_2xx" and r["robots_status"]["rule"] == ["disallow", "/mcp"]
+assert W.instrument_down_row("https://x.test/mcp")["robots_status"] is None
+W._abort.set()
+assert "robots_status" in W.measure_guarded("https://x.test/mcp", verbose=False)
+W._abort.clear()
+print("30) robots_status が各行に入る")
+
+# --- 31. 転送は 5 回まで追う。6 回目は「無い」= 許可とみなす(実物の opener を手元のサーバで) ---
+import http.server, os, threading
+os.environ["NO_PROXY"] = os.environ["no_proxy"] = "127.0.0.1,localhost"
+class Hops(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def do_GET(self):
+        parts = self.path.strip("/").split("/")   # <転送回数>/robots.txt, 以後 <転送回数>/<何回目>/robots.txt
+        limit, n = int(parts[0]), (int(parts[1]) if len(parts) == 3 else 0)
+        if n < limit:
+            self.send_response(301); self.send_header("Location", "/%d/%d/robots.txt" % (limit, n + 1))
+            self.send_header("content-length", "0"); self.end_headers(); return
+        b = b"User-agent: *\nDisallow: /x\n"
+        self.send_response(200); self.send_header("content-length", str(len(b))); self.end_headers(); self.wfile.write(b)
+srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Hops)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+port = srv.server_address[1]
+W._robots_open = _real_robots_open
+try:
+    for limit, want in ((5, "ok_2xx"), (6, "unavailable_4xx")):
+        reset()
+        ent = W._robots_fetch("http://127.0.0.1:%d/%d" % (port, limit), "127.0.0.1")
+        assert ent["class"] == want, (limit, ent)
+        if limit == 6:
+            assert ent["error"] == "too_many_redirects" and 300 <= ent["http_status"] < 400, ent
+            assert W.robots_verdict(dict(ent, rule=None))[0] is True
+finally:
+    W._robots_open = fake_urlopen
+    srv.shutdown()
+print("31) 転送 5 回は読み、6 回は無いとみなして許可")
+
+print()
+print("26-31 も通過: 全31本")

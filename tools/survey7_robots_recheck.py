@@ -128,7 +128,8 @@ def _pattern(p):
     return re.compile(rx + ("$" if anchored else ""))
 
 
-def rfc_allows(groups, path):
+def rfc_decide(groups, path):
+    """(allowed, [directive, value] of the deciding rule or None). survey1_walk stores the rule on each row."""
     sel = [g for g in groups if TOKEN in g[0]]
     if not sel:
         sel = [g for g in groups if "*" in g[0]]
@@ -140,8 +141,14 @@ def rfc_allows(groups, path):
             if _pattern(v).match(path):
                 n = len(v.encode("utf-8"))
                 if best is None or n > best[0] or (n == best[0] and d == "allow"):
-                    best = (n, d)
-    return best is None or best[1] == "allow"
+                    best = (n, d, v)
+    if best is None:
+        return True, None
+    return best[1] == "allow", [best[1], best[2]]
+
+
+def rfc_allows(groups, path):
+    return rfc_decide(groups, path)[0]
 
 
 def match_path(endpoint):

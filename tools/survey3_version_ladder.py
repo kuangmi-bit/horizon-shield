@@ -110,8 +110,9 @@ def main():
         rec = {"url": url, "run2_outcome": t.get("run2_outcome"),
                "recheck_verdict": t.get("verdict"), "tried": []}
         try:
-            if not W.robots_allows(url):
-                rec["verdict"], rec["note"] = "skipped", "robots disallowed"
+            ok, rnote = W.robots_allows(url)   # (ok, note) を返す。タプルのまま if に掛けると常に真
+            if not ok:
+                rec["verdict"], rec["note"] = "skipped", "robots disallowed: " + rnote
             else:
                 rec["verdict"] = "still_not_mcp"
                 rec["note"] = "no version in the ladder was accepted"

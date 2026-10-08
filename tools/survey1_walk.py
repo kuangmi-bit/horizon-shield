@@ -12,8 +12,12 @@ report 0 が数えた「住所を宣言している 12,429 件」のうち、実
                      を決して混ぜない。計器の失敗を相手についての主張にしない。
   3. 人格ではなく測定を書く ... 出力は事実と日付だけ。評価語を持たない。
   4. 手順とハッシュを添える ... 1行ごとに record_sha256 を付け、再計算手順を公開する。
-  5. robots.txt を尊重し、負荷を低く保つ ... ホスト単位で間隔を空け、robots が禁じた
-                     パスは測らずに skipped として理由ごと記録する。
+  5. robots.txt を尊重し、負荷を低く保つ ... ホスト単位で間隔を空け、robots.txt は
+                     RFC 9309 どおりに読む(Allow も読み、最長一致、同じ長さなら Allow、* と $)。
+                     禁じられたパスは測らずに skipped / robots_disallowed とする。robots.txt が
+                     4xx と 5 回を超える転送なら許可、5xx・通信の失敗・時間切れなら届かないとみなし、
+                     測らずに skipped / robots_unreachable とする。どちらも理由と robots_status
+                     (HTTP 状態・失敗・分類・決めた規則)を1行ごとに残す。
 
 正確性について:
   Streamable HTTP の MCP では、initialize の応答ヘッダに Mcp-Session-Id が入り、
@@ -234,43 +238,113 @@ def host_gate(host):
         time.sleep(delay)
 
 
-def robots_allows(url):
-    """規則5。禁じられていたら測らない。取得できないときは許可とみなし、その旨を記録する。"""
+# 規則5 (2026-10-09 改): robots.txt は RFC 9309 どおりに読む。
+#   以前の読み方は Allow を無視し、取れなければ許可とみなしていた(fail open)。
+#   survey7_robots_recheck.py の再確認で、Allow を読まなかったために 116 行を誤って
+#   skipped にしていたことが分かった。照合は survey7 の実装をそのまま使う(写さない)。
+#   状態の扱い: 2xx は読む。4xx と 5 回を超える転送は「無い」= 許可(2.3.1.3、2.3.1.2)。
+#   5xx・通信の失敗・時間切れは「届かない」= 全面禁止とみなし、測らない(2.3.1.4)。
+ROBOTS_MAX_READ = 512 * 1024
+ROBOTS_MAX_HOPS = 5
+
+
+class _RobotsRedirects(urllib.request.HTTPRedirectHandler):
+    max_redirections = ROBOTS_MAX_HOPS   # 6 回目の転送で HTTPError(3xx) になる
+
+
+def _robots_open(req, timeout):
+    """robots.txt の取得だけは、転送を 5 回まで追う(RFC 9309 2.3.1.2)。検証ではここを差し替える。"""
+    return urllib.request.build_opener(_RobotsRedirects()).open(req, timeout=timeout)
+
+
+def _robots_fetch(origin, host):
+    """origin の robots.txt を 1 回取って分類する。キャッシュに入る形を返す。"""
+    import survey7_robots_recheck as R7   # 遅延 import。survey7 はこのモジュールを先頭で import する
+    ent = {"http_status": None, "error": None, "class": "unreachable", "groups": None}
+    try:
+        host_gate(host)
+        req = urllib.request.Request(origin + "/robots.txt", headers={"User-Agent": UA})
+        with _robots_open(req, ROBOTS_TIMEOUT) as r:
+            raw = r.read(ROBOTS_MAX_READ)
+            ent["http_status"] = getattr(r, "status", None) or 200
+    except urllib.error.HTTPError as e:
+        ent["http_status"] = e.code
+        if 400 <= e.code < 500:
+            ent["class"] = "unavailable_4xx"
+        elif 300 <= e.code < 400:
+            if "infinite loop" in str(e.msg):
+                # 5 回を超える転送は「無い」とみなしてよい(2.3.1.2)。survey7 と同じ扱い。
+                ent["error"], ent["class"] = "too_many_redirects", "unavailable_4xx"
+            else:
+                ent["error"] = "redirect_not_followed"
+        return ent
+    except Exception as e:   # 通信・TLS・時間切れ
+        ent["error"] = describe_exc(e)
+        return ent
+    if 200 <= ent["http_status"] < 300:
+        ent["class"] = "ok_2xx"
+        ent["groups"] = R7.relevant(R7.rfc_groups(raw.decode("utf-8", "replace")))
+    elif 400 <= ent["http_status"] < 500:
+        ent["class"] = "unavailable_4xx"
+    return ent
+
+
+def robots_status(url):
+    """規則5 の判断材料。行に robots_status として残す形で返す。
+
+    {"http_status": int|None, "error": str|None, "class": "ok_2xx"|"unavailable_4xx"|"unreachable",
+     "rule": [directive, value] (決めた規則) | None}
+    """
+    import survey7_robots_recheck as R7
     p = urllib.parse.urlparse(url)
     origin = p.scheme + "://" + p.netloc
     with _robots_lock:
-        cached = _robots_cache.get(origin, "MISS")
-    if cached == "MISS":
-        rules = []
-        note = "fetched"
-        try:
-            host_gate(p.hostname or origin)
-            req = urllib.request.Request(origin + "/robots.txt", headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=ROBOTS_TIMEOUT) as r:
-                body = r.read(200000).decode("utf-8", "replace")
-            active = False
-            for raw in body.splitlines():
-                line = raw.split("#", 1)[0].strip()
-                if not line or ":" not in line:
-                    continue
-                k, v = line.split(":", 1)
-                k = k.strip().lower(); v = v.strip()
-                if k == "user-agent":
-                    active = v == "*" or "horizon" in v.lower()
-                elif k == "disallow" and active and v:
-                    rules.append(v)
-        except Exception as e:
-            note = "not fetched (" + type(e).__name__ + "), treated as allowed"
+        ent = _robots_cache.get(origin)
+    if ent is None:
+        ent = _robots_fetch(origin, p.hostname or origin)
         with _robots_lock:
-            _robots_cache[origin] = (rules, note)
-        cached = (rules, note)
-    rules, note = cached
-    path = p.path or "/"
-    for rule in rules:
-        pref = rule.rstrip("*")
-        if path.startswith(pref):
-            return False, "robots.txt disallows " + rule + " (" + note + ")"
-    return True, note
+            _robots_cache[origin] = ent
+    rule = None
+    if ent["class"] == "ok_2xx":
+        rule = R7.rfc_decide(ent["groups"], R7.match_path(url))[1]
+    return {"http_status": ent["http_status"], "error": ent["error"], "class": ent["class"], "rule": rule}
+
+
+def robots_forget(url):
+    """測り直す前に、その origin の robots.txt を取り直させる(届かなかった記録を使い回さない)。"""
+    p = urllib.parse.urlparse(url)
+    with _robots_lock:
+        _robots_cache.pop(p.scheme + "://" + p.netloc, None)
+
+
+def robots_verdict(st):
+    """robots_status の結果から (ok, 人が読む説明) を作る。"""
+    c, code, rule = st["class"], st["http_status"], st["rule"]
+    if c == "ok_2xx":
+        if rule and rule[0] == "disallow":
+            return False, "robots.txt disallows " + rule[1] + " (fetched, RFC 9309)"
+        if rule:
+            return True, "robots.txt allows " + rule[1] + " (fetched, RFC 9309)"
+        return True, "robots.txt fetched, no rule matches, allowed (RFC 9309)"
+    if c == "unavailable_4xx":
+        if st["error"] == "too_many_redirects":
+            return True, "robots.txt more than %d redirects, unavailable, allowed (RFC 9309 2.3.1.2)" % ROBOTS_MAX_HOPS
+        return True, "robots.txt %d, unavailable, allowed (RFC 9309 2.3.1.3)" % code
+    if code is not None and st["error"] is None:
+        return False, "robots.txt %d, unreachable, complete disallow (RFC 9309 2.3.1.4)" % code
+    parts = (st["error"] or "unknown").split(" / ")
+    why = parts[1] if parts[0] == "URLError" and len(parts) > 1 and re.match(r"^\w+(Error|Exception|timeout)$", parts[1]) else parts[0]
+    return False, "robots.txt unreachable (" + why + "), complete disallow (RFC 9309 2.3.1.4)"
+
+
+def robots_not_answered(st):
+    """robots.txt に何の HTTP 応答も無かった。相手の不在とこちらの不調を、ここからは区別できない。"""
+    return bool(st) and st.get("class") == "unreachable" and st.get("http_status") is None
+
+
+def robots_allows(url):
+    """規則5。(ok, note) を返す。survey2..6 もこれを使う。"""
+    return robots_verdict(robots_status(url))
 
 
 # 予行(300件)が示したこと: HTTPで応答した97件のうち65件は 401/402/403 だった。
@@ -386,11 +460,14 @@ def measure(url):
         "state": None, "outcome": None, "reason": None, "server_name": None,
         "http_status": None, "session_required": None, "redirected_to": None,
     }
-    ok, rnote = robots_allows(url)
+    rst = robots_status(url)
+    ok, rnote = robots_verdict(rst)
     out["robots"] = rnote
+    out["robots_status"] = rst
     if not ok:
+        # 禁じる規則があったのか、robots.txt に届かなかったのかを混ぜない。
         out["state"] = "skipped"
-        out["outcome"] = "robots_disallowed"
+        out["outcome"] = "robots_disallowed" if rst["class"] == "ok_2xx" else "robots_unreachable"
         out["reason"] = rnote
         return out
 
@@ -526,7 +603,7 @@ def instrument_down_row(url):
         "endpoint": url, "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "answered": None, "initialize_ok": None, "tools_listed": None,
         "speaks_mcp": None, "tool_count": None, "agent_card": None, "agent_card_note": None,
-        "compensation_disclosed": None, "compensation_fields": None, "robots": None,
+        "compensation_disclosed": None, "compensation_fields": None, "robots": None, "robots_status": None,
         "state": "held", "outcome": "instrument_down",
         "reason": ("not measured: our own instrument could not reach a known-good control address, "
                    "so this row is a statement about our network, not about this server."),
@@ -557,7 +634,12 @@ def measure_guarded(url, verbose=True, retries=1):
         if _abort.is_set():
             return instrument_down_row(url)
         rec = measure(url)
-        if rec.get("outcome") != "not_reached":
+        # robots.txt に何の応答も無かった行も、届かなかった行と同じく自分を疑う。
+        # fail closed にした以上、こちらの名前解決が死ねば全行が robots_unreachable になる。
+        unanswered = rec.get("outcome") == "robots_unreachable" and robots_not_answered(rec.get("robots_status"))
+        if unanswered:
+            robots_forget(url)
+        if rec.get("outcome") != "not_reached" and not unanswered:
             health_note_success()
             if tried:
                 rec["reason"] = (rec.get("reason") or "")
@@ -615,7 +697,7 @@ def main():
                 ep = rec.get("endpoint")
                 if not ep: continue
                 oc = rec.get("outcome")
-                if oc == "instrument_down" or (oc == "not_reached" and not a.keep_unreached):
+                if oc == "instrument_down" or (oc in ("not_reached", "robots_unreachable") and not a.keep_unreached):
                     done.discard(ep); redo += 1
                     continue
                 done.add(ep)
@@ -643,7 +725,7 @@ def main():
             except Exception as e:
                 rec = {"endpoint": futures[fut], "state": "held",
                        "reason": "walker error: " + describe_exc(e), "answered": None,
-                       "speaks_mcp": None,
+                       "speaks_mcp": None, "robots_status": None,
                        "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
             stamp(rec)
             with lock:

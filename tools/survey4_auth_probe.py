@@ -23,7 +23,9 @@ What one row records (per endpoint, two POSTs, nothing else):
   of the first 64 KiB of the body. No body text is stored.
 
 Category, derived only from the stored fields (so --recompute can re-derive it):
-  unreachable_now       A did not answer this time. Not a statement about the server.
+  unreachable_now       A did not answer this time, or the host gave no HTTP answer to
+                        robots.txt so A was not sent (RFC 9309 2.3.1.4). Not a statement
+                        about the server.
   changed_since         A answered with a status that is no longer 401/402/403/407.
   mcp_path_specific     A is an auth status, B is not: the wall is at the registered path.
   origin_wide_wall      A and B are both auth statuses: the whole host is walled, and
@@ -125,6 +127,8 @@ def side_fields(code, headers, body, err):
 
 def categorize(row):
     """Derived only from stored fields. --recompute runs this again on every row."""
+    if row.get("robots_unreached"):
+        return "unreachable_now"
     if row.get("robots_skipped"):
         return "skipped_robots"
     a, b = row.get("a") or {}, row.get("b") or {}
@@ -166,6 +170,10 @@ def measure(t):
     row["robots"] = note
     if not ok:
         row.update({"robots_skipped": True, "nx_url": None, "a": None, "b": None})
+        if W.robots_not_answered(W.robots_status(url)):
+            # robots.txt に何の応答も無かった。禁止ではなく、こちらか相手が届かなかった。
+            row["robots_unreached"] = True
+            row["a"] = side_fields(None, None, b"", "not sent: " + note)
     else:
         row["robots_skipped"] = False
         row["a"] = probe(url)
@@ -195,6 +203,7 @@ def measure_guarded(t):
         recovered = W.health_note_failure()
         if W._abort.is_set():
             return None
+        W.robots_forget(t["endpoint"])   # 届かなかった robots.txt の記録を使い回さない
         if recovered or attempt == 0:
             time.sleep(W.RETRY_SLEEP)
             continue

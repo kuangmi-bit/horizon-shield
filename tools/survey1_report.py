@@ -60,7 +60,7 @@ OURS = ("horizonshield.dev", "the-horizons-innovation.com", "horizon-shield.ogas
 MEASURED = ("speaks_mcp_and_lists_tools", "speaks_mcp_no_tool_list")
 PENDING = ("no_mcp_at_declared_address", "initialize_rejected", "no_result_in_initialize")
 HELD = ("not_reached", "authorization_required", "gateway_error", "method_not_allowed", "instrument_down")
-SKIPPED = ("robots_disallowed",)
+SKIPPED = ("robots_disallowed", "robots_unreachable")
 
 
 def registrable(host):
@@ -157,6 +157,9 @@ def main():
             "pending": st["pending"], "pending_pct": pct(st["pending"], N),
             "held": st["held"], "held_pct": pct(st["held"], N),
             "skipped": st["skipped"], "skipped_pct": pct(st["skipped"], N),
+            # robots で当てなかったものを母数から外した率も、並べて出す(2026-10-09 から)。
+            "measurable": N - st["skipped"],
+            "measured_pct_of_measurable": pct(st["measured"], N - st["skipped"]),
         },
         "outcome": {k: v for k, v in oc.most_common()},
         "outcome_pct": {k: pct(v, N) for k, v in oc.most_common()},
@@ -248,7 +251,8 @@ def main():
     # --- 人が読む形 --------------------------------------------------------
     c = report["count3"]
     print("count 3: 宣言された住所 %d 件のうち" % N)
-    print("  measured (MCPを話した)     %6d  %5.1f%%" % (c["measured"], c["measured_pct"]))
+    print("  measured (MCPを話した)     %6d  %5.1f%%  (robots で見送った分を除く %d 件のうち %5.1f%%)"
+          % (c["measured"], c["measured_pct"], c["measurable"], c["measured_pct_of_measurable"]))
     print("  pending  (測った上で不成立) %6d  %5.1f%%" % (c["pending"], c["pending_pct"]))
     print("  held     (測れなかった)     %6d  %5.1f%%" % (c["held"], c["held_pct"]))
     print("  skipped  (robots)          %6d  %5.1f%%" % (c["skipped"], c["skipped_pct"]))
