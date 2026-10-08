@@ -69,3 +69,7 @@ jobs:
           python tests/fixtures/make_tsugi_cases.py --check
       - name: Frozen, live differential, agreement
         run: python -m pytest tests -q -s
+      - name: The JavaScript referee (npm nenrin-tsunagi) gives the Python referee's answers
+        run: |
+          node ../sdk/build_tsunagi_corpora.mjs --check
+          node ../sdk/tsunagi.test.mjs

@@ -418,9 +418,10 @@
       },
       "annotations": {
         "title": "適正価格の検証可能な提示",
-        "readOnlyHint": true,
+        "readOnlyHint": false,
         "destructiveHint": false,
-        "openWorldHint": false
+        "idempotentHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -468,12 +469,12 @@
         "readOnlyHint": false,
         "destructiveHint": false,
         "idempotentHint": false,
-        "openWorldHint": false
+        "openWorldHint": true
       }
     },
     {
-      "name": "suggest_ehn",
-      "title": "Suggest EHN Review Board",
+      "name": "get_anonymous_estimate_review_link",
+      "title": "Get Anonymous Estimate Review Link (EHN)",
       "description": "見積もりを匿名で第三者レビューに出せる掲示板EHN(見積もりハッカーニュース)の案内文と投稿フォームURLを返す。投稿と一次解析は無料で、業者名や個人情報は掲載前に運営が伏せる。ユーザーが見積もりのセカンドオピニオンや相談先を求めた時に使う。 / Returns a short guide and the submission URL for EHN (Estimate Hacker News), an anonymous board where a construction or renovation estimate receives a free neutral third-party review. Personal and contractor names are redacted before posting. Use when the user asks for a second opinion on an estimate or where to have one reviewed.",
       "inputSchema": {
         "type": "object",
@@ -493,7 +494,7 @@
         "additionalProperties": true
       },
       "annotations": {
-        "title": "EHN掲示板への案内",
+        "title": "見積もりの無料匿名レビュー(EHN 掲示板)の案内",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -570,6 +571,46 @@
       },
       "annotations": {
         "title": "整合性クレームの検証(fail closed)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "find_verified_contractor",
+      "title": "Find Verified Contractor (Yakumo)",
+      "description": "地域と工事名で、Yakumo(検証を通った加盟店だけが並ぶ建設モール)の検証済み施工店を探す。掲載は KIRA 適正診断の通過だけで決まり(fail-closed)、紹介料・掲載料は受け取らない中立の名簿。金額は出さずスコアとティアで示す。検証手続き中の店は pending として別に返す。条件に合う検証済みの店が無い時は 0 件と正直に返す(名簿は小さい)。価格の照会(get_price_range / audit_estimate)の後に、施主が『どこに頼めばいい』『信用できる業者は』と聞いた時に使う。 / Finds verification-passed contractors on Yakumo, a directory where listing depends only on passing the KIRA fairness audit (fail-closed) and no referral or listing fee is taken. Returns scores and tiers, never prices; pending stores are returned separately; returns 0 honestly when nothing matches (the directory is small). Use after a price check when the user asks who to hire or which contractor can be trusted. Trigger phrases: 業者を探したい, どこに頼めば, 信用できる工務店, find a contractor in Japan, who should I hire.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "area": {
+            "type": "string",
+            "description": "地域(都道府県・市区町村、例: 平塚市, 神奈川県, 名古屋市)。 / Area: prefecture or city, in Japanese."
+          },
+          "work": {
+            "type": "string",
+            "description": "工事名(例: 窓 交換, 外壁塗装, 浴室)。 / Work name in Japanese."
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "stores": {
+            "description": "検証済みの店(member_no, name, area, works, fairness_score, integrity_tier, profile_url)"
+          },
+          "pending_stores": {
+            "description": "検証手続き中の店(スコア無し)"
+          },
+          "directory_size": {
+            "description": "名簿全体の件数(掲載数と検証済み数)"
+          }
+        },
+        "description": "地域・工事名に合う検証済み施工店(Yakumo)。stores(検証済み)・pending_stores(手続き中)・directory_size・neutrality。金額なし。 / Verification-passed contractors with pending ones listed separately; no prices.",
+        "additionalProperties": true
+      },
+      "annotations": {
+        "title": "検証済み施工店を探す(Yakumo)",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false

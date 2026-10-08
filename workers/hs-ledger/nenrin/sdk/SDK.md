@@ -72,6 +72,41 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.4.9 (2026-10-09): the TSUNAGI board's referee, in JavaScript
+
+`npx nenrin-tsunagi` scores any NENRIN verifier the way the nightly TSUNAGI board does, offline and with no clone:
+the board hands a verifier the fixtures of a corpus as one batch file, reads back one verdict signature per fixture,
+and compares each with the corpus's frozen expected.json itself. The verifier's own count is not read.
+
+    npx nenrin-tsunagi list
+    npx nenrin-tsunagi run nenrin-interop-v0.2-edge -- "node my_verifier.mjs {in} {out}"
+    npx nenrin-tsunagi row nenrin-interop-v0.2-edge -- "node my_verifier.mjs {in} {out}"
+
+`run` writes the batch, runs your command and scores what it wrote; `score` scores an output you already have; `row`
+prints the entry for your pull request to tools/tsunagi/implementations.json. The contract is the same in any
+language: `{in}` is a JSON array `[{"name", "bundle"}]`, `{out}` a JSON object `{name: {"verdict", "refusals",
+"findings"}}` or `{name: {"error"}}`, codes compared as sets (VERIFIER.md section 4). `tsunagi_reference_batch.mjs`
+is that contract for this package's own verifier; copy it and put your verify call in its place.
+
+The three corpora the board referees (interop-v0, 5 cases; interop-v0.1, 13; interop-v0.2/edge, 36) travel in
+`tsunagi_corpora.json`, each fixture as the exact text of its file with its sha256, built from the repository by
+`build_tsunagi_corpora.mjs`; `tsunagi.test.mjs` fails if the packed file is not what the repository builds. The
+Python package ships the same referee as `nenrin-tsunagi` since its 0.4.9. tsunagi.test.mjs puts the same outputs
+and the same commands through both and requires the same scores, printed lines and exit codes, including outputs the
+Python referee cannot read (invalid UTF-8, a byte order mark, nesting thousands deep, more than 16 MB), NaN in an
+output (Python's json reads it, so this referee does too), a timeout and a killed process. Differences left, none of
+which changes a count: `--help` prints different text; an `error` value that is not a string may be written
+differently in the "(error: ...)" note; for a document nested far past the limit, some Python builds (Homebrew CPython 3.14
+on macOS) read it where this referee refuses it, though neither reproduces a case from it; the nesting limit is 980 here, set for the board, which runs Python 3.11 and stops
+a little under 1000; Python 3.12 and later read up to about 10,000 levels, so on those the Python referee reads a
+document nested between 980 and 10,000 that this one refuses. Both packages are now at
+0.4.9: Python 0.4.5 to 0.4.8 changed only MUSUBI, which has no JavaScript twin, so npm went from 0.4.4 to 0.4.9.
+The verifiers (nenrin_verify.mjs, tsugi_verify.mjs, agreement_verify.mjs) are unchanged.
+
+What a green score establishes, and what it does not: that your code reproduced this frozen corpus on your machine.
+expected.json is public, so a verifier written to the answers also scores full marks; the board's nightly fresh
+bundles, signed with new keys every run and with no published answer, are the check for that.
+
 ## 0.4.4 (2026-10-04): malformed records are refused, not crashed on or guessed at
 
 The independent implementer's edge corpus (interop-v0.2/edge, horizon-shield#30) asked two questions the text had

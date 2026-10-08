@@ -14,3 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: bash tools/boundary/check_public_boundary.sh
+
+  # The files that list the hs-mcp tools (lhm.plugin.json, CODEX.md, README.md, llms.txt and others) against the
+  # canonical tool list in tools/listing_tools_sync.mjs. Fails red on a retired tool name used as current, a missing
+  # tool, or a mirrored manifest that differs from its source.
+  listing-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          package-manager-cache: false
+          node-version: "22"
+      - run: node tools/listing_tools_sync.mjs --selftest
+      - run: node tools/listing_tools_sync.mjs

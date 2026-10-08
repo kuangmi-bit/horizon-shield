@@ -31,7 +31,7 @@ Codex calls the HORIZON SHIELD tools (get_price_range, audit_estimate, check_red
 
 ## Tools exposed
 
-audit_estimate, check_red_flags, get_price_range, get_estimate_reading_guide, get_fair_price_sources, list_cost_categories, search_cost_category, verify_fair_price, verify_integrity_claim, get_jccdb_dataset_info, preview_reverse_estimate, suggest_ehn, get_agent_card.
+audit_estimate, check_red_flags, get_price_range, get_estimate_reading_guide, get_fair_price_sources, list_cost_categories, search_cost_category, verify_fair_price, verify_integrity_claim, create_ap2_fairness_attestation, get_jccdb_dataset_info, preview_reverse_estimate, get_anonymous_estimate_review_link (formerly suggest_ehn, which still answers), get_agent_card, find_verified_contractor.
 
 ## Links
 

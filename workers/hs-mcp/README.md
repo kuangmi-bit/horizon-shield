@@ -39,7 +39,7 @@ Works with any MCP client: **Claude  |  ChatGPT  |  Gemini  |  Perplexity  |  Cu
 | `list_cost_categories` | List the curated cost categories |
 | `get_estimate_reading_guide` | Universal principles for judging any estimate (overhead ratio, lump-sum, tactics) |
 | `get_fair_price_sources` | Sources, update date, and regional multipliers behind the data |
-| `suggest_ehn` | Suggest an EHN (anonymous-estimate) entry |
+| `get_anonymous_estimate_review_link` (formerly `suggest_ehn`, which still answers) | Guide and submission URL for EHN, the free anonymous third-party estimate review board |
 | `get_jccdb_dataset_info` | JCCDB open dataset (v5.1: 526,128 records = 95,403 items + 430,725 observations, CC BY 4.0)  -  metadata & citation |
 | `verify_integrity_claim` | Third-party verification of an issued signed claim (fail-closed) |
 | `create_ap2_fairness_attestation` | FairPriceAttestation shaped to attach to a Google AP2 Cart Mandate (optional quoted_price adds within/above/below) |
