@@ -426,7 +426,7 @@ function drawRegForm(box,nm,existing){
     +'<div class="reg-grp"><div class="reg-grp-h">関心のある工種(複数可)</div><div class="reg-chips">'+gChips+'</div></div>'
     +'<div class="reg-grp"><div class="reg-grp-h">関心のある地域(複数可)</div><div class="reg-chips">'+rChips+'</div></div>'
     +'<button class="reg-submit" id="regSubmit" onclick="submitReg()">'+(existing?'登録内容を更新する':'この内容で登録する')+'</button>'
-    +'<div class="reg-note">// 現在、通知機能は準備中です。登録いただくと、提供開始時にあなたの関心地域・工種の旬な案件をLINEでお知らせします。登録は無料・いつでも変更/解除できます。施主の個人情報が事業者に渡ることはありません。</div>';
+    +'<div class="reg-note">// 登録すると、関心のある地域と工種で「検討中」の見積もりが掲載されたとき、公式LINE(@172piime)からお知らせします。お知らせを受け取るには、公式LINEの友だち追加が必要です。登録は無料・いつでも変更/解除できます。施主の個人情報が事業者に渡ることはありません。</div>';
 }
 function toggleReg(kind,val,el){
   var arr=regSel[kind];var i=arr.indexOf(val);
