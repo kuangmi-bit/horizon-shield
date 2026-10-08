@@ -12,7 +12,7 @@ mkdir -p "$W/fp/adapters/nenrin-conduct-walk" "$W/fp/test/fixtures/nenrin"
 cp "$HERE"/adapter.ts "$HERE"/manifest.json "$W/fp/adapters/nenrin-conduct-walk/"
 cp "$HERE"/test/nenrin-conduct-walk.test.ts "$W/fp/test/"
 cp "$HERE"/test/fixtures/walks.json "$W/fp/test/fixtures/nenrin/"
-cd "$W/fp" && npm ci --silent
+cd "$W/fp" && npm ci --include=dev --silent
 FLAG="--experimental-strip-types"; node -e 'process.exit(+process.versions.node.split(".")[0] >= 24 ? 0 : 1)' && FLAG=""
 node $FLAG scripts/seal.ts adapters/nenrin-conduct-walk
 cmp -s adapters/nenrin-conduct-walk/manifest.json "$HERE/manifest.json" && echo "sealed manifest identical to the published one"
