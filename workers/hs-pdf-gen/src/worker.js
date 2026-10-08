@@ -17201,6 +17201,40 @@ async function hsCtEqual(a, b) {
   return out === 0;
 }
 __name(hsCtEqual, "hsCtEqual");
+// 2026-10-08: 生成系の入口の門。内部の呼び手(hs-internal-mcp, hs-gateway)は X-PDF-Token を付ける。未設定なら通さない(fail closed)。
+var HS_GEN_TOKEN_ROUTES = ["/generate-test", "/generate-plan-auto", "/generate-plan", "/generate-meitsumori-signed", "/generate-meitsumori", "/generate-kanryo"];
+// 監査系は従来の X-HS-TOKEN でも通す(中の検査はそのまま)。
+var HS_GEN_AUDIT_ROUTES = ["/extract-estimate", "/generate-estimate-audit", "/generate-compare"];
+async function hsGenTokenOk(request, env) {
+  const t = request.headers.get("X-PDF-Token") || "";
+  return !!env.PDFGEN_TOKEN && !!t && await hsCtEqual(t, env.PDFGEN_TOKEN);
+}
+__name(hsGenTokenOk, "hsGenTokenOk");
+async function hsAuditTokenOk(request, env) {
+  const t = request.headers.get("X-HS-TOKEN") || "";
+  return !!env.HS_AUDIT_TOKEN && !!t && await hsCtEqual(t, env.HS_AUDIT_TOKEN);
+}
+__name(hsAuditTokenOk, "hsAuditTokenOk");
+// /generate は、支払いの確定(hs-kira-proxy)が ORDERS に書いた dl_token:<token> でも通す。期限内、HS_DL_MAX_USES 回まで。
+var HS_DL_MAX_USES = 5;
+async function hsDlTokenOk(token, env) {
+  if (typeof token !== "string" || !/^[a-f0-9]{32}$/.test(token)) return false;
+  let rec = null;
+  try { rec = JSON.parse(await env.ORDERS.get("dl_token:" + token) || "null"); } catch (_e) { rec = null; }
+  if (!rec || !(Number(rec.expires) > Date.now())) return false;
+  const uses = Number(rec.uses) || 0;
+  if (uses >= HS_DL_MAX_USES) return false;
+  rec.uses = uses + 1;
+  rec.used = true;
+  await env.ORDERS.put("dl_token:" + token, JSON.stringify(rec), { expirationTtl: Math.max(60, Math.ceil((Number(rec.expires) - Date.now()) / 1e3)) });
+  return true;
+}
+__name(hsDlTokenOk, "hsDlTokenOk");
+// R2 の置き場の名前は呼ぶ側に決めさせない(他の注文の PDF を上書きさせない)。
+function hsStoreId(prefix) {
+  return prefix + "-" + Date.now().toString(36) + "-" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+}
+__name(hsStoreId, "hsStoreId");
 async function hsPdfSig(orderId, exp, env) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.PDF_URL_SECRET || ""), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(orderId + "." + exp));
@@ -19781,7 +19815,8 @@ async function generatePlanPDFAuto(params, env) {
   } catch (_e) { hsHash = null; }
   const fy = function(n) { return "\u00A5" + Number(n || 0).toLocaleString(); };
   const planData = {
-    koji_content: (d2.koji_name || params.koji_type || "") + "\u3000\uFF0F\u3000\u5BFE\u8C61\u5730\u57DF: " + (params.region || "\u2014"),
+    // 2026-10-08: \u3053\u306E\u9053\u306F parsePlanText \u3092\u901A\u3089\u306A\u3044\u306E\u3067\u3001\u3053\u3053\u3067\u30A8\u30B9\u30B1\u30FC\u30D7\u3059\u308B(region \u306F\u547C\u3076\u5074\u306E\u5024)\u3002
+    koji_content: escapeHtml((d2.koji_name || params.koji_type || "") + "\u3000\uFF0F\u3000\u5BFE\u8C61\u5730\u57DF: " + (params.region || "\u2014")),
     breakdown: [
       "\u9069\u6B63\u76F8\u5834\uFF08\u6700\u4F4E\uFF09\uFF1A" + fy(d2.adjMin),
       "\u9069\u6B63\u76F8\u5834\uFF08\u4E2D\u592E\u5024\uFF09\uFF1A" + fy(d2.adjAvg),
@@ -19935,8 +19970,17 @@ var worker_default = {
           await browser.close();
         }
       }
+      if (request.method === "POST" && HS_GEN_TOKEN_ROUTES.includes(pathname) && !(await hsGenTokenOk(request, env))) {
+        return json({ error: "unauthorized" }, 401);
+      }
+      if (request.method === "POST" && HS_GEN_AUDIT_ROUTES.includes(pathname) && !(await hsGenTokenOk(request, env)) && !(await hsAuditTokenOk(request, env))) {
+        return json({ error: "unauthorized" }, 401);
+      }
       if (pathname === "/generate" && request.method === "POST") {
         const params = await request.json();
+        if (!(await hsGenTokenOk(request, env)) && !(await hsDlTokenOk(params && params.download_token, env))) {
+          return json({ error: "unauthorized" }, 401);
+        }
         const { pdfBuffer, orderInfo } = await generatePDF(params, env);
         return new Response(pdfBuffer, {
           headers: {
@@ -20213,10 +20257,11 @@ var worker_default = {
         }
 
         // --- R2 保存 + pdf_url 返却 ---
-        await env.PDFS_BUCKET.put(`pdfs/${orderInfo.orderId}.pdf`, pdfBuffer, {
+        const storeId = hsStoreId("mitsumori");
+        await env.PDFS_BUCKET.put(`pdfs/${storeId}.pdf`, pdfBuffer, {
           httpMetadata: { contentType: "application/pdf" }
         });
-        const pdf_url = await hsSignedPdfUrl(url.origin, orderInfo.orderId, env);
+        const pdf_url = await hsSignedPdfUrl(url.origin, storeId, env);
         return new Response(JSON.stringify({
           ok: true,
           orderId: orderInfo.orderId,
@@ -20299,10 +20344,11 @@ var worker_default = {
         if (!env.PDFGEN_TOKEN || !(await hsCtEqual(_tok, env.PDFGEN_TOKEN))) return json({ error: "unauthorized" }, 401);
         const params = await request.json();
         const { pdfBuffer, orderInfo, diagnosis } = await generatePlanPDFAuto(params, env);
-        await env.PDFS_BUCKET.put(`pdfs/${orderInfo.orderId}.pdf`, pdfBuffer, {
+        const storeId = hsStoreId("plan");
+        await env.PDFS_BUCKET.put(`pdfs/${storeId}.pdf`, pdfBuffer, {
           httpMetadata: { contentType: "application/pdf" }
         });
-        const pdfUrl = await hsSignedPdfUrl(url.origin, orderInfo.orderId, env);
+        const pdfUrl = await hsSignedPdfUrl(url.origin, storeId, env);
         const customerInfo = {
           customer_name: params.customer_name || "\u30C6\u30B9\u30C8\u592A\u90CE",
           line_user_id: params.line_user_id || null,

@@ -144,13 +144,13 @@ async function callTool(name, args, env) {
         teiji_kingaku: args.teiji_kingaku,
         region: args.region,
         customer_name: args.customer_name
-      });
+      }, pdfGenHeaders(env));
     case "generate_plan":
-      return bindingPost(env.PDF_GEN, "/generate-plan", args.payload);
+      return bindingPost(env.PDF_GEN, "/generate-plan", args.payload, pdfGenHeaders(env));
     case "generate_meitsumori":
-      return bindingPost(env.PDF_GEN, "/generate-meitsumori", args.payload);
+      return bindingPost(env.PDF_GEN, "/generate-meitsumori", args.payload, pdfGenHeaders(env));
     case "generate_kanryo":
-      return bindingPost(env.PDF_GEN, "/generate-kanryo", args.payload);
+      return bindingPost(env.PDF_GEN, "/generate-kanryo", args.payload, pdfGenHeaders(env));
     // ---- 加盟店オペ層 → hs-estimate (binding: ESTIMATE) ----
     //   管理系は X-Admin-Key、partner系は親APIキー(Bearer)。値は env から付与。
     case "partner_set_pricing":
@@ -207,6 +207,11 @@ async function callTool(name, args, env) {
   }
 }
 __name(callTool, "callTool");
+// 2026-10-08: hs-pdf-gen の生成系の入口は X-PDF-Token が要る。
+function pdfGenHeaders(env) {
+  return env.PDFGEN_TOKEN ? { "X-PDF-Token": env.PDFGEN_TOKEN } : {};
+}
+__name(pdfGenHeaders, "pdfGenHeaders");
 async function bindingPost(binding, path, body, extraHeaders = {}) {
   const req = new Request(`https://svc${path}`, {
     method: "POST",
@@ -521,7 +526,8 @@ var MONITOR_TARGETS = [
   { name: "hs-pdf-gen", binding: "PDF_GEN" },
   { name: "hs-estimate", binding: "ESTIMATE" },
   { name: "hs-gyosha-check", binding: "GYOSHA_CHECK" },
-  { name: "hs-genka-ingest", binding: "GENKA_INGEST" }
+  { name: "hs-genka-ingest", binding: "GENKA_INGEST" },
+  { name: "hs-hearing", binding: "HEARING" }
 ];
 async function pingBinding(binding, name, bindingName) {
   const t0 = Date.now();

@@ -18,6 +18,7 @@
     { "binding": "ESTIMATE", "service": "hs-estimate" },
     { "binding": "GENKA_INGEST", "service": "hs-genka-ingest" },
     { "binding": "GYOSHA_CHECK", "service": "hs-gyosha-check" },
-    { "binding": "PDF_GEN", "service": "hs-pdf-gen" }
+    { "binding": "PDF_GEN", "service": "hs-pdf-gen" },
+    { "binding": "HEARING", "service": "hs-hearing" }
   ]
 }

@@ -452,6 +452,8 @@ export default {
       try {
         var rheaders = { "Content-Type": "application/json" };
         var rurl = "https://pdfgen.internal" + rcfg.path;
+        // 2026-10-08: hs-pdf-gen の生成系の入口は X-PDF-Token が要る。
+        if (env.PDFGEN_TOKEN) rheaders["X-PDF-Token"] = env.PDFGEN_TOKEN;
         if ((rservice === "audit" || rservice === "compare") && env.HS_AUDIT_TOKEN) {
           // 2026-09-10 同じ秘密をヘッダと URL の両方に載せていた。受け手
           // (hs-pdf-gen の hsHandleEstimateAudit ほか)は X-HS-TOKEN を先に見るので、
