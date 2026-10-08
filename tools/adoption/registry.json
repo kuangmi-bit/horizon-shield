@@ -103,5 +103,13 @@
   ],
   "open_calls": {
     "nenrin-provenance": "A NENRIN provenance verifier by a further author, in any language, that reproduces the verdict signatures of interop-v0, interop-v0.1 and interop-v0.2/edge. Two so far, both by kuangmi-bit: workers/hs-ledger/nenrin/interop-v0/INTEROP.md"
-  }
+  },
+  "published_contracts": [
+    {
+      "contract_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/c.AB.json",
+      "contract_sha256": "d7118f285250241513db1ce244a7ec4b4fbfd9160123ba466abdfad727b70f81",
+      "settlement_url": null,
+      "note": "agent-passport.org (principal) and kuangmi-bit.github.io (contractor). The two met in horizon-shield#31. kuangmi-bit had contributed to this repository before (two independent NENRIN verifiers and PR #30). No party, witness or approver from this project; the parties keep the contract in their own repository."
+    }
+  ]
 }
