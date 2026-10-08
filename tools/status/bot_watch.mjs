@@ -1,0 +1,269 @@
+#!/usr/bin/env node
+// Bot watch: which scheduled workflows of this repository stopped running or keep failing.
+//
+//   GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/name node tools/status/bot_watch.mjs --out ops/status/BOTS.md
+//        [--workflows .github/workflows] [--grace-hours 3] [--now ISO]
+//
+// Reads every workflow file with a schedule, works out from its cron lines how far apart its runs are meant to be
+// (the longest gap between two scheduled times), asks the GitHub REST API for its recent runs, and writes BOTS.md.
+//   OVERDUE  the last successful scheduled run is older than 2 expected intervals plus the grace period
+//   FAILING  the last 2 scheduled runs that finished (cancelled and skipped runs are not counted) both failed
+//   UNKNOWN  the API could not be read for this workflow
+//   DISABLED the workflow is turned off in GitHub; listed, not counted as a problem
+// Exit code: 1 when any workflow is OVERDUE, FAILING or UNKNOWN (so GitHub tells the owner), 2 when this tool crashes.
+//
+// Zero dependencies. Node 22 or later.
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, appendFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const MIN = 60000, HOUR = 3600000, DAY = 86400000;
+export const GRACE_HOURS = 3;
+const FAILED = new Set(["failure", "timed_out", "startup_failure", "action_required"]);
+const NOT_COUNTED = new Set(["cancelled", "skipped", "neutral", "stale"]);
+
+// ---- cron --------------------------------------------------------------------------------------------------------
+// The five field form GitHub uses, in UTC: numbers, *, lists, ranges and steps. No names (MON, JAN), no @ forms.
+export function parseField(field, min, max) {
+  const out = new Set();
+  for (const part of String(field).split(",")) {
+    const m = part.match(/^(\*|\d+)(?:-(\d+))?(?:\/(\d+))?$/);
+    if (!m) throw new Error("cron field not understood: " + field);
+    let lo, hi;
+    if (m[1] === "*") { lo = min; hi = max; }
+    else { lo = Number(m[1]); hi = m[2] !== undefined ? Number(m[2]) : (m[3] !== undefined ? max : lo); }
+    const step = m[3] !== undefined ? Number(m[3]) : 1;
+    if (lo < min || hi > max || lo > hi || step < 1) throw new Error("cron field out of range: " + field);
+    for (let v = lo; v <= hi; v += step) out.add(v);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+export function parseCron(expr) {
+  const f = String(expr).trim().split(/\s+/);
+  if (f.length !== 5) throw new Error("cron needs 5 fields: " + expr);
+  const dows = [...new Set(parseField(f[4], 0, 7).map((v) => v % 7))].sort((a, b) => a - b);   // 7 is Sunday too
+  return {
+    expr, minutes: parseField(f[0], 0, 59), hours: parseField(f[1], 0, 23), doms: parseField(f[2], 1, 31),
+    months: parseField(f[3], 1, 12), dows, domStar: f[2] === "*", dowStar: f[4] === "*"
+  };
+}
+
+function dayMatches(c, d) {
+  if (!c.months.includes(d.getUTCMonth() + 1)) return false;
+  const dom = c.doms.includes(d.getUTCDate()), dow = c.dows.includes(d.getUTCDay());
+  if (c.domStar && c.dowStar) return true;
+  if (c.domStar) return dow;
+  if (c.dowStar) return dom;
+  return dom || dow;   // both restricted: cron fires when either matches
+}
+
+export function fireTimes(crons, fromMs, toMs) {
+  const out = [];
+  const start = Math.floor(fromMs / DAY) * DAY;
+  for (let day = start; day <= toMs; day += DAY) {
+    const d = new Date(day);
+    for (const c of crons) {
+      if (!dayMatches(c, d)) continue;
+      for (const h of c.hours) for (const m of c.minutes) {
+        const t = day + h * HOUR + m * MIN;
+        if (t >= fromMs && t <= toMs) out.push(t);
+      }
+    }
+  }
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+
+// The longest gap between two scheduled times over the last 400 days: for a monthly or quarterly job this is the
+// worst case, not the average, so a job is never called overdue just because this month is a long one.
+export function expectedIntervalMs(cronExprs, refMs) {
+  const crons = cronExprs.map(parseCron);
+  const t = fireTimes(crons, refMs - 400 * DAY, refMs);
+  let gap = 0;
+  for (let i = 1; i < t.length; i++) gap = Math.max(gap, t[i] - t[i - 1]);
+  return gap || null;
+}
+
+// ---- reading workflow files ----------------------------------------------------------------------------------------
+export function scheduledCrons(text) {
+  if (!/^\s*schedule:/m.test(text)) return [];
+  const out = [];
+  for (const m of text.matchAll(/^\s*-?\s*cron:\s*(["'])(.+?)\1/gm)) out.push(m[2].trim());
+  return out;
+}
+
+// Who commits and where, read from the workflow text: the git user.name it sets and the literal paths of git add.
+// A variable set once to a plain path (shell D=path or a YAML env line D: path) is substituted; any other variable,
+// flags, "." and globs are skipped. Returns a null bot and no paths when it cannot tell.
+export function writerOf(text) {
+  const nm = text.match(/git config (?:--global )?user\.name\s+["']([^"']+)["']/);
+  const vars = {};
+  for (const m of text.matchAll(/^\s*([A-Z_][A-Z0-9_]*)(?:=|:\s+)["']?([\w./-]+)["']?\s*$/gm)) vars[m[1]] = m[2];
+  const paths = new Set();
+  for (const m of text.matchAll(/git add\s+([^\n;&|#]+)/g)) {
+    for (let tok of m[1].trim().split(/\s+/)) {
+      tok = tok.replace(/^["']|["']$/g, "").replace(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g, (all, v) => (v in vars ? vars[v] : all));
+      if (!tok || tok.startsWith("-") || tok.includes("$") || /^\d?>/.test(tok) || tok === "." || tok.includes("*")) continue;
+      paths.add(tok.replace(/\/$/, ""));
+    }
+  }
+  return { bot: nm ? nm[1] : null, paths: [...paths] };
+}
+
+// ---- judging one workflow --------------------------------------------------------------------------------------
+const when = (r) => Date.parse(r.run_started_at || r.created_at);
+
+export function judge({ workflow, allRuns, schedRuns, intervalMs, nowMs, graceMs = GRACE_HOURS * HOUR }) {
+  const all = [...(allRuns || [])].sort((a, b) => when(b) - when(a));
+  const done = [...(schedRuns || [])].filter((r) => r.status === "completed" && !NOT_COUNTED.has(r.conclusion)).sort((a, b) => when(b) - when(a));
+  let consecutive = 0;
+  for (const r of done) { if (FAILED.has(r.conclusion)) consecutive++; else break; }
+  const lastSchedOk = done.find((r) => r.conclusion === "success") || null;
+  const lastAnyOk = all.find((r) => r.status === "completed" && r.conclusion === "success") || null;
+  const limit = 2 * intervalMs + graceMs;
+  const since = lastSchedOk ? when(lastSchedOk) : Date.parse(workflow && workflow.created_at);
+  const flags = [];
+  if (workflow && workflow.state && workflow.state !== "active") flags.push("DISABLED");
+  else {
+    if (done.length >= 2 && FAILED.has(done[0].conclusion) && FAILED.has(done[1].conclusion)) flags.push("FAILING");
+    if (!Number.isFinite(since) || nowMs - since > limit) flags.push("OVERDUE");
+  }
+  const last = all[0] || null;
+  return {
+    flags, consecutive_failures: consecutive, overdue_after_ms: limit,
+    last_run: last ? { at: new Date(when(last)).toISOString(), event: last.event, status: last.status, conclusion: last.conclusion, url: last.html_url } : null,
+    last_scheduled_success: lastSchedOk ? new Date(when(lastSchedOk)).toISOString() : null,
+    last_success_any_event: lastAnyOk ? new Date(when(lastAnyOk)).toISOString() : null
+  };
+}
+
+// ---- the API ---------------------------------------------------------------------------------------------------------
+export function githubApi(token) {
+  return async (path) => {
+    const res = await fetch("https://api.github.com" + path, {
+      headers: { authorization: "Bearer " + token, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "horizon-shield-bot-watch" },
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!res.ok) throw new Error("GitHub API " + res.status + " for " + path.split("?")[0]);
+    return res.json();
+  };
+}
+
+async function lastBotCommit(api, repo, writer) {
+  if (!writer.bot || !writer.paths.length) return { inferred: false };
+  let best = null;
+  for (const p of writer.paths) {
+    const list = await api("/repos/" + repo + "/commits?per_page=30&path=" + encodeURIComponent(p));
+    for (const c of list || []) {
+      const a = c.commit && c.commit.author, k = c.commit && c.commit.committer;
+      const mine = (a && a.name === writer.bot) || (k && k.name === writer.bot);
+      const t = Date.parse((a && a.date) || (k && k.date));
+      if (mine && Number.isFinite(t) && (best === null || t > best)) best = t;
+    }
+  }
+  return { inferred: true, bot: writer.bot, paths: writer.paths, at: best === null ? null : new Date(best).toISOString() };
+}
+
+export async function watch({ dir, repo, api, nowMs, graceMs = GRACE_HOURS * HOUR }) {
+  const files = readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).sort();
+  const rows = [];
+  for (const f of files) {
+    const text = readFileSync(join(dir, f), "utf8");
+    const crons = scheduledCrons(text);
+    if (!crons.length) continue;
+    const row = { file: f, crons, interval_ms: null, flags: [] };
+    try { row.interval_ms = expectedIntervalMs(crons, nowMs); }
+    catch (e) { row.flags = ["UNKNOWN"]; row.error = String(e.message || e); rows.push(row); continue; }
+    try {
+      const base = "/repos/" + repo + "/actions/workflows/" + encodeURIComponent(f);
+      const workflow = await api(base);
+      const allRuns = (await api(base + "/runs?per_page=20")).workflow_runs;
+      const schedRuns = (await api(base + "/runs?per_page=20&event=schedule")).workflow_runs;
+      Object.assign(row, { name: workflow.name, state: workflow.state }, judge({ workflow, allRuns, schedRuns, intervalMs: row.interval_ms, nowMs, graceMs }));
+    } catch (e) {
+      row.flags = ["UNKNOWN"]; row.error = String(e.message || e).slice(0, 200);
+      rows.push(row); continue;
+    }
+    try {
+      row.bot_commit = await lastBotCommit(api, repo, writerOf(text));
+      if (row.bot_commit.inferred) {
+        const t = row.bot_commit.at ? Date.parse(row.bot_commit.at) : NaN;
+        row.bot_commit.quiet = !Number.isFinite(t) || nowMs - t > row.overdue_after_ms;
+      }
+    } catch (e) {
+      row.bot_commit = { inferred: true, error: String(e.message || e).slice(0, 200) };
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ---- BOTS.md -----------------------------------------------------------------------------------------------------
+export function span(ms) {
+  if (ms === null || ms === undefined || !Number.isFinite(ms)) return "n/a";
+  if (ms % DAY === 0 || ms >= 2 * DAY) return Math.round(ms / DAY * 10) / 10 + " d";
+  if (ms >= HOUR) return Math.round(ms / HOUR * 10) / 10 + " h";
+  return Math.round(ms / MIN) + " min";
+}
+const NO_DASH = /[\u2012-\u2015\u2212\uFF0D]/g;
+const cell = (v) => String(v ?? "n/a").replace(/\|/g, "/").replace(/\s+/g, " ").replace(NO_DASH, "-");
+
+export function problems(rows) { return rows.filter((r) => r.flags.some((f) => f !== "DISABLED")); }
+
+export function renderBots(rows, nowMs, graceMs = GRACE_HOURS * HOUR) {
+  const bad = problems(rows);
+  const L = ["# Scheduled workflows", ""];
+  L.push("Written by `tools/status/bot_watch.mjs` at " + new Date(nowMs).toISOString() + ". " + rows.length + " scheduled workflows, " +
+    (bad.length ? bad.length + " need attention: " + bad.map((r) => r.file + " (" + r.flags.join(", ") + ")").join("; ") + "." : "none needs attention."), "");
+  L.push("| Workflow | Schedule (UTC) | Expected every | Last run | Last scheduled success | Failures in a row | Status | Last bot commit to its paths |");
+  L.push("|---|---|---|---|---|---|---|---|");
+  for (const r of rows) {
+    const last = r.last_run ? r.last_run.at + " " + r.last_run.event + " " + (r.last_run.conclusion || r.last_run.status) : (r.error ? "API: " + r.error : "none");
+    const status = r.flags.length ? r.flags.join(", ") : "ok";
+    const bc = !r.bot_commit ? "n/a" : !r.bot_commit.inferred ? "not inferred" : r.bot_commit.error ? "API: " + r.bot_commit.error :
+      (r.bot_commit.at || "none in the last 30 commits") + " by " + r.bot_commit.bot + (r.bot_commit.quiet ? " (quiet)" : "");
+    L.push("| " + ["`" + r.file + "`", r.crons.map((c) => "`" + c + "`").join(" "), span(r.interval_ms), last, r.last_scheduled_success || "none in the last 20",
+      r.consecutive_failures ?? "n/a", status, bc].map((x, i) => (i <= 1 ? x : cell(x))).join(" | ") + " |");
+  }
+  L.push("", "## Rules", "");
+  L.push("- Expected every: the longest gap between two times the cron lines name, over the last 400 days.");
+  L.push("- OVERDUE: the last successful scheduled run is older than 2 expected intervals plus " + span(graceMs) + " (for a workflow with no successful scheduled run in the last 20, counted from when GitHub first saw the file).");
+  L.push("- FAILING: the last 2 scheduled runs that finished both failed (failure, timed out, startup failure or waiting for approval). Cancelled and skipped runs are not counted either way.");
+  L.push("- UNKNOWN: the GitHub API could not be read for this workflow. DISABLED: the workflow is turned off in GitHub; listed here, not counted as a problem.");
+  L.push("- The job that writes this page fails (and GitHub notifies the owner) when any workflow is OVERDUE, FAILING or UNKNOWN.");
+  L.push("", "## What it does not establish", "");
+  L.push("- A successful run means the job exited 0, not that it did useful work. A bot that has nothing to commit still succeeds.");
+  L.push("- The last column is a hint, not a rule: the bot name and paths are read from the workflow text (`git config user.name` and `git add` paths, with a variable substituted only when the file sets it once to a plain path), and only the last 30 commits per path are read. \"quiet\" means no commit by that bot within the overdue window; many bots commit only when something changed, so quiet is not a failure and does not turn this job red.");
+  L.push("- Only the 20 most recent runs of each workflow are read. Workflows without a schedule are not listed.");
+  L.push("");
+  return L.join("\n");
+}
+
+// ---- CLI ---------------------------------------------------------------------------------------------------------
+async function main() {
+  const a = { dir: ".github/workflows", out: null, grace: GRACE_HOURS, now: null };
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i += 2) {
+    const k = argv[i], v = argv[i + 1];
+    if (k === "--workflows") a.dir = v; else if (k === "--out") a.out = v;
+    else if (k === "--grace-hours") a.grace = Number(v); else if (k === "--now") a.now = v;
+    else throw new Error("unknown argument " + k);
+  }
+  const repo = process.env.GITHUB_REPOSITORY, token = process.env.GITHUB_TOKEN;
+  if (!a.out || !repo || !token) throw new Error("--out, GITHUB_REPOSITORY and GITHUB_TOKEN are required");
+  const nowMs = a.now ? Date.parse(a.now) : Date.now();
+  const graceMs = a.grace * HOUR;
+  const rows = await watch({ dir: a.dir, repo, api: githubApi(token), nowMs, graceMs });
+  const md = renderBots(rows, nowMs, graceMs);
+  mkdirSync(dirname(a.out), { recursive: true });
+  writeFileSync(a.out, md);
+  console.log(md);
+  const bad = problems(rows);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, "problems=" + bad.length + "\n");
+  process.exit(bad.length ? 1 : 0);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error(e && e.stack || e); process.exit(2); });
+}
+

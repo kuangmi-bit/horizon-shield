@@ -2683,7 +2683,10 @@ const TOOL_CALL_CONSENT = new Set([
   // femtech.horizonshield.dev フェム情報源レジストリ。所有者は我々自身なので同意は自明。
   "https://femtech.horizonshield.dev/mcp",
   // 自前の試験標的。所有者は我々自身なので同意は自明。
-  "https://gate.horizonshield.dev/testbed/i-json/mcp"
+  "https://gate.horizonshield.dev/testbed/i-json/mcp",
+  // 2026-10-09. ccdb.horizonshield.dev, construction cost data (JCCDB and USCCDB, workers/hs-ccdb-mcp), public since 2026-10-03.
+  // We operate it, so the consent is ours to give, recorded here the same way as femtech.
+  "https://ccdb.horizonshield.dev/mcp"
 ]);
 
 // 0.2.4. 同意の機械的な証明。上の Set は「所有者からの依頼を待って手で足す」道で、外の運営者には遠すぎた。
@@ -2834,7 +2837,8 @@ const OPERATOR_LABELS = {
   "https://jidec.horizonshield.dev/mcp":   { ja: "JIDEC \u516c\u958b\u691c\u8a3c\u53f0\u5e33", en: "JIDEC, the Bitcoin anchored public ledger", url: "https://ledger.horizonshield.dev/llms.txt" },
   "https://p001.horizonshield.dev/mcp":    { ja: "\u30ea\u30d5\u30a9\u30fc\u30e0\u8077\u4eba\u682a\u5f0f\u4f1a\u793e\uff08\u52a0\u76dfNo.001\uff09", en: "Reform Shokunin Co., Ltd. (member No.001, Aichi)", url: "https://shield.the-horizons-innovation.com/yakumo/no001/" },
   "https://p002.horizonshield.dev/mcp":    { ja: "\u30df\u30cd\u30aa\u30c8\u30fc\u30e8\u30fc\u4f4f\u5668\u682a\u5f0f\u4f1a\u793e\uff08\u52a0\u76dfNo.002\uff09", en: "Mineo Toyo Juki Co., Ltd. (member No.002)" },
-  "https://femtech.horizonshield.dev/mcp": { ja: "フェム情報源レジストリ", en: "Femtech source registry (verify sources, never diagnose)", url: "https://femtech.horizonshield.dev/" }
+  "https://femtech.horizonshield.dev/mcp": { ja: "フェム情報源レジストリ", en: "Femtech source registry (verify sources, never diagnose)", url: "https://femtech.horizonshield.dev/" },
+  "https://ccdb.horizonshield.dev/mcp":    { ja: "建設費データ(JCCDB・USCCDB)", en: "Construction cost data (JCCDB for Japan, USCCDB for the United States)", url: "https://doi.org/10.5281/zenodo.23133068" }
 };
 
 const REGISTER_JOIN_MAX = 50;
@@ -3614,7 +3618,9 @@ const DEFAULT_WATCHLIST = [
   "https://p001.horizonshield.dev/mcp",
   "https://p002.horizonshield.dev/mcp",
   "https://gate.horizonshield.dev/mcp",
-  "https://femtech.horizonshield.dev/mcp"
+  "https://femtech.horizonshield.dev/mcp",
+  // 2026-10-09. The construction cost data server. Public since 2026-10-03 but missing here, so lookup_server said on_register:false.
+  "https://ccdb.horizonshield.dev/mcp"
 ];
 
 // 既定の自社分、旧来の watch:endpoints、新しい watch:registry を束ねて返す。

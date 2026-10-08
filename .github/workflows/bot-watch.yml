@@ -1,0 +1,68 @@
+# Bot watch: once a day, list every scheduled workflow of this repository and say which stopped or keep failing.
+#
+# tools/status/bot_watch.mjs reads the cron lines of every workflow file, works out how far apart runs are meant to
+# be, and asks the GitHub API (read only) for each workflow's recent runs. It writes ops/status/BOTS.md.
+# OVERDUE: no successful scheduled run within 2 expected intervals plus 3 hours. FAILING: the last 2 scheduled runs
+# failed. UNKNOWN: the API could not be read. Any of these turns this job red, so GitHub notifies the owner; the page
+# is committed first, so the red run and the committed BOTS.md say the same thing.
+# Run by hand: Actions -> bot-watch -> Run workflow.
+name: bot-watch
+
+on:
+  schedule:
+    - cron: "47 5 * * *"   # daily 05:47 UTC (14:47 JST)
+  workflow_dispatch: {}
+
+concurrency:
+  group: bot-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: How the watch judges runs, offline (canned API answers)
+        run: node tools/status/bot_watch_test.mjs
+      - name: Read every scheduled workflow's runs
+        id: watch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          node tools/status/bot_watch.mjs --out ops/status/BOTS.md > watch.log 2>&1
+          code=$?
+          cat watch.log
+          cat watch.log >> "$GITHUB_STEP_SUMMARY"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Keep BOTS.md
+        run: |
+          git config user.name "horizon-shield-bot-watch"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add ops/status/BOTS.md 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "nothing changed" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "status: bot watch $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then exit 0; fi
+            sleep 5
+          done
+          echo "push failed 3 times"
+          exit 1
+      - name: Red when a bot stopped, keeps failing, or could not be read
+        env:
+          CODE: ${{ steps.watch.outputs.code }}
+        run: |
+          if [ "$CODE" = "0" ]; then echo "every scheduled workflow is ok"; exit 0; fi
+          if [ "$CODE" = "1" ]; then echo "see ops/status/BOTS.md: at least one workflow is OVERDUE, FAILING or UNKNOWN"; exit 1; fi
+          echo "bot_watch.mjs crashed (exit $CODE); see the step above"
+          exit 1

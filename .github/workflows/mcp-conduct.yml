@@ -20,6 +20,7 @@ jobs:
           - https://jidec.horizonshield.dev/mcp
           - https://gate.horizonshield.dev/mcp
           - https://femtech.horizonshield.dev/mcp
+          - https://ccdb.horizonshield.dev/mcp
     steps:
       - uses: ogasurfproject-jpg/wedjat-check-action@v1
         id: conduct

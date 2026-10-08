@@ -26,6 +26,8 @@ jobs:
   keep:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      chain_rc: ${{ steps.chain.outputs.rc }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -37,6 +39,32 @@ jobs:
         run: python3 "$MV/mirror.py" pull --dir "$SV/kept"
       - name: verify the copy offline
         run: python3 "$MV/mirror.py" verify --dir "$SV/kept"
+      - name: test the chain verifier (synthetic ledgers, offline)
+        run: python3 "$SV/verify_chain_test.py"
+      # 2026-10-09. mirror.py verify checks each raw digest but not the chain: no sequence check, no re-hash of the
+      # jidec-chain-v1 links, and nothing compared the copy with the head the live ledger states. This step keeps the
+      # ledger's own export.jsonl and head beside the copy and checks all of it with verify_chain.py (standard library
+      # only). A disagreement turns the chain-verdict job red, after the copy is committed, so the evidence is kept
+      # and the fenced drill still runs.
+      - name: keep the ledger's export and head, and check the chain end to end against them
+        id: chain
+        run: |
+          set +e
+          ARGS=""
+          # head first, export second: an entry appended in between makes the export longer, never shorter than the head
+          HC=$(curl -sS -m 60 -o /tmp/head.json -w '%{http_code}' https://ledger.horizonshield.dev/ledger/head)
+          EC=$(curl -sS -m 60 -o /tmp/export.jsonl -w '%{http_code}' https://ledger.horizonshield.dev/ledger/export.jsonl)
+          echo "export http $EC, head http $HC"
+          if [ "$EC" = "200" ]; then cp /tmp/export.jsonl "$SV/kept/export.jsonl"; ARGS="$ARGS --export $SV/kept/export.jsonl"; fi
+          if [ "$HC" = "200" ]; then cp /tmp/head.json "$SV/kept/head.json"; ARGS="$ARGS --head $SV/kept/head.json"; fi
+          # 409 is the ledger saying its own chain is broken: check it rather than skip it, but do not keep it as the head
+          if [ "$HC" = "409" ]; then ARGS="$ARGS --head /tmp/head.json"; fi
+          if [ "$EC" != "200" ] || { [ "$HC" != "200" ] && [ "$HC" != "409" ]; }; then
+            echo "::warning::the live export or head could not be read (export $EC, head $HC); the copy is checked against itself and its stamped heads only"
+          fi
+          python3 "$SV/verify_chain.py" --dir "$SV/kept" $ARGS | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "rc=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: record (only when an entry or object changed)
         run: |
           git config user.name "hs-survive-drill"
@@ -59,6 +87,23 @@ jobs:
           set +e
           curl -sS -m 60 -X POST "https://archive.softwareheritage.org/api/1/origin/save/git/url/https://github.com/ogasurfproject-jpg/horizon-shield/" | head -c 600
           echo
+
+  chain-verdict:
+    needs: keep
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 2
+    steps:
+      - name: red when the copy's chain disagrees with itself or with the live head
+        env:
+          RC: ${{ needs.keep.outputs.chain_rc }}
+        run: |
+          if [ "$RC" != "0" ]; then
+            echo "verify_chain.py reported findings (exit ${RC:-unset}); the keep job's chain step lists them"
+            exit 1
+          fi
+          echo "chain checked end to end, no findings"
 
   drill:
     needs: keep

@@ -59,6 +59,29 @@ jobs:
           node nenrin_verify.test.mjs
           node tsugi_verify.test.mjs
           node agreement.test.mjs
+          node build_tsunagi_corpora.mjs --check
+          node tsunagi.test.mjs
+
+      # CycloneDX SBOM of what is published, from npm itself (npm sbom, built into npm 10 and later).
+      # The package has no dependencies, so the SBOM names the package alone; it is the record that says so.
+      # Written outside the package directory so it can never end up in the tarball.
+      - name: SBOM (CycloneDX, npm sbom)
+        env:
+          WANT: ${{ github.event.inputs.version }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/sbom"
+          OUT="$RUNNER_TEMP/sbom/nenrin-verify-$WANT.cdx.json"
+          npm sbom --sbom-format cyclonedx --sbom-type library > "$OUT"
+          # npm names the root component after the directory (sdk); purl and bom-ref already say nenrin-verify.
+          node -e 'const fs=require("fs");const p=process.argv[1];const b=JSON.parse(fs.readFileSync(p,"utf8"));b.metadata.component.name=require("./package.json").name;fs.writeFileSync(p,JSON.stringify(b,null,2)+"\n")' "$OUT"
+          node -e 'const b=require(process.argv[1]);const c=b.metadata.component;console.log(b.bomFormat,b.specVersion,c.name,c.version,c.purl,"components:",(b.components||[]).length)' "$OUT"
+          sha256sum "$OUT"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-nenrin-verify-npm-${{ github.event.inputs.version }}
+          path: ${{ runner.temp }}/sbom/nenrin-verify-${{ github.event.inputs.version }}.cdx.json
+          if-no-files-found: error
 
       - name: Publish with provenance (Trusted Publishing, GitHub OIDC)
         run: npm publish --provenance --access public

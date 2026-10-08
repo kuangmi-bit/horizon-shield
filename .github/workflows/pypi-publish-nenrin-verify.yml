@@ -62,6 +62,29 @@ jobs:
           python -m venv /tmp/w
           /tmp/w/bin/pip install dist/*.whl pytest
           cd tests && /tmp/w/bin/python -m pytest -q -s -p no:cacheprovider --rootdir=. --import-mode=importlib .
+      # CycloneDX SBOM of the built wheel's dependency set: the wheel is installed alone into a clean venv
+      # (pip and setuptools removed after), and cyclonedx-py reads that venv. The dependency versions are the
+      # ones pip resolved on this runner at build time; the package pins only cryptography>=41, so a user's
+      # install can resolve newer ones. The tool runs from its own venv and is pinned.
+      - name: SBOM (CycloneDX, cyclonedx-bom 7.4.0)
+        env:
+          WANT: ${{ github.event.inputs.version }}
+        run: |
+          python -m venv /tmp/cdx
+          /tmp/cdx/bin/pip install cyclonedx-bom==7.4.0
+          python -m venv /tmp/sbomenv
+          /tmp/sbomenv/bin/pip install dist/*.whl
+          /tmp/sbomenv/bin/python -m pip uninstall -y setuptools pip
+          mkdir -p "$RUNNER_TEMP/sbom"
+          OUT="$RUNNER_TEMP/sbom/nenrin-verify-$WANT.cdx.json"
+          /tmp/cdx/bin/cyclonedx-py environment /tmp/sbomenv/bin/python --pyproject pyproject.toml --mc-type library --of JSON -o "$OUT" --validate
+          python -c 'import json,sys;b=json.load(open(sys.argv[1]));c=b["metadata"]["component"];print(b["bomFormat"],b["specVersion"],c["name"],c["version"]);[print(" ",x["name"],x["version"]) for x in b.get("components",[])]' "$OUT"
+          sha256sum "$OUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-nenrin-verify-pypi-${{ github.event.inputs.version }}
+          path: ${{ runner.temp }}/sbom/nenrin-verify-${{ github.event.inputs.version }}.cdx.json
+          if-no-files-found: error
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist

@@ -1,0 +1,176 @@
+name: Go SDK nenrin-verify-go (test, and tag a release)
+
+# The Go port of the NENRIN provenance verifier lives in its own module:
+#   github.com/ogasurfproject-jpg/horizon-shield/workers/hs-ledger/nenrin/sdk-go
+# A module in a subdirectory is released by a tag that carries the directory as a prefix:
+#   workers/hs-ledger/nenrin/sdk-go/vX.Y.Z
+# Without such a tag, `go install ...@latest` resolves a pseudo version of whatever commit is newest.
+#
+# On push and pull_request: go vet and go test on the Go version named in go.mod and on the current stable Go.
+# The tests read three frozen corpora and the shared canonical vectors from sibling directories, so a change
+# there runs this workflow too.
+#
+# On workflow_dispatch with input version (vX.Y.Z): the same tests, then a guard that the version matches
+# PortVersion in nenrinverify/verify.go (what `nenrin-verify-go --version` prints) and that the tag does not
+# exist yet, then the annotated tag is created on the dispatching commit and pushed, then the Go module proxy
+# is asked for it. Bump PortVersion, commit and push first, then dispatch from main with the same version.
+
+on:
+  push:
+    paths:
+      - "workers/hs-ledger/nenrin/sdk-go/**"
+      - "workers/hs-ledger/nenrin/interop-v0/**"
+      - "workers/hs-ledger/nenrin/interop-v0.1/**"
+      - "workers/hs-ledger/nenrin/interop-v0.2/edge/**"
+      - "workers/hs-ledger/nenrin/musubi-v0/canonical_vectors.json"
+      - ".github/workflows/go-sdk.yml"
+  pull_request:
+    paths:
+      - "workers/hs-ledger/nenrin/sdk-go/**"
+      - "workers/hs-ledger/nenrin/interop-v0/**"
+      - "workers/hs-ledger/nenrin/interop-v0.1/**"
+      - "workers/hs-ledger/nenrin/interop-v0.2/edge/**"
+      - "workers/hs-ledger/nenrin/musubi-v0/canonical_vectors.json"
+      - ".github/workflows/go-sdk.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to tag, vX.Y.Z. Must equal v + PortVersion in sdk-go/nenrinverify/verify.go"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-sdk-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: go vet and go test (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The go directive in go.mod, read by setup-go from the file.
+          - label: go.mod
+            go: ""
+            go-file: workers/hs-ledger/nenrin/sdk-go/go.mod
+          - label: stable
+            go: stable
+            go-file: ""
+    defaults:
+      run:
+        working-directory: workers/hs-ledger/nenrin/sdk-go
+    env:
+      # Test the toolchain that was installed, never a downloaded one.
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          go-version-file: ${{ matrix.go-file }}
+          # Standard library only, no go.sum: nothing to cache.
+          cache: false
+      - name: go version
+        run: go version
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "not gofmt clean:"; echo "$out"; exit 1; fi
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test ./...
+      - name: CLI reproduces the frozen corpora
+        run: |
+          set -o pipefail
+          go build -o "$RUNNER_TEMP/nenrin-verify-go" ./cmd/nenrin-verify-go
+          "$RUNNER_TEMP/nenrin-verify-go" --version
+          for c in interop-v0 interop-v0.1 interop-v0.2/edge; do
+            "$RUNNER_TEMP/nenrin-verify-go" --corpus "../$c" | tail -1
+          done
+
+  tag:
+    name: tag the module release and fetch it through the Go proxy
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: workers/hs-ledger/nenrin/sdk-go
+    env:
+      WANT: ${{ github.event.inputs.version }}
+      MODULE: github.com/ogasurfproject-jpg/horizon-shield/workers/hs-ledger/nenrin/sdk-go
+      PREFIX: workers/hs-ledger/nenrin/sdk-go
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Guard, from main, the version is well formed, matches the code, and is not tagged yet
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "refuse: dispatch from main, not $GITHUB_REF"; exit 1; fi
+          if ! printf '%s' "$WANT" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "refuse: version must look like vX.Y.Z, got '$WANT'"; exit 1
+          fi
+          case "$WANT" in
+            v0.*|v1.*) ;;
+            *) echo "refuse: v2 and above need a /v2 module path suffix in go.mod; not handled here"; exit 1 ;;
+          esac
+          GOT=$(go list -m)
+          if [ "$GOT" != "$MODULE" ]; then echo "refuse: go.mod says module $GOT, this workflow tags $MODULE"; exit 1; fi
+          BIN="$RUNNER_TEMP/nenrin-verify-go"
+          go build -o "$BIN" ./cmd/nenrin-verify-go
+          SAYS=$("$BIN" --version)
+          echo "binary: $SAYS"
+          PORT=$(printf '%s\n' "$SAYS" | sed -n 's/^nenrin-verify-go \([^ ]*\) .*/\1/p')
+          if [ "v$PORT" != "$WANT" ]; then
+            echo "refuse: PortVersion in nenrinverify/verify.go is $PORT, you asked for $WANT. Bump, commit and push first."; exit 1
+          fi
+          TAG="$PREFIX/$WANT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "refuse: tag $TAG already exists. Bump."; exit 1
+          fi
+          echo "tag to create: $TAG on $GITHUB_SHA"
+
+      - name: Create and push the annotated tag on the dispatching commit
+        run: |
+          TAG="$PREFIX/$WANT"
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            tag -a "$TAG" -m "nenrin-verify-go $WANT (Go module $MODULE)" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+          git ls-remote --tags origin "refs/tags/$TAG" "refs/tags/$TAG^{}"
+
+      # The repository is large, and the Go proxy has to fetch it to build the module zip of this subdirectory,
+      # so the first request can be slow or time out.
+      # If this step fails, the tag above still stands and is the release. Retry the fetch from any machine:
+      #   GOPROXY=https://proxy.golang.org go list -m <module>@<version>
+      # or: curl https://proxy.golang.org/<module>/@v/<version>.info
+      - name: Ask the Go module proxy for the new version
+        working-directory: ${{ runner.temp }}
+        env:
+          GOPROXY: https://proxy.golang.org
+        run: |
+          ok=""
+          for i in $(seq 1 10); do
+            echo "go list -m $MODULE@$WANT (try $i of 10)"
+            if timeout 300 go list -m -json "$MODULE@$WANT"; then ok=1; break; fi
+            echo "the proxy does not serve $WANT yet, waiting 30s"; sleep 30
+          done
+          if [ -z "$ok" ]; then
+            echo "::error::The tag $PREFIX/$WANT was pushed, but proxy.golang.org did not serve $MODULE@$WANT within the retries. The tag stands; retry the fetch later with: GOPROXY=https://proxy.golang.org go list -m $MODULE@$WANT"
+            exit 1
+          fi
+          echo "pkg.go.dev (it lists the version after it processes the proxy fetch, which can take a while):"
+          echo "  https://pkg.go.dev/$MODULE@$WANT"
+          echo "  https://pkg.go.dev/$MODULE/nenrinverify@$WANT"
+          echo "install:"
+          echo "  go install $MODULE/cmd/nenrin-verify-go@$WANT"

@@ -1,0 +1,108 @@
+# Status probe: once an hour, from a GitHub Actions runner, check that each public endpoint answers and how fast.
+#
+# tools/status/probe.mjs calls initialize, tools/list and one read only tools/call on every MCP endpoint listed in
+# tools/status/endpoints.json (one GET for plain HTTP endpoints) and writes history.jsonl, status.json and STATUS.md.
+# An endpoint that fails is data: it is written down and the job stays green. Only a broken probe tool (the offline
+# test fails, node crashes) turns the job red.
+#
+# Commit cadence: the probe runs every hour, but no workflow in this repository commits on every hourly run
+# (pending-mirror is hourly and commits only when a new record arrived; the committing bots are otherwise daily or
+# weekly). An hourly commit would be about 24 commits a day of nothing but numbers. So the rows travel from one run to
+# the next in a short lived workflow artifact, and ops/status/ is committed at most every 6 hours: when the committed
+# status.json is 5.5 hours old or more (a little under 6, so a late scheduled run does not push the commit to the next
+# turn). If the artifact chain breaks, the probe starts again from the committed history and the rows of the missing
+# hours are simply absent.
+# Run by hand: Actions -> status-probe -> Run workflow (tick "commit" to commit at once).
+name: status-probe
+
+on:
+  schedule:
+    - cron: "23 * * * *"   # hourly at :23
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "Commit ops/status now instead of waiting for the 6 hour turn"
+        type: boolean
+        default: false
+
+concurrency:
+  group: status-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read     # to fetch the previous run's artifact
+    outputs:
+      commit_due: ${{ steps.probe.outputs.commit_due }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: How the probe reads answers, offline (fake MCP server on 127.0.0.1)
+        run: node tools/status/probe_test.mjs
+      - name: Rows carried from the previous run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p prev
+          ids=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/status-probe.yml/runs?per_page=10" \
+                  --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | .id" || true)
+          for id in $ids; do
+            if gh run download "$id" -R "$GITHUB_REPOSITORY" -n status-probe -D prev 2>/dev/null; then
+              echo "rows carried from run $id" | tee -a "$GITHUB_STEP_SUMMARY"
+              break
+            fi
+          done
+          [ -f prev/history.jsonl ] || echo "no previous artifact; starting from the committed history" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Probe every endpoint
+        id: probe
+        run: |
+          set -o pipefail
+          node tools/status/probe.mjs --out status-out \
+            --history ops/status/history.jsonl --history prev/history.jsonl \
+            --committed ops/status/status.json --due-hours 5.5 | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: status-probe
+          path: status-out/
+          retention-days: 3
+
+  keep:
+    needs: probe
+    if: needs.probe.outputs.commit_due == 'true' || inputs.commit == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: status-probe
+          path: status-out
+      - name: Keep the status
+        run: |
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; import {checkSelfHash} from './tools/status/probe.mjs'; const s=JSON.parse(readFileSync('status-out/status.json','utf8')); if(!checkSelfHash(s)) throw new Error('status sha mismatch'); console.log('status', s.status_sha256)"
+          mkdir -p ops/status
+          cp status-out/history.jsonl status-out/status.json status-out/STATUS.md ops/status/
+          git config user.name "horizon-shield-status"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add ops/status/history.jsonl ops/status/status.json ops/status/STATUS.md
+          if git diff --cached --quiet; then
+            echo "nothing changed" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "status: probe $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then exit 0; fi
+            sleep 5
+          done
+          echo "push failed 3 times"
+          exit 1

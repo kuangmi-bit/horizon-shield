@@ -1,0 +1,53 @@
+{
+  "schema": "hs-status-endpoints-v0",
+  "note": "One read only tools/call per MCP endpoint. Never list a tool that writes (on hs-mcp, verify_fair_price and create_ap2_fairness_attestation append to a public ledger). readOnlyHint alone is not enough: the gate marks check_conformance readOnlyHint true but it records a check, so it is not used here.",
+  "endpoints": [
+    {
+      "id": "hs-mcp",
+      "kind": "mcp",
+      "url": "https://mcp.horizonshield.dev/mcp",
+      "evidence": "workers/hs-mcp/server.json remotes; README.md; plugin/.mcp.json",
+      "call": { "name": "get_price_range", "arguments": { "query": "給湯器" } },
+      "why_safe": "readOnlyHint true; workers/hs-mcp/test/tool_selection.test.mjs asserts only verify_fair_price and create_ap2_fairness_attestation are readOnlyHint false. Japanese query and no region, so the English normalization and region counters are not touched; it still adds to usage:total and usage:skill:get_price_range, which /.well-known/usage-stats.json publishes (about 24 a day from this probe)."
+    },
+    {
+      "id": "ccdb",
+      "kind": "mcp",
+      "url": "https://ccdb.horizonshield.dev/mcp",
+      "evidence": "workers/hs-ccdb-mcp/server.json remotes; workers/hs-ccdb-mcp/wrangler.jsonc custom domain; plugin/.mcp.json",
+      "call": { "name": "search_jccdb_items", "arguments": { "query": "生コンクリート", "limit": 3 } },
+      "why_safe": "readOnlyHint true, openWorldHint false in workers/hs-ccdb-mcp/src/worker.js"
+    },
+    {
+      "id": "gate",
+      "kind": "mcp",
+      "url": "https://gate.horizonshield.dev/mcp",
+      "evidence": "workers/hs-verify-gate/server.json remotes; POST /mcp route in workers/hs-verify-gate/src/worker.js",
+      "call": { "name": "get_conditions", "arguments": {} },
+      "why_safe": "takes no arguments, idempotentHint true, returns the same output every time (workers/hs-verify-gate/src/worker.js)"
+    },
+    {
+      "id": "jidec",
+      "kind": "mcp",
+      "url": "https://jidec.horizonshield.dev/mcp",
+      "evidence": "workers/hs-jidec-mcp/server.json remotes; workers/hs-jidec-mcp/wrangler.jsonc custom domain",
+      "call": { "name": "nenrin_ledger_head", "arguments": {} },
+      "why_safe": "every tool on this server is READ_ONLY (readOnlyHint true, idempotentHint true) in workers/hs-jidec-mcp/src/worker.js"
+    },
+    {
+      "id": "yakumo-contractors",
+      "kind": "mcp",
+      "url": "https://hearing.horizonshield.dev/mcp",
+      "evidence": "workers/hs-hearing/server.json remotes; plugin/.mcp.json names it yakumo-contractors",
+      "call": { "name": "mall_overview", "arguments": {} },
+      "why_safe": "readOnlyHint true; its handler in workers/hs-hearing/src/hearing.js does not feed store stats (find_contractor and get_contractor_profile do, so they are not used)"
+    },
+    {
+      "id": "ledger",
+      "kind": "http",
+      "url": "https://ledger.horizonshield.dev/health",
+      "evidence": "llms.txt and README.md; workers/hs-ledger/wrangler.jsonc custom domain; the /health route in workers/hs-ledger/src/worker.js",
+      "expect": { "field": "ok", "equals": true }
+    }
+  ]
+}
