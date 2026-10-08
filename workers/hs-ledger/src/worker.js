@@ -8,7 +8,7 @@
 // The core is shared with python (workers/hs-ledger/nenrin/resume-v1, byte-match 21/21); the worker only
 // injects its own Web Crypto hasher. No node imports in the core, so this bundles as is.
 import { walkChain, exportRow, boundHeadRecord, markerSha, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE, HEAD_FIELDS, HEAD_RECIPE } from "./chain_v1.mjs";
-import { assembleResume as assembleResumeV1, Reject as ResumeReject } from "../nenrin/resume-v1/resume_v1.mjs";
+import { assembleResume as assembleResumeV1, Reject as ResumeReject, checkMeasurement as resumeCheckMeasurement } from "../nenrin/resume-v1/resume_v1.mjs";
 import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1/trust_signal_v1.mjs";
 import { handleTaskWitness, handleTaskTrustSignal, anchorTaskWitnessPool, handleTaskEvidence } from "../nenrin/task-delegation-bind-v0/task_ledger_v0.mjs";
 // record-privacy-v1 (2026-09-28): the measured party's own reply, shown beside the measurement. See nenrin/response-v0.
@@ -1533,6 +1533,19 @@ async function handle(request, env) {
         return json({ error: "too_large", max_bytes: WITNESS_MAX_BYTES }, 413);
       const v = witnessValidate(b.record_canonical);
       if (!v.ok) return json({ error: "invalid_witness_record", reason_code: v.reason_code || "schema", why: v.why, help: origin + "/witness" }, 422);
+      // 2026-10-08 (FIX_LIST 5): a full record must pass the same measurement rules the resume applies
+      // (resume_v1.checkMeasurement), with the receipt time standing in for the anchoring block, which can only be
+      // later. A record that would be refused at resume time is refused here, before it is stored or counted.
+      if (v.mode === "full") {
+        // 300 s of clock skew for the walker, as the trace intake allows; the anchoring block is later still
+        const nowIso = new Date(Date.now() + 300000).toISOString().replace(/\.\d{3}Z$/, "Z");
+        try {
+          await resumeCheckMeasurement({ record_canonical: b.record_canonical, record_sha256: await sha256hex(b.record_canonical), anchor: { block_time: nowIso } }, sha256hex);
+        } catch (err) {
+          if (!(err instanceof ResumeReject)) throw err;
+          return json({ error: "fails_measurement_rules", reason_code: err.code, why: err.why, note: "the same rules the resume applies; the receipt time plus 300 s of clock skew stands in for the anchoring block", help: origin + "/witness" }, 422);
+        }
+      }
 
       const day = new Date().toISOString().slice(0, 10);
       const g = Number((await env.LEDGER.get(`wit:count:${day}`)) || 0);
@@ -1931,6 +1944,21 @@ async function handle(request, env) {
           anchor: { bitcoin_block: e.bitcoin_block, block_time: e.block_time, ots: `${origin}/ledger/${n}/ots`, batch_sha256: null },
           source_ledger_n: n, _k: [n, 0],
         });
+      }
+      // 2026-10-08 (FIX_LIST 5): one bad record must not take the whole resume down. Each measurement is checked on
+      // its own; one that fails a measurement rule is listed in not_counted with the rule's code. orphan_record (the
+      // stored bytes no longer hash to the anchored sha) stays fail-closed: only the ledger's own storage can cause
+      // it, and it means the ledger cannot vouch for anything it serves.
+      {
+        const kept = [];
+        for (const m of measurements) {
+          try { await resumeCheckMeasurement(m, sha256hex); kept.push(m); }
+          catch (err) {
+            if (!(err instanceof ResumeReject) || err.code === "orphan_record") { kept.push(m); continue; }
+            not_counted.push({ n: m.source_ledger_n, record_sha256: m.record_sha256, why: "fails_measurement_rules", detail: err.code, url: m.record_url });
+          }
+        }
+        measurements.length = 0; measurements.push(...kept);
       }
       // ascending ledger entry, then batch order: an order a third party can reproduce
       measurements.sort((x, y) => (x._k[0] - y._k[0]) || (x._k[1] - y._k[1]));

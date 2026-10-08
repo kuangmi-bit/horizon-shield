@@ -167,7 +167,8 @@ function keysOf(env) { return env.LEDGER.list({ prefix: "" }).then((l) => l.keys
   const p = await rawPost(env, o);
   ok("P1 no consent -> 200 stored commitment, consent missing from both", p.status === 200 && p.body.stored === "commitment" && p.body.consent_missing_from === "both parties" && p.body.evidence_id === o.evidence_id);
   ok("P1 the response carries no task, party, witness or verdict", !JSON.stringify(p.body).includes("private-1") && !JSON.stringify(p.body).includes(o.hop.from) && !JSON.stringify(p.body).includes("FAIL") && !JSON.stringify(p.body).includes("did:key:W1"));
-  const keys = await keysOf(env);
+  // the daily cap counters (2026-10-08) hold a UTC day and a count, keyed by a digest of the source address; they name nothing in the observation
+  const keys = (await keysOf(env)).filter((k) => !k.startsWith("nenrin:tw:cap:"));
   ok("P1 kv holds only the commitment and the pending commitment", keys.length === 2 && keys.includes("nenrin:task:commit:" + o.evidence_id) && keys.includes("nenrin:tw:pending:" + o.evidence_id));
   const stored = JSON.stringify(await Promise.all(keys.map((k) => env.LEDGER.get(k))));
   ok("P1 nothing stored names the task, the parties, the witness or the verdict", !stored.includes("private-1") && !stored.includes(o.hop.from) && !stored.includes(o.hop.to) && !stored.includes("did:key:W1") && !stored.includes("FAIL"));
@@ -249,6 +250,32 @@ function consentMessageFor(o) { return JSON.stringify({ hop: { from: o.hop.from,
   // adding consent changes neither evidence_id nor the preimage
   const o = await obs({ task_id: "private-5" });
   ok("P14 consent is outside the evidence_id preimage", (await evidenceId(consented(o))) === o.evidence_id);
+}
+
+{
+  // 2026-10-08 (FIX_LIST 5): caps on POST /witness/task
+  const env = ENV();
+  const big = { method: "POST", text: async () => "x".repeat(32769) };
+  const rb = await handleTaskWitness("/witness/task", big, null, env);
+  ok("C1 body over 32768 bytes -> 413 before parsing", rb.status === 413 && JSON.parse(await rb.text()).error === "too_large");
+  const longTask = await obs({ task_id: "t".repeat(257) });
+  const rl = await rawPost(env, longTask);
+  ok("C2 task_id over 256 chars -> 400 field_too_long", rl.status === 400 && rl.body.error === "field_too_long" && rl.body.field === "task_id");
+  const badSeq = await obs({ task_id: "seq-x", seq: 5000 });
+  ok("C3 hop.seq out of 0..1000 -> 400", (await rawPost(env, badSeq)).body.field === "hop.seq");
+  const day = new Date().toISOString().slice(0, 10);
+  await env.LEDGER.put("nenrin:tw:cap:" + day, "2000");
+  const fresh = await obs({ task_id: "cap-g", from: "https://a.agent.example", to: "https://b.agent.example" });
+  const rg = await rawPost(env, fresh);
+  ok("C4 global daily cap reached -> 429 and nothing stored", rg.status === 429 && rg.body.error === "daily_global_cap_reached" && !(await env.LEDGER.get("nenrin:task:obs:" + fresh.evidence_id)));
+  const env2 = ENV();
+  const first = await obs({ task_id: "cap-r", from: "https://a.agent.example", to: "https://b.agent.example" });
+  ok("C5 a new observation is accepted and counted", (await rawPost(env2, first)).body.stored === "public" && (await env2.LEDGER.get("nenrin:tw:cap:" + day)) === "1");
+  await env2.LEDGER.put("nenrin:tw:cap:" + day, "2000");
+  ok("C6 a repeat of an observation already stored is not blocked by the cap", (await rawPost(env2, first)).status === 200);
+  const thrower = { LEDGER: { get: async () => { throw new Error("boom"); }, put: async () => {}, list: async () => ({ keys: [] }) } };
+  const r5 = await rawPost(thrower, first);
+  ok("C7 internal error is a JSON 500 without a stack trace", r5.status === 500 && r5.body.stack === undefined);
 }
 
 console.log(fails ? ("\n" + fails + " FAILED") : "\nALL PASS (task_ledger_v0, Web Crypto)");

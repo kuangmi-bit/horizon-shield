@@ -113,6 +113,19 @@ seed([b7.entry], [[7, sX]]);
 res = await call("/resume?endpoint=" + encodeURIComponent(EP)); body = await res.json();
 ok("F1_422_orphan_record_on_tampered_stored_bytes", res.status === 422 && body.code === "orphan_record", res.status + " " + JSON.stringify(body.code));
 
+// 3b. 2026-10-08 (FIX_LIST 5): a record that fails a measurement rule is listed in not_counted, the resume still assembles
+{
+  const good = stored(walk(BASE, { walked_at: "2026-09-10T01:00:00Z" }));
+  const scored = stored({ ...walk(BASE, { walked_at: "2026-09-10T02:00:00Z" }), score: 99 });                 // score_injection
+  const late = stored(walk(BASE, { walked_at: "2026-09-10T09:00:00Z" }));                                      // walked after the block: postdated
+  const b8 = batchEntry(8, [good, scored, late], { block_time: "2026-09-10T06:00:00Z" });
+  seed([b8.entry], [[8, good], [8, scored], [8, late]]);
+  const r = await call("/resume?endpoint=" + encodeURIComponent(EP)); const bb = await r.json();
+  const nc = (bb.not_counted || []).filter((x) => x.why === "fails_measurement_rules");
+  ok("F2_bad_records_go_to_not_counted_and_resume_assembles", r.status === 200 && bb.counts.PASS === 1 && nc.length === 2, r.status + " " + JSON.stringify(nc.map((x) => x.detail)));
+  ok("F3_not_counted_names_the_rule", nc.some((x) => x.detail === "score_injection" && x.record_sha256 === scored.sha) && nc.some((x) => x.detail === "coordinate_chosen_by_prover" && x.record_sha256 === late.sha));
+}
+
 // 4. bad input, empty ledger
 res = await call("/resume"); ok("B1_400_without_endpoint", res.status === 400);
 res = await call("/resume?endpoint=http%3A%2F%2Finsecure.example"); ok("B2_400_non_https", res.status === 400);

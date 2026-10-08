@@ -189,6 +189,36 @@ const PENDING_KEY = (eid) => "nenrin:tw:pending:" + eid;   // daily Bitcoin anch
 const ANCHORED_KEY = (eid) => "nenrin:tw:anchored:" + eid; // { n, obs } once bundled into an anchored batch
 const PENDING_PREFIX = "nenrin:tw:pending:";
 const TASK_BATCH_MAX = 500;
+// 2026-10-08 (FIX_LIST 5): caps on POST /witness/task, stated in the refusal. Body size and field lengths are
+// checked before anything is parsed or hashed; the daily caps count new writes only (a repeat is free).
+const TASK_MAX_BYTES = 32768;
+const TASK_FIELD_MAX = { task_id: 256, "hop.from": 512, "hop.to": 512, witness_id: 512 };
+const TASK_DAILY_GLOBAL = 2000;
+const TASK_DAILY_PER_IP = 200;
+async function taskCapKeys(request) {
+  const day = new Date().toISOString().slice(0, 10);
+  const ip = (request.headers && request.headers.get && request.headers.get("cf-connecting-ip")) || "unknown";
+  return { g: "nenrin:tw:cap:" + day, i: "nenrin:tw:cap:" + day + ":" + (await sha256hex(ip)).slice(0, 16) };
+}
+function fieldTooLong(obs) {
+  const vals = { task_id: obs.task_id, "hop.from": obs.hop.from, "hop.to": obs.hop.to, witness_id: obs.witness_id };
+  for (const k of Object.keys(TASK_FIELD_MAX)) if (typeof vals[k] === "string" && vals[k].length > TASK_FIELD_MAX[k]) return k;
+  if (!Number.isSafeInteger(obs.hop.seq) || obs.hop.seq < 0 || obs.hop.seq > 1000) return "hop.seq";
+  return null;
+}
+async function taskCapHit(request, env) {
+  const k = await taskCapKeys(request);
+  const g = Number((await env.LEDGER.get(k.g)) || 0), i = Number((await env.LEDGER.get(k.i)) || 0);
+  if (g >= TASK_DAILY_GLOBAL) return { error: "daily_global_cap_reached", cap: TASK_DAILY_GLOBAL };
+  if (i >= TASK_DAILY_PER_IP) return { error: "daily_per_ip_cap_reached", cap: TASK_DAILY_PER_IP };
+  return null;
+}
+async function taskCapCount(request, env) {
+  const k = await taskCapKeys(request);
+  const g = Number((await env.LEDGER.get(k.g)) || 0), i = Number((await env.LEDGER.get(k.i)) || 0);
+  await env.LEDGER.put(k.g, String(g + 1), { expirationTtl: 90000 });
+  await env.LEDGER.put(k.i, String(i + 1), { expirationTtl: 90000 });
+}
 
 function j(o, status = 200) {
   return new Response(JSON.stringify(o), {
@@ -212,11 +242,16 @@ export async function handleTaskWitnessPost(request, env) {
   let obs;
   // strict parse: duplicate keys, floats, unsafe integers and non-ASCII keys are refused before anything is hashed
   try {
-    if (typeof request.text === "function") obs = parseStrict(await request.text());
-    else { obs = await request.json(); checkCanonicalInput(obs); }
+    if (typeof request.text === "function") {
+      const text = await request.text();
+      if (text.length > TASK_MAX_BYTES) return j({ ok: false, error: "too_large", max_bytes: TASK_MAX_BYTES }, 413);
+      obs = parseStrict(text);
+    } else { obs = await request.json(); checkCanonicalInput(obs); }
   } catch (e) { return j({ ok: false, error: e && e.code ? e.code : "bad_json", at: e && e.at != null ? e.at : undefined }, 400); }
   const se = shapeError(obs);
   if (se) return j({ ok: false, error: se, need: "task_id, hop{seq,from,to}, prev_evidence_id, conduct{verdict}, witness_id, evidence_id" }, 400);
+  const tl = fieldTooLong(obs);
+  if (tl) return j({ ok: false, error: "field_too_long", field: tl, max: TASK_FIELD_MAX[tl] === undefined ? "0..1000 integer" : TASK_FIELD_MAX[tl] }, 400);
   const v = await verifyObservation(obs); // R1 independence + R2 recompute
   if (!v.ok) return j({ ok: false, error: v.reason }, 422);
   const s = await verifySignatures(obs); // optional attribution; present-but-invalid is rejected
@@ -224,6 +259,12 @@ export async function handleTaskWitnessPost(request, env) {
   const cs = await verifyConsent(obs); // record-privacy-v1; present-but-invalid is rejected
   if (!cs.ok) return j({ ok: false, error: cs.reason }, 422);
   const eid = obs.evidence_id;
+  const seen = (await env.LEDGER.get(OBS_KEY(eid))) || (await env.LEDGER.get(COMMIT_KEY(eid)));
+  if (!seen) {
+    const cap = await taskCapHit(request, env);
+    if (cap) return j({ ok: false, ...cap, note: "new observations per UTC day; try tomorrow" }, 429);
+    await taskCapCount(request, env);
+  }
   const basis = publicationBasis(obs, cs.parties);
   if (!basis.from || !basis.to) {
     // Commitment only. Never downgrade an observation that is already public.
@@ -481,6 +522,6 @@ export async function handleTaskWitness(p, request, url, env) {
     // Additive module must never crash the shared ledger worker: handle() has no outer try/catch, so an
     // internal throw here would surface as a Cloudflare 1101 (non-JSON). Convert it to a clean JSON 500
     // that also reports the cause, so a client sees a diagnosable error instead of a dead worker.
-    return j({ ok: false, error: "task_witness_internal", detail: String((e && e.message) || e), stack: String((e && e.stack) || "").slice(0, 600) }, 500);
+    return j({ ok: false, error: "task_witness_internal", detail: String((e && e.message) || e).slice(0, 200) }, 500);
   }
 }
