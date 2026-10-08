@@ -1,51 +1,452 @@
 {
-  "schema": "hs-tsunagi-board-v0",
+  "schema": "hs-tsunagi-board-v1",
   "what_this_is": "The implementations TSUNAGI runs every night. Each row is code that lives in its author's own repository; the board clones it at the default branch head, runs it against the corpus named in the row, and records the commit it ran, the exit code, the counts, and per-vector results where the implementation prints them. A row is added with one pull request that names a public repository and a command. Rows marked ours are this project's own implementations: one column among the others, not the referee.",
   "implementations": [
-    {"id": "hs-nenrin-reference", "ours": true, "author": "ogasurfproject-jpg", "repo": null, "language": "JavaScript",
-     "runs": [
-       {"corpus": "nenrin-interop-v0", "cwd": "@hs/workers/hs-ledger/nenrin/interop-v0", "cmd": ["node", "run_interop.mjs"], "parse": "all_pass", "total": 5},
-       {"corpus": "nenrin-interop-v0.1", "cwd": "@hs/workers/hs-ledger/nenrin/interop-v0.1", "cmd": ["node", "run_interop.mjs"], "parse": "all_pass", "total": 13}
-     ]},
-    {"id": "hs-nenrin-go", "ours": true, "author": "ogasurfproject-jpg", "repo": null, "language": "Go",
-     "note": "A Go port of the reference verifier by the same author (workers/hs-ledger/nenrin/sdk-go), standard library only. It is a second language, not an independent implementation: it was written from the reference and is held to it by sdk-go/parity/parity.py (27,156 bundles, 0 differences).",
-     "runs": [
-       {"corpus": "nenrin-interop-v0", "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go", "cmd": ["go", "run", "./cmd/nenrin-verify-go", "--corpus", "@hs/workers/hs-ledger/nenrin/interop-v0"], "parse": "count_line", "total": 5},
-       {"corpus": "nenrin-interop-v0.1", "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go", "cmd": ["go", "run", "./cmd/nenrin-verify-go", "--corpus", "@hs/workers/hs-ledger/nenrin/interop-v0.1"], "parse": "count_line", "total": 13},
-       {"corpus": "nenrin-interop-v0.2-edge", "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go", "cmd": ["go", "run", "./cmd/nenrin-verify-go", "--corpus", "@hs/workers/hs-ledger/nenrin/interop-v0.2/edge"], "parse": "count_line", "total": 36}
-     ]},
-    {"id": "kuangmi-bit-nenrin-independent-verifiers", "ours": false, "author": "kuangmi-bit", "repo": "https://github.com/kuangmi-bit/nenrin-independent-verifiers.git", "language": "Python",
-     "license": "MIT", "written_from": "VERIFIER.md alone, without reading the reference implementation (the author's statement in the repository README)",
-     "runs": [
-       {"corpus": "nenrin-interop-v0", "cwd": "@impl", "env": {"PYTHONPATH": "verifiers"}, "cmd": ["python3", "runners/run_corpus.py", "@hs/workers/hs-ledger/nenrin/interop-v0", "nenrin_verify_v0"], "parse": "count_line", "total": 5},
-       {"corpus": "nenrin-interop-v0.1", "cwd": "@impl", "env": {"PYTHONPATH": "verifiers"}, "cmd": ["python3", "runners/run_corpus.py", "@hs/workers/hs-ledger/nenrin/interop-v0.1", "nenrin_verify_v0"], "parse": "count_line", "total": 13},
-       {"corpus": "nenrin-interop-v0.2-edge", "cwd": "@impl", "cmd": ["python3", "runners/run_edge.py", "@hs/workers/hs-ledger/nenrin/interop-v0.2/edge"], "parse": "count_line", "total": 36}
-     ]},
-    {"id": "babyblueviper1-approval-v2", "ours": false, "author": "babyblueviper1", "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git", "language": "Python",
-     "license": "MIT",
-     "runs": [
-       {"corpus": "musubi-approval-v2", "cwd": "@impl/examples/musubi-approver-v2", "cmd": ["python3", "verify_approval_v2.py"], "parse": "approval_lines", "total": 9, "vectors": "@impl/examples/musubi-approver-v2/vectors.json"}
-     ]},
-    {"id": "hs-settle-v1.10-approval", "ours": true, "author": "ogasurfproject-jpg", "repo": null, "language": "Python",
-     "runs": [
-       {"corpus": "musubi-approval-v2", "cwd": "@hs/workers/hs-ledger/nenrin/musubi-v0", "cmd": ["python3", "@board/hs_approval_on.py", "@vectors:musubi-approval-v2"], "parse": "approval_lines", "total": 9}
-     ]},
-    {"id": "probity-a2a-card-readers", "ours": false, "author": "Sankalp Gilda (astrogilda), Probity AI", "repo": "https://github.com/probityai/agent-evidence-vectors.git", "language": "Python",
-     "license": "Apache-2.0", "note": "Probity's readers run against their own frozen copy of our s3 and s4 vectors (source-lock.json in each directory names the commit)",
-     "runs": [
-       {"corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)", "cwd": "@impl/interop/a2a-s3-retain-2026-10-01", "cmd": ["python3", "run_regression.py"], "parse": "json_results", "total": 13},
-       {"corpus": "a2a-card-sign-v01/s4-dual-name", "cwd": "@impl/interop/a2a-s4-dual-name-2026-10-02", "cmd": ["python3", "run_dual_name.py"], "parse": "json_results", "total": 5}
-     ]},
-    {"id": "a2aproject-a2a-python", "ours": false, "author": "a2aproject (the official A2A Python SDK)", "repo": "https://github.com/a2aproject/a2a-python.git", "language": "Python",
-     "license": "Apache-2.0", "note": "The SDK's own copy of our five s0-control vectors, merged in a2aproject/a2a-python#1286",
-     "runs": [
-       {"corpus": "a2a-card-sign-v01/s0-control", "cwd": "@impl", "setup": ["uv", "sync", "-q", "--all-extras"], "cmd": ["uv", "run", "-q", "pytest", "-q", "tests/utils/test_signing_interop.py"], "parse": "pytest", "total": 10}
-     ]}
+    {
+      "id": "hs-nenrin-reference",
+      "ours": true,
+      "author": "ogasurfproject-jpg",
+      "repo": null,
+      "language": "JavaScript",
+      "runs": [
+        {
+          "corpus": "nenrin-interop-v0",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "node",
+            "js_reference_batch.mjs",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 5
+        },
+        {
+          "corpus": "nenrin-interop-v0.1",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "node",
+            "js_reference_batch.mjs",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 13
+        },
+        {
+          "corpus": "nenrin-interop-v0.2-edge",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "node",
+            "js_reference_batch.mjs",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 36
+        }
+      ]
+    },
+    {
+      "id": "hs-nenrin-go",
+      "ours": true,
+      "author": "ogasurfproject-jpg",
+      "repo": null,
+      "language": "Go",
+      "note": "A Go port of the reference verifier by the same author (workers/hs-ledger/nenrin/sdk-go), standard library only. It is a second language, not an independent implementation: it was written from the reference and is held to it by sdk-go/parity/parity.py (27,156 bundles, 0 differences).",
+      "runs": [
+        {
+          "corpus": "nenrin-interop-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+          "cmd": [
+            "go",
+            "run",
+            "./cmd/nenrin-verify-go",
+            "--batch",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 5
+        },
+        {
+          "corpus": "nenrin-interop-v0.1",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+          "cmd": [
+            "go",
+            "run",
+            "./cmd/nenrin-verify-go",
+            "--batch",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 13
+        },
+        {
+          "corpus": "nenrin-interop-v0.2-edge",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+          "cmd": [
+            "go",
+            "run",
+            "./cmd/nenrin-verify-go",
+            "--batch",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 36
+        }
+      ]
+    },
+    {
+      "id": "hs-nenrin-pypi",
+      "ours": true,
+      "author": "ogasurfproject-jpg",
+      "repo": null,
+      "language": "Python",
+      "note": "The PyPI port (nenrin-verify, workers/hs-ledger/nenrin/sdk-python). Same author as the reference, held to it by the parity CI; a second language, not an independent implementation.",
+      "runs": [
+        {
+          "corpus": "nenrin-interop-v0",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "python3",
+            "py_module_batch.py",
+            "--nenrin-verify",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 5
+        },
+        {
+          "corpus": "nenrin-interop-v0.1",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "python3",
+            "py_module_batch.py",
+            "--nenrin-verify",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 13
+        },
+        {
+          "corpus": "nenrin-interop-v0.2-edge",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "python3",
+            "py_module_batch.py",
+            "--nenrin-verify",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 36
+        }
+      ]
+    },
+    {
+      "id": "kuangmi-bit-nenrin-independent-verifiers",
+      "ours": false,
+      "author": "kuangmi-bit",
+      "repo": "https://github.com/kuangmi-bit/nenrin-independent-verifiers.git",
+      "language": "Python",
+      "license": "MIT",
+      "written_from": "VERIFIER.md alone, without reading the reference implementation (the author's statement in the repository README)",
+      "runs": [
+        {
+          "corpus": "nenrin-interop-v0",
+          "cwd": "@impl",
+          "env": {
+            "PYTHONPATH": "verifiers"
+          },
+          "cmd": [
+            "python3",
+            "runners/run_corpus.py",
+            "@hs/workers/hs-ledger/nenrin/interop-v0",
+            "nenrin_verify_v0"
+          ],
+          "parse": "count_line",
+          "total": 5
+        },
+        {
+          "corpus": "nenrin-interop-v0.1",
+          "cwd": "@impl",
+          "env": {
+            "PYTHONPATH": "verifiers"
+          },
+          "cmd": [
+            "python3",
+            "runners/run_corpus.py",
+            "@hs/workers/hs-ledger/nenrin/interop-v0.1",
+            "nenrin_verify_v0"
+          ],
+          "parse": "count_line",
+          "total": 13
+        },
+        {
+          "corpus": "nenrin-interop-v0.2-edge",
+          "cwd": "@impl",
+          "cmd": [
+            "python3",
+            "runners/run_edge.py",
+            "@hs/workers/hs-ledger/nenrin/interop-v0.2/edge"
+          ],
+          "parse": "count_line",
+          "total": 36
+        },
+        {
+          "corpus": "nenrin-interop-v0",
+          "cwd": "@impl",
+          "env": {
+            "PYTHONPATH": "@impl/verifiers"
+          },
+          "cmd": [
+            "python3",
+            "@board/adapters/py_module_batch.py",
+            "nenrin_verify_v0",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 5
+        },
+        {
+          "corpus": "nenrin-interop-v0.1",
+          "cwd": "@impl",
+          "env": {
+            "PYTHONPATH": "@impl/verifiers"
+          },
+          "cmd": [
+            "python3",
+            "@board/adapters/py_module_batch.py",
+            "nenrin_verify_v0",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 13
+        },
+        {
+          "corpus": "nenrin-interop-v0.2-edge",
+          "cwd": "@impl",
+          "env": {
+            "PYTHONPATH": "@impl/verifiers"
+          },
+          "cmd": [
+            "python3",
+            "@board/adapters/py_module_batch.py",
+            "nenrin_verify_v02_edge",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 36
+        }
+      ],
+      "refereed_through": "tools/tsunagi/adapters/py_module_batch.py, which imports the author's module and calls its verify(bundle).signature(); nothing else of this project touches the result"
+    },
+    {
+      "id": "babyblueviper1-approval-v2",
+      "ours": false,
+      "author": "babyblueviper1",
+      "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git",
+      "language": "Python",
+      "license": "MIT",
+      "runs": [
+        {
+          "corpus": "musubi-approval-v2",
+          "cwd": "@impl/examples/musubi-approver-v2",
+          "cmd": [
+            "python3",
+            "verify_approval_v2.py"
+          ],
+          "parse": "approval_lines",
+          "total": 9,
+          "vectors": "@impl/examples/musubi-approver-v2/vectors.json"
+        }
+      ]
+    },
+    {
+      "id": "hs-settle-v1.10-approval",
+      "ours": true,
+      "author": "ogasurfproject-jpg",
+      "repo": null,
+      "language": "Python",
+      "runs": [
+        {
+          "corpus": "musubi-approval-v2",
+          "cwd": "@hs/workers/hs-ledger/nenrin/musubi-v0",
+          "cmd": [
+            "python3",
+            "@board/hs_approval_on.py",
+            "@vectors:musubi-approval-v2"
+          ],
+          "parse": "approval_lines",
+          "total": 9
+        }
+      ]
+    },
+    {
+      "id": "probity-a2a-card-readers",
+      "ours": false,
+      "author": "Sankalp Gilda (astrogilda), Probity AI",
+      "repo": "https://github.com/probityai/agent-evidence-vectors.git",
+      "language": "Python",
+      "license": "Apache-2.0",
+      "note": "Probity's readers run against their own frozen copy of our s3 and s4 vectors (source-lock.json in each directory names the commit)",
+      "runs": [
+        {
+          "corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)",
+          "cwd": "@impl/interop/a2a-s3-retain-2026-10-01",
+          "cmd": [
+            "python3",
+            "run_regression.py"
+          ],
+          "parse": "json_results",
+          "total": 13
+        },
+        {
+          "corpus": "a2a-card-sign-v01/s4-dual-name",
+          "cwd": "@impl/interop/a2a-s4-dual-name-2026-10-02",
+          "cmd": [
+            "python3",
+            "run_dual_name.py"
+          ],
+          "parse": "json_results",
+          "total": 5
+        }
+      ]
+    },
+    {
+      "id": "a2aproject-a2a-python",
+      "ours": false,
+      "author": "a2aproject (the official A2A Python SDK)",
+      "repo": "https://github.com/a2aproject/a2a-python.git",
+      "language": "Python",
+      "license": "Apache-2.0",
+      "note": "The SDK's own copy of our five s0-control vectors, merged in a2aproject/a2a-python#1286",
+      "runs": [
+        {
+          "corpus": "a2a-card-sign-v01/s0-control",
+          "cwd": "@impl",
+          "setup": [
+            "uv",
+            "sync",
+            "-q",
+            "--all-extras"
+          ],
+          "cmd": [
+            "uv",
+            "run",
+            "-q",
+            "pytest",
+            "-q",
+            "tests/utils/test_signing_interop.py"
+          ],
+          "parse": "pytest",
+          "total": 10
+        }
+      ]
+    }
   ],
   "pairs": [
-    {"corpus": "musubi-approval-v2", "a": "babyblueviper1-approval-v2", "b": "hs-settle-v1.10-approval", "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"},
-    {"corpus": "nenrin-interop-v0", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"},
-    {"corpus": "nenrin-interop-v0.1", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"},
-    {"corpus": "nenrin-interop-v0.2-edge", "a": "hs-nenrin-go", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "the edge vectors, read in Go and in Python by different people; both reproduce every frozen verdict signature"}
-  ]
+    {
+      "corpus": "musubi-approval-v2",
+      "a": "babyblueviper1-approval-v2",
+      "b": "hs-settle-v1.10-approval",
+      "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"
+    },
+    {
+      "corpus": "nenrin-interop-v0",
+      "a": "hs-nenrin-reference",
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "scored_by": "board",
+      "what": "each verdict signature, as returned by each implementation and compared by the board, case by case; written by different people"
+    },
+    {
+      "corpus": "nenrin-interop-v0.1",
+      "a": "hs-nenrin-reference",
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "scored_by": "board",
+      "what": "each verdict signature, as returned by each implementation and compared by the board, case by case; written by different people"
+    },
+    {
+      "corpus": "nenrin-interop-v0.2-edge",
+      "a": "hs-nenrin-reference",
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "scored_by": "board",
+      "what": "each verdict signature, as returned by each implementation and compared by the board, case by case; written by different people"
+    },
+    {
+      "corpus": "nenrin-interop-v0.2-edge",
+      "a": "hs-nenrin-go",
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "scored_by": "board",
+      "what": "the edge vectors, read in Go and in Python by different people, compared case by case"
+    }
+  ],
+  "differential": {
+    "what": "Every run, the conformance-v0 adversary signs a fresh set of edge bundles with new keys. Each implementation below reads the same batch; the board lists every bundle on which any two of them return a different verdict signature. There is no frozen answer here.",
+    "generator": {
+      "cwd": "@hs/workers/hs-ledger/nenrin/conformance-v0",
+      "cmd": [
+        "node",
+        "gen_edge_bundles.mjs",
+        "@gen"
+      ]
+    },
+    "implementations": [
+      {
+        "id": "hs-nenrin-reference",
+        "cwd": "@board/adapters",
+        "cmd": [
+          "node",
+          "js_reference_batch.mjs",
+          "@in",
+          "@out"
+        ]
+      },
+      {
+        "id": "hs-nenrin-go",
+        "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+        "cmd": [
+          "go",
+          "run",
+          "./cmd/nenrin-verify-go",
+          "--batch",
+          "@in",
+          "@out"
+        ]
+      },
+      {
+        "id": "hs-nenrin-pypi",
+        "cwd": "@board/adapters",
+        "cmd": [
+          "python3",
+          "py_module_batch.py",
+          "--nenrin-verify",
+          "@in",
+          "@out"
+        ]
+      },
+      {
+        "id": "kuangmi-bit-nenrin-independent-verifiers",
+        "cwd": "@impl",
+        "env": {
+          "PYTHONPATH": "@impl/verifiers"
+        },
+        "cmd": [
+          "python3",
+          "@board/adapters/py_module_batch.py",
+          "nenrin_verify_v02_edge",
+          "@in",
+          "@out"
+        ]
+      }
+    ]
+  }
 }

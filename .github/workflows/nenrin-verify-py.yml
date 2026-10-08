@@ -17,6 +17,9 @@ on:
       - "workers/hs-ledger/nenrin/agreement-v0/**"
       - "workers/hs-ledger/nenrin/recovery-v0/**"
       - "workers/hs-ledger/nenrin/musubi-v0/**"
+      - "workers/hs-ledger/nenrin/interop-v0/**"
+      - "workers/hs-ledger/nenrin/interop-v0.1/**"
+      - "workers/hs-ledger/nenrin/interop-v0.2/**"
       - ".github/workflows/nenrin-verify-py.yml"
   pull_request:
     paths:
@@ -25,6 +28,9 @@ on:
       - "workers/hs-ledger/nenrin/agreement-v0/**"
       - "workers/hs-ledger/nenrin/recovery-v0/**"
       - "workers/hs-ledger/nenrin/musubi-v0/**"
+      - "workers/hs-ledger/nenrin/interop-v0/**"
+      - "workers/hs-ledger/nenrin/interop-v0.1/**"
+      - "workers/hs-ledger/nenrin/interop-v0.2/**"
       - ".github/workflows/nenrin-verify-py.yml"
   workflow_dispatch:
 

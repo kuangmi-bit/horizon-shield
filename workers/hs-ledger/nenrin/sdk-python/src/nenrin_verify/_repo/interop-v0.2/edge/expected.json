@@ -1,0 +1,466 @@
+{
+  "schema": "nenrin-interop-expected-v0",
+  "version": "0.1.0",
+  "verifier": "independent Python implementation (verify_edge.py), written from VERIFIER.md; the reference was not read",
+  "note": "the canonical verdict signature each fixture must reproduce: verdict, sorted refusal codes, sorted finding codes.",
+  "cases": {
+    "ts_real_day_ok": {
+      "intent": "executed_at on a real leap day (2024-02-29) inside the window; accepted",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_fraction_truncation_ok": {
+      "intent": "window .1234-.9876, executed .1239: milliseconds compared, extra digits truncated; accepted",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_impossible_day": {
+      "intent": "executed_at = '2026-02-30T00:30:00Z': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_hour_24": {
+      "intent": "executed_at = '2026-10-04T24:00:00Z': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_second_60": {
+      "intent": "executed_at = '2026-10-04T00:30:60Z': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_year_zero": {
+      "intent": "executed_at = '0000-10-04T00:30:00Z': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_trailing_newline": {
+      "intent": "executed_at = '2026-10-04T00:30:00Z\\n': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_lowercase_tz": {
+      "intent": "executed_at = '2026-10-04t00:30:00z': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "ts_offset": {
+      "intent": "executed_at = '2026-10-04T00:30:00+00:00': not a real instant, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "prev_absent_seq0": {
+      "intent": "seq 0 with prev_evidence_id absent (not null): root_prev_not_null",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "delegation_chain_broken"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "seq_not_integer": {
+      "intent": "hop.seq is the string \"0\": a JSON integer is required, seq_gap",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "delegation_chain_broken"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "seq_duplicate_same_verdict": {
+      "intent": "two witnesses at seq 0, same verdict: distinct seqs 0,1 are contiguous, no disagreement; accepted",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "verdict_missing_is_distinct": {
+      "intent": "one observation at seq 0 carries no conduct.verdict: that counts as a distinct value of its own, witness_disagreement",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked",
+          "witness_disagreement"
+        ]
+      }
+    },
+    "evidence_empty_object": {
+      "intent": "outcome.evidence = {}: present and not well formed, evidence_invalid",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "evidence_invalid"
+        ],
+        "findings": []
+      }
+    },
+    "evidence_empty_array": {
+      "intent": "outcome.evidence = []: present and not well formed, evidence_invalid",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "evidence_invalid"
+        ],
+        "findings": []
+      }
+    },
+    "evidence_zero": {
+      "intent": "outcome.evidence = 0: absent by the falsy rule, no_evidence_bound",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "no_evidence_bound"
+        ]
+      }
+    },
+    "outcome_not_object": {
+      "intent": "outcome is a string: E is absent, no_evidence_bound",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "no_evidence_bound"
+        ]
+      }
+    },
+    "require_signatures_zero": {
+      "intent": "require_signatures = 0 (a number, not the literal false) with a signature that does not verify: checks still run",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "require_signatures_false": {
+      "intent": "require_signatures = false with the same bad encoding: checks are off, the bundle is accepted",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "unknown_bundle_keys": {
+      "intent": "unknown bundle keys are ignored; accepted",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "sig_canonical_ok": {
+      "intent": "canonical standard base64 signature; accepted",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "accepted",
+        "refusals": [],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "sig_missing_padding": {
+      "intent": "provider_sig with padding removed: not canonical standard base64, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "sig_urlsafe_alphabet": {
+      "intent": "provider_sig with + and / rewritten as - and _: not canonical standard base64, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "sig_whitespace": {
+      "intent": "provider_sig with one character replaced by a space: not canonical standard base64, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "sig_trailing_newline": {
+      "intent": "provider_sig with a newline appended: not canonical standard base64, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "sig_noncanonical_trailing_bits": {
+      "intent": "provider_sig with unused trailing bits of the final quantum set: not canonical standard base64, refused",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "obs_element_not_object": {
+      "intent": "OPEN: observations = [1]. Proposal: a non-object element fails as an observation (delegation_observation_invalid) and contributes nothing to step 0 or R3/R4",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "delegation_observation_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked",
+          "no_digest_link"
+        ]
+      }
+    },
+    "obs_nonobject_with_valid": {
+      "intent": "OPEN: a non-object element next to a valid observation. Same proposal: one delegation_observation_invalid, the valid set verdicts as usual",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "delegation_observation_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "receipts_element_not_object": {
+      "intent": "Malformed records: a receipts element that is not an object adds execution_invalid and does not enter the receipt set, so the grant has no receipts: execution_incomplete_pair",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_incomplete_pair",
+          "execution_invalid"
+        ],
+        "findings": []
+      }
+    },
+    "receipt_key_not_object": {
+      "intent": "Malformed records: receipt = 5 adds execution_invalid and is not presented, so receipts[0] is the primary and step 4 still runs",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "grant_key_not_object": {
+      "intent": "Malformed records: grant = \"g\" adds execution_invalid and is not presented, so the receipt set has no grant: execution_incomplete_pair",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_incomplete_pair",
+          "execution_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "intent_key_not_object": {
+      "intent": "Malformed records: intent = 5 adds preflight_invalid and is not presented, so step 3 runs as if the slot were null",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "preflight_invalid"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_identity_small_order": {
+      "intent": "section 5 key rule: a did:key naming the identity point does not resolve, so the forged provider_sig (R = identity, S = 0) does not verify: execution_signature_invalid. OpenSSL accepts that signature",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_identity_noncanonical_signbit": {
+      "intent": "section 5 key rule: the same forgery under the same key with the sign bit set, which is neither canonical (x = 0 with the sign bit set) nor prime order. OpenSSL accepts the signature; the key must not resolve",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_order8_small_order": {
+      "intent": "section 5 key rule: a did:key naming a point of order 8 does not resolve, so the forged provider_sig (R = identity, S = 0, the receipt ground over 17 instants so that [k]T is the identity) does not verify: execution_signature_invalid. OpenSSL accepts it, and a verifier without the rule accepts the bundle",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    },
+    "key_mixed_order": {
+      "intent": "section 5 key rule (R1): a did:key naming A + T, a mixed-order point. The holder of A's private key signed this receipt as A + T (0 instants ground so that [k]T is the identity), so one key poses as a second, independent party. The key must not resolve: execution_signature_invalid",
+      "task_id": "task_interop_edge",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "execution_signature_invalid",
+          "execution_unreconciled"
+        ],
+        "findings": [
+          "evidence_bound_unchecked"
+        ]
+      }
+    }
+  }
+}

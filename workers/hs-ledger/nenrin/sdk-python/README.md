@@ -71,6 +71,26 @@ the same from a shell (exit 0 allow, 1 deny).
 Snippets for LangGraph, the OpenAI Agents SDK, Google ADK, CrewAI and Claude (the verification gate as an MCP tool,
 the recorder and the policy together): [integrations/FRAMEWORKS.md](https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/sdk-python/integrations/FRAMEWORKS.md).
 
+## Score your verifier the way the TSUNAGI board does (0.4.9, `nenrin-tsunagi`)
+
+The TSUNAGI board (`ops/tsunagi/BOARD.md` in the repository) runs every registered NENRIN verifier every night, each
+cloned from its author's own repository. For the NENRIN corpora it no longer repeats the count an implementation
+prints: it hands the implementation the fixtures as one batch file, reads back one verdict signature per fixture and
+compares each with the frozen expected.json itself. `nenrin-tsunagi` is that referee, with the three corpora inside
+the package, so you get the board's answer on your own machine before you open a pull request.
+
+```sh
+pip install nenrin-verify
+nenrin-tsunagi list
+nenrin-tsunagi run nenrin-interop-v0.2-edge -- "python3 my_verifier.py {in} {out}"
+nenrin-tsunagi row nenrin-interop-v0.2-edge -- "python3 my_verifier.py {in} {out}"    # the row for implementations.json
+```
+
+The contract, in any language: `{in}` is a JSON array `[{"name", "bundle"}]`; write `{out}` as
+`{name: {"verdict", "refusals", "findings"}}` (or `{name: {"error"}}`). Codes are compared as sets (VERIFIER.md
+section 4). A missing case, an extra case, an error or any difference is a case not reproduced; exit 0 only when
+every case reproduces.
+
 ## What it verifies
 
 | module | what | held to |
@@ -125,6 +145,13 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 `report_sha256(report)` is the sha256 of the report with keys sorted by UTF-16 code unit at every depth, no
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
+
+## 0.4.9 (2026-10-08)
+
+`nenrin-tsunagi`: the TSUNAGI board's referee, with interop-v0 (5), interop-v0.1 (13) and interop-v0.2/edge (36)
+vendored byte for byte under `_repo/` and pinned in VENDORED.json. `run` writes the batch, runs your command and
+scores it; `score` scores an output you already have; `row` prints the board entry for your pull request. The
+verifiers are unchanged.
 
 ## 0.4.8 (2026-10-06)
 

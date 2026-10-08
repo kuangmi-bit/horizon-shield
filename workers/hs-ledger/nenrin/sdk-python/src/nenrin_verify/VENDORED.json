@@ -9,6 +9,291 @@
     "source_sha256": "0d0209b318f654d0995ac6ca40f5194064cd6e8b49459d1bbbcfdb957b61452d",
     "vendored_sha256": "0d0209b318f654d0995ac6ca40f5194064cd6e8b49459d1bbbcfdb957b61452d"
   },
+  "_repo/interop-v0.1/expected.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/expected.json",
+    "source_sha256": "4e66640856fa6de9dbe9d680248132af6b6aa024b5ea7018113ade1e55369eca",
+    "vendored_sha256": "4e66640856fa6de9dbe9d680248132af6b6aa024b5ea7018113ade1e55369eca"
+  },
+  "_repo/interop-v0.1/fixtures/evidence_malformed.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/evidence_malformed.json",
+    "source_sha256": "7b1477733d273698d51b29ec5336f7fa5e0eead59520bc0befe8318690dd3a0c",
+    "vendored_sha256": "7b1477733d273698d51b29ec5336f7fa5e0eead59520bc0befe8318690dd3a0c"
+  },
+  "_repo/interop-v0.1/fixtures/incomplete_pair.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/incomplete_pair.json",
+    "source_sha256": "f9f964c802bcc246b5779d9e139e8910d0427e9c132bbaa8c000c87665068b2f",
+    "vendored_sha256": "f9f964c802bcc246b5779d9e139e8910d0427e9c132bbaa8c000c87665068b2f"
+  },
+  "_repo/interop-v0.1/fixtures/linkage_unpresented.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/linkage_unpresented.json",
+    "source_sha256": "d48d868ddef57136dfba1af6394bb17f2750b9bd5852d30cc45b42d0dfd1433e",
+    "vendored_sha256": "d48d868ddef57136dfba1af6394bb17f2750b9bd5852d30cc45b42d0dfd1433e"
+  },
+  "_repo/interop-v0.1/fixtures/linkage_unreconciled.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/linkage_unreconciled.json",
+    "source_sha256": "37ef55b32905b3c9bcaf730c4b56573dc563ef845427fc4a953931d7a82d12ea",
+    "vendored_sha256": "37ef55b32905b3c9bcaf730c4b56573dc563ef845427fc4a953931d7a82d12ea"
+  },
+  "_repo/interop-v0.1/fixtures/non_utc_timestamp.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/non_utc_timestamp.json",
+    "source_sha256": "678549aa141c582e38643bb6a6afe9999eb6440b5902cfc45446ca4156bb9684",
+    "vendored_sha256": "678549aa141c582e38643bb6a6afe9999eb6440b5902cfc45446ca4156bb9684"
+  },
+  "_repo/interop-v0.1/fixtures/preflight_invalid.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/preflight_invalid.json",
+    "source_sha256": "36d3cc8df7ab1e01e2ae88afdebb1926af6cd09a6d00c5327f2fb22db28121b0",
+    "vendored_sha256": "36d3cc8df7ab1e01e2ae88afdebb1926af6cd09a6d00c5327f2fb22db28121b0"
+  },
+  "_repo/interop-v0.1/fixtures/preflight_signature_invalid.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/preflight_signature_invalid.json",
+    "source_sha256": "c049cacd44de3c6675fa67de6158937e54acb717c9c7de95e4abf535eeb4c1a6",
+    "vendored_sha256": "c049cacd44de3c6675fa67de6158937e54acb717c9c7de95e4abf535eeb4c1a6"
+  },
+  "_repo/interop-v0.1/fixtures/preflight_without_grant.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/preflight_without_grant.json",
+    "source_sha256": "597d3e84865e7bde1bf210a5bf8a9dbcc8cc5b44735c86f526873f8c2e293276",
+    "vendored_sha256": "597d3e84865e7bde1bf210a5bf8a9dbcc8cc5b44735c86f526873f8c2e293276"
+  },
+  "_repo/interop-v0.1/fixtures/provider_sig_invalid.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/provider_sig_invalid.json",
+    "source_sha256": "a9de8922441ab62e8ca8abe9d6fd8b38e57c6a9506d655826a15849c8e3a7b52",
+    "vendored_sha256": "a9de8922441ab62e8ca8abe9d6fd8b38e57c6a9506d655826a15849c8e3a7b52"
+  },
+  "_repo/interop-v0.1/fixtures/self_authorized.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/self_authorized.json",
+    "source_sha256": "ac95dd41edfb9eef703858f15ce646bd3189e2509613f4aa316de2517d9f74e7",
+    "vendored_sha256": "ac95dd41edfb9eef703858f15ce646bd3189e2509613f4aa316de2517d9f74e7"
+  },
+  "_repo/interop-v0.1/fixtures/task_id_mismatch.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/task_id_mismatch.json",
+    "source_sha256": "ff037e0bb910052426116a5ff129a079886baf2c907030976bfa2b5e9d4b20aa",
+    "vendored_sha256": "ff037e0bb910052426116a5ff129a079886baf2c907030976bfa2b5e9d4b20aa"
+  },
+  "_repo/interop-v0.1/fixtures/task_id_missing.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/task_id_missing.json",
+    "source_sha256": "4122bcff2e99684d0b2c9b5a0f7630dc858ca8c95c75f972196fc6cc2b2d4dba",
+    "vendored_sha256": "4122bcff2e99684d0b2c9b5a0f7630dc858ca8c95c75f972196fc6cc2b2d4dba"
+  },
+  "_repo/interop-v0.1/fixtures/witness_is_party.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.1/fixtures/witness_is_party.json",
+    "source_sha256": "f5964de8950c82c33165e6ea739ee6760ec7f49b36d3659373c5b0b8259d559c",
+    "vendored_sha256": "f5964de8950c82c33165e6ea739ee6760ec7f49b36d3659373c5b0b8259d559c"
+  },
+  "_repo/interop-v0.2/edge/expected.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/expected.json",
+    "source_sha256": "e5741d94ff631b824e389c13fa4d042dede65f4ff4a595a73961f67527062682",
+    "vendored_sha256": "e5741d94ff631b824e389c13fa4d042dede65f4ff4a595a73961f67527062682"
+  },
+  "_repo/interop-v0.2/edge/fixtures/evidence_empty_array.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/evidence_empty_array.json",
+    "source_sha256": "c541ccb7afcaa23a0a3f4eb2800c085adba97aa109073a00cc4322f3274664d4",
+    "vendored_sha256": "c541ccb7afcaa23a0a3f4eb2800c085adba97aa109073a00cc4322f3274664d4"
+  },
+  "_repo/interop-v0.2/edge/fixtures/evidence_empty_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/evidence_empty_object.json",
+    "source_sha256": "9b899975ae5514a6f83046ef4efb1c7e144600f09cacf182e61307c06a3caa0c",
+    "vendored_sha256": "9b899975ae5514a6f83046ef4efb1c7e144600f09cacf182e61307c06a3caa0c"
+  },
+  "_repo/interop-v0.2/edge/fixtures/evidence_zero.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/evidence_zero.json",
+    "source_sha256": "0000062d964fccd010f165d505ad141c2d542c7b5a692c625d02dc23c7f46705",
+    "vendored_sha256": "0000062d964fccd010f165d505ad141c2d542c7b5a692c625d02dc23c7f46705"
+  },
+  "_repo/interop-v0.2/edge/fixtures/grant_key_not_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/grant_key_not_object.json",
+    "source_sha256": "44f3051cd753eae12211852c8eb6a5712d8358b56b9776b7eb72b51e5e58dab0",
+    "vendored_sha256": "44f3051cd753eae12211852c8eb6a5712d8358b56b9776b7eb72b51e5e58dab0"
+  },
+  "_repo/interop-v0.2/edge/fixtures/intent_key_not_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/intent_key_not_object.json",
+    "source_sha256": "1cdcd792a2316d8bef250b125414c0ee19a77f0ba90e2e4824f6622b5ba3f28e",
+    "vendored_sha256": "1cdcd792a2316d8bef250b125414c0ee19a77f0ba90e2e4824f6622b5ba3f28e"
+  },
+  "_repo/interop-v0.2/edge/fixtures/key_identity_noncanonical_signbit.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/key_identity_noncanonical_signbit.json",
+    "source_sha256": "7c0db53b5a645411ed00a5c3bb67eefb1fa6ed021011a3bd10c2953ec8e8b963",
+    "vendored_sha256": "7c0db53b5a645411ed00a5c3bb67eefb1fa6ed021011a3bd10c2953ec8e8b963"
+  },
+  "_repo/interop-v0.2/edge/fixtures/key_identity_small_order.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/key_identity_small_order.json",
+    "source_sha256": "c602d85846c68172f7227cee39f7f70fb25e53bcbfed7ba577fe9dd0e6ca8603",
+    "vendored_sha256": "c602d85846c68172f7227cee39f7f70fb25e53bcbfed7ba577fe9dd0e6ca8603"
+  },
+  "_repo/interop-v0.2/edge/fixtures/key_mixed_order.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/key_mixed_order.json",
+    "source_sha256": "3dc37e19af830e5d8515ff9239feddcef4309331a92a364944e3ce508ea8d311",
+    "vendored_sha256": "3dc37e19af830e5d8515ff9239feddcef4309331a92a364944e3ce508ea8d311"
+  },
+  "_repo/interop-v0.2/edge/fixtures/key_order8_small_order.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/key_order8_small_order.json",
+    "source_sha256": "bd0503f80b2f51d80d36714a22fd3a23c7b2484390c53d5e6f85c92adc1b7a88",
+    "vendored_sha256": "bd0503f80b2f51d80d36714a22fd3a23c7b2484390c53d5e6f85c92adc1b7a88"
+  },
+  "_repo/interop-v0.2/edge/fixtures/obs_element_not_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/obs_element_not_object.json",
+    "source_sha256": "a2af81f26fd22b84761d0e988e559526553b7f036263e5882a647d9b5d2a83b9",
+    "vendored_sha256": "a2af81f26fd22b84761d0e988e559526553b7f036263e5882a647d9b5d2a83b9"
+  },
+  "_repo/interop-v0.2/edge/fixtures/obs_nonobject_with_valid.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/obs_nonobject_with_valid.json",
+    "source_sha256": "a829e6ab39906843d7d7963ee3c3140109fdcfac03007479a5994469395898ef",
+    "vendored_sha256": "a829e6ab39906843d7d7963ee3c3140109fdcfac03007479a5994469395898ef"
+  },
+  "_repo/interop-v0.2/edge/fixtures/outcome_not_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/outcome_not_object.json",
+    "source_sha256": "ae1689d148a0d7a5dfd41ced391f77c2bf931a4aa75208de07ef615e7ad42981",
+    "vendored_sha256": "ae1689d148a0d7a5dfd41ced391f77c2bf931a4aa75208de07ef615e7ad42981"
+  },
+  "_repo/interop-v0.2/edge/fixtures/prev_absent_seq0.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/prev_absent_seq0.json",
+    "source_sha256": "b8752b244754d7cea2604721beddc12f10852532609267a7e0f11f33e07f64d9",
+    "vendored_sha256": "b8752b244754d7cea2604721beddc12f10852532609267a7e0f11f33e07f64d9"
+  },
+  "_repo/interop-v0.2/edge/fixtures/receipt_key_not_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/receipt_key_not_object.json",
+    "source_sha256": "1ec11ba9a5268f2e41b3174643f191b92a951a5cacceec5a617505648d439ad4",
+    "vendored_sha256": "1ec11ba9a5268f2e41b3174643f191b92a951a5cacceec5a617505648d439ad4"
+  },
+  "_repo/interop-v0.2/edge/fixtures/receipts_element_not_object.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/receipts_element_not_object.json",
+    "source_sha256": "1962844e58e3a0800ef866a3c0fd9aed3b940f9304e7acc92bb5a48fd040aae0",
+    "vendored_sha256": "1962844e58e3a0800ef866a3c0fd9aed3b940f9304e7acc92bb5a48fd040aae0"
+  },
+  "_repo/interop-v0.2/edge/fixtures/require_signatures_false.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/require_signatures_false.json",
+    "source_sha256": "ca7095fd071df18384f2b36978a4c2d6779a959ed31550a7e147c5015f68fcd8",
+    "vendored_sha256": "ca7095fd071df18384f2b36978a4c2d6779a959ed31550a7e147c5015f68fcd8"
+  },
+  "_repo/interop-v0.2/edge/fixtures/require_signatures_zero.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/require_signatures_zero.json",
+    "source_sha256": "1f7876d29bf24c2db3e19f3fdc86fa0ef2ab5b59b53212c9b95b5dfff0e8b3b2",
+    "vendored_sha256": "1f7876d29bf24c2db3e19f3fdc86fa0ef2ab5b59b53212c9b95b5dfff0e8b3b2"
+  },
+  "_repo/interop-v0.2/edge/fixtures/seq_duplicate_same_verdict.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/seq_duplicate_same_verdict.json",
+    "source_sha256": "f1934bc10148b9400c319892e730419c2e8061ede163ccda714b2b223881df95",
+    "vendored_sha256": "f1934bc10148b9400c319892e730419c2e8061ede163ccda714b2b223881df95"
+  },
+  "_repo/interop-v0.2/edge/fixtures/seq_not_integer.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/seq_not_integer.json",
+    "source_sha256": "b05dfb3016c786b2bd0787808b7ec8e2c55ce85ebd52edf10df24210a9627416",
+    "vendored_sha256": "b05dfb3016c786b2bd0787808b7ec8e2c55ce85ebd52edf10df24210a9627416"
+  },
+  "_repo/interop-v0.2/edge/fixtures/sig_canonical_ok.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/sig_canonical_ok.json",
+    "source_sha256": "9c553769a30e705ce8676b6d7bbdf875507b0c237762f3325ea949fc1b301074",
+    "vendored_sha256": "9c553769a30e705ce8676b6d7bbdf875507b0c237762f3325ea949fc1b301074"
+  },
+  "_repo/interop-v0.2/edge/fixtures/sig_missing_padding.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/sig_missing_padding.json",
+    "source_sha256": "98a192d4ed16bbc2768e6eafd2259e5975d1e57653725ddfa614775d8144a69e",
+    "vendored_sha256": "98a192d4ed16bbc2768e6eafd2259e5975d1e57653725ddfa614775d8144a69e"
+  },
+  "_repo/interop-v0.2/edge/fixtures/sig_noncanonical_trailing_bits.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/sig_noncanonical_trailing_bits.json",
+    "source_sha256": "ba6a99bad021d7d70b8f6bf16d18eb742dc7e5b31182e3f0696f4ee426e39b82",
+    "vendored_sha256": "ba6a99bad021d7d70b8f6bf16d18eb742dc7e5b31182e3f0696f4ee426e39b82"
+  },
+  "_repo/interop-v0.2/edge/fixtures/sig_trailing_newline.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/sig_trailing_newline.json",
+    "source_sha256": "b2fea4641c8be73400aeda8b130bb42372046eaa21e6db224907200a6db58292",
+    "vendored_sha256": "b2fea4641c8be73400aeda8b130bb42372046eaa21e6db224907200a6db58292"
+  },
+  "_repo/interop-v0.2/edge/fixtures/sig_urlsafe_alphabet.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/sig_urlsafe_alphabet.json",
+    "source_sha256": "89c704067b2a883cbb84f7bf20800c2c62fe18a52e913aab8f1b2ced57485730",
+    "vendored_sha256": "89c704067b2a883cbb84f7bf20800c2c62fe18a52e913aab8f1b2ced57485730"
+  },
+  "_repo/interop-v0.2/edge/fixtures/sig_whitespace.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/sig_whitespace.json",
+    "source_sha256": "2731024ffae2ee66819a8c06b67bbb3b32239ccb220a7d42913681c2c5468353",
+    "vendored_sha256": "2731024ffae2ee66819a8c06b67bbb3b32239ccb220a7d42913681c2c5468353"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_fraction_truncation_ok.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_fraction_truncation_ok.json",
+    "source_sha256": "13450d2d810a45acd8418ad1c29038c958bd3aa0933b7dec2a4e57efcbe009ed",
+    "vendored_sha256": "13450d2d810a45acd8418ad1c29038c958bd3aa0933b7dec2a4e57efcbe009ed"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_hour_24.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_hour_24.json",
+    "source_sha256": "508a5a7dfcd723def19fea44cb0f347b2dbfb89d041df70fa7890456de5a46e2",
+    "vendored_sha256": "508a5a7dfcd723def19fea44cb0f347b2dbfb89d041df70fa7890456de5a46e2"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_impossible_day.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_impossible_day.json",
+    "source_sha256": "d2bd625090fadec50c868dff5187b6e9a06fb6fd5398b5d0e92764359af1bc27",
+    "vendored_sha256": "d2bd625090fadec50c868dff5187b6e9a06fb6fd5398b5d0e92764359af1bc27"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_lowercase_tz.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_lowercase_tz.json",
+    "source_sha256": "10167f982bfe2be8479138ce249d3ef02dd3a28d7b6559b03b0cd9051cf5bb2e",
+    "vendored_sha256": "10167f982bfe2be8479138ce249d3ef02dd3a28d7b6559b03b0cd9051cf5bb2e"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_offset.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_offset.json",
+    "source_sha256": "d2a794d9135f31065cb8a43bc2047a709e9104b01a01a81b9c5b5524a181833c",
+    "vendored_sha256": "d2a794d9135f31065cb8a43bc2047a709e9104b01a01a81b9c5b5524a181833c"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_real_day_ok.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_real_day_ok.json",
+    "source_sha256": "0971e27bdda4efb8c9baf180ba188c5353f0bb5bed0bea2675b5864bfa08c478",
+    "vendored_sha256": "0971e27bdda4efb8c9baf180ba188c5353f0bb5bed0bea2675b5864bfa08c478"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_second_60.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_second_60.json",
+    "source_sha256": "7891e4bc68ddfa742b875847e040c1f6a126f307f26dbc8f28b29f98c9170102",
+    "vendored_sha256": "7891e4bc68ddfa742b875847e040c1f6a126f307f26dbc8f28b29f98c9170102"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_trailing_newline.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_trailing_newline.json",
+    "source_sha256": "963b1ddf336285c5d8fdf468304b6e5ce693afac1159befbe16d98818fcfd5b5",
+    "vendored_sha256": "963b1ddf336285c5d8fdf468304b6e5ce693afac1159befbe16d98818fcfd5b5"
+  },
+  "_repo/interop-v0.2/edge/fixtures/ts_year_zero.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/ts_year_zero.json",
+    "source_sha256": "f3e36a3fdd870e5edfeea6441bed61aabab2f7551247d546a14da9870d8830c6",
+    "vendored_sha256": "f3e36a3fdd870e5edfeea6441bed61aabab2f7551247d546a14da9870d8830c6"
+  },
+  "_repo/interop-v0.2/edge/fixtures/unknown_bundle_keys.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/unknown_bundle_keys.json",
+    "source_sha256": "92980f80ab962e7b7eb152995cb0f3d661ffb106c748fcafd4463076a46c9598",
+    "vendored_sha256": "92980f80ab962e7b7eb152995cb0f3d661ffb106c748fcafd4463076a46c9598"
+  },
+  "_repo/interop-v0.2/edge/fixtures/verdict_missing_is_distinct.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0.2/edge/fixtures/verdict_missing_is_distinct.json",
+    "source_sha256": "e1361c723a9cfd5d24d19eb3247e2420b95a57f5cc7b5753b66b54791458f2ce",
+    "vendored_sha256": "e1361c723a9cfd5d24d19eb3247e2420b95a57f5cc7b5753b66b54791458f2ce"
+  },
+  "_repo/interop-v0/expected.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0/expected.json",
+    "source_sha256": "0bf1c44dfaad81eaf0084014dabf10a89bc134c832cec2d2bafb0c2041d9d0c1",
+    "vendored_sha256": "0bf1c44dfaad81eaf0084014dabf10a89bc134c832cec2d2bafb0c2041d9d0c1"
+  },
+  "_repo/interop-v0/fixtures/broken_chain.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0/fixtures/broken_chain.json",
+    "source_sha256": "21c4ccf76f1034aaa5b66940de52b70b85ebf24629ef0fa13ade099e2c7500e6",
+    "vendored_sha256": "21c4ccf76f1034aaa5b66940de52b70b85ebf24629ef0fa13ade099e2c7500e6"
+  },
+  "_repo/interop-v0/fixtures/disagreement.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0/fixtures/disagreement.json",
+    "source_sha256": "0378cdf046dbd2062f78752581f6e635ed3c8452e2d72fdf9ecd85f8d157fc25",
+    "vendored_sha256": "0378cdf046dbd2062f78752581f6e635ed3c8452e2d72fdf9ecd85f8d157fc25"
+  },
+  "_repo/interop-v0/fixtures/equivocation.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0/fixtures/equivocation.json",
+    "source_sha256": "de185233380c282c1077531fb469dd8ad15cfc8173f9c60b63ec513fc312b2b5",
+    "vendored_sha256": "de185233380c282c1077531fb469dd8ad15cfc8173f9c60b63ec513fc312b2b5"
+  },
+  "_repo/interop-v0/fixtures/forged_signature.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0/fixtures/forged_signature.json",
+    "source_sha256": "7084486c457fd7e1af3807ce28924aa17ca34583f9404c2fccdfee5fb0be43cf",
+    "vendored_sha256": "7084486c457fd7e1af3807ce28924aa17ca34583f9404c2fccdfee5fb0be43cf"
+  },
+  "_repo/interop-v0/fixtures/pass.json": {
+    "source": "workers/hs-ledger/nenrin/interop-v0/fixtures/pass.json",
+    "source_sha256": "88a6765f6fea6af0183bb724b82adda71070046b56acf98d7289b7d9a061d7fa",
+    "vendored_sha256": "88a6765f6fea6af0183bb724b82adda71070046b56acf98d7289b7d9a061d7fa"
+  },
   "_repo/musubi-v0/README.md": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/README.md",
     "source_sha256": "80d6716ad086eb92e57a0d413f379b426ead446a294912e82e3e5ef4a44bffd6",

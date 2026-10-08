@@ -1,0 +1,66 @@
+# TSUNAGI preview: a pull request that adds or changes a row in tools/tsunagi/implementations.json gets that row run
+# on the pull request itself, with the result in the job summary, before anyone merges it.
+#
+# This runs the proposed implementation, which is code this project did not write, so the job has a read-only token,
+# no secrets, and writes nothing back: no comment, no commit, no artifact the nightly board reads. A fork's pull
+# request runs here with the same limits GitHub gives every pull_request run from a fork.
+name: tsunagi-preview
+
+on:
+  pull_request:
+    paths:
+      - "tools/tsunagi/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tsunagi-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: What the implementations need (pinned)
+        run: python -m pip install --disable-pip-version-check "cryptography==46.0.7" "rfc8785==0.1.4" "uv==0.8.22"
+      - name: How the board reads each output, offline
+        run: python3 tools/tsunagi/run_board_test.py
+      - name: Which rows this pull request adds or changes
+        id: rows
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, subprocess
+          new = json.load(open("tools/tsunagi/implementations.json", encoding="utf-8"))
+          try:
+              old = json.loads(subprocess.run(["git", "show", os.environ["BASE_SHA"] + ":tools/tsunagi/implementations.json"],
+                                              capture_output=True, text=True, check=True).stdout)
+          except subprocess.CalledProcessError:
+              old = {"implementations": []}
+          before = {i["id"]: json.dumps(i, sort_keys=True) for i in old["implementations"]}
+          changed = [i["id"] for i in new["implementations"] if before.get(i["id"]) != json.dumps(i, sort_keys=True)]
+          print("ids=" + ",".join(changed))
+          PY
+      - name: Run the added or changed rows
+        if: steps.rows.outputs.ids != ''
+        env:
+          IDS: ${{ steps.rows.outputs.ids }}
+        run: |
+          python3 tools/tsunagi/run_board.py --out preview-out --only "$IDS" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          sed -n '/^| implementation/,/^$/p' preview-out/BOARD.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Nothing to run
+        if: steps.rows.outputs.ids == ''
+        run: echo "No row in implementations.json was added or changed; the offline checks above are the whole preview." | tee -a "$GITHUB_STEP_SUMMARY"

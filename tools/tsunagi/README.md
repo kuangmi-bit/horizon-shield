@@ -1,0 +1,67 @@
+# TSUNAGI: put your verifier on the board
+
+TSUNAGI (繋, "to connect") runs every registered implementation every night, each cloned from its author's own
+repository at the default branch head, against the corpora in this repository. The result is
+[`ops/tsunagi/BOARD.md`](../../ops/tsunagi/BOARD.md), with the whole run in `board.json` (sha256 inside),
+streaks in `history.json` and a badge per implementation in `badges/`.
+
+What a green cell establishes: that this code, at this commit, reproduced this corpus on this run. What it does not:
+that the corpus is right, that the code is correct elsewhere, or anything about who wrote it. A green cell is not an
+endorsement, and a red one is written down, never hidden.
+
+## Three ways a cell is scored
+
+- **Refereed by the board** (`"parse": "batch_referee"`, NENRIN corpora). The board writes the fixtures to one batch
+  file, your command writes one verdict signature per fixture, and the board compares each with the frozen
+  `expected.json` itself. Your own count is not read. This is the form to use for a new NENRIN verifier.
+- **Self-reported** (`count_line`, `all_pass`, `approval_lines`, `json_results`, `pytest`). The board reads the count
+  your command prints. Kept for implementations that registered that way; the board says so in the "scored by" column.
+- **Tonight's fresh bundles.** The adversary in `workers/hs-ledger/nenrin/conformance-v0` signs a new set of edge
+  bundles with new keys on every run. Every implementation listed under `differential` reads the same batch, and the
+  board lists each bundle on which any two of them disagree. There is no frozen answer; a disagreement is a finding
+  about the spec, the reference or an implementation, and a person triages it.
+
+## What refereeing does and does not stop
+
+The board loads every corpus before any outside code runs, and after each run it checks that the corpora, the
+generator and its own tools are byte for byte what they were; a run that changed them is restored and marked not a
+pass. That stops a verifier from reporting a count it did not earn. It does not stop a verifier written to the
+answers: `expected.json` is public. Tonight's fresh bundles are the check for that, since they are new every run and
+have no published answer.
+
+## The batch contract (any language)
+
+    input  @in   a JSON array      [{"name": "<case>", "bundle": {...}}, ...]
+    output @out  a JSON object     {"<case>": {"verdict": "accepted", "refusals": [...], "findings": [...]}, ...}
+                                   or {"<case>": {"error": "..."}} for a case you could not evaluate
+
+Codes are compared as sets, as `workers/hs-ledger/nenrin/provenance-v0/VERIFIER.md` section 4 defines the verdict
+signature. A missing case, an extra case, an error or any difference counts against you. Exit 0.
+
+## Check yourself first, offline
+
+    pip install nenrin-verify
+    nenrin-tsunagi run nenrin-interop-v0.2-edge -- "python3 my_verifier.py {in} {out}"
+    nenrin-tsunagi row nenrin-interop-v0.2-edge -- "python3 my_verifier.py {in} {out}"
+
+`run` is the board's referee with the corpora inside the package, so the number you see is the number the board will
+show. `row` prints the entry to paste into `implementations.json`. If your verifier is a Python module with
+`verify(bundle)`, the board's adapter `tools/tsunagi/adapters/py_module_batch.py <module> @in @out` calls it as is.
+
+With a clone of this repository you can also run the board itself against your working copy, before you push:
+
+    python3 tools/tsunagi/run_board.py --out /tmp/board --only <your-id> --local <your-id>=/path/to/your/checkout
+
+## Join
+
+Open one pull request that adds your row to `implementations.json`: your public `https` repository, its licence,
+the command, the corpus. The pull request runs your row at once (workflow `tsunagi-preview`, read-only token, no
+secrets) and shows the result in the job summary. After merge your row is on the next night's board, at your own
+commit, in your own repository. To list yourself under tonight's fresh bundles, add an entry under `differential`.
+
+Your badge, for your own README:
+
+    ![TSUNAGI](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/ops/tsunagi/badges/<your-id>.json)
+
+To change your command, rename your row or leave the board, open an issue or a pull request; it is done the same
+day. The board always runs your default branch head; it has no field for pinning a commit. The board never runs outside code with a write token or a secret.

@@ -1,0 +1,98 @@
+{
+  "task_id": "task_interop_edge",
+  "observations": [
+    {
+      "task_id": "task_interop_edge",
+      "hop": {
+        "seq": 0,
+        "from": "did:key:z6MktPy6CFJd4B4ZZ8Jfg2SvtFPWMTw6ATn9wMVs3bhSnpL1",
+        "to": "did:key:z6Mkv4DAXRA7PGocpugsH4v6Toq67JPUhnkkVzzDpt9vgCgL"
+      },
+      "prev_evidence_id": null,
+      "conduct": {
+        "verdict": "ok",
+        "detail_ref": "nenrin-exec://39e2ff3e47bc7d7e816093746208bf9b9321b00a5c86e773ddfcf9d69accdd97"
+      },
+      "witness_id": "did:key:z6MktRoMF82YbuGJDSyU4GUo6gtecBjwKASBEq3Nfs7EN28C",
+      "observed_at": "2026-10-04T00:10:00Z",
+      "evidence_id": "6d6dbc71d0da6b9300150a95a5fa412b99b9c0f29c25db15cf3d2a01b9d9b391",
+      "witness_sig": "r1W7Nq0PuLxwnhg7gZ4M5WUdPiuK5gkp8Rqvgl8yQ5+QodrUzqLFuKVb9vzEJtO6nv7nwV8tTPrkFulL1Cv1DQ==",
+      "edge_sig": "Rh8inPw7iVgv21unbPriM9Wk3ABzdqek1HVL2M9oF0X3Y3+GsiORbb9YN5LKToi/p6NMY5sBn/4pwfPNv2tZDg=="
+    },
+    {
+      "task_id": "task_interop_edge",
+      "hop": {
+        "seq": 0,
+        "from": "did:key:z6MktPy6CFJd4B4ZZ8Jfg2SvtFPWMTw6ATn9wMVs3bhSnpL1",
+        "to": "did:key:z6Mkv4DAXRA7PGocpugsH4v6Toq67JPUhnkkVzzDpt9vgCgL"
+      },
+      "prev_evidence_id": null,
+      "conduct": {
+        "verdict": "ok",
+        "detail_ref": "nenrin-exec://39e2ff3e47bc7d7e816093746208bf9b9321b00a5c86e773ddfcf9d69accdd97"
+      },
+      "witness_id": "did:key:z6MkvijW8y7rQyRHu5KYif5hdFhCm5pkLWknsibTQCiDKrPR",
+      "observed_at": "2026-10-04T00:10:00Z",
+      "evidence_id": "5b3e1e7b260acf7c002faa8e0a60dc312c8a3fe1ecbba7f86dc22a2bc99b86bd",
+      "witness_sig": "1KHccUva6Cogkvr0oeHa8Li98Z88pj+Y92iGlNci6q09PjXEB/4CTS3zgG5xaIBcTkCs+VUV1BTEfh6qGZ3WAw==",
+      "edge_sig": "Rh8inPw7iVgv21unbPriM9Wk3ABzdqek1HVL2M9oF0X3Y3+GsiORbb9YN5LKToi/p6NMY5sBn/4pwfPNv2tZDg=="
+    },
+    {
+      "task_id": "task_interop_edge",
+      "hop": {
+        "seq": 1,
+        "from": "did:key:z6MktPy6CFJd4B4ZZ8Jfg2SvtFPWMTw6ATn9wMVs3bhSnpL1",
+        "to": "did:key:z6Mkv4DAXRA7PGocpugsH4v6Toq67JPUhnkkVzzDpt9vgCgL"
+      },
+      "prev_evidence_id": "6d6dbc71d0da6b9300150a95a5fa412b99b9c0f29c25db15cf3d2a01b9d9b391",
+      "conduct": {
+        "verdict": "ok",
+        "detail_ref": "nenrin-exec://39e2ff3e47bc7d7e816093746208bf9b9321b00a5c86e773ddfcf9d69accdd97"
+      },
+      "witness_id": "did:key:z6Mkp3uMdd1XETxcMWUvLtyaCyAgfEXsFMBuqjU6oiBePC1w",
+      "observed_at": "2026-10-04T00:10:00Z",
+      "evidence_id": "2a814a11e54407492baedca5104d418ceccff8f2a79b3f69e07346adf4587db1",
+      "witness_sig": "VyjTDUueOeEoqxe7/I5z0dNEVIHw7Wl4iqH8F8N8OGToVF91sayR84eRIffbEMqgkN+jveS1guJ67rwI39JMAg==",
+      "edge_sig": "Wks88dMTL7x9st0u43xaDhBUIRmIIc05JoDtLNR8i74FxEKhrd48vm5ZX2ea5f6iNwYQnZV18HrV9M6NyLyPBg=="
+    }
+  ],
+  "grant": {
+    "schema": "task-execution-bind-v0/grant",
+    "task_id": "task_interop_edge",
+    "action": {
+      "tool": "a2a.invoke",
+      "target": "/task",
+      "args_sha256": "sha_args_ok"
+    },
+    "caller_id": "did:key:z6MktPy6CFJd4B4ZZ8Jfg2SvtFPWMTw6ATn9wMVs3bhSnpL1",
+    "provider_id": "did:key:z6Mkv4DAXRA7PGocpugsH4v6Toq67JPUhnkkVzzDpt9vgCgL",
+    "nonce": "n-edge-1",
+    "not_before": "2026-10-04T00:00:00Z",
+    "not_after": "2026-10-04T01:00:00Z",
+    "grant_ref": "99078107b4868561b290aac31fbb11a3050eb7e21781e6c9c75d9ce3e5d6181c",
+    "caller_sig": "tNobtlRqr6w9he89FO3JeiT9uEiQUB0ZflNKs7FKXcU4lhzOqxyU5pQlipu5L7SsU7wyoMafpsm16+LUddw0Aw=="
+  },
+  "receipt": {
+    "schema": "task-execution-bind-v0/receipt",
+    "task_id": "task_interop_edge",
+    "grant_ref": "99078107b4868561b290aac31fbb11a3050eb7e21781e6c9c75d9ce3e5d6181c",
+    "executed_action": {
+      "tool": "a2a.invoke",
+      "target": "/task",
+      "args_sha256": "sha_args_ok"
+    },
+    "provider_id": "did:key:z6Mkv4DAXRA7PGocpugsH4v6Toq67JPUhnkkVzzDpt9vgCgL",
+    "executed_at": "2026-10-04T00:30:00Z",
+    "outcome": {
+      "status": "completed",
+      "result_sha256": "sha_res_1",
+      "evidence": {
+        "kind": "ledger_record",
+        "ref": "abababababababababababababababababababababababababababababababab",
+        "system": "edge.example"
+      }
+    },
+    "receipt_id": "39e2ff3e47bc7d7e816093746208bf9b9321b00a5c86e773ddfcf9d69accdd97",
+    "provider_sig": "swv1MAocqDVlh2I/QCUjInFtB+0+Tb21fqb/psU1f7IkupJVwkPgjxCZMnWxzRLnrwuPp4HNpcn7e3O84j4YBg=="
+  }
+}

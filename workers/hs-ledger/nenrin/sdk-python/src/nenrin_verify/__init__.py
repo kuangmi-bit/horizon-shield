@@ -31,7 +31,7 @@ from .provenance import (VERIFIER_VERSION, candidate_evidence_set, consume_evide
                          public_key_from_did_key, receipt_id, verify_provenance)
 from . import agreement_verify, tsugi, musubi, policy
 
-__version__ = "0.4.8"
+__version__ = "0.4.9"
 
 __all__ = ["verify_provenance", "consume_evidence", "posture_line", "candidate_evidence_set", "preflight_report",
            "public_key_from_did_key", "did_key_resolver", "evidence_id", "grant_ref", "receipt_id", "intent_id",
