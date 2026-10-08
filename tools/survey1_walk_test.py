@@ -583,6 +583,7 @@ assert r["robots"] == "robots.txt unreachable (TimeoutError), complete disallow 
 W._robots_cache.clear(); nrobots["n"] = 0
 r = W.measure_guarded("https://rnet.test/mcp2", verbose=False)
 assert r["outcome"] == "robots_unreachable" and r.get("retried") and "attempts:" in r["reason"]
+assert "(attempts: %d)" % nrobots["n"] in r["reason"], ("attempts は実際の試行回数", r["reason"], nrobots["n"])
 assert nrobots["n"] == 2, "測り直しで robots.txt を取り直していない(キャッシュを使い回した)"
 
 # --- 29. robots.txt が 404: 無い = 許可。測る ---
@@ -640,5 +641,22 @@ finally:
     srv.shutdown()
 print("31) 転送 5 回は読み、6 回は無いとみなして許可")
 
+# --- 32. 一本ずつの探針の自己点検: 対照に届けば続ける、届かず回復しなければ止める ---
+_real_control_ok, _real_rhc = W.control_ok, W._run_health_check
+try:
+    W.control_ok = lambda: (True, "control.test")
+    W._run_health_check = lambda verbose=True: (_ for _ in ()).throw(AssertionError("届くのに待った"))
+    assert W.self_check(verbose=False) is True
+    W.control_ok = lambda: (False, None)
+    W._run_health_check = lambda verbose=True: False
+    assert W.self_check(verbose=False) is False
+    W._run_health_check = lambda verbose=True: True
+    assert W.self_check(verbose=False) is True
+finally:
+    W.control_ok, W._run_health_check = _real_control_ok, _real_rhc
+W._abort.clear()
+assert W.wait_healthy() is True
+print("32) self_check と wait_healthy は真偽を返す")
+
 print()
-print("26-31 も通過: 全31本")
+print("26-32 も通過: 全32本")

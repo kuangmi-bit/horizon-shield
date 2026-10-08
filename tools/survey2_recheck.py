@@ -190,7 +190,8 @@ def main():
 
     print("走行2で pending だったもの: %d 件" % len(targets))
     print("作法: MCP %s / server/discover を1回。読むだけ。\n" % PROTOCOL)
-    if not W.control_ok():
+    ok, _via = W.control_ok()   # (ok, via) を返す。タプルのまま if に掛けると常に真で、止まらなかった
+    if not ok:
         sys.exit("対照アドレスに届きません。こちら側が先に壊れています。中止します。")
 
     counts, unreached_run, out = {}, 0, io.open(a.out, "w", encoding="utf-8")
@@ -217,7 +218,7 @@ def main():
             unreached_run += 1
             if unreached_run >= W.UNREACHED_TRIP:
                 print("\n連続で届きません(%d件)。自分を疑います。" % unreached_run)
-                if not W.wait_healthy():
+                if not W.self_check():
                     out.close()
                     sys.exit("対照が回復しませんでした。ここで中止します。"
                              "途中までの記録は残しますが、報告には使いません。")

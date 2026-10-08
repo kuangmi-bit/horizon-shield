@@ -29,6 +29,9 @@ Pair category, derived only from the stored fields (so --recompute re-derives it
   unclassified_statuses_differ both non-2xx with different statuses.
   pair_unreached               one of the two GETs got no HTTP answer.
   skipped_robots               robots.txt disallows one of the two URLs. Neither is fetched.
+  skipped_robots_unreachable   robots.txt could not be reached (5xx, network error, timeout); RFC 9309 says
+                               assume complete disallow. Neither is fetched. Rows from runs before 2026-10-09
+                               carry no robots_class and stay skipped_robots.
 
 Same discipline as probes 1 to 5: same User-Agent with contact address, robots.txt honoured,
 2 s minimum between requests to one host, read only (GET, no credentials, no attempt to obtain one),
@@ -73,7 +76,7 @@ def doc_category(endpoint, g):
 
 def categorize(row):
     if row.get("robots_skipped"):
-        return "skipped_robots"
+        return "skipped_robots_unreachable" if row.get("robots_class") == "unreachable" else "skipped_robots"
     reg, gar = row.get("registered") or {}, row.get("garbage") or {}
     rs, gs = reg.get("status"), gar.get("status")
     if rs is None or gs is None:
@@ -102,10 +105,13 @@ def measure(t):
         row.update({"robots": "not fetched: not https", "robots_skipped": False,
                     "registered": {"status": None, "error": "not_https"}, "garbage": {"status": None, "error": "not_https"}})
     else:
-        ok1, note1 = W.robots_allows(reg_url)
-        ok2, note2 = W.robots_allows(gar_url)
+        st1, st2 = W.robots_status(reg_url), W.robots_status(gar_url)
+        (ok1, note1), (ok2, note2) = W.robots_verdict(st1), W.robots_verdict(st2)
         row["robots"] = note1 if note1 == note2 else "registered: %s; garbage: %s" % (note1, note2)
         row["robots_skipped"] = not (ok1 and ok2)
+        if row["robots_skipped"]:
+            # 同じ origin なので robots.txt は一つ。届かなかったのか、禁じられたのかを残す
+            row["robots_class"] = st1["class"] if not ok1 else st2["class"]
         if ok1 and ok2:
             row["registered"] = P5.fetch(reg_url)
             row["garbage"] = P5.fetch(gar_url)
@@ -192,6 +198,8 @@ def selftest():
         (row(None, 404), "pair_unreached"),
         (row(404, None), "pair_unreached"),
         (row("x", "x", skipped=True), "skipped_robots"),
+        (dict(row("x", "x", skipped=True), robots_class="unreachable"), "skipped_robots_unreachable"),
+        (dict(row("x", "x", skipped=True), robots_class="ok_2xx"), "skipped_robots"),
     ]
     bad = [(c, categorize(r)) for r, c in cases if categorize(r) != c]
     g = garbage_location("https://h.example/api/mcp/", "0123456789abcdef")

@@ -215,7 +215,24 @@ def health_note_failure(verbose=True):
 
 
 def wait_healthy():
+    """並列のワーカー用。点検が終わるまで待つ。走行を続けてよければ True。"""
     _health_event.wait(CONTROL_MAX_WAIT + 60)
+    return not _abort.is_set()
+
+
+def self_check(verbose=True):
+    """一本ずつ当てる探針(survey2, survey3)用。連続して届かなかったときに呼ぶ。
+
+    対照先に届けば True(こちらは生きている、続けてよい)。届かなければ CONTROL_MAX_WAIT まで
+    回復を待ち、戻れば True、戻らなければ False(走行を止める)。
+    以前 survey2/3 は wait_healthy() の戻り値(None)で判定していて、点検をせずに必ず止まっていた。
+    """
+    ok, via = control_ok()
+    if ok:
+        if verbose:
+            print("  [health] 対照先には届く(%s)。こちらは生きている。続ける。" % via, file=sys.stderr)
+        return True
+    return _run_health_check(verbose=verbose)
 
 
 def canon(obj):
@@ -655,7 +672,7 @@ def measure_guarded(url, verbose=True, retries=1):
         break
     if rec is not None:
         rec["retried"] = tried
-        rec["reason"] = (rec.get("reason") or "") + " (attempts: %d)" % (tried + 1)
+        rec["reason"] = (rec.get("reason") or "") + " (attempts: %d)" % tried   # 失敗のたびに tried を足すので、試行回数そのもの
     return rec
 
 

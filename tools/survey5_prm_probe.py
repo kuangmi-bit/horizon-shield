@@ -34,6 +34,9 @@ Category, derived only from the stored fields (so --recompute re-derives it):
                                  (the suggested rule; it is a rule, not a proof of what is behind it)
   prm_unreached                  the metadata URL did not answer at all this time
   skipped_robots                 robots.txt disallows the metadata URL. Not fetched.
+  skipped_robots_unreachable     robots.txt could not be reached (5xx, network error, timeout); RFC 9309
+                                 says assume complete disallow, so the URL was not fetched. Rows from runs
+                                 before 2026-10-09 carry no robots_class and stay skipped_robots.
 
 Same discipline as survey1_walk.py and survey4: same User-Agent with contact address,
 robots.txt honoured, 2 s minimum between requests to one host, read only (one GET, no
@@ -130,7 +133,7 @@ def redact_url(u):
 
 def categorize(row):
     if row.get("robots_skipped"):
-        return "skipped_robots"
+        return "skipped_robots_unreachable" if row.get("robots_class") == "unreachable" else "skipped_robots"
     g = row.get("get") or {}
     if g.get("status") is None:
         return "prm_unreached"
@@ -162,9 +165,12 @@ def measure(t):
         row.update({"robots": "not fetched: metadata URL is not https", "robots_skipped": False,
                     "get": {"status": None, "error": "not_https"}})
     else:
-        ok, note = W.robots_allows(url)
+        st = W.robots_status(url)
+        ok, note = W.robots_verdict(st)
         row["robots"] = note
         row["robots_skipped"] = not ok
+        if not ok:
+            row["robots_class"] = st["class"]
         row["get"] = fetch(url) if ok else None
     row["measured_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     row["category"] = categorize(row)
@@ -241,6 +247,9 @@ def selftest():
         (row("derived", {"status": 401}), "auth_proxy_by_rule"),
         (row("named", {"status": None}), "prm_unreached"),
         ({"endpoint": E, "source": "named", "robots_skipped": True, "get": None}, "skipped_robots"),
+        ({"endpoint": E, "source": "named", "robots_skipped": True, "robots_class": "ok_2xx", "get": None}, "skipped_robots"),
+        ({"endpoint": E, "source": "named", "robots_skipped": True, "robots_class": "unreachable", "get": None},
+         "skipped_robots_unreachable"),
     ]
     bad = [(c, categorize(r)) for r, c in cases if categorize(r) != c]
     assert default_location("https://h.example/mcp/") == "https://h.example/.well-known/oauth-protected-resource/mcp"

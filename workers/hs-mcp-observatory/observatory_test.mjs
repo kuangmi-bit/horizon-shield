@@ -162,6 +162,14 @@ console.log("\n5) 届かなかったのと、答えが無かったのを足さ�
   const gs = await call("mcp_observatory_lookup", { address: skipped[0] });
   check("robots で見送ったものは『no is an answer』と言う",
         /no is an answer/.test(gs.state_means || ""), gs.state_means);
+  // survey7 の取り直し: こちらの読み違いだった行は、照会口でもそう言う
+  const g7 = await call("mcp_observatory_lookup", { address: "https://acuiq.com/api/mcp" });
+  check("取り直しの結果が付く", g7.robots_rechecked && g7.robots_rechecked.category === "rfc_allows_walk_parser_not",
+        JSON.stringify(g7.robots_rechecked || null).slice(0, 80));
+  check("こちらの読み違いだと言う", /our parser/.test((g7.robots_rechecked || {}).meaning || ""), (g7.robots_rechecked || {}).meaning);
+  const still = DATA.ROWS.find((r) => r[12] && r[12][0] === "still_disallowed");
+  const g8 = await call("mcp_observatory_lookup", { address: still[0] });
+  check("今も禁止の行は、そう言う", /still disallows/.test((g8.robots_rechecked || {}).meaning || ""), (g8.robots_rechecked || {}).meaning);
 }
 
 /* --- 6. ホストは集計だけ。名簿は配らない --------------------------- */
@@ -313,8 +321,41 @@ console.log("\n10) いま測る(公開の記録は動かさない)");
   globalThis.fetch = stub([["/robots.txt", txt("nope", 500)]]);
   {
     const g = await call("mcp_observatory_measure_now", { address: "https://example.com/mcp" });
-    check("robots が読めなければ当てない", g.outcome === "robots_disallowed", g.outcome);
+    check("robots が読めなければ当てない", g.outcome === "robots_unreachable", g.outcome);
     check("読めなかったことを理由に書く", /cannot read it/.test(g.robots || ""), g.robots);
+  }
+
+  // RFC 9309: 短い Disallow より長い Allow が勝つ(2026-10-09、survey7 で分かった読み違いの再発防止)
+  hits = [];
+  globalThis.fetch = stub([
+    ["/robots.txt", txt("User-agent: *\nDisallow: /api/\nAllow: /api/mcp\n")],
+    ["/.well-known/agent-card.json", txt("nope", 404)],
+    ["/api/mcp", ok({ jsonrpc: "2.0", id: 1, result: { protocolVersion: "2025-11-25", serverInfo: { name: "allowed" } } })],
+  ]);
+  {
+    const g = await call("mcp_observatory_measure_now", { address: "https://example.com/api/mcp" });
+    check("長い Allow が短い Disallow に勝つ(当てる)", g.outcome === "speaks_mcp", g.outcome + " / " + g.robots);
+    check("決めた規則を書く", /allows \/api\/mcp/.test(g.robots || ""), g.robots);
+  }
+  hits = [];
+  globalThis.fetch = stub([["/robots.txt", txt("User-agent: *\nUser-agent: other\nDisallow: /api/\n")]]);
+  {
+    const g = await call("mcp_observatory_measure_now", { address: "https://example.com/api/mcp" });
+    check("続けて書かれた user-agent は一つのグループ", g.outcome === "robots_disallowed", g.outcome);
+  }
+  hits = [];
+  globalThis.fetch = stub([["/robots.txt", txt("User-agent: *\nDisallow: /api$\n")], ["/.well-known/agent-card.json", txt("nope", 404)],
+                           ["/api/mcp", ok({ jsonrpc: "2.0", id: 1, result: { protocolVersion: "2025-11-25", serverInfo: { name: "d" } } })]]);
+  {
+    const g = await call("mcp_observatory_measure_now", { address: "https://example.com/api/mcp" });
+    check("$ は末尾に固定する", g.outcome === "speaks_mcp", g.outcome + " / " + g.robots);
+  }
+  hits = [];
+  globalThis.fetch = stub([["/robots.txt", txt("nope", 403)], ["/.well-known/agent-card.json", txt("nope", 404)],
+                           ["/mcp", ok({ jsonrpc: "2.0", id: 1, result: { protocolVersion: "2025-11-25", serverInfo: { name: "d" } } })]]);
+  {
+    const g = await call("mcp_observatory_measure_now", { address: "https://example.com/mcp" });
+    check("robots.txt が 403 なら無いとみなして当てる", g.outcome === "speaks_mcp", g.outcome + " / " + g.robots);
   }
 
   // 名乗っているサーバー
@@ -379,7 +420,7 @@ console.log("\n10) いま測る(公開の記録は動かさない)");
 }
 
 /* --- 10b. 走らなかった場面を、通った場面と見分けられること ----------- */
-const EXPECTED = 78;
+const EXPECTED = 87;
 console.log("");
 console.log("確かめた数: " + checks + " (最低 " + EXPECTED + ")");
 if (checks < EXPECTED) {

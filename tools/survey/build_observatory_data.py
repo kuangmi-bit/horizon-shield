@@ -40,6 +40,7 @@ RECHECK = os.path.join(D, "survey2_recheck_2026-08-24.jsonl")
 LADDER = os.path.join(D, "survey3_ladder_2026-08-24.jsonl")
 COUNT0 = os.path.join(D, "survey0_v4_2026-08-19.json")
 LIMITS = os.path.join(D, "known_limitations.json")
+ROBOTS7 = os.path.join(D, "survey7_robots_recheck_2026-10-08.jsonl")
 
 OUT = os.path.join(ROOT, "workers", "hs-mcp-observatory", "src", "data.js")
 
@@ -63,6 +64,9 @@ def build():
     # 当て直しと版のはしごを、住所で引けるようにする
     recheck = {r["url"]: r for r in jsonl(RECHECK)}
     ladder = {r["url"]: r for r in jsonl(LADDER)}
+    # 2026-10-09: robots_disallowed の 1,466 行は survey7 で取り直した。走行の読み方が Allow を
+    #   無視していたため、116 行は相手が開けていたのに見送っていた。照会口でもそれを言う。
+    robots7 = {r["endpoint"]: r for r in jsonl(ROBOTS7)}
 
     # 2026-08-24: 宣言された住所のうち 192件は、住所ではなく雛形だった。
     #   https://.../{token}/mcp、https://{HAPI_FQDN}:{HAPI_PORT}/mcp のような形。
@@ -98,6 +102,7 @@ def build():
         tpl = templated(ep)
         if tpl:
             templated_n += 1
+        r7 = robots7.get(ep)
         out_rows.append([
             ep,
             r.get("state"),                     # measured / pending / held / skipped
@@ -111,6 +116,7 @@ def build():
             fixed,                               # 当て直しで回復した版と方法
             (rc or {}).get("record_sha256"),     # 当て直しの記録の hash
             1 if tpl else 0,                     # 住所ではなく雛形だった
+            ([r7["category"], r7["measured_at"][:10], r7["record_sha256"]] if r7 else None),   # robots の取り直し
         ])
 
     # 実測で見つかった「金の出所」の欄名。名乗り方の手引きは、ここから作る。
@@ -143,6 +149,7 @@ def build():
             "raw_walk": BASE + "/data/survey1_walk_2026-08-23_run2.jsonl",
             "recheck": BASE + "/data/survey2_recheck_2026-08-24.jsonl",
             "version_ladder": BASE + "/data/survey3_ladder_2026-08-24.jsonl",
+            "robots_recheck": BASE + "/data/survey7_robots_recheck_2026-10-08.jsonl",
             "method": "https://shield.the-horizons-innovation.com/verify-directory/method/",
             "recompute": "https://shield.the-horizons-innovation.com/verify-directory/recompute/",
         },
@@ -244,7 +251,8 @@ def render(meta, summary, rows, fields, host_count, recovered, templated_n):
         "     8 record_sha256     この1行の hash(再計算できる)\n"
         "     9 recovered         当て直しで回復した [版, 方法]。こちらの落ち度だったもの\n"
         "    10 recheck_sha256    当て直しの記録の hash\n"
-        "    11 templated         1=住所ではなく雛形だった({token} などを含む) */\n"
+        "    11 templated         1=住所ではなく雛形だった({token} などを含む)\n"
+        "    12 robots_recheck    robots_disallowed の行を取り直した結果 [分類, 日付, 記録の hash] */\n"
     )
     j = lambda o: json.dumps(o, ensure_ascii=False, separators=(",", ":"))
     return (head

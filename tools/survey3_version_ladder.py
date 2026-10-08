@@ -101,7 +101,8 @@ def main():
 
     print("当て直しで not_modern だったもの: %d 件" % len(targets))
     print("版のはしご: %s\n" % " -> ".join(LADDER))
-    if not W.control_ok():
+    ok, _via = W.control_ok()   # (ok, via) を返す。タプルのまま if に掛けると常に真で、止まらなかった
+    if not ok:
         sys.exit("対照アドレスに届きません。こちら側が先に壊れています。中止します。")
 
     counts, unreached, out = {}, 0, io.open(a.out, "w", encoding="utf-8")
@@ -143,7 +144,7 @@ def main():
             unreached += 1
             if unreached >= W.UNREACHED_TRIP:
                 print("\n連続で届きません(%d件)。自分を疑います。" % unreached)
-                if not W.wait_healthy():
+                if not W.self_check():
                     out.close()
                     sys.exit("対照が回復しませんでした。中止します。報告には使いません。")
                 unreached = 0

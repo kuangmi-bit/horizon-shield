@@ -75,7 +75,20 @@ const STATE_MEANING = {
   measured: "We contacted it and it answered.",
   pending: "We contacted it and a condition was not met. This is a statement about the address as declared, on that date.",
   held: "We could not measure it. This is a statement about our instrument, not about the server.",
-  skipped: "We did not contact it. robots.txt disallowed the path, and no is an answer.",
+  skipped: "We did not contact it. Either robots.txt disallowed the path (outcome robots_disallowed), and no is an answer, "
+         + "or robots.txt could not be reached (outcome robots_unreachable), which RFC 9309 says to treat as complete disallow.",
+};
+
+// survey7 (2026-10-08) fetched robots.txt again for every robots_disallowed row and judged it by RFC 9309.
+const ROBOTS_RECHECK_MEANING = {
+  still_disallowed: "Fetched again: robots.txt still disallows this path, under our walk's reading and under RFC 9309.",
+  rfc_allows_walk_parser_not: "Our walk's robots.txt reading was wrong for this row. The file disallows a shorter path and "
+    + "explicitly allows this one; our parser ignored Allow lines. Under RFC 9309 this path is allowed. "
+    + "The skip was our parser, not the operator's choice. The next walk measures it.",
+  rfc_disallows_walk_parser_not: "Fetched again: RFC 9309 disallows this path although our walk's reading did not.",
+  allowed_now: "Fetched again: robots.txt no longer disallows this path. The file changed after our walk.",
+  robots_unavailable_4xx: "Fetched again: robots.txt now answers 4xx, which RFC 9309 treats as no restriction.",
+  robots_unreachable: "Fetched again: robots.txt did not answer with 2xx or 4xx, which RFC 9309 treats as complete disallow.",
 };
 
 function howToRecompute(row) {
@@ -92,7 +105,7 @@ function howToRecompute(row) {
 }
 
 function describe(row) {
-  const [endpoint, state, outcome, tools, card, comp, compFields, name, , recovered, , templated] = row;
+  const [endpoint, state, outcome, tools, card, comp, compFields, name, , recovered, , templated, robotsRecheck] = row;
   const out = {
     endpoint,
     measured_on: META.walk_measured_at,
@@ -128,6 +141,15 @@ function describe(row) {
       what: "Our walk announced protocol version 2024-11-05, which most of the registry has dropped. "
           + "When we announced " + recovered[0] + " and used " + recovered[1] + ", this address answered.",
       meaning: "The original row was our instrument's fault, not this server's state.",
+    };
+  }
+  if (robotsRecheck) {
+    out.robots_rechecked = {
+      on: robotsRecheck[1],
+      category: robotsRecheck[0],
+      meaning: ROBOTS_RECHECK_MEANING[robotsRecheck[0]] || null,
+      record_sha256: robotsRecheck[2],
+      file: META.pages.robots_recheck,
     };
   }
   out.verify = howToRecompute(row);
@@ -194,36 +216,78 @@ async function fetchWithTimeout(url, init) {
   } finally { clearTimeout(t); }
 }
 
-// robots.txt を先に読む。読めなければ当てない(fail-closed)。
-// 「読めなかったから、たぶん許されている」は、こちらの都合である。
-async function robotsVerdict(origin, path) {
-  let text = "";
-  try {
-    const r = await fetchWithTimeout(origin + "/robots.txt");
-    if (r.status === 404) return { allow: true, why: "robots.txt is 404. Nothing forbids this path." };
-    if (!r.ok) return { allow: false, why: "robots.txt returned HTTP " + r.status + ". We do not contact when we cannot read it." };
-    text = await r.text();
-  } catch (e) {
-    return { allow: false, why: "robots.txt could not be read (" + String(e).slice(0, 60) + "). We do not contact when we cannot read it." };
-  }
-  // * のグループだけを見る。厳しい側に倒す。
-  let inStar = false;
-  const dis = [];
-  for (const raw of text.split(/\r?\n/)) {
+// robots.txt を先に読む。RFC 9309 どおりに読む(2026-10-09 改)。
+//   以前は * のグループの Disallow だけを前方一致で見ていて、Allow を読まなかった。
+//   本調査の取り直し(survey7)で、Allow を読まないために相手が開けていた入口を見送っていたと分かった。
+//   2xx は読む。4xx は「無い」= 許可(2.3.1.3)。それ以外の応答・通信の失敗は「届かない」=
+//   全面禁止とみなして当てない(2.3.1.4)。「読めなかったから、たぶん許されている」は、こちらの都合である。
+const ROBOTS_TOKEN = "horizonshieldobservatory";
+
+function robotsGroups(text) {
+  const groups = [];
+  let cur = null, lastUa = false;
+  for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.split("#")[0].trim();
     if (!line) continue;
     const m = line.match(/^([A-Za-z-]+)\s*:\s*(.*)$/);
     if (!m) continue;
     const k = m[1].toLowerCase(), v = m[2].trim();
-    if (k === "user-agent") { inStar = (v === "*"); continue; }
-    if (inStar && k === "disallow" && v) dis.push(v);
-  }
-  for (const d of dis) {
-    if (d === "/" || path.startsWith(d)) {
-      return { allow: false, why: "robots.txt disallows " + d + ". Their operator said no, and no is an answer." };
+    if (k === "user-agent") {
+      if (!cur || !lastUa) { cur = { agents: [], rules: [] }; groups.push(cur); }
+      cur.agents.push(v.toLowerCase());
+      lastUa = true;
+    } else if (k === "allow" || k === "disallow") {
+      if (cur) cur.rules.push([k, v]);
+      lastUa = false;
     }
   }
-  return { allow: true, why: "robots.txt does not disallow this path for *." };
+  return groups;
+}
+
+function robotsPattern(p) {
+  const anchored = p.endsWith("$");
+  const core = anchored ? p.slice(0, -1) : p;
+  const rx = core.split("*").map((s) => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+  return new RegExp("^" + rx + (anchored ? "$" : ""));
+}
+
+// [allowed, deciding rule or null]. 最長一致、同じ長さなら Allow、空の Disallow は規則ではない。
+function robotsDecide(groups, path) {
+  let sel = groups.filter((g) => g.agents.includes(ROBOTS_TOKEN));
+  if (!sel.length) sel = groups.filter((g) => g.agents.includes("*"));
+  let best = null;
+  for (const g of sel) {
+    for (const [d, v] of g.rules) {
+      if (d === "disallow" && v === "") continue;
+      if (!robotsPattern(v).test(path)) continue;
+      const n = new TextEncoder().encode(v).length;
+      if (!best || n > best.n || (n === best.n && d === "allow")) best = { n, d, v };
+    }
+  }
+  return best ? [best.d === "allow", [best.d, best.v]] : [true, null];
+}
+
+async function robotsVerdict(origin, path) {
+  let text = "";
+  try {
+    const r = await fetchWithTimeout(origin + "/robots.txt");
+    if (r.status >= 400 && r.status < 500) {
+      return { allow: true, why: "robots.txt is " + r.status + ". RFC 9309 treats it as unavailable: nothing forbids this path." };
+    }
+    if (!r.ok) {
+      return { allow: false, unreachable: true,
+               why: "robots.txt returned HTTP " + r.status + ". RFC 9309 says assume complete disallow; we do not contact when we cannot read it." };
+    }
+    text = await r.text();
+  } catch (e) {
+    return { allow: false, unreachable: true,
+             why: "robots.txt could not be read (" + String(e).slice(0, 60) + "). RFC 9309 says assume complete disallow; we do not contact when we cannot read it." };
+  }
+  const [allowed, rule] = robotsDecide(robotsGroups(text), path);
+  if (!allowed) {
+    return { allow: false, why: "robots.txt disallows " + rule[1] + " (RFC 9309). Their operator said no, and no is an answer." };
+  }
+  return { allow: true, why: rule ? "robots.txt allows " + rule[1] + " (RFC 9309)." : "robots.txt does not disallow this path (RFC 9309)." };
 }
 
 async function measureNow(address) {
@@ -242,7 +306,7 @@ async function measureNow(address) {
   if (!rob.allow) {
     return {
       address, measured_at: new Date().toISOString(),
-      state: "skipped", outcome: "robots_disallowed", robots: rob.why,
+      state: "skipped", outcome: rob.unreachable ? "robots_unreachable" : "robots_disallowed", robots: rob.why,
       not_the_published_record: true,
     };
   }
