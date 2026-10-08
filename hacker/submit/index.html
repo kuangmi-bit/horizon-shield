@@ -150,6 +150,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .done-btns .pri:hover{background:var(--blue)}
 .done-btns .sec{border:1.5px solid var(--rule);color:var(--ink)}
 .done-btns .sec:hover{background:var(--paper2)}
+.share{margin-top:28px;border-top:1px solid var(--rule);padding-top:16px;text-align:left}
+.share-h{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink);margin-bottom:6px}
+.share-d{font-size:13px;color:var(--ink2);line-height:1.8;margin-bottom:12px}
+.share-btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.share-btns button{font-family:var(--mono);font-size:13px;font-weight:500;background:none;color:var(--ink);border:1.5px solid var(--rule);padding:12px 8px;cursor:pointer}
+.share-btns button:hover{background:var(--paper2)}
 /* privacy strip */
 .privacy{border:1px solid var(--rule-soft);background:var(--field);padding:16px 18px;margin-top:24px;display:flex;gap:14px;align-items:flex-start}
 .privacy-ic{flex-shrink:0;color:var(--blue);margin-top:2px}
@@ -306,6 +312,15 @@ footer{border-top:2px solid var(--rule);background:var(--paper);padding:28px 22p
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
       </div>
+      <div class="share">
+        <div class="share-h">見積もりを取っている人に、この券を送る</div>
+        <div class="share-d">ご家族やご近所、離れて暮らす親御さんで、見積もりを取っている人はいませんか。同じように無料で解剖できます。送るのは案内の文とリンクだけで、あなたの見積書や結果は送られません。</div>
+        <div class="share-btns">
+          <button type="button" onclick="shareTo('line')">LINE で送る</button>
+          <button type="button" onclick="shareTo('x')">X で送る</button>
+          <button type="button" onclick="shareTo('copy')">文をコピー</button>
+        </div>
+      </div>
     </div>
 
     <!-- 完了 -->
@@ -318,6 +333,15 @@ footer{border-top:2px solid var(--rule);background:var(--paper);padding:28px 22p
           <a class="pri" href="/hacker/">一覧を見る</a>
           <a class="sec" href="#" onclick="resetAll();return false;">もう一件投稿する</a>
         </div>
+        <div class="share">
+        <div class="share-h">見積もりを取っている人に、この券を送る</div>
+        <div class="share-d">ご家族やご近所、離れて暮らす親御さんで、見積もりを取っている人はいませんか。同じように無料で解剖できます。送るのは案内の文とリンクだけで、あなたの見積書や結果は送られません。</div>
+        <div class="share-btns">
+          <button type="button" onclick="shareTo('line')">LINE で送る</button>
+          <button type="button" onclick="shareTo('x')">X で送る</button>
+          <button type="button" onclick="shareTo('copy')">文をコピー</button>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -541,6 +565,18 @@ async function submitCard(){
   }catch(e){toast('通信エラーが発生しました');btn.disabled=false;btn.querySelector('span').textContent='この内容で投稿する';}
 }
 
+/* ===== 券を送る(2026-10-09)。送るのは案内の文とリンクだけ。見積書や結果は送らない ===== */
+var SHARE_URL='https://shield.the-horizons-innovation.com/hacker/submit/?from=share';
+var SHARE_TEXT='契約の前に、見積書を一度だけ見せてください。見積書を匿名で置くと、建設30年の目とAIが無料で項目ごとに解剖します。ログイン不要、業者名と個人情報は伏せます。';
+function shareTo(k){
+  try{fetch(API+'/rev-event',{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({event:'ehn_share_'+k})});}catch(e){}
+  if(k==='line'){window.open('https://line.me/R/share?text='+encodeURIComponent(SHARE_TEXT+'\n'+SHARE_URL),'_blank','noopener');return;}
+  if(k==='x'){window.open('https://x.com/intent/post?text='+encodeURIComponent(SHARE_TEXT)+'&url='+encodeURIComponent(SHARE_URL),'_blank','noopener');return;}
+  var t=SHARE_TEXT+'\n'+SHARE_URL;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('案内の文とリンクをコピーしました');},function(){toast(SHARE_URL);});}
+  else{toast(SHARE_URL);}
+}
+
 function logout(){try{localStorage.removeItem('ehn_token');localStorage.removeItem('ehn_user');}catch(e){}TOKEN=null;USER=null;loadSession();}
 
 loadSession();
@@ -550,7 +586,7 @@ if(/[?&]resume=1/.test(location.search))resumeDraft();
   if(/[?&]resume=1/.test(location.search))return;
   if(sessionStorage.getItem('ehn_land_sent'))return;
   var m=location.search.match(/[?&]from=([a-z]+)/);var f=m?m[1]:'';
-  var ev=['top','box','kantei','coupon','sns','x','threads','line','fb'].indexOf(f)>=0?('ehn_land_'+f):'ehn_land_other';
+  var ev=['top','box','kantei','coupon','sns','x','threads','line','fb','share'].indexOf(f)>=0?('ehn_land_'+f):'ehn_land_other';
   sessionStorage.setItem('ehn_land_sent','1');
   fetch(API+'/rev-event',{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({event:ev})});
 }catch(e){}})();
