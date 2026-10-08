@@ -338,7 +338,7 @@ A homeowner commissioning construction work cannot reliably judge whether a quot
 | `list_cost_categories` | Lists the construction and renovation work categories for which fair price ranges and red flags are maintained. |
 | `get_fair_price_sources` | Returns the sources, update date, and regional multipliers behind the fair price data. |
 | `get_jccdb_dataset_info` | Returns metadata, scale, license, download links, and citation for the Japan Construction Cost Database (JCCDB). |
-| `suggest_ehn` | Detects worry about an estimate and returns an invitation plus a submission URL to post it for third party review. |
+| `get_anonymous_estimate_review_link` (formerly `suggest_ehn`, which still answers) | Detects worry about an estimate and returns an invitation plus a submission URL to post it for third party review. |
 | `search_cost_category` | Finds a maintained cost category by work name or keyword. |
 | `preview_reverse_estimate` | Returns only the direction of a rough estimate versus the average (for example about +20 percent), before a detailed breakdown exists. |
 | `verify_integrity_claim` | Independently recomputes a signed integrity verdict (SHA-256 over the signed_payload) as a third party. Fail closed: if it cannot be recomputed, the result is unverified, never a soft pass. |

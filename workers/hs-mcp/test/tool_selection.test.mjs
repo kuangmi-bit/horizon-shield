@@ -56,7 +56,7 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   const r = await rpc("tools/list", {});
   const by = Object.fromEntries(r.tools.map(t => [t.name, t]));
   // 2026-09-26: 15 本(14 + find_verified_contractor)に、JCCDB 観測層 v2 の 11 本と米国の掛け率の層 v3 の 4 本が足されて 30 本。
-  const BASE = ["get_jccdb_dataset_info", "list_cost_categories", "search_cost_category", "get_estimate_reading_guide", "get_fair_price_sources", "get_price_range", "audit_estimate", "preview_reverse_estimate", "check_red_flags", "verify_fair_price", "create_ap2_fairness_attestation", "suggest_ehn", "get_agent_card", "verify_integrity_claim", "find_verified_contractor"];
+  const BASE = ["get_jccdb_dataset_info", "list_cost_categories", "search_cost_category", "get_estimate_reading_guide", "get_fair_price_sources", "get_price_range", "audit_estimate", "preview_reverse_estimate", "check_red_flags", "verify_fair_price", "create_ap2_fairness_attestation", "get_anonymous_estimate_review_link", "get_agent_card", "verify_integrity_claim", "find_verified_contractor"];
   const JCCDB_V2 = ["search_jccdb_items", "get_jccdb_observations", "get_jccdb_labor_rate", "compare_jccdb_regions", "get_jccdb_work_unit_price", "get_jccdb_index_series", "get_us_construction_prices", "get_jccdb_coverage", "get_us_prevailing_wage", "get_us_permits", "get_us_area_factor"];
   const KAKE_V3 = ["get_us_price_chain", "get_us_import_landed_cost", "get_us_trade_margins", "get_us_contract_discounts"];
   const missing = [...BASE, ...JCCDB_V2, ...KAKE_V3].filter(n => !by[n]);
