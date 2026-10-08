@@ -67,9 +67,10 @@ and submits it.
 
 ## Verified
 
-Run `./reproduce.sh`. It clones `aeoess/federation-port` at `92d5078`, adds this component without touching `src/`, seals it
+Run `./reproduce.sh`. It clones `aeoess/federation-port` at `3a2f6ce`, adds this component without touching `src/`, seals it
 with the repo's own `scripts/seal.ts` (the sealed manifest is byte-identical to the one here), and runs the full suite:
-**51/51 (the 44 existing tests plus 7 here)**. The repo's `tsc -p tsconfig.json` reports 0 errors. Sealed digests: artifact
+**61/61 (the 54 existing tests plus 7 here)**. The repo's `tsc -p tsconfig.json` reports 0 errors. At the first pin,
+`92d5078`, the same files gave 51/51 (44 plus 7); the component did not change between the two. Sealed digests: artifact
 `sha256:50bff064d3e3b9db25b63c96968b617c69182023f5e7d82e8aa515d000804205`, manifest
 `sha256:0d888abe203b1395efea14e4d841e21201708a3629a642c0cefd4731c49f791e`.
 

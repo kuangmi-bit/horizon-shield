@@ -211,6 +211,16 @@
       "what": "The 467 addresses of probe 5 whose challenge named no metadata URL, contacted again on 2026-10-03 with two GETs each: the RFC 9728 default location for the registered path, and the same well-known URL under a path that cannot exist (_nx plus 16 random hex, stored in the row), same headers. One row per address with both statuses, whether each body is a JSON object, its resource (credential-looking query values redacted) and authorization server count, and a pair category derived only from those fields (live_rs_keep, auth_proxy_wall_every_path, no_doc_unclassified, or an unclassified reason). It corrects probe 5, which read a non-200 at the default location alone as auth_proxy_by_rule. Read only, no credentials. Recompute: python3 tools/survey6_wellknown_pair.py --recompute <this file>.",
       "made_by": "tools/survey6_wellknown_pair.py",
       "role": "correction"
+    },
+    {
+      "file": "survey7_robots_recheck_2026-10-08.jsonl",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey7_robots_recheck_2026-10-08.jsonl",
+      "bytes": 1788859,
+      "sha256": "5cb8f6a3c314109d58d39ac715348c094750fdf17f8d3f4b614ed27d881341ba",
+      "lines": 1466,
+      "what": "The 1,466 rows of the 2026-08-23 walk skipped as robots_disallowed, checked again: robots.txt fetched once per origin (1,395 origins) with the walk's User-Agent, redirects recorded up to 5 hops. One row per skipped endpoint with the final status, redirect hops, content type, body sha256, the user-agent groups either reading applies, the verdict of the walk's own parser on today's file and the RFC 9309 verdict (longest match, Allow, consecutive user-agent lines, * and $; 4xx allows, 5xx or no answer disallows). Category per row is derived only from stored fields. Read only. Recompute: python3 tools/survey7_robots_recheck.py --recompute <this file>.",
+      "made_by": "tools/survey7_robots_recheck.py",
+      "role": "correction"
     }
   ]
 }

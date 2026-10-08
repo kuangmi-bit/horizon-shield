@@ -175,6 +175,22 @@ WHAT = {
 }
 
 
+# Files named by the UTC date of their run.
+WHAT_PREFIX = {
+    "survey7_robots_recheck_": {
+        "what": "The 1,466 rows of the 2026-08-23 walk skipped as robots_disallowed, checked again: robots.txt fetched "
+                "once per origin (1,395 origins) with the walk's User-Agent, redirects recorded up to 5 hops. One row per "
+                "skipped endpoint with the final status, redirect hops, content type, body sha256, the user-agent groups "
+                "either reading applies, the verdict of the walk's own parser on today's file and the RFC 9309 verdict "
+                "(longest match, Allow, consecutive user-agent lines, * and $; 4xx allows, 5xx or no answer disallows). "
+                "Category per row is derived only from stored fields. Read only. Recompute: python3 "
+                "tools/survey7_robots_recheck.py --recompute <this file>.",
+        "made_by": "tools/survey7_robots_recheck.py",
+        "role": "correction",
+    },
+}
+
+
 def sha256(path):
     h = hashlib.sha256()
     with io.open(path, "rb") as f:
@@ -191,7 +207,7 @@ def build():
             continue
         if name == "index.json":
             continue
-        meta = WHAT.get(name)
+        meta = WHAT.get(name) or next((v for k, v in WHAT_PREFIX.items() if name.startswith(k)), None)
         row = {
             "file": name,
             "url": BASE + name,
