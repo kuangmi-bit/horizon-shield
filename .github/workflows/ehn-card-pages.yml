@@ -1,0 +1,55 @@
+name: ehn card pages
+
+# EHN(見積もり達人)の公開カードを 1 枚ずつ静的なページ(hacker/c/<id>/)にし、sitemap-ehn.xml を作り直す (2026-10-09)。
+# なぜ: カードは掲示板の小窓でしか開けず、検索にも出ず、リンクで送れなかった。承認されたカードが翌朝までにページになる。
+# 読むのは公開の API(/hacker/cards)だけで、鍵は要らない。ニックネームは載せない。社名・電話らしき文字があるカードはページにしない。
+# 取れなかった時・0 枚の時は何も書き換えない。変わりが無い時は commit しない。
+# 手で回す: Actions -> ehn card pages -> Run workflow。本体と試験: tools/ehn_card_pages.py(--selftest)。
+
+on:
+  schedule:
+    - cron: "40 15 * * *"   # 毎日 00:40 JST
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: ehn-card-pages
+  cancel-in-progress: false
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: self test
+        run: python3 tools/ehn_card_pages.py --selftest
+      - name: build card pages from the public API
+        run: python3 tools/ehn_card_pages.py | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: record and deploy (only when something changed)
+        run: |
+          git config user.name "hs-ehn-card-pages"
+          git config user.email "contact@the-horizons-innovation.com"
+          git add -A hacker/c sitemap-ehn.xml
+          if git diff --cached --quiet; then
+            echo "変わりはありません。commit しません。" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          N=$(git diff --cached --name-only | wc -l | tr -d ' ')
+          git commit -m "ehn card pages: $(date -u +%Y-%m-%dT%H:%MZ) ($N files)"
+          ok=0
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then ok=1; break; fi
+            sleep 5
+          done
+          [ "$ok" = 1 ] || exit 1
+          # GITHUB_TOKEN の push では on:push の static.yml が動かないので、明示的に起こす(HS-DEPLOY-DISPATCH と同じ)
+          curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/static.yml/dispatches -d '{"ref":"main"}'
+          echo "Pages の配布を起こしました。" | tee -a "$GITHUB_STEP_SUMMARY"

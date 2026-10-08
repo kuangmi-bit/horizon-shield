@@ -26,3 +26,4 @@ User-agent: CCBot
 Allow: /
 
 Sitemap: https://shield.the-horizons-innovation.com/sitemap.xml
+Sitemap: https://shield.the-horizons-innovation.com/sitemap-ehn.xml
