@@ -398,17 +398,23 @@ function renderPrice(){
   }).join('');
 }
 
-var REG_GENRES=['浴室','外壁・屋根','内装・改装','給湯器','トイレ','キッチン','その他'];
+var REG_GENRES=['浴室','外壁・屋根','内装・改装','給湯器','トイレ','キッチン','窓・玄関・ガラス','その他'];
 var REG_PREFS=['北海道','宮城県','埼玉県','千葉県','東京都','神奈川県','愛知県','静岡県','大阪府','京都府','兵庫県','広島県','福岡県','その他'];
 var regSel={regions:[],genres:[]};
 function getToken(){try{return localStorage.getItem('ehn_token');}catch(e){return null;}}
+// 2026-10-09: このページから直接ログインし、ログイン後はこのページに戻す(戻り先はログインの画面が ehn_return を読む)。
+async function regLogin(){
+  try{localStorage.setItem('ehn_return','/hacker/demand/');}catch(e){}
+  try{const r=await fetch(API+'/auth/line-login-start',{method:'POST'});const d=await r.json();if(d.login_url){location.href=d.login_url;return;}}catch(e){}
+  alert('ログインを開始できませんでした。時間をおいてもう一度お試しください');
+}
 function getUser(){try{var u=localStorage.getItem('ehn_user');return u?JSON.parse(u):null;}catch(e){return null;}}
 function renderRegister(){
   var box=document.getElementById('regBox');
   if(!box)return;
   var tk=getToken();
   if(!tk){
-    box.innerHTML='<div class="reg-need"><div class="t">事業者登録にはログインが必要です</div><div class="d">見積もり達人(板)でLINEログインしてから、このページに戻ってきてください。ログインは施主・事業者で共通です。あなたが事業者として関心地域・工種を登録すると、旬な案件の通知を受け取れます。</div><a class="btn" href="/hacker/"><i class="ti ti-brand-line"></i>板でログインする</a></div>';
+    box.innerHTML='<div class="reg-need"><div class="t">事業者登録にはログインが必要です</div><div class="d">LINEでログインすると、このページに戻ってきます。ログインは施主・事業者で共通です。関心のある地域と工種を登録すると、「検討中」の見積もりが掲載されたときに公式LINEでお知らせします。</div><button type="button" class="btn" onclick="regLogin()"><i class="ti ti-brand-line"></i>LINEでログインする</button></div>';
     return;
   }
   var user=getUser();
@@ -438,7 +444,7 @@ function submitReg(){
   fetch(API+'/hacker/contractor-register',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},body:JSON.stringify({regions:regSel.regions,genres:regSel.genres})}).then(function(r){return r.json();}).then(function(d){
     var box=document.getElementById('regBox');
     if(d&&d.ok){
-      box.innerHTML='<div class="reg-done"><div class="ic"><i class="ti ti-circle-check"></i></div><div class="t">事業者登録が完了しました</div><div class="d">関心地域・工種を登録しました。通知機能の提供が始まりましたら、旬な案件をLINEでお知らせします。内容はいつでも変更できます。</div></div>';
+      box.innerHTML='<div class="reg-done"><div class="ic"><i class="ti ti-circle-check"></i></div><div class="t">事業者登録が完了しました</div><div class="d">関心地域・工種を登録しました。「検討中」の見積もりが掲載されたら、公式LINE(@172piime)でお知らせします。内容はいつでも変更できます。</div></div>';
     }else{
       if(btn){btn.disabled=false;btn.textContent='この内容で登録する';}
       alert((d&&d.error)?d.error:'登録に失敗しました');
