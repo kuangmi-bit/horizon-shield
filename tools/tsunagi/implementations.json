@@ -7,6 +7,13 @@
        {"corpus": "nenrin-interop-v0", "cwd": "@hs/workers/hs-ledger/nenrin/interop-v0", "cmd": ["node", "run_interop.mjs"], "parse": "all_pass", "total": 5},
        {"corpus": "nenrin-interop-v0.1", "cwd": "@hs/workers/hs-ledger/nenrin/interop-v0.1", "cmd": ["node", "run_interop.mjs"], "parse": "all_pass", "total": 13}
      ]},
+    {"id": "hs-nenrin-go", "ours": true, "author": "ogasurfproject-jpg", "repo": null, "language": "Go",
+     "note": "A Go port of the reference verifier by the same author (workers/hs-ledger/nenrin/sdk-go), standard library only. It is a second language, not an independent implementation: it was written from the reference and is held to it by sdk-go/parity/parity.py (27,156 bundles, 0 differences).",
+     "runs": [
+       {"corpus": "nenrin-interop-v0", "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go", "cmd": ["go", "run", "./cmd/nenrin-verify-go", "--corpus", "@hs/workers/hs-ledger/nenrin/interop-v0"], "parse": "count_line", "total": 5},
+       {"corpus": "nenrin-interop-v0.1", "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go", "cmd": ["go", "run", "./cmd/nenrin-verify-go", "--corpus", "@hs/workers/hs-ledger/nenrin/interop-v0.1"], "parse": "count_line", "total": 13},
+       {"corpus": "nenrin-interop-v0.2-edge", "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go", "cmd": ["go", "run", "./cmd/nenrin-verify-go", "--corpus", "@hs/workers/hs-ledger/nenrin/interop-v0.2/edge"], "parse": "count_line", "total": 36}
+     ]},
     {"id": "kuangmi-bit-nenrin-independent-verifiers", "ours": false, "author": "kuangmi-bit", "repo": "https://github.com/kuangmi-bit/nenrin-independent-verifiers.git", "language": "Python",
      "license": "MIT", "written_from": "VERIFIER.md alone, without reading the reference implementation (the author's statement in the repository README)",
      "runs": [
@@ -38,6 +45,7 @@
   "pairs": [
     {"corpus": "musubi-approval-v2", "a": "babyblueviper1-approval-v2", "b": "hs-settle-v1.10-approval", "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"},
     {"corpus": "nenrin-interop-v0", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"},
-    {"corpus": "nenrin-interop-v0.1", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"}
+    {"corpus": "nenrin-interop-v0.1", "a": "hs-nenrin-reference", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "both reproduce every frozen verdict signature"},
+    {"corpus": "nenrin-interop-v0.2-edge", "a": "hs-nenrin-go", "b": "kuangmi-bit-nenrin-independent-verifiers", "what": "the edge vectors, read in Go and in Python by different people; both reproduce every frozen verdict signature"}
   ]
 }
