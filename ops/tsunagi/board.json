@@ -1,5 +1,5 @@
 {
-  "board_sha256": "7447ade9ec99e16aeec4ce7d7b82a6e50dd6572e6165a045157fa7542989b7a5",
+  "board_sha256": "e78a642c7479ed82ff3260f57eec8721a121ba2c17a0df29a6ed82900e9e429c",
   "implementations": {
     "a2aproject-a2a-python": {
       "author": "a2aproject (the official A2A Python SDK)",
@@ -14,17 +14,27 @@
     "babyblueviper1-approval-v2": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "a6de6246b1775b405f9635f4ff72e3f9d119f168",
+      "commit": "5f56bf3da00d9bcfd658ba50787f6d0d4a79cad4",
       "id": "babyblueviper1-approval-v2",
       "language": "Python",
       "license": "MIT",
       "ours": false,
       "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git"
     },
+    "hs-nenrin-go": {
+      "author": "ogasurfproject-jpg",
+      "clone_error": null,
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
+      "id": "hs-nenrin-go",
+      "language": "Go",
+      "license": null,
+      "ours": true,
+      "repo": null
+    },
     "hs-nenrin-reference": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
       "id": "hs-nenrin-reference",
       "language": "JavaScript",
       "license": null,
@@ -34,7 +44,7 @@
     "hs-settle-v1.10-approval": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
       "id": "hs-settle-v1.10-approval",
       "language": "Python",
       "license": null,
@@ -62,7 +72,7 @@
       "repo": "https://github.com/probityai/agent-evidence-vectors.git"
     }
   },
-  "measured_at": "2026-10-07T23:18:54Z",
+  "measured_at": "2026-10-08T00:13:02Z",
   "pairs": [
     {
       "a": "babyblueviper1-approval-v2",
@@ -93,12 +103,22 @@
       "of": null,
       "same": null,
       "what": "both reproduce every frozen verdict signature"
+    },
+    {
+      "a": "hs-nenrin-go",
+      "agree": true,
+      "b": "kuangmi-bit-nenrin-independent-verifiers",
+      "basis": "both reproduce every expectation of the corpus",
+      "corpus": "nenrin-interop-v0.2-edge",
+      "of": null,
+      "same": null,
+      "what": "the edge vectors, read in Go and in Python by different people; both reproduce every frozen verdict signature"
     }
   ],
-  "repository_commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
+  "repository_commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
   "runs": [
     {
-      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -113,7 +133,7 @@
       "stdout_sha256": "c6f611352d4a2eba70c7ee502a0cdc86ad7b57800f04cba76b8d855b7e06dff5"
     },
     {
-      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -128,6 +148,51 @@
       "stdout_sha256": "0dbacd29fed94f67291c053fc2771b438fc061cf19cb6e13eef141fd4740d46d"
     },
     {
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
+      "corpus": "nenrin-interop-v0",
+      "exit": 0,
+      "expected_total": 5,
+      "implementation": "hs-nenrin-go",
+      "of": 5,
+      "ours": true,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 5,
+      "seconds": 9.0,
+      "status": "ran",
+      "stdout_sha256": "dbdce88d3be1e47411a80bc40d7aa38dc3a26fbef17084de19edab0dd892c7c8"
+    },
+    {
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
+      "corpus": "nenrin-interop-v0.1",
+      "exit": 0,
+      "expected_total": 13,
+      "implementation": "hs-nenrin-go",
+      "of": 13,
+      "ours": true,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 13,
+      "seconds": 0.1,
+      "status": "ran",
+      "stdout_sha256": "f80ccab7cff6ce4077b6851e6a5768248e513a01813301f71866d62ba0747987"
+    },
+    {
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
+      "corpus": "nenrin-interop-v0.2-edge",
+      "exit": 0,
+      "expected_total": 36,
+      "implementation": "hs-nenrin-go",
+      "of": 36,
+      "ours": true,
+      "passed": true,
+      "per_vector": null,
+      "reproduced": 36,
+      "seconds": 0.2,
+      "status": "ran",
+      "stdout_sha256": "a1e5a3752c2367190ffb8f82878644d168e5681aff087c11faa7959348388033"
+    },
+    {
       "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
@@ -138,7 +203,7 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 5,
-      "seconds": 0.0,
+      "seconds": 0.1,
       "status": "ran",
       "stdout_sha256": "b97c6088c71964e16445d2293aa18ec011e890d40b13887d2eefb866c74a9295"
     },
@@ -153,7 +218,7 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 13,
-      "seconds": 0.0,
+      "seconds": 0.1,
       "status": "ran",
       "stdout_sha256": "e1e79096aedc01ad60a3182d8ce6392c82501e8fee491a89f67552696ef233e0"
     },
@@ -168,12 +233,12 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 36,
-      "seconds": 0.3,
+      "seconds": 0.4,
       "status": "ran",
       "stdout_sha256": "021478294fa83a94a2dc7aef8e77830b1eace07cbea7cef9a67ff720e25f386e"
     },
     {
-      "commit": "a6de6246b1775b405f9635f4ff72e3f9d119f168",
+      "commit": "5f56bf3da00d9bcfd658ba50787f6d0d4a79cad4",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -234,7 +299,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "f6747f7e63a2de1f14f7f193b6ed610d658c06fd",
+      "commit": "1e1e2df93a47d94188ddfdb78e23a64c0be6b335",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -290,7 +355,7 @@
         }
       },
       "reproduced": 9,
-      "seconds": 0.2,
+      "seconds": 0.1,
       "status": "ran",
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
@@ -394,7 +459,7 @@
         }
       },
       "reproduced": 5,
-      "seconds": 0.0,
+      "seconds": 0.1,
       "status": "ran",
       "stdout_sha256": "bf88276f294a4815a0a88d888b87a8b744fcae33710dcfef6ce2f6042112c93b"
     },
@@ -409,9 +474,9 @@
       "passed": true,
       "per_vector": null,
       "reproduced": 10,
-      "seconds": 1.4,
+      "seconds": 1.5,
       "status": "ran",
-      "stdout_sha256": "43be76faac9efd4be375832f561a486305184383c6b630dc6c8c894fcba83aa1"
+      "stdout_sha256": "d74767fb7957c031b7ca6168720084c0cf7d3e95c67561734fda7491aef7be1f"
     }
   ],
   "schema": "hs-tsunagi-board-v0",
@@ -424,7 +489,7 @@
       "kuangmi-bit"
     ],
     "outside_passed": 7,
-    "passed": 10,
-    "runs": 10
+    "passed": 13,
+    "runs": 13
   }
 }
