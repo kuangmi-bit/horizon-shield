@@ -1,0 +1,140 @@
+// NENRIN conduct-walk component (tool_admission). Checks, offline, a signed NENRIN witness record of the endpoint this
+// workflow dispatches to: that a witness the customer trusts signed exactly these record bytes, that the walk was of that
+// endpoint, and that it passed recently enough. The same check the NENRIN ledger runs when a witness files a record.
+// No network, no dependencies, no secrets. Written against src/contract only.
+import { createHash, createPublicKey, verify } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import type { Adapter, AdapterContext, CheckOutput, ClaimResult, Manifest } from '../../src/contract/types.ts'
+
+const manifest: Manifest = JSON.parse(readFileSync(new URL('./manifest.json', import.meta.url), 'utf8'))
+const C_AUTH = 'nenrin.walk_authentic'
+const C_COVERS = 'nenrin.walk_covers_endpoint'
+const C_PASSED = 'nenrin.walk_passed_recently'
+const SCHEMA = 'jidec-path-v1'
+const PURPOSE = 'a2a-conduct-walk-v1: '
+const SPKI_ED25519 = Buffer.from('302a300506032b6570032100', 'hex')
+const B64 = /^[A-Za-z0-9+/]+={0,2}$/
+const HEX64 = /^[0-9a-f]{64}$/
+const WALKED_AT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,3})?Z$/
+
+/** Sorted-key JSON with no spaces: the form the walker signs (Python json.dumps sort_keys, separators (",", ":"), ensure_ascii=False). */
+function canonical(v: unknown): string {
+  if (v === null || typeof v === 'boolean' || typeof v === 'string') return JSON.stringify(v)
+  if (typeof v === 'number') { if (!Number.isFinite(v)) throw new Error('non_finite_number'); return JSON.stringify(v) }
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']'
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + canonical(o[k])).join(',') + '}'
+  }
+  throw new Error(`unsupported_type:${typeof v}`)
+}
+
+/** Standard base64 that decodes to exactly n bytes and re-encodes to the same text (no other spelling of the same bytes). */
+function b64Exact(s: unknown, n: number): Buffer | null {
+  if (typeof s !== 'string' || s.length % 4 !== 0 || !B64.test(s)) return null
+  const b = Buffer.from(s, 'base64')
+  return b.length === n && b.toString('base64') === s ? b : null
+}
+
+/** A real UTC calendar instant in the walker's form, to the millisecond, or NaN. */
+function walkedAtMs(s: unknown): number {
+  if (typeof s !== 'string') return NaN
+  const m = WALKED_AT.exec(s)
+  if (!m) return NaN
+  const t = Date.parse(s)
+  const d = new Date(t)
+  return Number.isFinite(t) && d.getUTCFullYear() === +m[1] && d.getUTCMonth() + 1 === +m[2] && d.getUTCDate() === +m[3]
+    && d.getUTCHours() === +m[4] && d.getUTCMinutes() === +m[5] && d.getUTCSeconds() === +m[6] ? t : NaN
+}
+
+const hostOf = (u: unknown): string | null => {
+  if (typeof u !== 'string' || !u.startsWith('https://')) return null
+  try { return new URL(u).hostname.toLowerCase() } catch { return null }
+}
+
+type Trusted = { public_key_ed25519_b64: string; key_url?: string }
+type Config = { endpoint?: string; trusted_witnesses?: Record<string, Trusted>; operator_domains?: string[]; max_age_s?: number; future_skew_s?: number }
+
+function all(status: ClaimResult['status'], reason: string, evidence: Uint8Array = new Uint8Array()): CheckOutput {
+  return { evidence, claims: [C_AUTH, C_COVERS, C_PASSED].map(claim => ({ claim, status, reason })) }
+}
+
+export function createAdapter(ctx: AdapterContext): Adapter {
+  const cfg = (ctx.config ?? {}) as Config
+  const endpoint = typeof cfg.endpoint === 'string' ? cfg.endpoint : null
+  const trusted = Object.fromEntries(Object.entries(cfg.trusted_witnesses ?? {}).map(([d, t]) => [d.toLowerCase(), t]))
+  const operator = new Set((cfg.operator_domains ?? []).map(d => d.toLowerCase()))
+  const maxAgeS = cfg.max_age_s ?? 7 * 86400
+  const skewS = cfg.future_skew_s ?? 300
+  return {
+    describe: () => manifest,
+    async check(input): Promise<CheckOutput> {
+      const bytes = input.evidence
+      if (!bytes || bytes.byteLength === 0) return all('not_established', 'no_walk_presented')
+      if (endpoint === null) return all('failed', 'config_endpoint_missing', bytes)
+      let w: Record<string, unknown>
+      try {
+        const parsed = JSON.parse(Buffer.from(bytes).toString('utf8'))
+        w = (parsed && typeof parsed === 'object' && parsed.record && typeof parsed.record === 'object') ? parsed.record : parsed
+      } catch { return all('failed', 'evidence_not_json', bytes) }
+      if (!w || typeof w !== 'object' || typeof w.record_canonical !== 'string') return all('failed', 'evidence_not_a_witness_record', bytes)
+      const rc = w.record_canonical as string
+      let r: Record<string, any>
+      try { r = JSON.parse(rc) } catch { return all('failed', 'record_canonical_not_json', bytes) }
+      if (!r || typeof r !== 'object' || Array.isArray(r)) return all('failed', 'record_not_an_object', bytes)
+
+      // 1. authenticity: these exact record bytes, signed by the key the customer pinned for the witness's domain
+      const sha = createHash('sha256').update(rc, 'utf8').digest('hex')
+      const host = hostOf(r.witness?.key_url)
+      const pin = host ? trusted[host] : undefined
+      const pinKey = pin ? b64Exact(pin.public_key_ed25519_b64, 32) : null
+      const sig = b64Exact(w.signature_ed25519_b64, 64)
+      let canon: string | null = null
+      try { canon = canonical(r) } catch { canon = null }
+      let auth: ClaimResult
+      if (w.sha !== undefined && (typeof w.sha !== 'string' || !HEX64.test(w.sha) || w.sha !== sha)) auth = { claim: C_AUTH, status: 'not_established', reason: 'sha_does_not_recompute' }
+      else if (canon !== rc) auth = { claim: C_AUTH, status: 'not_established', reason: 'record_not_canonical' }
+      else if (r.schema !== SCHEMA) auth = { claim: C_AUTH, status: 'not_established', reason: 'not_a_jidec_path_record' }
+      else if (!host) auth = { claim: C_AUTH, status: 'not_established', reason: 'record_names_no_https_key_url' }
+      else if (operator.has(host)) auth = { claim: C_AUTH, status: 'not_established', reason: 'witness_is_the_operator' }
+      else if (!pin) auth = { claim: C_AUTH, status: 'not_established', reason: 'witness_domain_not_trusted' }
+      else if (!pinKey) auth = { claim: C_AUTH, status: 'failed', reason: 'config_pinned_key_malformed' }
+      else if (pin.key_url !== undefined && pin.key_url !== r.witness.key_url) auth = { claim: C_AUTH, status: 'not_established', reason: 'key_url_is_not_the_pinned_one' }
+      else if (w.public_key_ed25519_b64 !== undefined && w.public_key_ed25519_b64 !== pin.public_key_ed25519_b64) auth = { claim: C_AUTH, status: 'not_established', reason: 'presented_key_is_not_the_pinned_key' }
+      else if (!sig) auth = { claim: C_AUTH, status: 'not_established', reason: 'signature_missing_or_malformed' }
+      else {
+        let ok = false
+        try { ok = verify(null, Buffer.from(rc, 'utf8'), createPublicKey({ key: Buffer.concat([SPKI_ED25519, pinKey]), format: 'der', type: 'spki' }), sig) } catch { ok = false }
+        auth = ok ? { claim: C_AUTH, status: 'established' } : { claim: C_AUTH, status: 'not_established', reason: 'signature_invalid' }
+      }
+      if (auth.status !== 'established') {
+        return { evidence: bytes, claims: [auth, { claim: C_COVERS, status: 'not_established', reason: 'walk_not_authentic' },
+                                                  { claim: C_PASSED, status: 'not_established', reason: 'walk_not_authentic' }] }
+      }
+
+      // 2. coverage: the walk was of the endpoint this workflow dispatches to, byte for byte
+      const walked = typeof r.purpose === 'string' && r.purpose.startsWith(PURPOSE) ? r.purpose.slice(PURPOSE.length) : null
+      const covers: ClaimResult = walked === null
+        ? { claim: C_COVERS, status: 'unsupported', reason: 'not_an_a2a_conduct_walk' }
+        : walked === endpoint
+          ? { claim: C_COVERS, status: 'established' }
+          : { claim: C_COVERS, status: 'not_established', reason: 'walk_is_of_a_different_endpoint' }
+
+      // 3. result: every assertion of the walk passed, and the walk is fresh enough to act on
+      const v = r.verdict ?? {}
+      const nowMs = Date.parse(input.now)
+      const at = walkedAtMs(r.walked_at)
+      const expiresMs = at + maxAgeS * 1000
+      let passed: ClaimResult
+      if (covers.status !== 'established') passed = { claim: C_PASSED, status: 'not_established', reason: covers.reason ?? 'walk_does_not_cover_endpoint' }
+      else if (!(v.ok === true && v.outcome === 'PASS' && Number.isInteger(v.n_total) && v.n_total > 0 && v.n_pass === v.n_total)) passed = { claim: C_PASSED, status: 'not_established', reason: `walk_outcome_${String(v.outcome)}` }
+      else if (!Number.isFinite(at)) passed = { claim: C_PASSED, status: 'failed', reason: 'walked_at_malformed' }
+      else if (at > nowMs + skewS * 1000) passed = { claim: C_PASSED, status: 'not_established', reason: 'walked_at_in_the_future' }
+      else if (!(nowMs <= expiresMs)) passed = { claim: C_PASSED, status: 'not_established', reason: 'walk_older_than_max_age' }
+      else passed = { claim: C_PASSED, status: 'established' }
+      const out: CheckOutput = { evidence: bytes, claims: [auth, covers, passed] }
+      if (passed.status === 'established') out.valid_until = new Date(expiresMs).toISOString()
+      return out
+    },
+  }
+}

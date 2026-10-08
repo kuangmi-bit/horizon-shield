@@ -1,0 +1,79 @@
+{
+  "contract": "federation-port/v0",
+  "id": "horizonshield.nenrin/conduct-walk-check",
+  "publisher": {
+    "name": "Horizon Shield (NENRIN)",
+    "contact": "https://github.com/ogasurfproject-jpg/horizon-shield"
+  },
+  "maintainer": {
+    "name": "ogasurfproject-jpg",
+    "contact": "https://github.com/ogasurfproject-jpg"
+  },
+  "artifact": {
+    "version": "0.1.0",
+    "entry": "adapter.ts",
+    "files": [
+      "adapter.ts"
+    ],
+    "digest": "sha256:50bff064d3e3b9db25b63c96968b617c69182023f5e7d82e8aa515d000804205"
+  },
+  "role": "tool_admission",
+  "schemas": {
+    "check_evidence": {
+      "media_type": "application/json",
+      "description": "A signed NENRIN witness record exactly as GET https://ledger.horizonshield.dev/witness/<sha> serves it (record_canonical, signature_ed25519_b64, optional sha and public_key_ed25519_b64), bare or under {\"record\": ...}. record_canonical is a jidec-path-v1 conduct walk; the signature is Ed25519 over its UTF-8 bytes."
+    },
+    "output_evidence": {
+      "media_type": "application/json",
+      "description": "The presented witness record bytes, unmodified"
+    }
+  },
+  "claims": [
+    {
+      "id": "nenrin.walk_authentic",
+      "establishes": "The record bytes are a canonical jidec-path-v1 record (sha256 recomputes when given), its witness key_url is on a domain the customer trusts and is not an operator domain, and its Ed25519 signature over those exact bytes verifies under the key the customer pinned for that domain.",
+      "limits": [
+        "A signature shows who asserted the record, not that its assertions are true",
+        "Trusts the pinned key; the key the domain serves today, rotation and revocation are not checked in this version",
+        "Says nothing about Bitcoin anchoring: whether the ledger has batched and stamped the record is not checked offline here"
+      ]
+    },
+    {
+      "id": "nenrin.walk_covers_endpoint",
+      "establishes": "The walk was of exactly the endpoint configured for this workflow: the record's purpose names that URL byte for byte.",
+      "limits": [
+        "Binds the endpoint only, not the tool, the action arguments, the tenant, the approval id or the operation id",
+        "The same record can be presented for any action dispatched to that endpoint"
+      ]
+    },
+    {
+      "id": "nenrin.walk_passed_recently",
+      "establishes": "On this endpoint every assertion of the walk passed (verdict PASS, n_pass equal to n_total), and the walk was made no more than max_age_s (default 604800) before the evaluation instant and not in its future beyond future_skew_s (default 300).",
+      "limits": [
+        "A walk is one observation from one vantage at one instant; the endpoint may behave differently at another instant or from another vantage",
+        "Freshness uses the signed walked_at and the runtime's clock; there is no trusted time source",
+        "PASS covers the walk's own assertions (card stable, conduct extension declared and echoed, endpoint answered and bound), not the correctness or quality of any response"
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "id": "nenrin.jidec-path-v1.signed",
+      "description": "jidec-path-v1 record from a2a_conduct_walk.py (purpose 'a2a-conduct-walk-v1: <endpoint>'), sorted-key JSON without spaces, Ed25519 over its UTF-8 bytes, witness.key_url on the signer's domain"
+    }
+  ],
+  "privileges_requested": [],
+  "data_destinations": [],
+  "keys": [
+    {
+      "id": "trusted-witness-keys",
+      "purpose": "verify witness signatures; the customer pins one Ed25519 public key per trusted witness domain (for example the key that domain serves at its witness key_url)",
+      "held_by": "customer",
+      "lifecycle": "pinned in config; no rotation or revocation in v0.1"
+    }
+  ],
+  "license": {
+    "spdx": "MIT",
+    "attribution": "Horizon Shield (The HORIZONs Co., Ltd.)"
+  }
+}
