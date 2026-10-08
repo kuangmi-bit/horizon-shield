@@ -39,9 +39,20 @@ def work_name(html):
 
 
 def box(work):
-    href = BASE + "/hs-reverse-estimate/" + ("?work=" + urllib.parse.quote(work) if work else "")
+    href = BASE + "/hs-reverse-estimate/?" + ("work=" + urllib.parse.quote(work) + "&" if work else "") + "from=box"
     return ('\n<div ' + MARK + ' style="margin:18px 0;"><a href="' + href + '" style="display:block;border:2px solid #C8960A;'
             'padding:14px 16px;font-weight:700;color:inherit;text-decoration:none;line-height:1.5;">' + TEXT + "</a></div>\n")
+
+
+# 2026-10-08: 箱のリンクに from=box を付ける。逆見積もりの画面は、これで相場ページの箱から来た人を数える
+# (来た元の URL が届かない端末でも数えられる)。付いていない古い箱は、リンクの所だけを書き換える。
+BOX_HREF = re.compile(r'(<div ' + re.escape(MARK) + r'[^>]*><a href=")([^"]*)(")')
+
+
+def with_from(href):
+    if re.search(r"[?&]from=box(&|$)", href):
+        return href
+    return href + ("&" if "?" in href else "?") + "from=box"
 
 
 def insertion_point(html):
@@ -67,7 +78,10 @@ def plan(html):
     if is_stub(html):
         return "skip", "県別スタブ(noindex または refresh)", None
     if MARK in html:
-        return "skip", "箱は入っている", None
+        new = BOX_HREF.sub(lambda m: m.group(1) + with_from(m.group(2)) + m.group(3), html, count=1)
+        if new != html:
+            return "update", "箱のリンクに from=box を付ける", new
+        return "skip", "箱は入っている(from=box 付き)", None
     # 文字があるだけでは数えない。押せるリンク(<a href>)があるかで見る。
     # 2026-10-07: souba/gaiheki は FAQ の文中に「(/kantei/)」と書いてあるだけで、リンクは 1 本も無かった。
     if re.search(r'<a\b[^>]*href="[^"]*(hs-reverse-estimate|/kantei/)', html):
@@ -107,6 +121,15 @@ def selftest():
     check("文中に /kantei/ と書いてあるだけ(リンクなし)のページには足す", plan(page.replace("<p>次</p>", "<p>鑑定(/kantei/)もあります</p>"))[0], "add")
     check("題名から工事名が取れなければ work を付けない", "?work=" in plan(page.replace("外壁塗装の相場・適正価格【2026年最新】", "2026年の相場"))[2], False)
     check("長すぎる工事名は付けない", work_name("<title>" + "あ" * 17 + "の相場</title>"), None)
+    check("新しい箱は from=box 付き(工事名あり)", 'hs-reverse-estimate/?work=' + urllib.parse.quote("外壁塗装") + '&from=box"' in box("外壁塗装"), True)
+    check("新しい箱は from=box 付き(工事名なし)", 'hs-reverse-estimate/?from=box"' in box(None), True)
+    old = page.replace("<p>次</p>", '<div ' + MARK + ' style="margin:18px 0;"><a href="' + BASE + '/hs-reverse-estimate/?work=x" style="a">t</a></div><p>次</p>')
+    a, why, out = plan(old)
+    check("古い箱(from なし)は印を付け直す", a, "update")
+    check("書き換えるのはリンクの所だけ", out.replace("?work=x&from=box", "?work=x"), old)
+    check("付け直した箱は二度目は触らない", plan(out)[0], "skip")
+    old2 = old.replace("?work=x", "")
+    check("工事名なしの古い箱は ?from=box", '/hs-reverse-estimate/?from=box"' in plan(old2)[2], True)
     print("\n%s" % ("all passed" if not bad else "%d failed" % bad))
     return 1 if bad else 0
 
@@ -120,7 +143,7 @@ def main():
         html = open(f, encoding="utf-8").read()
         action, why, out = plan(html)
         rel = os.path.relpath(f, ROOT)
-        if action == "add":
+        if action in ("add", "update"):
             added.append((rel, why))
             if write:
                 open(f, "w", encoding="utf-8").write(out)

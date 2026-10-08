@@ -210,18 +210,24 @@
       from: from === "box" || from === "work" ? from : "direct" };
   }
 
-  // ---- 9. 入口(どこから来たか)。ワーカーが会話の 1 通目で数えるために送る。個人を特定する物は送らない ----------
-  // box: 相場ページ(/souba/ の下)の箱(data-cta=reverse-v1)から来た。work: ?work= 付きで他から来た(AI の案内など)。direct: ?work= 無し。
+  // ---- 9. 入口(どこから来たか)。ワーカーが会話の 1 通目と、ページを開いた時に数えるために送る。個人を特定する物は送らない ----------
+  // box: 相場ページ(/souba/ の下)から来た。箱(data-cta=reverse-v1)のリンクには from=box が付いている(2026-10-08 から)。
+  //      印が無くても、来た元が相場ページなら box(?work= の有無は問わない)。
+  //      2026-10-08 まで: ?work= 無しを先に direct にしていたので、工事名の無い箱 63 本から来た人は box に数えられていなかった。
+  // work: ?work= 付きで他から来た(AI の案内など)。direct: それ以外。
   // 送るのはこの 3 つの語のどれかだけ。来た元の URL そのものは送らない。
   function entryFrom(search, referrer, origin) {
-    if (!workFromQuery(search)) return "direct";
-    var ref = String(referrer || ""), o = String(origin || "");
-    return o && ref.indexOf(o + "/souba/") === 0 ? "box" : "work";
+    var s = String(search || ""), ref = String(referrer || ""), o = String(origin || "");
+    if (/[?&]from=box(&|#|$)/.test(s)) return "box";
+    if (o && ref.indexOf(o + "/souba/") === 0) return "box";
+    return workFromQuery(s) ? "work" : "direct";
   }
+  // ページを開いた時に送る物。入口の語だけ(同じタブでは 1 回)。会話を始めずに帰った人も数に入る。
+  function landBody(from) { return JSON.stringify({ event: "land_" + (from === "box" || from === "work" ? from : "direct") }); }
   // ¥5,500 のボタンを押した時に送る物。出来事の名前だけ。
   function buyClickBody() { return JSON.stringify({ event: "buy_click" }); }
 
   return { USED_KEY: USED_KEY, RESULT_KEY: RESULT_KEY, shouldMarkUsed: shouldMarkUsed, makeSnapshot: makeSnapshot, readSnapshot: readSnapshot, loadState: loadState,
     PLAN_BUTTON_TEXT: PLAN_BUTTON_TEXT, chatPayload: chatPayload, sanitizeReply: sanitizeReply, hasDirective: hasDirective, matchSoubaRow: matchSoubaRow, man: man, rangeText: rangeText,
-    checkItems: checkItems, provenance: provenance, buildView: buildView, alignPaidPlans: alignPaidPlans, workFromQuery: workFromQuery, ymd: ymd, entryFrom: entryFrom, buyClickBody: buyClickBody };
+    checkItems: checkItems, provenance: provenance, buildView: buildView, alignPaidPlans: alignPaidPlans, workFromQuery: workFromQuery, ymd: ymd, entryFrom: entryFrom, buyClickBody: buyClickBody, landBody: landBody };
 });

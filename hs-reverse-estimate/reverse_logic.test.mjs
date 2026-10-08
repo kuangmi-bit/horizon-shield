@@ -1,7 +1,7 @@
 // reverse_logic.test.mjs (2026-10-07): 逆見積もりの結果画面の決まった計算を、公開の正本 data/souba-db.json と相場ページに当てて確かめる。
 // 走らせ方: node hs-reverse-estimate/reverse_logic.test.mjs   (ネットワークは使わない)
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -133,8 +133,12 @@ for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒ�
   t("?work= 付きで他のサイトから(AI の案内など): work", L.entryFrom(Q, "https://chatgpt.com/", O) === "work" && L.entryFrom(Q, "", O) === "work");
   t("?work= 付きでも、相場ページ以外の自サイトのページからは work", L.entryFrom(Q, O + "/yakumo/", O) === "work" && L.entryFrom(Q, O + "/hs-reverse-estimate/" + Q, O) === "work");
   t("似た名前の別サイトを箱と数えない", L.entryFrom(Q, O + ".evil.example/souba/gaiheki/", O) === "work" && L.entryFrom(Q, "https://evil.example/?x=" + O + "/souba/", O) === "work");
-  t("?work= 無し: direct（相場ページから来ても）", L.entryFrom("", O + "/souba/gaiheki/", O) === "direct" && L.entryFrom("?admin=reset", "", O) === "direct");
-  t("使えない工事名(長すぎ)は direct", L.entryFrom("?work=" + "あ".repeat(25), O + "/souba/gaiheki/", O) === "direct");
+  t("?work= 無しでも、相場ページから来たら box（工事名の無い箱 63 本の分）", L.entryFrom("", O + "/souba/gaiheki/", O) === "box");
+  t("箱のリンクの from=box: 来た元が届かなくても box", L.entryFrom("?from=box", "", O) === "box" && L.entryFrom(Q + "&from=box", "", O) === "box" && L.entryFrom("?from=box#x", "", O) === "box");
+  t("from=boxy のような別の値は box にしない", L.entryFrom("?from=boxy", "", O) === "direct" && L.entryFrom("?xfrom=box", "", O) === "direct");
+  t("?work= も箱の印も無く、相場ページからでもない: direct", L.entryFrom("?admin=reset", "", O) === "direct" && L.entryFrom("", "https://www.google.com/", O) === "direct" && L.entryFrom("", O + "/yakumo/", O) === "direct");
+  t("使えない工事名(長すぎ)は direct", L.entryFrom("?work=" + "あ".repeat(25), "", O) === "direct");
+  t("開いた時に送る物は入口の語だけ", L.landBody("box") === '{"event":"land_box"}' && L.landBody("work") === '{"event":"land_work"}' && L.landBody("direct") === '{"event":"land_direct"}' && L.landBody("https://x/") === '{"event":"land_direct"}');
   const hist = [{ role: "user", content: "外壁塗装をしたい" }];
   t("chatPayload: from は box・work・direct のどれか", L.chatPayload(hist, "reverse", "外壁塗装", "box").from === "box" && L.chatPayload(hist, "reverse", "外壁塗装", "work").from === "work" && L.chatPayload(hist, "reverse", "", undefined).from === "direct" && L.chatPayload(hist, "reverse", "", "https://x/").from === "direct");
   t("来た元の URL そのものは送らない", !JSON.stringify(L.chatPayload(hist, "reverse", "外壁塗装", L.entryFrom(Q, O + "/souba/gaiheki/?utm=abc", O))).includes("souba"));
@@ -142,6 +146,14 @@ for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒ�
   t("index.html: 入口は 1 か所で決める", (INDEX.match(/HSReverse\.entryFrom\(location\.search, document\.referrer, location\.origin\)/g) || []).length === 1);
   t("index.html: ¥5,500 のボタン 2 つは openTermsFirst を通り、そこで 1 回送る", (INDEX.match(/onclick="openTermsFirst\((\'bank\')?\)"/g) || []).length === 2 && /function openTermsFirst\(mode\) \{\n  reportBuyClick\(\);/.test(INDEX) && (INDEX.match(/reportBuyClick\(\)/g) || []).length === 2);
   t("index.html: 送り先は /rev-event だけで、cookie・localStorage・userAgent を一緒に送らない", (INDEX.match(/\/rev-event/g) || []).length === 2 && !/rev-event[^\n]*(cookie|localStorage|userAgent)/.test(INDEX));
+  t("index.html: 開いた数は 1 か所で、同じタブでは 1 回だけ送る", (INDEX.match(/reportLanding\(\)/g) || []).length === 2 && /function reportLanding\(\) \{[\s\S]*?sessionStorage\.getItem\('hs_rev_land'\)[\s\S]*?HSReverse\.landBody\(ENTRY_FROM\)/.test(INDEX));
+  t("index.html: 開いた数は ENTRY_FROM を決めた後に送る", INDEX.indexOf("const ENTRY_FROM") < INDEX.indexOf("\nreportLanding();"));
+  {
+    const dirs = readdirSync(path.join(ROOT, "souba"), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(path.join(ROOT, "souba", d.name, "index.html")));
+    const hrefs = dirs.flatMap((d) => [...page("souba/" + d.name + "/index.html").matchAll(/<div data-cta="reverse-v1"[^>]*><a href="([^"]*)"/g)].map((x) => x[1]));
+    t("相場ページの箱は全部 from=box 付き(" + hrefs.length + " 本)", hrefs.length >= 100 && hrefs.every((h) => /^https:\/\/shield\.the-horizons-innovation\.com\/hs-reverse-estimate\/\?(work=[^&"]+&)?from=box$/.test(h)), hrefs.filter((h) => !/from=box$/.test(h)).slice(0, 3).join(" "));
+    t("箱の工事名は今まで通り(付いていた 39 本はそのまま)", hrefs.filter((h) => h.includes("?work=")).length === 39);
+  }
   const m = /function reportBuyClick\(\) \{[\s\S]*?\n\}/.exec(INDEX);
   t("index.html: 送れなくても購入の流れを止めない(try で囲む)", !!m && /try \{/.test(m[0]) && /catch \(_e\) \{\}/.test(m[0]));
 }
@@ -168,4 +180,4 @@ for (const g of ["KIRA_SYSTEM", "kiraSystem", "絶対に守るルール", "ヒ�
 
 console.log("");
 if (fail) { console.log("FAIL " + fail + " of " + (pass + fail) + " (reverse_logic)"); process.exit(1); }
-console.log("PASS " + pass + "/" + pass + " (reverse_logic v4: 竹の幅が相場ページと一致、有料の松・梅も同じ物差し、指示文を持たない、印は結果の後、入口と購入ボタンは数だけ)");
+console.log("PASS " + pass + "/" + pass + " (reverse_logic v4: 竹の幅が相場ページと一致、有料の松・梅も同じ物差し、指示文を持たない、印は結果の後、入口と購入ボタンは数だけ、箱は from=box 付き、開いた数も入口ごと)");
