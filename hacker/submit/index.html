@@ -586,7 +586,7 @@ if(/[?&]resume=1/.test(location.search))resumeDraft();
   if(/[?&]resume=1/.test(location.search))return;
   if(sessionStorage.getItem('ehn_land_sent'))return;
   var m=location.search.match(/[?&]from=([a-z]+)/);var f=m?m[1]:'';
-  var ev=['top','box','kantei','coupon','sns','x','threads','line','fb','share','stamp','card','kairan'].indexOf(f)>=0?('ehn_land_'+f):'ehn_land_other';
+  var ev=['top','box','kantei','coupon','sns','x','threads','line','fb','share','stamp','card','kairan','guide','reply'].indexOf(f)>=0?('ehn_land_'+f):'ehn_land_other';
   sessionStorage.setItem('ehn_land_sent','1');
   fetch(API+'/rev-event',{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({event:ev})});
 }catch(e){}})();
