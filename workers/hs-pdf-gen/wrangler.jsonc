@@ -20,6 +20,7 @@
 
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hs-pdf-gen",
+  "preview_urls": false,
 
   // アカウント取り違え防止(oga.surf.project@ / HORIZON SHIELD側)
   "account_id": "c15ff64aba400e541853dec1fbe5e76a",

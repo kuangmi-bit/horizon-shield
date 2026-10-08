@@ -1,6 +1,7 @@
 {
   // hs-gemini-audit : 自社サイト用「Gemini監査」エンドポイント
   "name": "hs-gemini-audit",
+  "preview_urls": false,
   "main": "src/index.js",
   "compatibility_date": "2025-06-01",
   "observability": { "enabled": true },

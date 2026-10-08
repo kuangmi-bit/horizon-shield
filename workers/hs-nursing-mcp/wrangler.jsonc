@@ -21,6 +21,7 @@
 //   手で書き換えると、公開データベースと内部MCPが別のことを言い始める。
 {
   "name": "hs-nursing-mcp",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-05-18",
   "account_id": "c15ff64aba400e541853dec1fbe5e76a",

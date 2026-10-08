@@ -1,6 +1,7 @@
 {
   // 2026-08-09 live照合済み。デプロイ可。cron 無し。
   "name": "hs-geo-factory",
+  "preview_urls": false,
   "main": "src/index.js",
   "compatibility_date": "2026-01-01",
   "kv_namespaces": [

@@ -1,5 +1,6 @@
 {
   "name": "ai-council",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-05-18",
   "kv_namespaces": [

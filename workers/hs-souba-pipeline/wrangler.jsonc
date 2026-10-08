@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hs-souba-pipeline",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-01-01",
   "observability": { "enabled": true },

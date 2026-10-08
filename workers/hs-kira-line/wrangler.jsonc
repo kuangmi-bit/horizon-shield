@@ -9,6 +9,7 @@
   //    他の5本の Worker と同じく Secret に寄せた。vars には置かない。
   //  - cron はダッシュボードの Triggers から実測: 0 * * * *（毎時0分）。
   "name": "hs-kira-line",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-03-28",
   "compatibility_flags": ["nodejs_compat"],

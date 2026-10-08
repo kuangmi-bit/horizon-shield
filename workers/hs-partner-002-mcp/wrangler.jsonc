@@ -3,6 +3,7 @@
   // 独立worker。hs-mcp / gateway への binding は張らない(独立の証)。
   // HS_HEARING_KV は「読み取り」で共有(hs-hearing が書き、この worker は読むだけ)。
   "name": "hs-partner-002-mcp",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2024-01-01",
 

@@ -5,6 +5,7 @@
   // live照合済み。バインディング無し。ALERT_FEED_URLS / ANTHROPIC_API_KEY /
   // LINE_CHANNEL_TOKEN / LINE_USER_ID は全部 Secret なので vars には置かない。
   "name": "horizon-shield-kira",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-03-26"
 }

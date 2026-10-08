@@ -6,6 +6,7 @@
 	//   ANTHROPIC_API_KEY     = 既存の Anthropic キー
 	// KV も cron も要らない(ステートレス)。
 	"name": "hs-kira-group",
+	"preview_urls": false,
 	"main": "src/worker.js",
 	"compatibility_date": "2026-03-28",
 	"compatibility_flags": [

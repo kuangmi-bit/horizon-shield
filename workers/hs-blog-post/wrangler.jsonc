@@ -7,6 +7,7 @@
   // ★GITHUB_REPO は 2026-08-09 のダッシュボード実測では先頭スペース無しの
   //   "horizon-shield" だった。versions view の表示に空白が入って見えたのは表示側。
   "name": "hs-blog-post",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-03-29",
   "vars": {

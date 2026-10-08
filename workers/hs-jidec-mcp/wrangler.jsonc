@@ -2,6 +2,7 @@
 // NEW isolated worker. Reaches hs-ledger via service binding (no loopback).
 {
   "name": "hs-jidec-mcp",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-05-18",
   "account_id": "c15ff64aba400e541853dec1fbe5e76a",

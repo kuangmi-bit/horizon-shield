@@ -1,6 +1,7 @@
 {
   // 2026-08-09 live照合済み。デプロイ可。LINE_CHANNEL_TOKEN / LINE_USER_ID は Secret。
   "name": "hs-subscribe",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-05-30",
   "kv_namespaces": [

@@ -1,6 +1,7 @@
 {
   // 2026-08-09 live照合済み。デプロイ可。MODE の実値は "r2" だった。
   "name": "hs-reference-gateway",
+  "preview_urls": false,
   "main": "src/gateway.js",
   "compatibility_date": "2025-06-01",
   "r2_buckets": [

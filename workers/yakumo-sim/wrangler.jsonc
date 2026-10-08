@@ -1,6 +1,7 @@
 {
   // 2026-08-09 live照合済み。デプロイ可。live はバインディング無し・fetch のみ。
   "name": "yakumo-sim",
+  "preview_urls": false,
   "main": "src/main.js",
   "compatibility_date": "2026-05-27"
 }

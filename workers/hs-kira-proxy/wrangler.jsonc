@@ -1,5 +1,6 @@
 {
   "name": "hs-kira-proxy",
+  "preview_urls": false,
   "main": "src/kira-proxy-v2.js",
   "compatibility_date": "2024-01-01",
   "kv_namespaces": [

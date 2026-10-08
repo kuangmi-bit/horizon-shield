@@ -1,5 +1,6 @@
 {
   "name": "hs-watchtower",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-09-01",
   "observability": { "enabled": true },

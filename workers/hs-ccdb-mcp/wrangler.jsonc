@@ -3,6 +3,7 @@
   // The 15 data tools moved out of hs-mcp. Every call goes to hs-jccdb-obs over the service binding below
   // (same zone Worker to Worker calls must use a service binding, not the public hostname).
   "name": "hs-ccdb-mcp",
+  "preview_urls": false,
   "main": "src/worker.js",
   "compatibility_date": "2026-05-18",
   "account_id": "c15ff64aba400e541853dec1fbe5e76a",

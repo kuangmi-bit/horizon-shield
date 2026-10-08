@@ -1,5 +1,6 @@
 {
   "name": "hs-outreach",
+  "preview_urls": false,
   "main": "src/outreach.js",
   "compatibility_date": "2025-06-01",
   "kv_namespaces": [

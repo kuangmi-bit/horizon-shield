@@ -4,6 +4,7 @@
   // hs-internal-mcp からの Service バインディング経由の fetch も受けている。
   // APIFY_ACTOR_ID / APIFY_TOKEN / INGEST_SECRET は Secret。
   "name": "hs-genka-ingest",
+  "preview_urls": false,
   "main": "src/index.js",
   "compatibility_date": "2026-06-15",
   "triggers": { "crons": ["0 3 1 * *"] },

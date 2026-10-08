@@ -2,6 +2,7 @@
   // hs-gateway: 検証可能ゲートウェイ(設計ドラフト)。独立worker。
   // hs-mcp(審査中)には一切依存しない。建設は hs-webmcp を service binding で呼ぶ。
   "name": "hs-gateway",
+  "preview_urls": false,
   "main": "src/index.js",
   "compatibility_date": "2026-08-01",
 

@@ -1,5 +1,6 @@
 {
   "name": "hs-og",
+  "preview_urls": false,
   "main": "src/index.js",
   "workers_dev": true,
   "compatibility_date": "2024-09-23",
