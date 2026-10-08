@@ -957,8 +957,60 @@ function savePostedTitle(title) {
 // ========================================
 // main
 // ========================================
+// ===== 加盟店記事モード (NOTE_MODE=partner) 2026-10-08 =====
+// note-post/partners/<key>.md を「1行目=題、以降=本文(note 用の素のテキスト)」で読み、
+// posted_titles.json に無い最初の1本を、既存の postToNote でそのまま投稿する。
+// 連載(story)の毎朝 cron には一切触れない。見出し画像は付けない。本文は手で承認済みのものだけを置く。
+async function partnerMain() {
+  const DIR = path.join(__dirname, 'partners');
+  console.log('=== 加盟店記事モード (partner) 開始 ===');
+  for (const key of ['NOTE_SESSION', 'LINE_CHANNEL_TOKEN', 'LINE_USER_ID']) {
+    if (!process.env[key]) throw new Error('環境変数未設定: ' + key);
+  }
+  let files = [];
+  try { files = fs.readdirSync(DIR).filter(function (f) { return f.endsWith('.md'); }).sort(); } catch (_e) {}
+  const posted = loadPostedTitles();
+  let pick = null;
+  for (const f of files) {
+    const raw = fs.readFileSync(path.join(DIR, f), 'utf8').replace(/\r/g, '');
+    const nl = raw.indexOf('\n');
+    const title = (nl < 0 ? raw : raw.slice(0, nl)).trim();
+    const body = (nl < 0 ? '' : raw.slice(nl + 1)).trim();
+    if (title && posted.indexOf(title) === -1) { pick = { file: f, title: title, body: body }; break; }
+  }
+  if (!pick) {
+    console.log('未投稿の加盟店記事なし。スキップ。');
+    await sendLine('⏭ 加盟店記事: 未投稿の在庫なし').catch(function () {});
+    process.exit(0);
+  }
+  console.log('投稿対象:', pick.file, '/', pick.title, '/', pick.body.length, '字');
+  if (process.env.DRY_RUN === '1') {
+    console.log('===== DRY_RUN 記事プレビュー(投稿しない) =====');
+    console.log('タイトル:', pick.title);
+    console.log('----- 本文 -----');
+    console.log(pick.body);
+    console.log('----- 本文ここまで -----');
+    console.log('===== DRY_RUN 終了。投稿していない。=====');
+    process.exit(0);
+  }
+  const theme = { title: pick.title, hashtags: ['リフォーム', '見積もり', '適正価格', '施主', 'HORIZONSHIELD'] };
+  try {
+    const noteUrl = await postToNote(theme, pick.body);
+    console.log('投稿URL:', noteUrl);
+    savePostedTitle(pick.title);
+    recordPostedDate(pick.title);
+    await sendLine('✅ 加盟店記事を note に投稿しました\n\n📝 ' + pick.title + '\n\n🔗 ' + noteUrl).catch(function () {});
+    process.exit(0);
+  } catch (e) {
+    console.error('エラー:', e.message);
+    await sendLine('❌ 加盟店記事の note 投稿エラー\n' + e.message).catch(function () {});
+    process.exit(1);
+  }
+}
+
 async function main() {
   if (NOTE_MODE === 'eigo') return eigoMain();
+  if (NOTE_MODE === 'partner') return partnerMain();
   if (NOTE_MODE !== 'explainer') return storyMain();
   console.log('=== HORIZON SHIELD note自動投稿 v11 開始 ===');
   try {
@@ -1218,7 +1270,9 @@ async function headerImageShown(page) {
     return await page.evaluate(() => {
       const t = document.querySelector('[placeholder="記事タイトル"], textarea[placeholder*="タイトル"]');
       const top = t ? t.getBoundingClientRect().top : null;
-      const above = (el) => { const r = el.getBoundingClientRect(); return r.width >= 200 && r.height >= 80 && (top == null || r.bottom <= top + 4); };
+      // 切り抜きの画面の中の画像は数えない(画面が残っていても、題の上に付いた物だけを見る)。
+      const above = (el) => { if (el.closest('[role="dialog"], .ReactModal__Content')) return false;
+        const r = el.getBoundingClientRect(); return r.width >= 200 && r.height >= 80 && (top == null || r.bottom <= top + 4); };
       if (Array.from(document.querySelectorAll('img, canvas, picture')).some(above)) return true;
       // 画像を背景として敷く作りにも合わせる。
       return Array.from(document.querySelectorAll('div, figure, section, header')).some((el) => {
@@ -1386,14 +1440,20 @@ async function uploadEyecatch(page, pngPath) {
     if (!save) save = (await candidates(page, [], ['保存', '適用'], 'button')).visible[0];
     if (save) { await clickEl(page, save); await sleep(3000); }
     await snap(page, '4-after');
-    const still = await page.evaluate(() => Array.from(document.querySelectorAll('[role="dialog"], .ReactModal__Content'))
-      .some((d) => { const r = d.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(d).visibility !== 'hidden'; }));
-    if (still) { await page.keyboard.press('Escape'); await sleep(600); }
+    // 2026-10-04 第1回(英語)、第3話の出し直し、第4話: どれも「保存のあとも画面が残った」と記録したが、
+    //   公開の頁には三つとも見出し画像が付いていた。画面が残っても、それだけで失敗とせず、題の上の画像で決める。
+    //   (失敗と決めると TOshi に「手で付けて」と誤って知らせてしまう)。残った画面は何かを記録しておく。
+    const lingering = await page.evaluate(() => Array.from(document.querySelectorAll('[role="dialog"], .ReactModal__Content'))
+      .filter((d) => { const r = d.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(d).visibility !== 'hidden'; })
+      .map((d) => { const r = d.getBoundingClientRect(); return d.tagName.toLowerCase() + '.' + String(d.className || '').slice(0, 40) + ' '
+        + Math.round(r.x) + ',' + Math.round(r.y) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' 「' + (d.innerText || '').replace(/\s+/g, ' ').slice(0, 30) + '」'; }));
+    const still = lingering.length > 0;
+    if (still) { console.log('見出し画像: 保存のあとに残った画面', lingering.join(' / ')); await page.keyboard.press('Escape'); await sleep(600); }
     if (!save) return { ok: false, why: '切り抜き画面の保存ボタンが見つからない' };
-    if (still) return { ok: false, why: '保存のあとも画面が残った' };
-    const shown = await headerImageShown(page);
-    if (!shown) { await snap(page, '5-not-shown'); return { ok: false, why: '保存したが、題の上に画像が出ていない' }; }
-    return { ok: true, how: forced ? 'forced' : 'visible' };
+    let shown = false;
+    for (let i = 0; i < 5 && !shown; i++) { shown = await headerImageShown(page); if (!shown) await sleep(1000); }
+    if (!shown) { await snap(page, '5-not-shown'); return { ok: false, why: still ? '保存のあとも画面が残り、題の上に画像も出ていない' : '保存したが、題の上に画像が出ていない' }; }
+    return { ok: true, how: (forced ? 'forced' : 'visible') + (still ? '、保存のあとも画面が残ったが題の上に画像が出た' : '') };
   } catch (e) {
     await closeOverlays(page);
     await snap(page, '9-error');

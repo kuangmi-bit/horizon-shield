@@ -17,6 +17,10 @@ on:
         description: 'ドライランで見る回(例 main-008)。空なら次の回'
         type: string
         default: ''
+      mode:
+        description: '投稿モード(空=既定の連載, partner=加盟店記事)'
+        type: string
+        default: ''
 jobs:
   post-to-note:
     runs-on: ubuntu-24.04
@@ -48,7 +52,7 @@ jobs:
           HATENA_API_KEY: ${{ secrets.HATENA_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NOTE_MODE: ${{ vars.NOTE_MODE || 'story' }}
+          NOTE_MODE: ${{ github.event.inputs.mode || vars.NOTE_MODE || 'story' }}
           DRY_RUN: ${{ (github.event.inputs.dry_run == 'true') && '1' || '0' }}
           STORY_KEY: ${{ github.event.inputs.story_key || '' }}
         run: cd note-post && node post_to_note.js
