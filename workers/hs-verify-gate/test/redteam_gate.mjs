@@ -234,7 +234,8 @@ atk("determinism_all_tries_error", "attack", { tools: [TOOL("a"), TOOL("b"), TOO
 atk("determinism_random_output", "attack", { tools: [TOOL("alpha")], call: (n, a, nth) => ({ content: [{ type: "text", text: "run " + nth }] }) }, { not_verified: true, fail: ["determinism"] }, { consent: true });
 atk("determinism_first_constant_second_random_disclosed", "residual", { tools: [TOOL("ping"), TOOL("quote")], call: (n, a, nth) => n === "ping" ? CONST_OUT : ({ content: [{ type: "text", text: "run " + nth }] }) },
   { status: "verified", pred: [["unmeasured tools disclosed", (r) => r.checks.determinism.detail.tools_unmeasured === 1 && typeof r.checks.determinism.detail.selection === "string"]] }, { consent: true, min: "0.2.2" });
-atk("determinism_consent_basis_disclosed", "control", {}, { status: "verified", pred: [["consent_basis on record", (r) => typeof r.consent_basis === "string" && /requester/.test(r.consent_basis)]] }, { consent: true, min: "0.2.2" });
+// 2026-10-08: the basis on record is the owner's file now; a requester's assertion is no longer a basis
+atk("determinism_consent_basis_disclosed", "control", {}, { status: "verified", pred: [["consent_basis on record", (r) => typeof r.consent_basis === "string" && /mcp-conduct\.json/.test(r.consent_basis) && !/requester/.test(r.consent_basis)]] }, { consent: true, min: "0.2.2" });
 
 // ---- 入口 ----
 atk("endpoint_ip_literal_rejected", "attack", {}, { http: 400 }, { endpoint: "https://203.0.113.5/mcp", min: "0.2.2" });
@@ -263,8 +264,13 @@ atk("ok_well_known_endpoints_list_match", "control", { extraRoutes: wkRoute({ al
   { status: "verified", pred: [["consent_source well_known", (r) => r.consent_source === "well_known"]] }, { min: "0.2.4" });
 atk("ok_well_known_beats_assertion", "control", { extraRoutes: wkRoute({ allow_tool_call: true }) },
   { status: "verified", pred: [["proof outranks assertion", (r) => r.consent_source === "well_known" && !/requester/.test(r.consent_basis)]] }, { consent: true, min: "0.2.4" });
-atk("ok_assertion_without_file_stays_requester", "control", {},
-  { status: "verified", pred: [["consent_source requester", (r) => r.consent_source === "requester"], ["lookup disclosed", (r) => r.consent_lookup && /http 404/.test(String(r.consent_lookup.result))]] }, { consent: true, min: "0.2.4" });
+// 2026-10-08 (FIX_LIST 6): an assertion without the owner's file no longer calls a tool. Anyone can name anyone's endpoint.
+atk("assertion_without_file_calls_no_tool", "attack", { call: () => { throw new Error("the gate called a tool on an assertion alone"); } },
+  { status: "pending", reachable: true, fail: ["determinism"],
+    pred: [["determinism measured:false", (r) => r.checks.determinism.measured === false],
+           ["consent_source none", (r) => r.consent_source === "none"],
+           ["the ignored assertion is disclosed", (r) => r.consent_assertion_ignored && /mcp-conduct\.json/.test(String(r.consent_assertion_ignored.how_to_consent))],
+           ["lookup disclosed", (r) => r.consent_lookup && /http 404/.test(String(r.consent_lookup.result))]] }, { consent: true, assertOnly: true, min: "0.2.4" });
 atk("well_known_allow_false", "attack", { extraRoutes: wkRoute({ allow_tool_call: false }) }, notMeasured, { min: "0.2.4" });
 atk("well_known_allow_string_true", "attack", { extraRoutes: wkRoute({ allow_tool_call: "true" }) }, notMeasured, { min: "0.2.4" });
 atk("well_known_allow_number_one", "attack", { extraRoutes: wkRoute({ allow_tool_call: 1 }) }, notMeasured, { min: "0.2.4" });
@@ -338,6 +344,10 @@ async function run(only, listOnly) {
       ROUTES.set(host, async (url, init) => {
         const p = new URL(url).pathname;
         if (a.cfg.extraRoutes && a.cfg.extraRoutes[p]) return a.cfg.extraRoutes[p](url, init);
+        // 2026-10-08 (FIX_LIST 6): the request field alone no longer makes the gate call tools. A case written with
+        // consent: true means the owner consents, so its mock origin also serves the consent file, unless the case
+        // supplies its own file or says assertOnly (the request asserts, the origin has no file).
+        if (p === WK && a.opts.consent && !a.opts.assertOnly) return jres({ allow_tool_call: true });
         return srv(url, init);
       });
     }

@@ -130,7 +130,8 @@ await shape("get_conditions", "the only shape", {});
 
 const verdict = await shape("check_conformance", "consent on the origin, tool called", { endpoint: EP }, (s) => s.status === "verified" && s.consent_source === "well_known" && !("consent_lookup" in s));
 await shape("check_conformance", "no consent, no tool call", { endpoint: "https://noconsent.redteam.invalid/mcp" }, (s) => s.consent_source === "none" && "consent_lookup" in s);
-await shape("check_conformance", "consent asserted by the requester", { endpoint: "https://noconsent.redteam.invalid/mcp", allow_tool_call: true }, (s) => s.consent_source === "requester");
+// 2026-10-08 (FIX_LIST 6): an assertion without proof calls no tool and says so
+await shape("check_conformance", "consent asserted by the requester, not proven", { endpoint: "https://noconsent.redteam.invalid/mcp", allow_tool_call: true }, (s) => s.consent_source === "none" && typeof s.consent_assertion_ignored === "object" && s.checks.determinism.measured === false);
 await shape("check_conformance", "unreachable", { endpoint: DOWN }, (s) => s.status === "held" && s.reachable === false);
 await shape("check_conformance", "answers, but not MCP", { endpoint: "https://html.redteam.invalid/mcp" }, (s) => s.status === "pending" && s.reachable === true);
 

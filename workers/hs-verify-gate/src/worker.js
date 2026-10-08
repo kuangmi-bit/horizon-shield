@@ -2179,11 +2179,11 @@ async function checkDeterminism(endpoint, toolNames, allowToolCall, coord) {
       reason:
         "not measured: measuring determinism requires calling one of your tools, and this gate " +
         "does not call tools on a server without the owner's consent. The first tool listed may " +
-        "be destructive. To have this condition measured, re-run with allow_tool_call set to true " +
-        "from a request you control.",
+        "be destructive. To have this condition measured, publish " + CONSENT_WELL_KNOWN_PATH + " on the origin " +
+        "with {\"allow_tool_call\": true}; a request field alone is not proof of ownership.",
       detail: {
         consent_required: true,
-        how_to_measure: 'POST /check {"endpoint":"https://your-server/mcp","allow_tool_call":true}',
+        how_to_measure: "publish " + CONSENT_WELL_KNOWN_PATH + ' with {"allow_tool_call": true} on your origin, then POST /check {"endpoint":"https://your-server/mcp"}',
         tool_that_would_be_called: toolName || null
       }
     };
@@ -2284,7 +2284,7 @@ async function runCheck(endpoint, allowToolCall, consentBasis, consentSource, co
       "or figure returned by the server is correct. Price validation is a separate, paid tier " +
       "and is currently available for Japanese construction only. By default this gate calls no " +
       "tools on the server being checked, so determinism is reported as not measured rather than " +
-      "guessed. Send allow_tool_call true to have it measured on a server you control.",
+      "guessed. The owner of a server has it measured by publishing " + CONSENT_WELL_KNOWN_PATH + " with allow_tool_call true.",
     tools_called: allowToolCall === true ? "one tool, twice, with empty arguments, by consent" : "none",
     // 0.3.0. 測る日と測る tool をどう決めたか。全部が扉の導いた出力で、対象が渡した入力は 1 つも無い。
     // 導出できんかった窓は derived:false と、旧規則に落ちたことを書く。黙って落ちん。
@@ -2490,7 +2490,7 @@ function spec() {
       self_verification: "Every verdict carries a SHA-256 that any third party can recompute"
     },
     reachability: "Any HTTP status, or a non-JSON body, is an answer from the server: reachable stays true and the row goes pending, not held. Only gateway-shaped statuses (502-504, 52x) and transport failures mean held. Redirects to another origin are treated as answered, not followed (0.2.2).",
-    consent: "allow_tool_call on /check is asserted by the requester and is not proof of ownership; every verdict states its consent_basis and consent_source. Rows in the public register are measured with tool calls only with proven consent: the operator's published consent list (0.2.2) or a consent file on the endpoint's own origin (0.2.4).",
+    consent: "allow_tool_call on /check is asserted by the requester and is not proof of ownership; since 2026-10-08 it calls no tool by itself, and a verdict that received it says so under consent_assertion_ignored. Every verdict states its consent_basis and consent_source. Rows in the public register are measured with tool calls only with proven consent: the operator's published consent list (0.2.2) or a consent file on the endpoint's own origin (0.2.4).",
     establishes_and_does_not_establish: {
       since: "0.4.0",
       what: "Every verdict (and this gate's own /self record) carries two arrays, establishes and does_not_establish, generated from the measurement itself and included in the bytes that record_sha256 hashes. establishes names what was measured: the instant, the commit, the conditions that passed and failed, the hash recipe and the coordinate. does_not_establish names what a passing verdict never means: that answers are correct, that a compensation declaration is true, quality, safety, other instants, other vantages, conditions not measured on this run.",
@@ -2807,8 +2807,18 @@ async function notifyMeasured(env, endpoint, target, payload, nowMs, fetchImpl) 
 async function checkWithConsent(endpoint, asserted) {
   const c = await resolveConsent(endpoint);
   if (c.consent) return await runCheck(endpoint, true, c.basis, c.source);
-  if (asserted === true) return await runCheck(endpoint, true, null, "requester", c);
-  return await runCheck(endpoint, false, null, "none", c);
+  // 2026-10-08 (FIX_LIST 6). 申告(allow_tool_call)だけでは tool を呼ばん。誰でも他人の endpoint を名指しして
+  // 申告できるので、扉が見知らぬサーバーの先頭の tool(破壊的かもしれん)を叩く口になっとった。呼ぶのは証明された同意
+  // (扉のソースの同意リストか、origin の well-known)がある時だけ。申告があった事実は判定に書く。
+  const r = await runCheck(endpoint, false, null, "none", c);
+  if (asserted === true && r && typeof r === "object") {
+    r.consent_assertion_ignored = {
+      asserted: "allow_tool_call: true",
+      why: "a request field is an assertion, not proof of ownership; anyone can name any endpoint. Tools are called only with proven consent.",
+      how_to_consent: "Publish " + CONSENT_WELL_KNOWN_PATH + " on the origin with {\"allow_tool_call\": true} (optionally \"endpoints\": [exact endpoint URLs]); the next check reads it."
+    };
+  }
+  return r;
 }
 
 // 2026-08-19 patch41. この計器自身の既知の制限。測ったが直せていないものを、黙って回避しない。
@@ -3117,7 +3127,7 @@ const OA_WRITE_SEMANTICS = {
   "/verify-event": ["verifyNostrEvent", "tools", [], true, { kind: "not_applicable", reason: "Contacts nothing and stores nothing. A pure function of the request body." }],
   "/check": ["checkEndpoint", "tools", [
     "sends HTTP requests to the named endpoint and its origin (the requests a scheduled measurement would send)",
-    "calls one tool on that server only when its owner has recorded consent in " + CONSENT_WELL_KNOWN_PATH + ", or the caller sets allow_tool_call for a server it controls",
+    "calls one tool on that server only when its owner has recorded consent in " + CONSENT_WELL_KNOWN_PATH + "; a request field alone does not",
     "increments anonymous aggregate usage counters",
     "does not write a verdict to the register; only the scheduled sweep writes records"
   ], false, { kind: "not_applicable", reason: "Nothing on this gate needs undoing. The requests already sent to the named server cannot be unsent, so run it only against servers you mean to measure." }],
@@ -4227,6 +4237,7 @@ const GATE_CHECK_SCHEMA = {
     consent_basis: outProp("string", "On what basis a tool call was or was not made."),
     consent_source: outProp("string", "Where the consent came from: operator_list, well_known, requester or none."),
     consent_lookup: outProp("object", "Present when no proven consent was found: the consent file that was read, the result, and how to consent."),
+    consent_assertion_ignored: outProp("object", "Present when the request set allow_tool_call true without proven consent: the assertion was recorded and no tool was called."),
     probed_via: outProp("string", "The network path the probe took (relay or direct)."),
     measurement_note: outProp("string", "Present only when the gate's own relay failed, so that nothing here is read as a statement about the target."),
     checks: outProp("object", "One entry per condition, each with whether it was measured, whether it passed, and the detail."),
@@ -4374,14 +4385,14 @@ const MCP_TOOLS = [
       "verdict itself can be recomputed by anyone. Free, no key. Conformance and disclosure only; " +
       "this says nothing about whether any figure the checked server returns is correct. " +
       "By default no tool on the checked server is called, so determinism comes back as not " +
-      "measured rather than guessed. Set allow_tool_call true only for a server you control.",
+      "measured rather than guessed. It is measured when the owner has published /.well-known/mcp-conduct.json with allow_tool_call true.",
     inputSchema: {
       type: "object",
       properties: {
         endpoint: { type: "string", description: "https URL of the MCP endpoint to measure" },
         allow_tool_call: {
           type: "boolean",
-          description: "Consent to executing one tool on the checked server, twice, with empty arguments. Only set this for a server you own. Default false."
+          description: "Kept for compatibility. Since 2026-10-08 an assertion alone calls no tool: consent is proven only by the owner's /.well-known/mcp-conduct.json. Default false."
         }
       },
       required: ["endpoint"],
@@ -5694,8 +5705,8 @@ export default {
         register_count: all.length,
         why_the_count_can_be_zero: "Determinism cannot be measured without calling a tool on the server, and this gate never calls a tool without the owner asking for it. A server whose owner has not asked stays unmeasured on that condition and therefore stays short of verified. Unmeasured is not failed.",
         how_to_become_verified: {
-          step_1: "Check yourself with consent: POST /check with {\"endpoint\":\"https://your-server/mcp\",\"allow_tool_call\":true}",
-          step_2: "If it returns verified, ask the operator to record your consent so the nightly sweep measures the same way.",
+          step_1: "Publish " + CONSENT_WELL_KNOWN_PATH + " on your origin with {\"allow_tool_call\": true}, then POST /check with {\"endpoint\":\"https://your-server/mcp\"}",
+          step_2: "If it returns verified, put the endpoint on the register (POST /watch); the scheduled sweep reads the same file and measures the same way.",
           step_3: "The row turns verified on the next sweep, and stays that way only while it keeps passing.",
           note: "Nothing here is bought. The verdict is the measurement."
         },
@@ -5803,16 +5814,30 @@ export default {
         return json({ error: "registry_full", max: REGISTRY_MAX }, 429);
       }
       const admin = !!(env.SWEEP_TOKEN && await ctEqual(request.headers.get("x-sweep-token") || "", env.SWEEP_TOKEN));
+      const wk = await wellKnownConsent(ep);
+      // 2026-10-08 (FIX_LIST 6). 既にある webhook を変える(別の URL にする、外す)のは所有者か運営だけ。
+      // これまでは誰でも POST で他人の行の知らせ先を自分の URL に差し替えたり消したりできた。所有者の証明は
+      // origin の well-known(mcp-conduct.json)の notify が、新しい webhook と同じ URL であること(外す時は notify が無いこと)。
+      const prevHook = (prev && prev.webhook) || null;
+      const newHook = hook === undefined ? prevHook : (hook || null);
+      if (prevHook && newHook !== prevHook && !admin) {
+        const declaredNotify = (wk && wk.file_present === true && wk.declared && wk.declared.notify && wk.declared.notify.url) || null;
+        const ownerProves = wk && wk.file_present === true && declaredNotify === newHook;
+        if (!ownerProves) {
+          return json({ error: "webhook_change_needs_owner", endpoint: ep,
+            note: "this row already has a webhook. Only the owner of the origin can change or remove it: publish " + CONSENT_WELL_KNOWN_PATH +
+              " with \"notify\" set to the new webhook URL (or without notify, to remove it), then POST again. The verdict and cadence are unchanged." }, 403);
+        }
+      }
       const tier = admin && body.tier === "paid" ? "paid" : ((prev && prev.tier === "paid") ? "paid" : "free");
       // 0.3.1. 誰が乗せたかを刻む。依頼者の申告は所有の証明にならんので、operator か anonymous の二値。
       // 乗せた時点の origin の well-known の状態も刻む(consent / decline / present / absent)。
       // 2026-09-04 に同意を断った翌日、その扉が匿名の依頼で列に入った。設計の芯(誰でも乗せられる)は残し、
       // 所有者には listing: decline という機械的な出口を与える。
-      const wk = await wellKnownConsent(ep);
       const ownerFile = wk.file_present === false ? "absent" : (wk.file_present === null ? "unread" : (wk.declined ? "decline" : (wk.consent ? "consent" : "present")));
       reg[ep] = {
         tier: tier,
-        webhook: hook === undefined ? ((prev && prev.webhook) || null) : (hook || null),
+        webhook: newHook,
         added_at: (prev && prev.added_at) || new Date().toISOString(),
         requested_by: (prev && prev.requested_by) || (admin ? "operator" : "anonymous"),
         owner_file_at_request: (prev && prev.owner_file_at_request) || ownerFile
@@ -6171,7 +6196,7 @@ export default {
       return json({
         ok: true,
         usage: 'POST /check {"endpoint":"https://your-server/mcp"}',
-        note: "By default no tool on the checked server is called, so determinism comes back as not measured. Add \"allow_tool_call\": true to measure it, and only do that for a server you control.",
+        note: "No tool on the checked server is called unless its owner has published " + CONSENT_WELL_KNOWN_PATH + " with allow_tool_call true, so otherwise determinism comes back as not measured.",
         spec: "/spec"
       });
     }
