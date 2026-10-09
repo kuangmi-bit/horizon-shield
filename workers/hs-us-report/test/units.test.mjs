@@ -117,7 +117,7 @@ assert.equal(crewHoursFrom({ crew_told: "no", crew_workers: 3, crew_days: 2 }), 
 assert.deepEqual(hearingSummary({ pressure: ["today_only"], stories: "2", roof_squares: 26 }, "roof").map((r) => r.value), ["26 squares", "2", "Said the price is good only today or this week"]);
 // the page carries the same questions as the worker
 {
-  const cands = ["../../../us/index.html", "../../../site/us/index.html"].map((r) => new URL(r, import.meta.url).pathname).filter((p) => existsSync(p));
+  const cands = ["../../hs-us-site/public/index.html", "../../../us/index.html", "../../../site/us/index.html"].map((r) => new URL(r, import.meta.url).pathname).filter((p) => existsSync(p));
   if (cands.length) {
     const html = readFileSync(cands[0], "utf8");
     const m = html.match(/<script id="hq" type="application\/json">([\s\S]*?)<\/script>/);

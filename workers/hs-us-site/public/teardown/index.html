@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en-US" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Quote Teardown: read a contractor quote line by line | HORIZON SHIELD US</title>
+<meta name="description" content="Upload a U.S. contractor quote and see every line by kind, the lines nobody can check, the overhead share and the questions to ask. Free, no account. Not a verdict.">
+<meta name="author" content="Toshikatsu Oga | HORIZON SHIELD">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
+<link rel="canonical" href="https://horizonshield.dev/teardown/">
+<link rel="alternate" hreflang="en-US" href="https://horizonshield.dev/teardown/">
+<link rel="alternate" hreflang="x-default" href="https://horizonshield.dev/teardown/">
+<link rel="alternate" type="text/plain" href="https://horizonshield.dev/llms.txt" title="Site summary for language models">
+<link rel="mcp-server" href="https://mcp.horizonshield.dev">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Free Quote Teardown: read a contractor quote line by line">
+<meta property="og:description" content="Every line by kind, the lines nobody can check, the overhead share, what is missing and the questions to send the contractor. Free, no account, in seconds.">
+<meta property="og:url" content="https://horizonshield.dev/teardown/">
+<meta property="og:image" content="https://horizonshield.dev/assets/img/desk-1536.jpg">
+<meta property="og:image:width" content="1536">
+<meta property="og:image:height" content="864">
+<meta property="og:image:alt" content="A homeowner at a kitchen table circling one line of a printed contractor quote">
+<meta property="og:site_name" content="HORIZON SHIELD US">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Quote Teardown: read a contractor quote line by line">
+<meta name="twitter:description" content="Every line by kind, the lines nobody can check, what is missing and the questions to ask. Free, no account.">
+<meta name="twitter:image" content="https://horizonshield.dev/assets/img/desk-1536.jpg">
+<link rel="preload" href="/assets/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" as="image" type="image/webp" imagesrcset="/assets/img/desk-800.webp 800w, /assets/img/desk-1200.webp 1200w, /assets/img/desk-1536.webp 1536w" imagesizes="(max-width:980px) 100vw, (min-width:1280px) 580px, 46vw" fetchpriority="high">
+<link rel="stylesheet" href="/assets/us.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"Organization","@id":"https://horizonshield.dev/#org","name":"HORIZON SHIELD","legalName":"The HORIZONs Co., Ltd.","url":"https://horizonshield.dev/","email":"contact@the-horizons-innovation.com","telephone":"+81-463-74-5917","address":{"@type":"PostalAddress","streetAddress":"Win Aoyama 942, 2-2-15 Minami-Aoyama","addressLocality":"Minato-ku","addressRegion":"Tokyo","postalCode":"107-0062","addressCountry":"JP"},"founder":{"@type":"Person","name":"Toshikatsu Oga","sameAs":"https://orcid.org/0009-0000-9180-903X"}},
+ {"@type":"WebApplication","@id":"https://horizonshield.dev/teardown/#app","name":"Free Quote Teardown","url":"https://horizonshield.dev/teardown/","description":"Reads a U.S. contractor quote in seconds and lists every line with its kind, the lines that cannot be checked, the overhead share, what is missing and the questions to send the contractor. With a ZIP code it adds the public wage for the trade in that area. It is not a fairness verdict, an inspection or a bid.","applicationCategory":"BusinessApplication","operatingSystem":"Any, in a web browser","browserRequirements":"Requires JavaScript","inLanguage":"en-US","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},"featureList":["Reads a contractor quote from a photo, a PDF of up to 3 pages, or pasted text","Lists every line with its kind: labor, materials, permit, overhead, disposal or other","Marks lump-sum, misc and allowance lines that cannot be checked","Shows the overhead share and whether crew size, hours or roof squares are missing","Writes the questions to send the contractor","Shows the public BLS wage for the trade in the homeowner's area when a ZIP code is given, and a labor-dollar range when the quote states crew hours","No account; nothing is stored except an anonymous card for 24 hours"],"provider":{"@id":"https://horizonshield.dev/#org"},"publisher":{"@id":"https://horizonshield.dev/#org"},"image":"https://horizonshield.dev/assets/img/desk-1536.jpg"},
+ {"@type":"WebPage","@id":"https://horizonshield.dev/teardown/#page","url":"https://horizonshield.dev/teardown/","name":"Free Quote Teardown","inLanguage":"en-US","isPartOf":{"@type":"WebSite","name":"HORIZON SHIELD US","url":"https://horizonshield.dev/"},"mainEntity":{"@id":"https://horizonshield.dev/teardown/#app"},"breadcrumb":{"@id":"https://horizonshield.dev/teardown/#breadcrumb"},"datePublished":"2026-10-09","dateModified":"2026-10-09"},
+ {"@type":"BreadcrumbList","@id":"https://horizonshield.dev/teardown/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"HORIZON SHIELD US","item":"https://horizonshield.dev/"},{"@type":"ListItem","position":2,"name":"Free Quote Teardown","item":"https://horizonshield.dev/teardown/"}]},
+ {"@type":"FAQPage","@id":"https://horizonshield.dev/teardown/#faq","mainEntity":[
+  {"@type":"Question","name":"Is the Quote Teardown free?","acceptedAnswer":{"@type":"Answer","text":"Yes. No account, no email and no payment. To keep it free for everyone, one network can run three teardowns an hour."}},
+  {"@type":"Question","name":"What do you keep?","acceptedAnswer":{"@type":"Answer","text":"An anonymous card for 24 hours: the trade, the state, the total, how the lines split by kind, and our own flags and questions. We do not keep your files or the text of the lines, and we do not train AI on your uploads. An AI model reads the pages; everything else is computed from those lines and public data. If you post the card to the board, it is reviewed before it appears. Otherwise it is deleted after 24 hours."}},
+  {"@type":"Question","name":"Is this a verdict on my contractor?","acceptedAnswer":{"@type":"Answer","text":"No. A teardown reads the lines and asks what is missing. It is not a fairness verdict, an inspection or a bid. A flag is a question to ask, not proof that anything is wrong, and a quote with no flags is not proof that it is fair."}},
+  {"@type":"Question","name":"What does the $39 Quote Check add?","acceptedAnswer":{"@type":"Answer","text":"A Quote Check puts every line in a reference ledger against U.S. public data, with the source, date and formula beside each reference, the questions to ask the contractor, and a SHA-256 receipt anyone can recompute to confirm the report was not altered. It is $39 per quote, delivered within one business day, and paid by the homeowner. We take no fees from contractors."}},
+  {"@type":"Question","name":"Where does the wage number come from?","acceptedAnswer":{"@type":"Answer","text":"From the U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics: the hourly wage for the trade's main occupation in your metro area, or in your state when the metro has no figure, at the mean and at the 90th percentile. In Texas we also apply the labor loading TxDOT publishes for labor markup, insurance and payroll taxes; elsewhere the wage is shown without a loading and the teardown says so. When the quote states crew size and days or hours, we multiply to give a labor-dollar range. The source and period are printed with the number."}}
+ ]}
+]}
+</script>
+<style>
+/* Teardown page. Extends /assets/us.css with its variables only: hairlines, one accent, no radius, no shadow. */
+.nav a[aria-current="page"]{color:var(--fg)}
+.td-hero .wrap{padding-top:64px;padding-bottom:64px}
+.td-hero .hero-r{grid-column:8 / span 5;align-self:start}
+.td-hero h1{font-size:clamp(40px,6.2vw,84px)}
+.td-hero .lede{margin-bottom:28px}
+.aeo{font-size:17px;line-height:1.55;max-width:36em;margin:0 0 28px;padding-top:16px;border-top:1px solid var(--fg)}
+.aeo b{font-weight:600}
+.pts{list-style:none;margin:0;padding:0;font-size:15px}
+.pts li{padding:10px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:32px 1fr;gap:8px}
+.pts li:last-child{border-bottom:1px solid var(--line)}
+.pts li span:first-child{font:500 12px/1.9 var(--mono);color:var(--accent)}
+.drop.drag{border-color:var(--accent)}
+.drop .head{display:flex;justify-content:space-between;gap:12px}
+.td-files{list-style:none;margin:0;padding:0;font-size:14px}
+.td-files:empty{display:none}
+.td-files li{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line);min-width:0}
+.td-files li:last-child{border-bottom:1px solid var(--line)}
+.td-files .nm{overflow-wrap:anywhere;min-width:0}
+.td-files .sz{font-family:var(--mono);font-size:12px;color:var(--mute)}
+.linkbtn{background:none;border:0;padding:0;color:var(--mute);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.linkbtn:hover{color:var(--accent)}
+.drop .row2{display:grid;grid-template-columns:120px 1fr;gap:12px}
+.drop .cta{height:44px;cursor:pointer}
+.drop button.cta[disabled]{opacity:.45;cursor:progress}
+.drop .go{justify-content:center;width:100%}
+@media (max-width:420px){.drop{padding:20px}.drop .row2{grid-template-columns:1fr}}
+.dot{display:inline-block;width:7px;height:7px;background:var(--fg);flex:none}
+.st{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.st .mono{font-size:11px}
+.st.acc .dot{background:var(--accent)}.st.acc .mono{color:var(--accent)}
+.st.dim .dot{background:var(--dim)}.st.dim .mono{color:var(--dim)}
+.st.hollow .dot{background:transparent;border:1px solid var(--fg)}
+/* progress */
+.prog{border-bottom:1px solid var(--line)}
+.prog .wrap{padding-top:40px;padding-bottom:40px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0 24px}
+.prog .ph{grid-column:1 / span 4}
+.prog .pb{grid-column:5 / span 8}
+.prog ol{list-style:none;margin:0;padding:0}
+.prog li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);color:var(--dim)}
+.prog li:last-child{border-bottom:1px solid var(--line)}
+.prog li .dot{background:var(--line2)}
+.prog li.on{color:var(--fg)}.prog li.on .dot{background:var(--accent)}
+.prog li.done{color:var(--mute)}.prog li.done .dot{background:var(--fg)}
+.prog .el{font:500 32px/1 var(--mono);letter-spacing:-.02em;margin:12px 0 8px}
+@media (prefers-reduced-motion:no-preference){.prog li.on .dot{animation:blink 1s steps(2,start) infinite}@keyframes blink{to{visibility:hidden}}}
+@media (max-width:980px){.prog .ph,.prog .pb{grid-column:1 / -1}.prog .pb{margin-top:20px}}
+/* result */
+.res .wrap{padding-top:56px;padding-bottom:72px}
+.res-top{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0 24px;margin-bottom:32px}
+.res-top>div{grid-column:1 / span 9}
+.res-top h2{font-size:clamp(30px,4vw,52px);margin:8px 0 10px}
+.res-top h2:focus{outline:none}
+.res-top p{margin:0;color:var(--mute)}
+.rb{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0 24px;border-top:1px solid var(--fg);padding:28px 0 36px}
+.rb-h{grid-column:1 / span 3}
+.rb-h .mono{color:var(--mute);display:block;margin-bottom:8px}
+.rb-h h3{font-size:20px;letter-spacing:-.015em;line-height:1.2}
+.rb-h p{color:var(--mute);font-size:14px;margin:8px 0 0}
+.rb-b{grid-column:4 / span 9;min-width:0}
+.rb-b>p{margin:0 0 12px;max-width:44em}
+@media (max-width:980px){.rb-h,.rb-b{grid-column:1 / -1}.rb-b{margin-top:16px}.res-top>div{grid-column:1 / -1}}
+.verdict .sub{color:var(--mute);font-size:13px;margin-top:6px;line-height:1.45}
+.verdict .v.acc{color:var(--accent)}
+.kt{width:100%;border-collapse:collapse;font-size:14px}
+.kt th{font:500 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--fg)}
+.kt td{padding:12px 12px 12px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.kt .r{text-align:right}
+.kt .w{width:38%}
+.kb{display:block;height:6px;background:var(--line)}
+.kb i{display:block;height:100%;background:var(--fg)}
+.kt tr.oh .kb i{background:var(--accent)}
+@media (max-width:560px){.kt .w{width:30%}}
+.fl{list-style:none;margin:0;padding:0}
+.fl li{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:14px 0;border-top:1px solid var(--line);font-size:15px}
+.fl li:last-child{border-bottom:1px solid var(--line)}
+@media (max-width:560px){.fl li{grid-template-columns:1fr;gap:6px}}
+.ledger td{overflow-wrap:anywhere}
+.ledger .item .st{margin-left:0;margin-top:6px;display:flex}
+.qs{margin:0 0 16px;padding-left:22px;font-size:16px}
+.qs li{padding:8px 0;border-bottom:1px solid var(--line)}
+.ck{list-style:none;margin:0;padding:0;font-size:15px}
+.ck li{padding:10px 0 10px 18px;border-top:1px solid var(--line);position:relative}
+.ck li:last-child{border-bottom:1px solid var(--line)}
+.ck li::before{content:"";position:absolute;left:0;top:1.05em;width:5px;height:5px;background:var(--accent)}
+.ref-dl{display:grid;grid-template-columns:minmax(120px,28%) 1fr;margin:0 0 20px}
+.ref-dl dt,.ref-dl dd{margin:0;padding:10px 12px 10px 0;border-top:1px solid var(--line)}
+.ref-dl dt{color:var(--mute);font-size:14px}
+@media (max-width:560px){.ref-dl{grid-template-columns:1fr}.ref-dl dd{border-top:0;padding-top:0}}
+.refs a{overflow-wrap:anywhere}
+.notebox{border-left:2px solid var(--accent);padding:4px 0 4px 16px;color:var(--fg);margin:0;max-width:44em}
+.next{border-top:1px solid var(--fg);padding-top:28px;margin-top:8px}
+.next .pane h3{font-size:22px;letter-spacing:-.02em}
+.next .pane p{margin:0;color:var(--mute);font-size:15px}
+.next .pane .cta{height:44px}
+.next .pane button.cta{cursor:pointer}
+.next .pane button.cta[disabled]{opacity:.45;cursor:default}
+.share{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0 24px;border-top:1px solid var(--line);margin-top:48px;padding-top:28px}
+.share>div:first-child{grid-column:1 / span 5}
+.share>div:last-child{grid-column:7 / span 6;display:grid;gap:12px;align-content:start}
+.share h3{font-size:20px}
+.share p{color:var(--mute);margin:0}
+.share .acts{display:flex;flex-wrap:wrap;gap:12px}
+.share .acts .cta{height:44px;cursor:pointer}
+.share input{width:100%;min-height:44px;border:1px solid var(--line2);background:transparent;color:var(--fg);padding:0 12px;font:13px var(--mono)}
+@media (max-width:900px){.share>div:first-child,.share>div:last-child{grid-column:1 / -1}.share>div:last-child{margin-top:16px}}
+.again{margin-top:40px}
+.again .cta{cursor:pointer}
+/* photos: square corners, no shadow, no overlay; mono hairline captions */
+.ph{margin:0}
+.ph img,.h-img img{width:100%;height:auto;background:var(--line)}
+.ph figcaption{color:var(--mute);padding:10px 0;border-bottom:1px solid var(--line)}
+#what-you-get .ph{margin-bottom:28px}
+.td-hero .h-text{grid-column:1 / span 6;grid-row:1}
+.td-hero .h-img{grid-column:1 / span 6;grid-row:2;margin:0}
+.td-hero .h-fine{grid-column:1 / span 6;grid-row:3;max-width:44em}
+.td-hero .hero-r{grid-row:1 / span 3}
+.warn .wrap{align-items:center}
+.warn-img{grid-column:1 / span 6}
+.warn-b{grid-column:8 / span 5}
+.warn-b h2{margin:12px 0 20px}
+@media (max-width:980px){.td-hero .wrap{padding-top:32px;padding-bottom:48px}.td-hero .h-text,.td-hero .h-img,.td-hero .h-fine,.td-hero .hero-r{grid-column:1 / -1;grid-row:auto}.td-hero .h-text{order:1}.td-hero .h-img{order:2}.td-hero .hero-r{order:3;margin-top:24px}.td-hero .h-fine{order:4}.td-hero .aeo{margin-bottom:20px}.h-img img{aspect-ratio:2 / 1;object-fit:cover;object-position:66% 55%}.warn-img,.warn-b{grid-column:1 / -1}.warn-b{margin-top:28px}}
+@media (max-width:560px){.h-img img{aspect-ratio:16 / 7}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="wrap">
+ <a class="brand" href="/">HORIZON SHIELD <span class="mono">US</span></a>
+ <nav class="nav" aria-label="Main"><a href="/teardown/" aria-current="page">Teardown</a><a href="/board/">Board</a><a href="/guides/">Guides</a><a href="/#sample">Sample report</a><a href="/#pricing">Pricing</a></nav>
+ <a class="cta" href="/?from=teardown#check" data-cta-check>Check a quote</a>
+</div></header>
+<main id="main">
+
+<section class="hero td-hero" aria-labelledby="h1"><div class="wrap">
+ <div class="hero-l h-text">
+  <p class="eyebrow mono"><b>Free</b> &nbsp;/&nbsp; No account &nbsp;/&nbsp; United States</p>
+  <h1 id="h1">Free Quote Teardown</h1>
+  <p class="aeo"><b>A Quote Teardown reads every line of a U.S. contractor quote in seconds,</b> sorts the lines by kind, marks the ones nobody can check, and writes the questions to send back. It is free and needs no account.</p>
+</div>
+ <figure class="h-img">
+  <picture>
+   <source type="image/webp" srcset="/assets/img/desk-800.webp 800w, /assets/img/desk-1200.webp 1200w, /assets/img/desk-1536.webp 1536w" sizes="(max-width:980px) 100vw, (min-width:1280px) 580px, 46vw">
+   <img src="/assets/img/desk-1536.jpg" width="1536" height="864" alt="A homeowner at a kitchen table circling one line of a printed contractor quote with a pen, a phone calculator beside the pages" decoding="async" fetchpriority="high">
+  </picture>
+ </figure>
+ <p class="fine h-fine">A teardown reads the lines and asks what is missing. It is not a fairness verdict, an inspection or a bid. Paid by homeowners only, so there are no contractor fees behind it.</p>
+ <div class="hero-r">
+  <form class="drop" id="td-form" novalidate aria-describedby="td-fine">
+   <div class="head"><span class="mono">The quote</span><span class="mono">Up to 3 pages</span></div>
+   <div class="drop-row">
+    <label class="cta" for="td-file">Choose photo or PDF</label>
+    <input id="td-file" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+    <button class="cta ghost" type="button" id="td-paste-btn" aria-controls="td-paste" aria-expanded="false">Paste text</button>
+   </div>
+   <ul class="td-files" id="td-files" aria-label="Pages picked"></ul>
+   <textarea id="td-paste" name="text" aria-label="Paste the quote lines" placeholder="Paste the line items, one per line, with amounts" maxlength="20000"></textarea>
+   <div class="row2">
+    <label class="fld"><span class="mono">ZIP (optional)</span><input name="zip" id="td-zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="78745" autocomplete="postal-code"></label>
+    <label class="fld"><span class="mono">Trade (optional)</span><select name="trade" id="td-trade"><option value="">Let the reader tell</option><option value="roof">Roof replacement</option><option value="exterior_paint">Exterior painting</option><option value="interior_paint">Interior painting</option><option value="flooring">Flooring</option><option value="kitchen">Kitchen remodel</option><option value="bathroom">Bathroom remodel</option><option value="hvac">HVAC replacement</option><option value="water_heater">Water heater replacement</option><option value="windows">Window replacement</option><option value="other">Other work</option></select></label>
+   </div>
+   <button class="cta go" type="submit" id="td-go">Read my quote, free</button>
+   <p class="msg" id="td-msg" role="status" aria-live="polite"></p>
+  </form>
+  <p class="fine mono" id="td-fine">PDF, JPG or PNG, 5 MB each &nbsp;/&nbsp; iPhone photos: choose JPG if asked, the browser usually converts them &nbsp;/&nbsp; Nothing stored except an anonymous card for 24 hours &nbsp;/&nbsp; <a href="/privacy/">Privacy</a></p>
+ </div>
+</div></section>
+
+<section class="prog" id="td-progress" hidden aria-labelledby="prog-h"><div class="wrap">
+ <div class="ph"><span class="mono mute">Reading</span><p class="el" id="td-elapsed">0 s</p><p class="mute" id="prog-h" style="margin:0">Usually 10 to 40 seconds. Keep this tab open.</p></div>
+ <div class="pb"><ol id="td-steps">
+  <li><i class="dot"></i><span>Reading the pages</span></li>
+  <li><i class="dot"></i><span>Sorting each line by kind</span></li>
+  <li><i class="dot"></i><span>Looking up the public wage for your area</span></li>
+  <li><i class="dot"></i><span>Writing the questions</span></li>
+ </ol></div>
+</div></section>
+
+<section class="res" id="td-result" hidden aria-labelledby="r-job"><div class="wrap">
+ <div class="res-top"><div>
+  <span class="mono mute" id="r-id"></span>
+  <h2 id="r-job" tabindex="-1"></h2>
+  <p id="r-place"></p>
+ </div></div>
+
+ <div class="verdict" aria-label="Summary">
+  <div><span class="mono mute">Total</span><div class="v num" id="r-total"></div><div class="sub" id="r-total-sub"></div></div>
+  <div><span class="mono mute">Lines</span><div class="v num" id="r-lines"></div><div class="sub" id="r-lines-sub"></div></div>
+  <div><span class="mono mute">Cannot be checked</span><div class="v num" id="r-vague"></div><div class="sub">Lump sum, misc or allowance wording</div></div>
+  <div><span class="mono mute">Overhead share</span><div class="v num" id="r-oh"></div><div class="sub" id="r-oh-sub"></div></div>
+ </div>
+
+ <div class="rb"><div class="rb-h"><span class="mono">01</span><h3>How the money splits</h3><p>Share of the total by kind of line.</p></div>
+  <div class="rb-b"><table class="kt"><thead><tr><th scope="col">Kind</th><th scope="col" class="r">Amount</th><th scope="col" class="r">Share</th><th scope="col" class="w"><span class="vh">Bar</span></th></tr></thead><tbody id="r-kinds"></tbody></table></div></div>
+
+ <div class="rb"><div class="rb-h"><span class="mono">02</span><h3>What is missing or unclear</h3><p>Each item is a question to ask, not proof that anything is wrong.</p></div>
+  <div class="rb-b"><ul class="fl" id="r-flags"></ul><p id="r-noflags" class="mute" hidden>Nothing stood out in the lines we read. That is not proof the price is fair; the questions below still apply.</p></div></div>
+
+ <div class="rb"><div class="rb-h"><span class="mono">03</span><h3>Every line</h3><p id="r-lines-note">As read from the quote.</p></div>
+  <div class="rb-b"><div class="scroll"><table class="ledger"><thead><tr><th scope="col">Line</th><th scope="col">Kind</th><th scope="col">Qty</th><th scope="col" class="r">Amount</th></tr></thead><tbody id="r-rows"></tbody></table></div></div></div>
+
+ <div class="rb"><div class="rb-h"><span class="mono">04</span><h3>Public wage for the trade</h3><p>From public data, not from the quote.</p></div>
+  <div class="rb-b" id="r-ref"></div></div>
+
+ <div class="rb"><div class="rb-h"><span class="mono">05</span><h3>Questions to send the contractor</h3><p>Copy them into a text or email.</p></div>
+  <div class="rb-b"><ol class="qs" id="r-questions"></ol><div class="actions" style="margin-top:12px"><button class="cta ghost" type="button" id="r-copyq">Copy the questions</button></div><p class="msg" id="r-copyq-msg" role="status" aria-live="polite"></p></div></div>
+
+ <div class="rb"><div class="rb-h"><span class="mono">06</span><h3>A complete quote for this job lists</h3></div>
+  <div class="rb-b"><ul class="ck" id="r-checklist"></ul><p class="notebox" id="r-note" style="margin-top:24px"></p></div></div>
+
+ <div class="next">
+  <span class="mono mute">Next</span>
+  <div class="two-forms" style="margin-top:16px">
+   <div class="pane" id="board-pane">
+    <span class="mono">Optional &nbsp;/&nbsp; anonymous &nbsp;/&nbsp; free</span>
+    <h3>Post it to the board</h3>
+    <p>The card shows the trade, the state, the total, how the lines split and what was missing. It never shows names, addresses, the ZIP code or the text of the lines. Every card is reviewed before it appears.</p>
+    <label class="chk"><input type="checkbox" id="b-consent"> <span>Show this card publicly. It contains no names, addresses or line text.</span></label>
+    <button class="cta" type="button" id="b-post">Post to the board</button>
+    <p class="msg" id="b-msg" role="status" aria-live="polite"></p>
+   </div>
+   <div class="pane">
+    <span class="mono">Quote Check &nbsp;/&nbsp; $39 per quote</span>
+    <h3>Check every line against public data</h3>
+    <p>Every line in a reference ledger against U.S. public data, with the source, date and formula beside each reference, the questions to ask, and a SHA-256 receipt anyone can recompute. Within one business day. Paid by homeowners only, no contractor fees.</p>
+    <div class="actions" style="margin-top:4px"><a class="cta" href="/?from=teardown#check" data-cta-check>Order a Quote Check, $39</a><a class="cta ghost" href="/#sample">See a sample report</a></div>
+   </div>
+  </div>
+ </div>
+
+ <div class="share">
+  <div><span class="mono mute">Share</span><h3 style="margin-top:8px">Send this to someone getting quotes</h3><p>The teardown is free for them too. Your quote is not in the link.</p></div>
+  <div>
+   <div class="acts"><a class="cta ghost" id="s-x" target="_blank" rel="noopener" href="https://x.com/intent/tweet?text=Getting%20contractor%20quotes%3F%20This%20free%20teardown%20reads%20every%20line%2C%20marks%20what%20cannot%20be%20checked%2C%20and%20writes%20the%20questions%20to%20ask.%20No%20account.&amp;url=https%3A%2F%2Fhorizonshield.dev%2Fteardown%2F%3Ffrom%3Dshare">Post on X</a><button class="cta ghost" type="button" id="s-copy">Copy link</button></div>
+   <label><span class="vh">Link to share</span><input id="s-url" readonly value="https://horizonshield.dev/teardown/?from=share"></label>
+   <p class="msg" id="s-msg" role="status" aria-live="polite"></p>
+  </div>
+ </div>
+
+ <div class="again"><button class="cta ghost" type="button" id="r-again">Read another quote</button></div>
+</div></section>
+
+<section class="sec" id="what-you-get" aria-labelledby="get-h"><div class="wrap">
+ <div class="sec-h"><span class="mono">What you get</span><h2 id="get-h">Five answers from one quote</h2></div>
+ <div class="sec-b">
+  <figure class="ph">
+  <picture>
+   <source type="image/webp" srcset="/assets/img/quotes-800.webp 800w, /assets/img/quotes-1200.webp 1200w, /assets/img/quotes-1536.webp 1536w" sizes="(max-width:980px) 100vw, (min-width:1280px) 773px, 62vw">
+   <img src="/assets/img/quotes-1536.jpg" width="1536" height="864" alt="Several printed contractor quotes side by side on a table, one line highlighted and a few amounts circled in pen" loading="lazy" decoding="async">
+  </picture>
+   <figcaption class="mono">Every line sorted by kind &nbsp;/&nbsp; the vague ones marked</figcaption>
+  </figure>
+  <ol class="pts" aria-label="What you get">
+   <li><span>01</span><span>What the job is, the total, and every line with its kind</span></li>
+   <li><span>02</span><span>The lines that cannot be checked: lump sum, misc, allowance</span></li>
+   <li><span>03</span><span>The overhead share, and whether crew size or roof squares are missing</span></li>
+   <li><span>04</span><span>The questions to send the contractor</span></li>
+   <li><span>05</span><span>With a ZIP code: the public wage for the trade in your area</span></li>
+  </ol>
+ </div>
+</div></section>
+
+<section class="sec" aria-labelledby="what-h"><div class="wrap">
+ <div class="sec-h"><span class="mono">What it is</span><h2 id="what-h">A reading, not a verdict</h2></div>
+ <div class="sec-b">
+  <p>Most quotes are hard to compare because the lines are not the same kind of thing. A teardown sorts them: labor, materials, permit, overhead, disposal and other. Then it marks what cannot be checked by anyone, because the wording gives no quantity or unit, and turns each gap into a question you can send.</p>
+  <div class="two" style="margin-top:32px">
+   <div><span class="mono">What a teardown does</span><ul><li>Reads the lines and the total</li><li>Sorts every line by kind</li><li>Marks lump-sum and allowance lines</li><li>Notes missing crew size, hours or squares</li><li>Adds the public wage when you give a ZIP</li></ul></div>
+   <div><span class="mono">What it is not</span><ul><li>A fairness verdict on the price</li><li>An inspection of your home</li><li>A bid or a counter-offer</li><li>A review of your contractor</li><li>A promise that you will save money</li></ul></div>
+  </div>
+ </div>
+</div></section>
+
+<section class="sec" aria-labelledby="how-h"><div class="wrap">
+ <div class="sec-h"><span class="mono">How it works</span><h2 id="how-h">Three steps, under a minute</h2></div>
+ <div class="sec-b">
+  <ol class="steps">
+   <li><div><h3>Upload the quote</h3><p>A photo, a PDF of up to three pages, or the lines pasted as text. Add a ZIP code if you want the local wage.</p></div></li>
+   <li><div><h3>An AI model reads the lines</h3><p>It copies each line, its amount and its kind. Everything you see after that is computed from those lines and from public wage data, with the source printed.</p></div></li>
+   <li><div><h3>You get the questions</h3><p>Send them to the contractor. A contractor with a reason for each number can answer quickly. Then decide whether a full Quote Check is worth $39 to you.</p></div></li>
+  </ol>
+  <p style="margin-top:28px">Want to see what other homeowners found? <a href="/board/">Browse the teardown board</a>.</p>
+ </div>
+</div></section>
+
+<section class="sec warn" id="warning-signs" aria-labelledby="warn-h"><div class="wrap">
+ <figure class="ph warn-img">
+  <picture>
+   <source type="image/webp" srcset="/assets/img/door-800.webp 800w, /assets/img/door-1200.webp 1200w, /assets/img/door-1536.webp 1536w" sizes="(max-width:980px) 100vw, (min-width:1280px) 580px, 46vw">
+   <img src="/assets/img/door-1536.jpg" width="1536" height="864" alt="A salesperson at a front door at dusk holding out a clipboard and pen to a homeowner who stands with her arms crossed" loading="lazy" decoding="async">
+  </picture>
+   <figcaption class="mono">A sale made at your door &nbsp;/&nbsp; three business days to cancel</figcaption>
+ </figure>
+ <div class="warn-b">
+  <span class="mono mute">Warning sign</span>
+  <h2 id="warn-h">Price good only today?</h2>
+  <p>A deadline of tonight is a sales tactic, not a cost. When a sale of $25 or more is made at your home, the FTC Cooling-Off Rule gives you until midnight of the third business day to cancel. A deadline of tonight does not shorten that.</p>
+  <p>Ask for the quote in writing and read every line before you sign. A teardown takes seconds and needs no account.</p>
+  <div class="actions"><a class="cta ghost" href="/teardowns/08/">Teardown 08: sign tonight or lose 10%</a><a class="cta ghost" href="/guides/price-good-only-today/">The Cooling-Off Rule, explained</a></div>
+ </div>
+</div></section>
+
+<section class="sec" id="faq" aria-labelledby="faq-h"><div class="wrap">
+ <div class="sec-h"><span class="mono">Questions</span><h2 id="faq-h">Before you upload</h2></div>
+ <div class="sec-b">
+  <details><summary>Is the Quote Teardown free?</summary><p>Yes. No account, no email and no payment. To keep it free for everyone, one network can run three teardowns an hour.</p></details>
+  <details><summary>What do you keep?</summary><p>An anonymous card for 24 hours: the trade, the state, the total, how the lines split by kind, and our own flags and questions. We do not keep your files or the text of the lines, and we do not train AI on your uploads. An AI model reads the pages; everything else is computed from those lines and public data. If you post the card to the board, it is reviewed before it appears. Otherwise it is deleted after 24 hours.</p></details>
+  <details><summary>Is this a verdict on my contractor?</summary><p>No. A teardown reads the lines and asks what is missing. It is not a fairness verdict, an inspection or a bid. A flag is a question to ask, not proof that anything is wrong, and a quote with no flags is not proof that it is fair.</p></details>
+  <details><summary>What does the $39 Quote Check add?</summary><p>A Quote Check puts every line in a reference ledger against U.S. public data, with the source, date and formula beside each reference, the questions to ask the contractor, and a SHA-256 receipt anyone can recompute to confirm the report was not altered. It is $39 per quote, delivered within one business day, and paid by the homeowner. We take no fees from contractors.</p></details>
+  <details><summary>Where does the wage number come from?</summary><p>From the U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics: the hourly wage for the trade's main occupation in your metro area, or in your state when the metro has no figure, at the mean and at the 90th percentile. In Texas we also apply the labor loading TxDOT publishes for labor markup, insurance and payroll taxes; elsewhere the wage is shown without a loading and the teardown says so. When the quote states crew size and days or hours, we multiply to give a labor-dollar range. The source and period are printed with the number.</p></details>
+ </div>
+</div></section>
+
+</main>
+<footer class="foot"><div class="wrap">
+ <div class="co"><b>HORIZON SHIELD</b>The HORIZONs Co., Ltd.<br>Win Aoyama 942, 2-2-15 Minami-Aoyama, Minato-ku, Tokyo 107-0062, Japan<br><a href="mailto:contact@the-horizons-innovation.com">contact@the-horizons-innovation.com</a> &nbsp;/&nbsp; +81 463 74 5917</div>
+ <nav aria-label="Legal">
+  <a href="/guides/">Guides</a><a href="/teardowns/">Quote Teardowns</a><a href="/teardown/">Free teardown</a><a href="/privacy/">Privacy Policy</a>
+  <a href="/terms/">Terms of Service</a><a href="/refunds/">Refund Policy</a>
+  <a href="/disclaimer/">Disclaimer</a><a href="/accessibility/">Accessibility</a>
+  <a href="/company/">Company and contact</a><a href="/privacy/#choices">Your privacy choices</a>
+  <a href="https://shield.the-horizons-innovation.com/" lang="ja" hreflang="ja">日本語 (Japan site)</a>
+ </nav>
+ <p class="legal">HORIZON SHIELD provides price benchmarking information only. We are not a licensed contractor, engineer, architect, home inspector, public adjuster, appraiser or attorney. A teardown reads the lines of a quote and is not a fairness verdict, an inspection or a bid. Reference values come from public sources and are not quotes. &copy; 2026 The HORIZONs Co., Ltd.</p>
+</div></footer>
+<script>
+(function(){
+"use strict";
+var API = "https://hs-us-report.oga-surf-project.workers.dev";
+var SITE = "https://horizonshield.dev";
+var SOURCES = ["direct","home","x","threads","reply","series","guide","share","board","reddit","other"];
+var TRADES = ["roof","exterior_paint","interior_paint","flooring","kitchen","bathroom","hvac","water_heater","windows","other"];
+var KIND = {labor:"Labor", material:"Materials", permit:"Permit", overhead:"Overhead and profit", disposal:"Disposal", other:"Other"};
+var FLAG = {big_lump:["Cannot check","acc"], vague:["Cannot check","acc"], overhead:["Overhead","acc"], labor_hidden:["Missing","acc"], labor_folded:["Missing","acc"], no_squares:["Missing","acc"], sum_mismatch:["Does not add up","acc"], labor_above:["Above reference","acc"]};
+var MAX_FILES = 3, MAX_BYTES = 5000000;
+
+/* counters: event name only, no text */
+function ev(name){
+ try{ fetch(API + "/event", {method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify({event:name}), keepalive:true}).catch(function(){}); }catch(e){}
+}
+(function land(){
+ var src = "direct";
+ try{
+  var f = new URLSearchParams(location.search).get("from");
+  if(f !== null){ f = String(f).toLowerCase(); src = SOURCES.indexOf(f) >= 0 ? f : "other"; }
+ }catch(e){}
+ var seen = false;
+ try{ seen = sessionStorage.getItem("hs_us_td_land") === "1"; }catch(e){}
+ if(seen) return;
+ try{ sessionStorage.setItem("hs_us_td_land", "1"); }catch(e){}
+ ev("land_" + src);
+})();
+document.addEventListener("click", function(e){
+ var t = e.target && e.target.closest ? e.target.closest("[data-cta-check]") : null;
+ if(t) ev("cta_check");
+});
+
+/* helpers: API strings only ever go through textContent */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, text){ var n = document.createElement(tag); if(cls) n.className = cls; if(text !== undefined && text !== null) n.textContent = String(text); return n; }
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+function isNum(n){ return typeof n === "number" && isFinite(n); }
+function money(n){ if(!isNum(n)) return ""; var s = "$" + Math.round(Math.abs(n)).toLocaleString("en-US"); return n < 0 ? "-" + s : s; }
+function rate(n){ return isNum(n) ? "$" + n.toFixed(2) : ""; }
+function cap(s){ s = String(s || ""); return s.charAt(0).toUpperCase() + s.slice(1); }
+function safeUrl(u){ try{ var x = new URL(String(u)); return (x.protocol === "https:" || x.protocol === "http:") ? x.href : null; }catch(e){ return null; } }
+function status(label, tone){ var s = el("span", "st" + (tone ? " " + tone : "")); s.appendChild(el("i", "dot")); s.appendChild(el("span", "mono", label)); return s; }
+function setMsg(node, text, bad){ node.textContent = text || ""; node.classList.toggle("bad", !!bad); }
+function fallbackCopy(s){
+ try{ var ta = document.createElement("textarea"); ta.value = s; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.left = "-9999px"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); document.body.removeChild(ta); return ok; }catch(e){ return false; }
+}
+function copyText(s){
+ try{ if(navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(s).then(function(){ return true; }, function(){ return fallbackCopy(s); }); }catch(e){}
+ return Promise.resolve(fallbackCopy(s));
+}
+
+/* the call */
+function callTeardown(fd){
+ var ctl = null, timer = 0;
+ try{ ctl = new AbortController(); timer = setTimeout(function(){ ctl.abort(); }, 90000); }catch(e){ ctl = null; }
+ return fetch(API + "/teardown", {method:"POST", body:fd, signal: ctl ? ctl.signal : undefined})
+  .then(function(res){ return res.json().catch(function(){ return {ok:false, error:"The reader did not answer properly (HTTP " + res.status + "). Try again in a minute."}; }); })
+  .catch(function(err){ return {ok:false, error:(err && err.name === "AbortError") ? "Reading took too long. Try a sharper photo, fewer pages, or paste the lines." : "We could not reach the reader. Check your connection and try again."}; })
+  .then(function(r){
+   clearTimeout(timer);
+   if(!r || typeof r !== "object") return {ok:false, error:"Unexpected answer. Try again."};
+   if(r.ok && (!r.teardown || typeof r.teardown !== "object")) return {ok:false, error:"Unexpected answer. Try again."};
+   return r;
+  });
+}
+
+/* form */
+var form = $("td-form"), fileIn = $("td-file"), list = $("td-files"), paste = $("td-paste"), pasteBtn = $("td-paste-btn"), msg = $("td-msg"), go = $("td-go"), zipIn = $("td-zip"), tradeIn = $("td-trade");
+var files = [];
+function isHeic(f){ return /\.(heic|heif)$/i.test(f.name || "") || /heic|heif/i.test(f.type || ""); }
+function typeOk(f){ return ["application/pdf","image/jpeg","image/png"].indexOf(f.type) >= 0 || /\.(pdf|jpe?g|png)$/i.test(f.name || ""); }
+function kb(n){ return n >= 1000000 ? (n / 1000000).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1000)) + " KB"; }
+function showFiles(){
+ clear(list);
+ files.forEach(function(f, i){
+  var li = el("li"); li.appendChild(el("span", "nm", f.name || "page " + (i + 1))); li.appendChild(el("span", "sz", kb(f.size)));
+  var b = el("button", "linkbtn", "Remove"); b.type = "button"; b.setAttribute("aria-label", "Remove " + (f.name || "page")); b.addEventListener("click", function(){ files.splice(i, 1); showFiles(); });
+  li.appendChild(b); list.appendChild(li);
+ });
+}
+function addFiles(fl){
+ var errs = [];
+ for(var i = 0; i < fl.length; i++){
+  var f = fl[i];
+  if(isHeic(f)){ errs.push(f.name + " is a HEIC photo. Pick it again and choose JPG, or send a screenshot of it."); continue; }
+  if(!typeOk(f)){ errs.push(f.name + ": send a PDF, JPG or PNG."); continue; }
+  if(f.size > MAX_BYTES){ errs.push(f.name + " is larger than 5 MB. A smaller photo or a PDF works best."); continue; }
+  if(files.length >= MAX_FILES){ errs.push("Up to 3 pages of one quote."); break; }
+  files.push(f);
+ }
+ showFiles(); setMsg(msg, errs.join(" "), errs.length > 0);
+}
+fileIn.addEventListener("change", function(){ addFiles(fileIn.files || []); try{ fileIn.value = ""; }catch(e){} });
+["dragenter","dragover"].forEach(function(t){ form.addEventListener(t, function(e){ e.preventDefault(); form.classList.add("drag"); }); });
+["dragleave","drop"].forEach(function(t){ form.addEventListener(t, function(e){ e.preventDefault(); form.classList.remove("drag"); }); });
+form.addEventListener("drop", function(e){ if(e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+pasteBtn.addEventListener("click", function(){ var open = paste.classList.toggle("open"); pasteBtn.setAttribute("aria-expanded", open ? "true" : "false"); if(open) paste.focus(); });
+
+/* progress */
+var progress = $("td-progress"), steps = $("td-steps").children, elapsed = $("td-elapsed"), ticker = 0;
+var STEP_AT = [0, 5, 14, 24];
+function busy(on){
+ go.disabled = on; go.textContent = on ? "Reading..." : "Read my quote, free";
+ if(on){
+  var t0 = Date.now(); progress.hidden = false;
+  var tick = function(){
+   var s = Math.floor((Date.now() - t0) / 1000); elapsed.textContent = s + " s";
+   for(var i = 0; i < steps.length; i++){ var on2 = s >= STEP_AT[i] && (i === steps.length - 1 || s < STEP_AT[i + 1]); steps[i].className = on2 ? "on" : (s >= STEP_AT[i] ? "done" : ""); }
+  };
+  tick(); ticker = setInterval(tick, 500);
+  try{ progress.scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){}
+ }else{ clearInterval(ticker); progress.hidden = true; }
+}
+
+function run(text, zip, trade, pages){
+ var fd = new FormData();
+ (pages || []).forEach(function(f){ fd.append("file", f, f.name); });
+ if(text) fd.append("text", text);
+ if(zip) fd.append("zip", zip);
+ if(trade) fd.append("trade", trade);
+ return callTeardown(fd);
+}
+form.addEventListener("submit", function(e){
+ e.preventDefault();
+ var text = (paste.value || "").trim(), zip = (zipIn.value || "").trim(), trade = tradeIn.value;
+ zipIn.removeAttribute("aria-invalid");
+ if(!files.length && text.length < 20){ setMsg(msg, "Upload the quote or paste its lines.", true); return; }
+ if(zip && !/^\d{5}$/.test(zip)){ zipIn.setAttribute("aria-invalid", "true"); setMsg(msg, "A ZIP code is 5 digits. Or leave it blank.", true); zipIn.focus(); return; }
+ setMsg(msg, "");
+ busy(true);
+ run(text, zip, trade, files).then(function(r){
+  busy(false);
+  if(r.ok){ render(r, true); }
+  else{ setMsg(msg, r.error || "Something went wrong. Try again.", true); try{ form.scrollIntoView({behavior:"smooth", block:"center"}); }catch(e2){} }
+ });
+});
+
+/* render */
+var current = null;
+function render(r, focus){
+ var t = r.teardown;
+ current = {id: String(r.teardown_id || ""), claim: String(r.claim || "")};
+ var lines = Array.isArray(t.lines) ? t.lines : [], kinds = Array.isArray(t.kinds) ? t.kinds : [], flags = Array.isArray(t.flags) ? t.flags : [];
+ $("r-id").textContent = "Teardown " + current.id;
+ $("r-job").textContent = t.trade_key === "other" ? "Other work" : cap(t.trade || "Contractor quote");
+ var place = t.place ? (t.place.metro || t.place.state || "") : "";
+ $("r-place").textContent = (place ? place : "No ZIP code given, so no local wage") + " / " + (isNum(t.line_count) ? t.line_count : lines.length) + " lines read";
+ $("r-total").textContent = money(t.total);
+ $("r-total-sub").textContent = t.total_from === "quote" ? "As stated on the quote" : "Sum of the priced lines; no total found";
+ $("r-lines").textContent = isNum(t.line_count) ? t.line_count : lines.length;
+ $("r-lines-sub").textContent = (isNum(t.priced_count) ? t.priced_count : "") + " with a price";
+ var vague = lines.filter(function(l){ return l && l.vague; });
+ $("r-vague").textContent = vague.length;
+ $("r-vague").classList.toggle("acc", vague.length > 0);
+ var oh = kinds.filter(function(k){ return k && k.kind === "overhead"; })[0];
+ $("r-oh").textContent = oh ? oh.share + "%" : "None";
+ $("r-oh-sub").textContent = oh ? "Of the total, as a separate line (" + money(oh.usd) + ")" : "No separate line. It may sit inside other lines.";
+
+ var kt = $("r-kinds"); clear(kt);
+ kinds.forEach(function(k){
+  var tr = el("tr", k.kind === "overhead" ? "oh" : "");
+  tr.appendChild(el("td", "", KIND[k.kind] || cap(k.kind)));
+  tr.appendChild(el("td", "r num", money(k.usd)));
+  tr.appendChild(el("td", "r num", isNum(k.share) ? k.share + "%" : ""));
+  var td = el("td", "w"), bar = el("span", "kb"), fill = el("i"); fill.style.width = Math.max(0, Math.min(100, Number(k.share) || 0)) + "%"; bar.appendChild(fill); td.appendChild(bar); tr.appendChild(td);
+  kt.appendChild(tr);
+ });
+
+ var fl = $("r-flags"); clear(fl);
+ flags.forEach(function(f){
+  var meta = FLAG[f.code] || [cap(String(f.code || "Note").replace(/_/g, " ")), "acc"];
+  var li = el("li"); var a = el("div"); a.appendChild(status(meta[0], meta[1])); li.appendChild(a); li.appendChild(el("div", "", f.text)); fl.appendChild(li);
+ });
+ $("r-noflags").hidden = flags.length > 0;
+
+ var rows = $("r-rows"); clear(rows);
+ lines.forEach(function(l){
+  var tr = el("tr");
+  var c1 = el("td", "item"); c1.setAttribute("data-label", "Line"); c1.appendChild(el("span", "", l.item));
+  if(l.vague){ var w = el("span", "note"); w.appendChild(status("Cannot check", "acc")); c1.appendChild(w); }
+  tr.appendChild(c1);
+  var c2 = el("td", "", KIND[l.kind] || cap(l.kind)); c2.setAttribute("data-label", "Kind"); tr.appendChild(c2);
+  var q = (l.qty !== null && l.qty !== undefined ? String(l.qty) : "") + (l.unit ? " " + l.unit : "");
+  var c3 = el("td", "num", q || "Not stated"); c3.setAttribute("data-label", "Qty"); if(!q) c3.className = "mute"; tr.appendChild(c3);
+  var c4 = el("td", "r num", isNum(l.amount) ? money(l.amount) : "No price"); c4.setAttribute("data-label", "Amount"); if(!isNum(l.amount)) c4.className = "r mute"; tr.appendChild(c4);
+  rows.appendChild(tr);
+ });
+ $("r-lines-note").textContent = lines.length >= 60 ? "The first 60 lines, as read from the quote." : "As read from the quote.";
+
+ renderRef(t, $("r-ref"));
+
+ var qs = $("r-questions"); clear(qs);
+ (Array.isArray(t.questions) ? t.questions : []).forEach(function(q){ qs.appendChild(el("li", "", q)); });
+ var ck = $("r-checklist"); clear(ck);
+ (Array.isArray(t.checklist) ? t.checklist : []).forEach(function(c){ ck.appendChild(el("li", "", c)); });
+ $("r-note").textContent = t.note || "A teardown reads the lines and asks what is missing. It is not a fairness verdict, an inspection or a bid.";
+
+ $("b-consent").checked = false; $("b-post").disabled = false; setMsg($("b-msg"), "");
+ setMsg($("r-copyq-msg"), ""); setMsg($("s-msg"), "");
+ $("td-result").hidden = false;
+ if(focus){ try{ $("td-result").scrollIntoView({behavior:"smooth", block:"start"}); }catch(e){} try{ $("r-job").focus({preventScroll:true}); }catch(e){} }
+}
+
+function renderRef(t, box){
+ clear(box);
+ var ref = t.reference;
+ if(!ref){
+  box.appendChild(el("p", "", t.place ? "We found no public wage for this trade in your area. The questions below still apply." : "Add a ZIP code next time to see the public wage for this trade in your area."));
+  return;
+ }
+ var dl = el("dl", "ref-dl");
+ function row(k, v){ if(v === "" || v === null || v === undefined) return; dl.appendChild(el("dt", "", k)); dl.appendChild(el("dd", "", v)); }
+ row("Occupation", ref.occupation);
+ row("Area", ref.area);
+ row("Period", ref.period);
+ if(Array.isArray(ref.wage_usd_h)) row("Hourly wage", rate(ref.wage_usd_h[0]) + " mean, " + rate(ref.wage_usd_h[1]) + " at the 90th percentile");
+ if(Array.isArray(ref.loaded_usd_h)){
+  row("Loaded crew hour", rate(ref.loaded_usd_h[0]) + " to " + rate(ref.loaded_usd_h[1]));
+  row("Loading", ref.loading_rule);
+ }else{
+  row("Loading", "None on file for this state, so this is the bare wage before payroll taxes, insurance and overhead.");
+ }
+ box.appendChild(dl);
+ if(ref.labor && typeof ref.labor === "object"){
+  var lb = ref.labor, tone = lb.status === "above" ? "acc" : (lb.status === "below" ? "dim" : "");
+  var p = el("p"); p.appendChild(status(lb.status === "above" ? "Above the range" : lb.status === "below" ? "Below the range" : "Within the range", tone));
+  box.appendChild(p);
+  var r0 = Array.isArray(lb.range_usd) ? lb.range_usd : [];
+  box.appendChild(el("p", "", "The quote states " + lb.hours + " crew hours. At the public wage that is " + money(r0[0]) + " to " + money(r0[1]) + ". The labor lines add up to " + money(lb.quoted_usd) + ". Outside the range is a reason to ask, not proof of anything."));
+ }else{
+  box.appendChild(el("p", "mute", "The quote does not state crew size and days or hours, so the wage cannot become a dollar range for the labor line."));
+ }
+ var srcs = Array.isArray(ref.sources) ? ref.sources : [];
+ if(srcs.length){
+  box.appendChild(el("span", "mono mute", "Sources"));
+  var ol = el("ol", "refs"); ol.style.marginTop = "10px";
+  srcs.forEach(function(s){
+   var li = el("li"), u = s && safeUrl(s.url), label = (s && (s.title || s.id)) || "Source";
+   if(u){ var a = el("a", "", label); a.href = u; a.rel = "noopener"; a.target = "_blank"; li.appendChild(a); } else li.appendChild(el("span", "", label));
+   ol.appendChild(li);
+  });
+  box.appendChild(ol);
+ }
+}
+
+/* questions copy */
+$("r-copyq").addEventListener("click", function(){
+ var qs = Array.prototype.map.call($("r-questions").children, function(li, i){ return (i + 1) + ". " + li.textContent; });
+ var m = $("r-copyq-msg");
+ if(!qs.length){ setMsg(m, "No questions to copy."); return; }
+ copyText("A few questions about the quote:\n" + qs.join("\n")).then(function(ok){ setMsg(m, ok ? "Copied." : "Could not copy. Select the questions and copy them by hand.", !ok); });
+});
+
+/* board */
+$("b-post").addEventListener("click", function(){
+ var m = $("b-msg"), btn = $("b-post"), cb = $("b-consent");
+ if(!current || !current.id){ setMsg(m, "Run a teardown first.", true); return; }
+ if(!cb.checked){ setMsg(m, "Tick the box to show this card publicly.", true); cb.focus(); return; }
+ btn.disabled = true; setMsg(m, "Sending...");
+ fetch(API + "/board/submit", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({teardown_id:current.id, claim:current.claim, consent:true})})
+  .then(function(res){ return res.json().catch(function(){ return {ok:false, error:"The board did not answer properly (HTTP " + res.status + ")."}; }); })
+  .catch(function(){ return {ok:false, error:"We could not reach the board. Try again."}; })
+  .then(function(r){
+   if(r && r.ok){ setMsg(m, r.message || "Sent for review. If it is approved, it appears on the board."); }
+   else{ btn.disabled = false; setMsg(m, (r && r.error) || "Could not post. Try again.", true); }
+  });
+});
+
+/* share */
+$("s-x").addEventListener("click", function(){ ev("share_x"); });
+$("s-copy").addEventListener("click", function(){
+ ev("share_copy");
+ copyText($("s-url").value).then(function(ok){ setMsg($("s-msg"), ok ? "Link copied." : "Could not copy. Select the link above and copy it.", !ok); if(!ok){ try{ $("s-url").select(); }catch(e){} } });
+});
+
+/* again */
+$("r-again").addEventListener("click", function(){
+ files = []; showFiles(); paste.value = ""; setMsg(msg, "");
+ $("td-result").hidden = true; current = null;
+ try{ form.scrollIntoView({behavior:"smooth", block:"center"}); }catch(e){}
+ try{ fileIn.focus({preventScroll:true}); }catch(e){}
+});
+
+/* WebMCP: same pattern as the rest of the site. Feature-detect, never break the page. */
+(function(){
+ try{
+  if(!("modelContext" in navigator) || !navigator.modelContext || typeof navigator.modelContext.registerTool !== "function") return;
+  var mc = navigator.modelContext;
+  var NOTE = " HORIZON SHIELD US is paid by homeowners only and takes no fees from contractors. A teardown reads the lines and asks what is missing; it is not a fairness verdict, an inspection or a bid.";
+  try{
+   mc.registerTool({
+    name:"teardown_quote_text",
+    description:"Free Quote Teardown of a U.S. contractor quote given as text. Returns the job, the total, every line with its kind (labor, material, permit, overhead, disposal, other), the lines that cannot be checked (lump sum, misc, allowance), the overhead share, flags for missing crew size, hours or roof squares, the questions to send the contractor, and, when a 5-digit ZIP code is given, the public BLS wage for the trade in that area with sources. Takes 10 to 40 seconds. Nothing is stored except an anonymous card for 24 hours. The result is also shown on this page, where the homeowner can choose to post the card to the public board." + NOTE,
+    inputSchema:{type:"object", properties:{
+     text:{type:"string", description:"The quote lines as plain text, one line item per line, with amounts in USD. At least 20 characters."},
+     zip:{type:"string", pattern:"^[0-9]{5}$", description:"Optional 5-digit U.S. ZIP code of the job, for the local public wage."},
+     trade:{type:"string", enum:TRADES, description:"Optional trade. Leave out to let the reader infer it."}
+    }, required:["text"]},
+    annotations:{readOnlyHint:false},
+    execute: async function(i){
+     i = i || {};
+     var text = String(i.text || "").trim(), zip = String(i.zip || "").trim(), trade = String(i.trade || "");
+     if(text.length < 20) return {ok:false, error:"Give the quote lines as text, at least 20 characters."};
+     if(zip && !/^\d{5}$/.test(zip)) return {ok:false, error:"zip must be 5 digits."};
+     if(trade && TRADES.indexOf(trade) < 0) trade = "";
+     var r = await run(text.slice(0, 20000), zip, trade, []);
+     if(!r.ok) return {ok:false, error:r.error || "teardown failed"};
+     try{ render(r, false); }catch(e){}
+     return {ok:true, teardown_id:r.teardown_id, teardown:r.teardown, next_steps:{post_to_board:"The homeowner can post the anonymous card from this page after ticking the consent box.", quote_check_usd:39, quote_check_url:SITE + "/?from=teardown#check", board_url:SITE + "/board/"}};
+    }
+   });
+  }catch(e){}
+  try{
+   mc.registerTool({
+    name:"list_teardown_board",
+    description:"List the public board of Quote Teardowns that U.S. homeowners chose to post: trade, state, total, line count, the share of each kind of line, flags and questions. No names, addresses or line text. Every card was reviewed before it appeared." + NOTE,
+    inputSchema:{type:"object", properties:{}},
+    annotations:{readOnlyHint:true},
+    execute: async function(){
+     try{
+      var res = await fetch(API + "/board"); var j = await res.json();
+      return {ok:!!(j && j.ok), cards:(j && Array.isArray(j.cards)) ? j.cards : [], board_url:SITE + "/board/"};
+     }catch(e){ return {ok:false, error:"network"}; }
+    }
+   });
+  }catch(e){}
+ }catch(e){}
+})();
+})();
+</script>
+</body>
+</html>

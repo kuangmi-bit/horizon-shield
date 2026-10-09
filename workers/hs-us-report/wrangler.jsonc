@@ -16,7 +16,9 @@
   "triggers": { "crons": ["* * * * *", "0 * * * *"] },
 
   "vars": {
-    "SITE_URL": "https://shield.the-horizons-innovation.com",
+    "SITE_URL": "https://horizonshield.dev",
+    // The old /us/ pages on shield forward to horizonshield.dev (2026-10-09); a page opened before the move can still call the API.
+    "ALLOW_ORIGIN_EXTRA": "https://shield.the-horizons-innovation.com",
     "PUBLIC_WORKER_URL": "https://hs-us-report.oga-surf-project.workers.dev",
     "ANTHROPIC_MODEL": "claude-sonnet-4-6"
   },

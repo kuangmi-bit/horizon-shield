@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import { pageDefinition } from "../src/hearing.js";
 
-const target = process.argv[2] || new URL("../../../us/index.html", import.meta.url).pathname;
+const target = process.argv[2] || new URL("../../hs-us-site/public/index.html", import.meta.url).pathname;
 const html = fs.readFileSync(target, "utf8");
 const open = '<script id="hq" type="application/json">';
 const a = html.indexOf(open), b = html.indexOf("</script>", a);

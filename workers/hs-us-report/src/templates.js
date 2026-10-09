@@ -16,7 +16,7 @@ export const COMPANY = {
   name: "The HORIZONs Co., Ltd.",
   address: "Win Aoyama 942, 2-2-15 Minami-Aoyama, Minato-ku, Tokyo 107-0062, Japan",
   email: "contact@the-horizons-innovation.com",
-  site: "shield.the-horizons-innovation.com/us/",
+  site: "horizonshield.dev",
 };
 
 export const DISCLAIMER =

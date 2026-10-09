@@ -5,7 +5,7 @@
 //
 // Routes
 //   GET  /health
-//   POST /intake                         multipart form from /us/ (CORS: SITE_URL only)
+//   POST /intake                         multipart form from https://horizonshield.dev/ (CORS: SITE_URL, plus ALLOW_ORIGIN_EXTRA during the move)
 //   POST /quick                          free Quick Estimate, JSON
 //   POST /webhook/paypal                 PayPal IPN: marks the order paid, nothing else
 //   GET  /files/<order>/<sha16>/<name>   signed customer download (12 months)

@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Quote Teardowns: the U.S. edition of the 見積書の解剖 series (/us/teardowns/).
+"""Quote Teardowns: the U.S. edition of the 見積書の解剖 series, at https://horizonshield.dev/teardowns/.
+
+Since 2026-10-09 the U.S. site lives on its own domain, served by the hs-us-site worker from
+workers/hs-us-site/public/ (GitHub Pages never publishes workers/). This script writes there:
+public/teardowns/ (index, 01 to 08) and public/teardowns/img/NN.png. It never writes under us/ on the
+Japanese site, and the U.S. pages do not link into the Japanese series (the sites must not overlap).
 
 Each issue takes one illustrative contractor quote for a common U.S. home job and shows
 the one line a homeowner should question, with public numbers and their sources.
 
 Usage:
-  python3 tools/us_teardown_series.py --out .                     # write the HTML pages
-  python3 tools/us_teardown_series.py --out . --img-html DIR      # also write the square card HTML
-  python3 tools/us_teardown_series.py --out . --img-html DIR --render   # and render the cards to
-                                                                        # us/teardowns/img/NN.png at 2160x2160
-                                                                        # (needs playwright; everything else is stdlib)
-  python3 tools/us_teardown_series.py --selftest [--root .]       # checks; --root also resolves site links
+  python3 tools/us_teardown_series.py                             # write the HTML pages into workers/hs-us-site/public
+  python3 tools/us_teardown_series.py --out DIR                   # or into another site root
+  python3 tools/us_teardown_series.py --img-html TMP --render     # also render the cards to teardowns/img/NN.png
+                                                                  # at 2160x2160 (needs playwright; the rest is stdlib)
+  python3 tools/us_teardown_series.py --selftest [--root DIR]     # checks; links and images resolve against the site root
 
 Rules kept by this file:
   * It only overwrites files that carry MARK, so hand-written pages are never replaced.
@@ -24,14 +28,14 @@ To add an issue: append a dict to CASES, run --selftest, then --out . --img-html
 """
 import argparse, html, json, os, re, sys
 
-BASE = "https://shield.the-horizons-innovation.com"
+BASE = "https://horizonshield.dev"
 MARK = "<!-- generated: us_teardown_series.py -->"
 DATE = "2026-10-09"
 DATE_TEXT = "October 9, 2026"
-CTA = "/us/teardown/?from=series"
-CHECK = "/us/#check"
-ORG_ID = f"{BASE}/us/#org"
-TOSHI_ID = f"{BASE}/us/#toshi"
+CTA = "/teardown/?from=series"
+CHECK = "/#check"
+ORG_ID = f"{BASE}/#org"
+TOSHI_ID = f"{BASE}/#toshi"
 
 # Every public number on the pages points at one of these.
 SOURCES = {
@@ -59,13 +63,13 @@ SOURCES = {
 }
 
 GUIDES = {
-    "roof": ("/us/guides/is-my-roofing-quote-too-high/", "Is my roofing quote too high?"),
-    "rates": ("/us/guides/trades-hourly-rates-austin-tx/", "What trades earn per hour in Austin, TX"),
-    "op": ("/us/guides/overhead-and-profit-on-a-contractor-quote/", "Overhead and profit on a contractor quote"),
-    "lead": ("/us/guides/lead-paint-rrp-certified-contractor/", "Lead paint and the RRP certified contractor"),
-    "today": ("/us/guides/price-good-only-today/", "The contractor says the price is only good today"),
-    "scope": ("/us/guides/scope-of-work-before-quotes/", "Write the scope of work before you get quotes"),
-    "deposit": ("/us/guides/contractor-deposit-how-much/", "How much deposit should a contractor ask for?"),
+    "roof": ("/guides/is-my-roofing-quote-too-high/", "Is my roofing quote too high?"),
+    "rates": ("/guides/trades-hourly-rates-austin-tx/", "What trades earn per hour in Austin, TX"),
+    "op": ("/guides/overhead-and-profit-on-a-contractor-quote/", "Overhead and profit on a contractor quote"),
+    "lead": ("/guides/lead-paint-rrp-certified-contractor/", "Lead paint and the RRP certified contractor"),
+    "today": ("/guides/price-good-only-today/", "The contractor says the price is only good today"),
+    "scope": ("/guides/scope-of-work-before-quotes/", "Write the scope of work before you get quotes"),
+    "deposit": ("/guides/contractor-deposit-how-much/", "How much deposit should a contractor ask for?"),
 }
 
 # Each case:
@@ -354,7 +358,7 @@ CASES = [
   "x": "\"10% off if you sign tonight.\" A sale of $25 or more made at your home can be canceled until midnight of the third business day (FTC Cooling-Off Rule)."},
 ]
 
-# Photos live in assets/us/img/NAME-WIDTH.EXT. Widths listed are the files that exist; nothing is upscaled.
+# Photos live in assets/img/NAME-WIDTH.EXT (site root). Widths listed are the files that exist; nothing is upscaled.
 # w and h are the size of the JPEG fallback (the img element's intrinsic size).
 PHOTO_CAPTION = "Illustrative photo. Not the house, the crew or the quote in this issue."
 PHOTOS = {
@@ -376,7 +380,7 @@ E = html.escape
 
 
 def photo_path(name, w, ext):
-    return f"/assets/us/img/{name}-{w}.{ext}"
+    return f"/assets/img/{name}-{w}.{ext}"
 
 
 def picture(name, alt, sizes, eager, cls):
@@ -392,11 +396,11 @@ def picture(name, alt, sizes, eager, cls):
 
 
 def url_of(c):
-    return f"{BASE}/us/teardowns/{c['no']}/"
+    return f"{BASE}/teardowns/{c['no']}/"
 
 
 def img_of(c):
-    return f"{BASE}/us/teardowns/img/{c['no']}.png"
+    return f"{BASE}/teardowns/img/{c['no']}.png"
 
 
 def money(v):
@@ -444,7 +448,7 @@ def card_html(c, font_dir):
 <div class='lbl m'><span>Line</span><span>Quoted / public reference / mark</span></div>
 {rows}
 <div class='ill m'>Illustrative quote. Sources on the page.</div>
-<div class='ft m'><b>Read the lines before you sign.</b><span>shield.the-horizons-innovation.com/us</span></div>
+<div class='ft m'><b>Read the lines before you sign.</b><span>horizonshield.dev</span></div>
 </div></body></html>"""
 
 
@@ -488,19 +492,19 @@ EXTRA_CSS = """.td-head{grid-column:1 / -1;max-width:60rem}
 .td-list span.t{display:block;color:var(--mute);font-size:14px}"""
 
 HEADER = """<header class="top"><div class="wrap">
- <a class="brand" href="/us/">HORIZON SHIELD <span class="mono">US</span></a>
- <nav class="nav" aria-label="Main"><a href="/us/teardown/">Teardown</a><a href="/us/teardowns/">Teardowns</a><a href="/us/guides/">Guides</a><a href="/us/#sample">Sample report</a><a href="/us/#pricing">Pricing</a></nav>
- <a class="cta" href="/us/#check">Check a quote</a>
+ <a class="brand" href="/">HORIZON SHIELD <span class="mono">US</span></a>
+ <nav class="nav" aria-label="Main"><a href="/teardown/">Teardown</a><a href="/teardowns/">Teardowns</a><a href="/guides/">Guides</a><a href="/#sample">Sample report</a><a href="/#pricing">Pricing</a></nav>
+ <a class="cta" href="/#check">Check a quote</a>
 </div></header>"""
 
 FOOTER = """<footer class="foot"><div class="wrap">
  <div class="co"><b>HORIZON SHIELD</b>The HORIZONs Co., Ltd.<br>Win Aoyama 942, 2-2-15 Minami-Aoyama, Minato-ku, Tokyo 107-0062, Japan<br><a href="mailto:contact@the-horizons-innovation.com">contact@the-horizons-innovation.com</a> &nbsp;/&nbsp; +81 463 74 5917</div>
  <nav aria-label="Legal">
-  <a href="/us/guides/">Guides</a><a href="/us/privacy/">Privacy Policy</a>
-  <a href="/us/terms/">Terms of Service</a><a href="/us/refunds/">Refund Policy</a>
-  <a href="/us/disclaimer/">Disclaimer</a><a href="/us/accessibility/">Accessibility</a>
-  <a href="/us/company/">Company and contact</a><a href="/us/privacy/#choices">Your privacy choices</a>
-  <a href="/">日本語</a>
+  <a href="/guides/">Guides</a><a href="/teardowns/">Quote Teardowns</a><a href="/teardown/">Free teardown</a><a href="/privacy/">Privacy Policy</a>
+  <a href="/terms/">Terms of Service</a><a href="/refunds/">Refund Policy</a>
+  <a href="/disclaimer/">Disclaimer</a><a href="/accessibility/">Accessibility</a>
+  <a href="/company/">Company and contact</a><a href="/privacy/#choices">Your privacy choices</a>
+  <a href="https://shield.the-horizons-innovation.com/" lang="ja" hreflang="ja">日本語 (Japan site)</a>
  </nav>
  <p class="legal">HORIZON SHIELD provides price benchmarking information only. We are not a licensed contractor, engineer, architect, home inspector, public adjuster, appraiser or attorney. Quote Teardowns use illustrative quotes written for teaching, not any real contractor's quote. Statutes, codes and agency pages are quoted as published on the date shown and are not legal advice; check the source for your situation. Reference values come from public sources and are not quotes. &copy; 2026 The HORIZONs Co., Ltd.</p>
 </div></footer>"""
@@ -514,7 +518,7 @@ def ld_json(obj):
 
 def org_nodes():
     return [{"@type": "Organization", "@id": ORG_ID, "name": "HORIZON SHIELD", "legalName": "The HORIZONs Co., Ltd.",
-             "url": f"{BASE}/us/", "email": "contact@the-horizons-innovation.com"},
+             "url": f"{BASE}/", "email": "contact@the-horizons-innovation.com"},
             {"@type": "Person", "@id": TOSHI_ID, "name": "Toshikatsu Oga",
              "jobTitle": "Representative director, 30 years in construction (carpenter, site supervisor, construction manager)",
              "sameAs": ["https://orcid.org/0009-0000-9180-903X"], "worksFor": {"@id": ORG_ID}}]
@@ -551,8 +555,8 @@ def head(title, desc, canon, og_title, og_desc, image, og_type, ld):
 <meta name="twitter:title" content="{E(og_title)}">
 <meta name="twitter:description" content="{E(og_desc)}">
 <meta name="twitter:image" content="{image}">
-<link rel="preload" href="/assets/us/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/us/us.css">
+<link rel="preload" href="/assets/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/us.css">
 <style>{EXTRA_CSS}</style>
 <script type="application/ld+json">
 {ld_json(ld)}
@@ -584,9 +588,9 @@ def case_page(c, i):
     prev_c = CASES[i - 1] if i > 0 else None
     next_c = CASES[i + 1] if i + 1 < len(CASES) else None
     nav = ('<nav class="td-nav" aria-label="Series">'
-           + (f'<a href="/us/teardowns/{prev_c["no"]}/">Previous: {prev_c["no"]} {E(prev_c["job"])}</a>' if prev_c else '<span></span>')
-           + '<a href="/us/teardowns/">All teardowns</a>'
-           + (f'<a href="/us/teardowns/{next_c["no"]}/">Next: {next_c["no"]} {E(next_c["job"])}</a>' if next_c else '<span></span>')
+           + (f'<a href="/teardowns/{prev_c["no"]}/">Previous: {prev_c["no"]} {E(prev_c["job"])}</a>' if prev_c else '<span></span>')
+           + '<a href="/teardowns/">All teardowns</a>'
+           + (f'<a href="/teardowns/{next_c["no"]}/">Next: {next_c["no"]} {E(next_c["job"])}</a>' if next_c else '<span></span>')
            + '</nav>')
     faq_html = "".join(f"<h3>{E(q)}</h3><p>{E(a)}</p>" for q, a in c["faq"])
     why = "".join(f"<p>{E(p)}</p>" for p in c["why"])
@@ -595,13 +599,13 @@ def case_page(c, i):
         {"@type": "Article", "@id": f"{url}#article", "headline": c["title"], "description": c["desc"],
          "url": url, "mainEntityOfPage": url, "datePublished": DATE, "dateModified": DATE, "inLanguage": "en-US",
          "author": {"@id": TOSHI_ID}, "publisher": {"@id": ORG_ID}, "image": img,
-         "isPartOf": {"@type": "CollectionPage", "@id": f"{BASE}/us/teardowns/#page", "name": "Quote Teardowns", "url": f"{BASE}/us/teardowns/"},
+         "isPartOf": {"@type": "CollectionPage", "@id": f"{BASE}/teardowns/#page", "name": "Quote Teardowns", "url": f"{BASE}/teardowns/"},
          "about": f"{c['job']} quotes, {c['place']}", "citation": [SOURCES[k][1] for k in c["sources"]]},
         {"@type": "FAQPage", "@id": f"{url}#faq", "mainEntity": [
             {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in c["faq"]]},
         {"@type": "BreadcrumbList", "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": "HORIZON SHIELD US", "item": f"{BASE}/us/"},
-            {"@type": "ListItem", "position": 2, "name": "Quote Teardowns", "item": f"{BASE}/us/teardowns/"},
+            {"@type": "ListItem", "position": 1, "name": "HORIZON SHIELD US", "item": f"{BASE}/"},
+            {"@type": "ListItem", "position": 2, "name": "Quote Teardowns", "item": f"{BASE}/teardowns/"},
             {"@type": "ListItem", "position": 3, "name": f"{c['no']} {c['job']}", "item": url}]}]}
     title = f"{c['title']} | Quote Teardown {c['no']} | HORIZON SHIELD US"
     out = head(title, c["desc"], url, c["headline"], c["desc"], img, "article", ld)
@@ -611,7 +615,7 @@ def case_page(c, i):
 <div class="doc-h"><ol class="toc"><li><a href="#quote">The quote</a></li><li><a href="#line">The one line to ask about</a></li><li><a href="#math">The arithmetic</a></li><li><a href="#ask">What to ask the contractor</a></li><li><a href="#limits">What this does not establish</a></li><li><a href="#faq">Questions</a></li><li><a href="#sources">Sources</a></li></ol></div>
 <div class="doc-b">
 <p><b>{E(c['lede'])}</b></p>
-<img class="td-img" src="/us/teardowns/img/{c['no']}.png" width="1080" height="1080" alt="{E(c['headline'])} Ledger of the illustrative quote with the line to ask about marked." loading="lazy" decoding="async">
+<img class="td-img" src="/teardowns/img/{c['no']}.png" width="1080" height="1080" alt="{E(c['headline'])} Ledger of the illustrative quote with the line to ask about marked." loading="lazy" decoding="async">
 <p class="td-cap">The card for this issue. The quote is illustrative, written for teaching; it is not any real contractor's quote.</p>
 <h2 id="quote">The quote</h2>
 <p class="td-lab">Illustrative quote. {E(c['job'])}, {E(c['place'])}.</p>
@@ -637,7 +641,7 @@ def case_page(c, i):
 <ol>{srcs}</ol>
 <h2 id="related">Related guides</h2>
 <ul>{rel}</ul>
-<p>How we work: HORIZON SHIELD is paid by homeowners only. We take no referral fee, listing fee or commission from any contractor, distributor or insurer. <a href="/us/">About the service</a>.</p>
+<p>How we work: HORIZON SHIELD is paid by homeowners only. We take no referral fee, listing fee or commission from any contractor, distributor or insurer. <a href="/">About the service</a>.</p>
 {nav}
 </div></div></main>
 {FOOTER}
@@ -649,9 +653,9 @@ def case_page(c, i):
 
 
 def index_page():
-    url = f"{BASE}/us/teardowns/"
+    url = f"{BASE}/teardowns/"
     items = "".join(
-        f'<li><a href="/us/teardowns/{c["no"]}/">{picture(c["photo"], c["alt"], THUMB_SIZES, False, "td-thumb")}<span><span class="n">{c["no"]}</span><b>{E(c["title"])}</b>'
+        f'<li><a href="/teardowns/{c["no"]}/">{picture(c["photo"], c["alt"], THUMB_SIZES, False, "td-thumb")}<span><span class="n">{c["no"]}</span><b>{E(c["title"])}</b>'
         f'<span class="t">{E(c["job"])}, {E(c["place"])}</span></span></a></li>' for c in CASES)
     desc = ("Worked examples of U.S. contractor quotes for common home jobs. Each one marks the single line a homeowner "
             "should question, with public numbers and their sources: wages, codes, the EPA lead rule and the FTC Cooling-Off Rule.")
@@ -662,7 +666,7 @@ def index_page():
          "mainEntity": {"@type": "ItemList", "numberOfItems": len(CASES), "itemListElement": [
              {"@type": "ListItem", "position": n + 1, "name": c["title"], "url": url_of(c)} for n, c in enumerate(CASES)]}},
         {"@type": "BreadcrumbList", "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": "HORIZON SHIELD US", "item": f"{BASE}/us/"},
+            {"@type": "ListItem", "position": 1, "name": "HORIZON SHIELD US", "item": f"{BASE}/"},
             {"@type": "ListItem", "position": 2, "name": "Quote Teardowns", "item": url}]}]}
     out = head("Quote Teardowns: the one line to question on a contractor quote | HORIZON SHIELD US", desc, url,
                "Quote Teardowns", "One illustrative quote per issue, one line to question, public numbers with sources.",
@@ -678,7 +682,7 @@ def index_page():
 {cta_block()}
 <h2 id="how">How to read an issue</h2>
 <p>Every issue has the same parts: the quote, the one line to ask about, the arithmetic, what to ask, and what the arithmetic does not establish. Wages are what workers are paid, not what contractors bill. Only Texas has a published loading rule used here; elsewhere the wage is shown plain and excludes the contractor's insurance, taxes and markup.</p>
-<p>The Japanese edition of this series is <a href="/hacker/kaibou/" hreflang="ja">見積書の解剖</a>.</p>
+<p>The Japanese edition of this series, 見積書の解剖, runs on the Japanese site.</p>
 </div></div></main>
 {FOOTER}
 </body>
@@ -700,22 +704,22 @@ def write(path, text):
 
 
 def build(out, img_html=None, font_dir=None):
-    root = os.path.join(out, "us", "teardowns")
+    root = os.path.join(out, "teardowns")
     write(os.path.join(root, "index.html"), index_page())
     for i, c in enumerate(CASES):
         write(os.path.join(root, c["no"], "index.html"), case_page(c, i))
         if img_html:
             os.makedirs(img_html, exist_ok=True)
-            fd = font_dir or os.path.relpath(os.path.join(out, "assets", "us", "fonts"), img_html)
+            fd = font_dir or os.path.relpath(os.path.join(out, "assets", "fonts"), img_html)
             with open(os.path.join(img_html, f"{c['no']}.html"), "w", encoding="utf-8") as f:
                 f.write(card_html(c, fd))
-    return [f"{BASE}/us/teardowns/"] + [url_of(c) for c in CASES]
+    return [f"{BASE}/teardowns/"] + [url_of(c) for c in CASES]
 
 
 def render(out, img_html):
     """Render each card to us/teardowns/img/NN.png at 2160 x 2160 (1080 viewport, device scale 2)."""
     from playwright.sync_api import sync_playwright  # only needed here
-    dst = os.path.join(out, "us", "teardowns", "img")
+    dst = os.path.join(out, "teardowns", "img")
     os.makedirs(dst, exist_ok=True)
     exe = "/opt/pw-browsers/chromium" if os.path.isfile("/opt/pw-browsers/chromium") else None
     with sync_playwright() as p:
@@ -793,10 +797,13 @@ def check_numbers(c):
     assert not bad, f"{c['no']}: numbers without a source or formula: {sorted(set(bad))}"
 
 
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SITE = os.path.join(REPO, "workers", "hs-us-site", "public")  # served at https://horizonshield.dev/ by the hs-us-site worker
+
+
 def default_root():
-    r = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    site = all(os.path.isfile(os.path.join(r, *x)) for x in (("assets", "us", "us.css"), ("us", "index.html"), ("sitemap.xml",)))
-    return r if site else None
+    site = all(os.path.isfile(os.path.join(SITE, *x)) for x in (("assets", "us.css"), ("index.html",), ("sitemap.xml",)))
+    return SITE if site else None
 
 
 def selftest(root=None):
@@ -808,8 +815,8 @@ def selftest(root=None):
     urls = build(d, os.path.join(d, "_img"), font_dir="fonts")
     assert len(urls) == len(CASES) + 1 and len({c["no"] for c in CASES}) == len(CASES); ok += 1
 
-    pages = [os.path.join(d, "us", "teardowns", "index.html")] + [os.path.join(d, "us", "teardowns", c["no"], "index.html") for c in CASES]
-    planned = {"/us/teardowns/"} | {f"/us/teardowns/{c['no']}/" for c in CASES} | {f"/us/teardowns/img/{c['no']}.png" for c in CASES}
+    pages = [os.path.join(d, "teardowns", "index.html")] + [os.path.join(d, "teardowns", c["no"], "index.html") for c in CASES]
+    planned = {"/teardowns/"} | {f"/teardowns/{c['no']}/" for c in CASES} | {f"/teardowns/img/{c['no']}.png" for c in CASES}
 
     class L(HTMLParser):
         def __init__(s):
@@ -836,6 +843,12 @@ def selftest(root=None):
         t = open(p, encoding="utf-8").read()
         assert MARK in t and 'data-theme="light"' in t and 'hreflang="en-US"' in t
         assert not DASHES.search(t), f"dash in {p}"
+        # the U.S. and Japanese sites do not overlap: no old /us/ paths, no links into the Japanese site
+        # other than the footer's language link to its home page
+        assert not re.search(r'["\'(]/(?:us|assets/us|hacker)/', t), f"old or Japanese-site path in {p}"
+        jp = t.replace('<a href="https://shield.the-horizons-innovation.com/" lang="ja" hreflang="ja">', "")
+        assert "shield.the-horizons-innovation.com" not in jp, f"Japanese site referenced in {p}"
+        assert 'hreflang="ja"' not in jp, f"hreflang pairing with the Japanese site in {p}"
         lp = L(); lp.feed(t)
         assert len(lp.ld) == 1
         g = json.loads(lp.ld[0])
@@ -867,7 +880,7 @@ def selftest(root=None):
             assert os.path.isfile(os.path.join(root, photo_path(name, ph["jpg"], "jpg").lstrip("/"))), (name, "jpg")
     ok += 1
     for c in CASES:
-        t = open(os.path.join(d, "us", "teardowns", c["no"], "index.html"), encoding="utf-8").read()
+        t = open(os.path.join(d, "teardowns", c["no"], "index.html"), encoding="utf-8").read()
         assert CTA in t and CHECK in t and img_of(c) in t and "Illustrative quote" in t
         assert 2 <= len(c["faq"]) <= 3 and 3 <= len(c["card"]) <= 4 and sum(1 for r in c["card"] if r[4]) == 1
         assert sum(1 for r in c["quote"] if r[3]) == 1
@@ -878,7 +891,7 @@ def selftest(root=None):
         card = open(os.path.join(d, "_img", f"{c['no']}.html"), encoding="utf-8").read()
         assert not DASHES.search(card) and "Illustrative quote" in card
     ok += 1  # every number in every case has a source URL or a formula
-    p = os.path.join(d, "us", "teardowns", "index.html")
+    p = os.path.join(d, "teardowns", "index.html")
     open(p, "w").write("hand-written")
     try:
         build(d); raise AssertionError("overwrote a hand-written file")
@@ -889,14 +902,16 @@ def selftest(root=None):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=".")
+    ap.add_argument("--out", default=None, help="site root (default: workers/hs-us-site/public next to this script)")
     ap.add_argument("--img-html")
-    ap.add_argument("--font-dir", help="font folder as seen from the card HTML (default: OUT/assets/us/fonts)")
+    ap.add_argument("--font-dir", help="font folder as seen from the card HTML (default: OUT/assets/fonts)")
     ap.add_argument("--render", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--root", help="site root used by --selftest to resolve links")
     ap.add_argument("--posts", action="store_true", help="print the X post drafts")
     a = ap.parse_args()
+    if a.out is None:
+        a.out = SITE
     if a.selftest:
         selftest(a.root); sys.exit(0)
     if a.posts:

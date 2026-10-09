@@ -1,6 +1,6 @@
 // Free Quote Teardown and the public board (EHN for the United States), 2026-10-09.
 //
-// POST /teardown        multipart from /us/teardown/: one quote (up to 3 files, or pasted text), optional ZIP and trade.
+// POST /teardown        multipart from https://horizonshield.dev/teardown/: one quote (up to 3 files, or pasted text), optional ZIP and trade.
 //                       The AI only reads the lines (extract.js). Everything the homeowner sees is computed here from
 //                       those lines and, when a ZIP is given, from public wage data (refs.js). Nothing is stored except
 //                       an anonymous card (trade, state, total, line kinds and our own flags) for 24 hours, so the
@@ -317,7 +317,7 @@ export async function handleBoardReview(request, env, id, action) {
   await env.US_ORDERS.put(`board_pending:${id}`, JSON.stringify(rec), { expirationTtl: 7 * 86400 });
   boardCacheClear();
   await bump(env, "board_publish");
-  return html(`<p style="font:16px sans-serif;margin:24px">載せた: ${esc(id)} / <a href="${esc(env.SITE_URL)}/us/board/#${esc(id)}">掲示板</a></p>`);
+  return html(`<p style="font:16px sans-serif;margin:24px">載せた: ${esc(id)} / <a href="${esc(env.SITE_URL)}/board/#${esc(id)}">掲示板</a></p>`);
 }
 
 export async function handleEvent(request, env) {

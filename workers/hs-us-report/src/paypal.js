@@ -26,8 +26,8 @@ export function checkoutUrl(order, env) {
     charset: "utf-8",
     lc: "US",
     notify_url: `${env.PUBLIC_WORKER_URL}/webhook/paypal`,
-    return: `${env.SITE_URL}/us/thanks/?order=${encodeURIComponent(order.id)}`,
-    cancel_return: `${env.SITE_URL}/us/?cancelled=1`,
+    return: `${env.SITE_URL}/thanks/?order=${encodeURIComponent(order.id)}`,
+    cancel_return: `${env.SITE_URL}/?cancelled=1`,
   });
   return `https://www.paypal.com/cgi-bin/webscr?${p.toString()}`;
 }
