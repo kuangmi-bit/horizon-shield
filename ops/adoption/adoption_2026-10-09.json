@@ -1,10 +1,19 @@
 {
   "schema": "hs-adoption-count-v1",
-  "measured_at": "2026-10-09T12:43:12Z",
+  "measured_at": "2026-10-09T22:03:58Z",
   "metrics": {
     "independent_implementations": {
       "count": 14,
-      "distinct_authors": 8,
+      "distinct_authors": 7,
+      "authors": [
+        "a2aproject/a2a-python",
+        "aeoess",
+        "agenstry.com",
+        "astrogilda",
+        "babyblueviper1",
+        "kuangmi-bit",
+        "luiksksk"
+      ],
       "links_answering": 14,
       "by_subject": {
         "a2a-card-canonical-form": 1,
@@ -21,6 +30,7 @@
       "items": [
         {
           "who": "kuangmi-bit",
+          "author": "kuangmi-bit",
           "subject": "a2a-card-canonical-form",
           "evidence": "https://github.com/a2aproject/a2a-go/issues/445#issuecomment-5879965988",
           "date": "2026-09-28",
@@ -29,6 +39,7 @@
         },
         {
           "who": "kuangmi-bit",
+          "author": "kuangmi-bit",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5937659218",
           "date": "2026-10-01",
@@ -37,6 +48,7 @@
         },
         {
           "who": "Sankalp Gilda (astrogilda)",
+          "author": "astrogilda",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5936546281",
           "date": "2026-10-01",
@@ -45,6 +57,7 @@
         },
         {
           "who": "aeoess",
+          "author": "aeoess",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5940903881",
           "date": "2026-10-01",
@@ -53,6 +66,7 @@
         },
         {
           "who": "Agenstry",
+          "author": "agenstry.com",
           "subject": "agent-card-signature",
           "evidence": "https://agenstry.com/agents/gate.horizonshield.dev",
           "date": "2026-09-28",
@@ -61,6 +75,7 @@
         },
         {
           "who": "Sankalp Gilda (astrogilda), Probity AI",
+          "author": "astrogilda",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/probityai/agent-evidence-vectors/pull/34",
           "date": "2026-10-02",
@@ -69,6 +84,7 @@
         },
         {
           "who": "aeoess",
+          "author": "aeoess",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/a2aproject/A2A/issues/2122#issuecomment-5946262435",
           "date": "2026-10-02",
@@ -77,6 +93,7 @@
         },
         {
           "who": "Sankalp Gilda (astrogilda), Probity AI",
+          "author": "astrogilda",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/probityai/agent-evidence-vectors/pull/42",
           "date": "2026-10-02",
@@ -85,6 +102,7 @@
         },
         {
           "who": "kuangmi-bit",
+          "author": "kuangmi-bit",
           "subject": "nenrin-provenance",
           "evidence": "https://github.com/a2aproject/A2A/discussions/1631#discussioncomment-18738206",
           "date": "2026-10-04",
@@ -93,6 +111,7 @@
         },
         {
           "who": "kuangmi-bit",
+          "author": "kuangmi-bit",
           "subject": "nenrin-provenance",
           "evidence": "https://github.com/a2aproject/A2A/discussions/1631#discussioncomment-18739314",
           "date": "2026-10-04",
@@ -101,6 +120,7 @@
         },
         {
           "who": "babyblueviper1",
+          "author": "babyblueviper1",
           "subject": "musubi-approval-v2",
           "evidence": "https://github.com/ogasurfproject-jpg/horizon-shield/issues/29#issuecomment-5987427704",
           "date": "2026-10-05",
@@ -109,6 +129,7 @@
         },
         {
           "who": "a2aproject/a2a-python (reviewed and merged by Iwaniukooo11)",
+          "author": "a2aproject/a2a-python",
           "subject": "a2a-card-sign-v01",
           "evidence": "https://github.com/a2aproject/a2a-python/pull/1286",
           "date": "2026-10-07",
@@ -117,6 +138,7 @@
         },
         {
           "who": "luiksksk",
+          "author": "luiksksk",
           "subject": "trace-intake",
           "evidence": "https://github.com/ogasurfproject-jpg/horizon-shield/pull/38",
           "date": "2026-10-09",
@@ -125,6 +147,7 @@
         },
         {
           "who": "Sankalp Gilda (astrogilda), Probity AI",
+          "author": "astrogilda",
           "subject": "nenrin-witness-reader",
           "evidence": "https://github.com/probityai/agent-evidence-atlas/blob/2bff38d8c13f7038d8d773bc77e44ab4f160751a/examples/nenrin-witness-pair/README.md",
           "date": "2026-10-09",
@@ -174,7 +197,9 @@
         ],
         "file": "workers/hs-ledger/nenrin/recovery-v0/pool_report.json",
         "generated_at": "2026-09-23T03:47:38Z",
-        "quorum_of_independent_controls_needed": 2
+        "quorum_of_independent_controls_needed": 2,
+        "control_clusters": "1",
+        "diversity_file": "workers/hs-ledger/nenrin/recovery-v0/witness_diversity_report.json"
       }
     },
     "outside_trace_pins": {
@@ -226,7 +251,8 @@
           "settlement_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/settlement.json"
         }
       ],
-      "published_not_counted": []
+      "published_not_counted": [],
+      "repo_not_counted": []
     },
     "external_evidence_producers": {
       "count": 4,
