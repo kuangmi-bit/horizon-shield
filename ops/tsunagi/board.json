@@ -1,5 +1,5 @@
 {
-  "board_sha256": "214d50000d3dacf77fa32fc21911f2898d43872be939e25a67eab83d98a5b49e",
+  "board_sha256": "1a0c176a1ce2dad9385d406b2c715025c60045f32f69b41509ea5c427713d31e",
   "differential": {
     "agree": 40,
     "bundles": 40,
@@ -30,7 +30,7 @@
     "babyblueviper1-approval-v2": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "id": "babyblueviper1-approval-v2",
       "language": "Python",
       "license": "MIT",
@@ -40,7 +40,7 @@
     "babyblueviper1-nenrin-cleanroom": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "id": "babyblueviper1-nenrin-cleanroom",
       "language": "Python",
       "license": "MIT",
@@ -50,7 +50,7 @@
     "hs-ledger-trace-pin": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "id": "hs-ledger-trace-pin",
       "language": "JavaScript",
       "license": null,
@@ -60,7 +60,7 @@
     "hs-nenrin-go": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "id": "hs-nenrin-go",
       "language": "Go",
       "license": null,
@@ -70,7 +70,7 @@
     "hs-nenrin-pypi": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "id": "hs-nenrin-pypi",
       "language": "Python",
       "license": null,
@@ -80,7 +80,7 @@
     "hs-nenrin-reference": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "id": "hs-nenrin-reference",
       "language": "JavaScript",
       "license": null,
@@ -90,7 +90,7 @@
     "hs-settle-v1.10-approval": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "id": "hs-settle-v1.10-approval",
       "language": "Python",
       "license": null,
@@ -107,10 +107,20 @@
       "ours": false,
       "repo": "https://github.com/kuangmi-bit/nenrin-independent-verifiers.git"
     },
+    "luiksksk-nenrin-trace-intake-cleanroom": {
+      "author": "luiksksk",
+      "clone_error": null,
+      "commit": "0016e8e4bb226788e124c70f2a07796a9f503712",
+      "id": "luiksksk-nenrin-trace-intake-cleanroom",
+      "language": "JavaScript",
+      "license": "MIT",
+      "ours": false,
+      "repo": "https://github.com/luiksksk/nenrin-trace-intake-cleanroom.git"
+    },
     "probity-a2a-card-readers": {
       "author": "Sankalp Gilda (astrogilda), Probity AI",
       "clone_error": null,
-      "commit": "2cb6f45004f7cbaf0d354d026cfa4a64d43b3d1f",
+      "commit": "1f4fe3ea555a4224305c568cb8acf9a50d0bf774",
       "id": "probity-a2a-card-readers",
       "language": "Python",
       "license": "Apache-2.0",
@@ -118,7 +128,7 @@
       "repo": "https://github.com/probityai/agent-evidence-vectors.git"
     }
   },
-  "measured_at": "2026-10-09T04:19:21Z",
+  "measured_at": "2026-10-09T05:48:39Z",
   "pairs": [
     {
       "a": "babyblueviper1-approval-v2",
@@ -187,10 +197,10 @@
       "what": "the edge vectors, read in Go and in Python by different people, compared case by case"
     }
   ],
-  "repository_commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+  "repository_commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
   "runs": [
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -236,7 +246,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -330,7 +340,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -562,7 +572,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -746,7 +756,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-bind-v0",
       "exit": 0,
       "expected_total": 28,
@@ -930,7 +940,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-span-v0",
       "exit": 0,
       "expected_total": 16,
@@ -1038,11 +1048,11 @@
       },
       "reproduced": 16,
       "scored_by": "board",
-      "seconds": 0.1,
+      "seconds": 0.0,
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1088,7 +1098,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1182,7 +1192,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -1414,7 +1424,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -1598,7 +1608,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-bind-v0",
       "exit": 0,
       "expected_total": 28,
@@ -1782,7 +1792,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-span-v0",
       "exit": 0,
       "expected_total": 16,
@@ -1894,7 +1904,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1940,7 +1950,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -2034,7 +2044,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -2266,7 +2276,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -2446,11 +2456,11 @@
       },
       "reproduced": 28,
       "scored_by": "board",
-      "seconds": 0.1,
+      "seconds": 0.2,
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-bind-v0",
       "exit": 0,
       "expected_total": 28,
@@ -2634,7 +2644,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-span-v0",
       "exit": 0,
       "expected_total": 16,
@@ -2746,7 +2756,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -3350,7 +3360,7 @@
       "status": "ran"
     },
     {
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -3396,7 +3406,7 @@
       "status": "ran"
     },
     {
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -3490,7 +3500,7 @@
       "status": "ran"
     },
     {
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -3718,11 +3728,11 @@
       },
       "reproduced": 36,
       "scored_by": "board",
-      "seconds": 1.2,
+      "seconds": 1.1,
       "status": "ran"
     },
     {
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -3784,7 +3794,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
+      "commit": "8c1aea50a0902ca2cf6e2bab1b5e0f1c59de7719",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -3881,7 +3891,7 @@
       "status": "ran"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -3943,7 +3953,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "commit": "7fc4563873ce2e367b5dfbb14025f2d813d3d5f9",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -4040,7 +4050,7 @@
       "status": "ran"
     },
     {
-      "commit": "2cb6f45004f7cbaf0d354d026cfa4a64d43b3d1f",
+      "commit": "1f4fe3ea555a4224305c568cb8acf9a50d0bf774",
       "corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)",
       "exit": 0,
       "expected_total": 13,
@@ -4109,7 +4119,7 @@
       "stdout_sha256": "c20aeb271eb52ccd54b5bea5b1fe107db16d894eda4f50a22d1b332895c498e4"
     },
     {
-      "commit": "2cb6f45004f7cbaf0d354d026cfa4a64d43b3d1f",
+      "commit": "1f4fe3ea555a4224305c568cb8acf9a50d0bf774",
       "corpus": "a2a-card-sign-v01/s4-dual-name",
       "exit": 0,
       "expected_total": 5,
@@ -4157,9 +4167,193 @@
       "per_vector": null,
       "reproduced": 10,
       "scored_by": "implementation",
-      "seconds": 2.6,
+      "seconds": 1.9,
       "status": "ran",
       "stdout_sha256": "e173149ae4a7d07bf2a0a59558af27878c827af0bd7e82bda6c485ccd7a63e9f"
+    },
+    {
+      "commit": "0016e8e4bb226788e124c70f2a07796a9f503712",
+      "corpus": "nenrin-trace-intake-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "luiksksk-nenrin-trace-intake-cleanroom",
+      "of": 28,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "canonicalization__01-non-ascii-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__02-non-bmp-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__03-utf16-key-order": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__04-utf16-key-order-nested": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "invalid_canonical_integer_out_of_range": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_canonical_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [lone_surrogate] []",
+          "want": "refused [lone_surrogate] []"
+        },
+        "invalid_canonical_non_finite_float": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [non_finite_number] []",
+          "want": "refused [non_finite_number] []"
+        },
+        "invalid_canonical_plain_trace": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_missing_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [missing_required] []",
+          "want": "refused [missing_required] []"
+        },
+        "invalid_wrong_profile": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsupported_profile] []",
+          "want": "refused [unsupported_profile] []"
+        },
+        "policy-resolution__01-no-policy-uri": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__02-resolved-and-matches": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__03-digest-mismatch-minimal-mutation": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__04-digest-mismatch-different-object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__05-referent-unreachable-no-route": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__06-resolved-and-matches-sha384": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__07-digest-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__08-policy-uri-is-a-relative-reference": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__09-sha384-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__10-policy-uri-carries-a-space": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__11-referent-unreachable-route-fails": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "signed_delegated_hop": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "signed_root": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "valid_appraisal_full": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_cmcp_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [enveloped_form] []",
+          "want": "refused [enveloped_form] []"
+        },
+        "valid_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_level0_with_transcript": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_openshell_import": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.0,
+      "status": "ran"
     }
   ],
   "schema": "hs-tsunagi-board-v1",
@@ -4169,11 +4363,12 @@
       "Sankalp Gilda (astrogilda), Probity AI",
       "a2aproject (the official A2A Python SDK)",
       "babyblueviper1",
-      "kuangmi-bit"
+      "kuangmi-bit",
+      "luiksksk"
     ],
-    "outside_passed": 14,
-    "passed": 35,
-    "refereed_passed": 27,
-    "runs": 35
+    "outside_passed": 15,
+    "passed": 36,
+    "refereed_passed": 28,
+    "runs": 36
   }
 }
