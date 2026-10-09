@@ -18,7 +18,7 @@ No server needed: put [`github-action/nenrin-mirror.yml`](github-action/nenrin-m
 
 ## If your organisation will not run fetched code
 
-`github-action/nenrin-mirror-vendored.yml` does the same job with no code fetched at run time. You read `mirror.py` once ([REVIEW.md](REVIEW.md) lists its five GET requests and its only write location), commit it into your own repository at `tools/nenrin-mirror/mirror.py`, and the workflow refuses to run unless the file's sha256 matches the pin written in it. Put it in a repository created only for the mirror, so its token can write to that repository and nothing else. Nothing changes what runs until you commit a new copy and a new pin yourself.
+`github-action/nenrin-mirror-vendored.yml` does the same job with no code fetched at run time. You read `mirror.py` once ([REVIEW.md](REVIEW.md) lists its six kinds of GET request and its only write location), commit it into your own repository at `tools/nenrin-mirror/mirror.py`, and the workflow refuses to run unless the file's sha256 matches the pin written in it. Put it in a repository created only for the mirror, so its token can write to that repository and nothing else. Nothing changes what runs until you commit a new copy and a new pin yourself.
 
 ## What lands on your disk
 
@@ -29,6 +29,10 @@ No server needed: put [`github-action/nenrin-mirror.yml`](github-action/nenrin-m
                        bytes for agreements and executions; for a contract, contract_sha256 (sha256 over "a2a-contract-v0" plus a
                        newline plus the canonical record without its signatures, the digest both parties sign), the same address
                        whether one or both signatures are present. verify applies each rule and says which one matched.
+                       Batches that name records by digest with no bytes_url (witness walks, TRACE pins, agreements) are
+                       fetched from the ledger's own address for that record and kept the same way, with the signature
+                       served beside them in objects/<sha256>.sig.json; a record the ledger no longer serves is listed in
+                       the manifest's named_record_problems, and verify prints how many named records this copy holds.
     manifest.json      what was fetched, what verified, what did not, with the manifest sha256 (this copy) and content_sha256 (the evidence) printed at the end
 
 Every file is named by what it is, so two mirrors made by two strangers can be compared by name and digest with `diff`, and neither needs the other to be honest.
@@ -47,7 +51,7 @@ If you hold a mirror and want it counted, say so in an issue with the `content_s
 
 ## Self test
 
-    python3 mirror_test.py      # a synthetic ledger on 127.0.0.1: honest pull, resume, tampered copy, lying server, diff, unreachable entry, CLI, contract address rule
+    python3 mirror_test.py      # a synthetic ledger on 127.0.0.1: honest pull, resume, tampered copy, lying server, diff, unreachable entry, CLI, contract address rule, records named without bytes_url
 
 ## First real run (2026-09-26)
 

@@ -45,6 +45,17 @@ const DASH = new RegExp("[" + String.fromCharCode(0x2012, 0x2013, 0x2014, 0x2015
   const o = await get("/precedence/" + hPath);
   chk("64hex citation でも同じ established", o.body.precedence && o.body.precedence.established === true && o.body.resolved_entry === 5);
 }
+// 3b. red team 2026-10-09 R4-F2: a claimed time only seconds after the block time is not proven (minute cut, miner clock)
+{
+  const t20 = new Date(Date.parse(BT.replace(" UTC", ":00Z").replace(" ", "T")) + 20000).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const o = await get("/precedence/5?before=" + t20);
+  const c = o.body.precedence && o.body.precedence.compared_to;
+  chk("before 20 s after the block time: within_block_time_tolerance, not provable", c && c.result === "within_block_time_tolerance" && c.provable === false, JSON.stringify(c));
+  const t3h = new Date(Date.parse(BT.replace(" UTC", ":00Z").replace(" ", "T")) + 3 * 3600000).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const o2 = await get("/precedence/5?before=" + t3h);
+  const c2 = o2.body.precedence && o2.body.precedence.compared_to;
+  chk("before 3 h after the block time: precedes, provable", c2 && c2.result === "precedes" && c2.provable === true, JSON.stringify(c2));
+}
 // 3. ?before 後の時刻 -> precedes
 {
   const o = await get("/precedence/5?before=2026-10-01T00:00:00Z");

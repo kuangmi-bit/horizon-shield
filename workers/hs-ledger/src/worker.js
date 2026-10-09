@@ -7,6 +7,7 @@
 // --- NENRIN Resume v1 (2026-09-13). Read-only assembly of anchored witness-walk records for one endpoint.
 // The core is shared with python (workers/hs-ledger/nenrin/resume-v1, byte-match 21/21); the worker only
 // injects its own Web Crypto hasher. No node imports in the core, so this bundles as is.
+import { ed25519PointOk } from "./ed25519_point.mjs";
 import { walkChain, exportRow, boundHeadRecord, markerSha, CHAIN_SCHEMA, CHAIN_ROOT, CHAIN_FIELDS, CHAIN_RECIPE, HEAD_FIELDS, HEAD_RECIPE } from "./chain_v1.mjs";
 import { assembleResume as assembleResumeV1, Reject as ResumeReject, checkMeasurement as resumeCheckMeasurement } from "../nenrin/resume-v1/resume_v1.mjs";
 import { resumeToTrustSignal, toA2ATrustSignal } from "../nenrin/trust-signal-v1/trust_signal_v1.mjs";
@@ -305,11 +306,10 @@ function witnessValidate(recordCanonical) {
 }
 
 // v1.1: the key a signed record presents must also be served from the witness's own domain. That domain,
-// not the string in witness.name, is the witness's identity. Cached 24 hours per key_url.
+// not the string in witness.name, is the witness's identity. Fetched fresh on every submission (2026-10-09, red team
+// R1-1): a 24-hour cache kept accepting a stolen key and refusing the owner's new one for a day after a rotation.
+// Submissions are capped per day, so one fetch each is cheap; a fetch that fails is never answered from an old key.
 async function witnessFetchDomainKey(env, keyUrl) {
-  const ck = `wit:key:${(await sha256hex(keyUrl)).slice(0, 32)}`;
-  const cached = await env.LEDGER.get(ck);
-  if (cached) return { ok: true, key: cached, cached: true };
   try {
     const host = (() => { try { return new URL(keyUrl).hostname.toLowerCase(); } catch (_e) { return ""; } })();
     const opts = { headers: { accept: "application/json" }, redirect: "manual" };
@@ -326,7 +326,6 @@ async function witnessFetchDomainKey(env, keyUrl) {
     const j = await res.json().catch(() => null);
     const k = j && typeof j.public_key_ed25519_b64 === "string" ? j.public_key_ed25519_b64 : null;
     if (!k) return { ok: false, why: "key_url did not serve {public_key_ed25519_b64}" };
-    await env.LEDGER.put(ck, k, { expirationTtl: 86400 });
     return { ok: true, key: k, cached: false };
   } catch (e) {
     return { ok: false, why: "key_url unreachable: " + String(e && e.message || e) };
@@ -373,7 +372,11 @@ function responseDeps(env) {
 
 async function witnessVerifySig(recordCanonical, sigB64, pubB64) {
   try {
-    const key = await crypto.subtle.importKey("raw", b64ToBytes(pubB64), { name: "Ed25519" }, false, ["verify"]);
+    // 2026-10-09 (red team R1-7): WebCrypto verifies against a small-order point, under which R = identity, S = 0 is a
+    // valid signature on every message. Only a canonical prime-order key can make a record "signed".
+    const raw = b64ToBytes(pubB64);
+    if (!ed25519PointOk(raw)) return false;
+    const key = await crypto.subtle.importKey("raw", raw, { name: "Ed25519" }, false, ["verify"]);
     return await crypto.subtle.verify({ name: "Ed25519" }, key, b64ToBytes(sigB64), enc.encode(recordCanonical));
   } catch (_e) { return false; }
 }
@@ -1114,6 +1117,10 @@ function precedenceEpoch(t) {
   const ms = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
 }
+// 2026-10-09 (red team R4-F2): "provable" needs a margin. The stored block_time is cut to the minute, and a Bitcoin
+// header time is the miner's: consensus accepts it up to two hours ahead of the network's clock, and blocks are not
+// in time order. Two hours and one minute is the slack a claim must clear before this receipt calls it proven.
+const PRECEDENCE_SLACK_SECONDS = 7260;
 function precedenceView(card, beforeRaw) {
   const bt = card && card.bitcoin && card.bitcoin.block_time;
   const confirmed = !!(card && card.bitcoin && card.bitcoin.status === "confirmed" && card.bitcoin.block && bt);
@@ -1154,10 +1161,16 @@ function precedenceView(card, beforeRaw) {
     if (tb == null || tx == null) {
       cmp.result = "unparseable_time";
       cmp.note = "give the time as ISO 8601 UTC, e.g. 2026-09-01T00:00:00Z";
-    } else if (tb < tx) {
+    } else if (tb + PRECEDENCE_SLACK_SECONDS < tx) {
       cmp.result = "precedes"; cmp.provable = true; cmp.margin_seconds = tx - tb;
+      cmp.slack_seconds = PRECEDENCE_SLACK_SECONDS;
       cmp.note = "this record provably predates the claimed time: its existence is bounded at or before " +
-        bt + ", which is earlier than " + cmp.claimed_time + ".";
+        bt + ", and the claimed time " + cmp.claimed_time + " is later than that by more than the slack a Bitcoin block time allows (" + PRECEDENCE_SLACK_SECONDS + " s).";
+    } else if (tb < tx) {
+      cmp.result = "within_block_time_tolerance"; cmp.provable = false; cmp.margin_seconds = tx - tb;
+      cmp.slack_seconds = PRECEDENCE_SLACK_SECONDS;
+      cmp.note = "the anchored time " + bt + " is earlier than " + cmp.claimed_time + ", but by less than " + PRECEDENCE_SLACK_SECONDS +
+        " s. A Bitcoin header time is set by the miner (consensus lets it run up to two hours ahead, and a later block can carry an earlier time) and the stored time is cut to the minute, so precedence this close is not proven.";
     } else {
       cmp.result = "not_provably_before"; cmp.provable = false;
       cmp.note = "cannot conclude precedence: the anchored time " + bt + " is not earlier than " +
@@ -1623,9 +1636,9 @@ async function handle(request, env) {
     }
 
     if (p === "/witness/pending" && request.method === "GET") {
-      const listed = await env.LEDGER.list({ prefix: "wit:pending:" });
+      const listedKeys = await listAllKeys(env, "wit:pending:");
       const out = [];
-      for (const k of listed.keys) {
+      for (const k of listedKeys) {
         const raw = await env.LEDGER.get(k.name);
         if (!raw) continue;
         const s = JSON.parse(raw);
@@ -2170,11 +2183,23 @@ async function handle(request, env) {
 // 「daily batches」と公言しながら、束ねる口は運営者の手動 POST だけで、cron が無かった。
 // 同じ処理を scheduled からも呼ぶ。台帳への追記は Worker 自身が KV に書くので鍵は要らん。
 // Bitcoin への stamp は Mac の stamping run が pending を拾う(そこは今まで通り)。
+// Every key under a prefix, following the KV cursor (a single list stops at 1000).
+async function listAllKeys(env, prefix, max = 20000) {
+  const out = []; let cursor;
+  do {
+    const r = await env.LEDGER.list({ prefix, cursor, limit: 1000 });
+    out.push(...r.keys);
+    cursor = r.list_complete ? undefined : r.cursor;
+  } while (cursor && out.length < max);
+  return out;
+}
+
 async function anchorWitnessPool(env, origin, trigger) {
-  const listed = await env.LEDGER.list({ prefix: "wit:pending:" });
-  const keys = listed.keys.slice(0, WITNESS_BATCH_MAX);
+  // 2026-10-09 (red team R3-2): the batch takes the oldest submissions first, from the whole pool. It used to take the
+  // first 200 keys in sha order, so a record with a high sha could be pushed back day after day by others' records.
+  const keys = await listAllKeys(env, "wit:pending:");
   if (!keys.length) return { status: 200, body: { ok: true, anchored: 0, note: "pool is empty" } };
-  const items = [];
+  const pool = [];
   let healed = 0;
   for (const k of keys) {
     const raw = await env.LEDGER.get(k.name);
@@ -2182,9 +2207,12 @@ async function anchorWitnessPool(env, origin, trigger) {
     const s = JSON.parse(raw);
     // 2026-09-30. A record already anchored is never batched twice; its leftover pending key is removed.
     if (await env.LEDGER.get(`wit:anchored:${s.sha}`)) { await env.LEDGER.delete(k.name); healed++; continue; }
-    items.push(s);
+    pool.push(s);
   }
-  if (!items.length) return { status: 200, body: { ok: true, anchored: 0, healed, note: "pool held only records already anchored; their pending keys were removed" } };
+  if (!pool.length) return { status: 200, body: { ok: true, anchored: 0, healed, note: "pool held only records already anchored; their pending keys were removed" } };
+  pool.sort((a, b2) => (String(a.submitted_at || "") < String(b2.submitted_at || "") ? -1 : String(a.submitted_at || "") > String(b2.submitted_at || "") ? 1 : (a.sha < b2.sha ? -1 : 1)));
+  const items = pool.slice(0, WITNESS_BATCH_MAX);
+  const remaining = pool.length - items.length;
   items.sort((a, b2) => (a.sha < b2.sha ? -1 : 1));
   // jidec-chain-v1 (2026-09-28): the batch carries the ledger head as it stands before the batch is appended,
   // so the head is inside bytes that get stamped to Bitcoin. A broken chain is written as such, not hidden.
@@ -2219,7 +2247,7 @@ async function anchorWitnessPool(env, origin, trigger) {
     await env.LEDGER.put(`wit:anchored:${s.sha}`, JSON.stringify({ n, stored: s }));
     await env.LEDGER.delete(`wit:pending:${s.sha}`);
   }
-  return { status: 201, body: { n, url: `${origin}/ledger/${n}`, anchored: items.length, trigger, note: "the batch anchor covers every record listed in it; the Bitcoin stamp follows on the operator's stamping run" } };
+  return { status: 201, body: { n, url: `${origin}/ledger/${n}`, anchored: items.length, remaining, trigger, note: "the batch anchor covers every record listed in it; the Bitcoin stamp follows on the operator's stamping run" } };
 }
 
 // 2026-09-30. Head checkpoint. The witness batch carries ledger_head, but it is written only when a witness
@@ -2300,8 +2328,12 @@ export default {
   async scheduled(_event, env, _ctx) {
     try { await netFreeze(env, netDay(Date.now() - 86400000)); } catch (e) { console.log("network freeze failed:", String(e && e.message || e)); }
     try {
-      const r = await anchorWitnessPool(env, "https://ledger.horizonshield.dev", "schedule");
-      console.log("witness batch:", JSON.stringify(r.body));
+      // Batches follow one another until the pool is empty (at most 5 a night, 1000 records), oldest first.
+      for (let i = 0; i < 5; i++) {
+        const r = await anchorWitnessPool(env, "https://ledger.horizonshield.dev", "schedule");
+        console.log("witness batch:", JSON.stringify(r.body));
+        if (r.status !== 201 || !(r.body && r.body.remaining > 0)) break;
+      }
     } catch (e) {
       console.log("witness batch failed:", String(e && e.message || e));
     }

@@ -116,6 +116,53 @@ def object_ok(kind, sha, b):
     return False, None
 
 
+# Batches whose records carry no bytes_url still name each record by its digest, and the ledger serves the record
+# under that digest. 2026-10-09 (red team R3-1): these were not copied, so 27 witness walks named by anchored batches
+# would have been lost with the ledger. Each kind says where the ledger serves the record and where its bytes are.
+NAMED_KINDS = {
+    "nenrin-witness-batch-v1": ("sha", "witness_record", "/witness/%s"),
+    "nenrin-trace-pin-batch-v0": ("sha", "trace_record", "/evidence/trace/%s?format=raw"),
+    "nenrin-agreement-batch-v1": ("canonical_sha256", "agreement_record", "/agreement/%s"),
+}
+
+
+def named_records(entry):
+    """(sha, kind, path) for every record a known batch names by digest without a bytes_url."""
+    out = []
+    rc = entry.get("record_canonical")
+    if not isinstance(rc, str):
+        return out
+    try:
+        rec = json.loads(rc)
+    except Exception:  # noqa: BLE001
+        return out
+    if not isinstance(rec, dict) or rec.get("schema") not in NAMED_KINDS:
+        return out
+    field, kind, path = NAMED_KINDS[rec["schema"]]
+    for item in rec.get("records") or []:
+        if isinstance(item, dict) and _is_hex64(item.get(field)) and not item.get("bytes_url"):
+            out.append((item[field], kind, path % item[field]))
+    return out
+
+
+def record_bytes(kind, body):
+    """The record's own bytes from what the ledger serves: raw for a TRACE record, the record_canonical string of the
+    JSON envelope for a witness walk or an agreement. Returns (bytes or None, envelope dict or None)."""
+    if kind == "trace_record":
+        return body, None
+    try:
+        env = json.loads(body.decode("utf-8"))
+    except Exception:  # noqa: BLE001
+        return None, None
+    rc = None
+    if isinstance(env, dict):
+        if isinstance(env.get("record"), dict) and isinstance(env["record"].get("record_canonical"), str):
+            rc = env["record"]["record_canonical"]
+        elif isinstance(env.get("record_canonical"), str):
+            rc = env["record_canonical"]
+    return (rc.encode("utf-8") if rc is not None else None), env
+
+
 def objects_of(entry):
     """(sha, bytes_url, kind) triples a ledger entry points to: any records[] item with a 64 hex sha and an https bytes_url."""
     out = []
@@ -137,7 +184,7 @@ def pull(base, d, n_from=None, n_to=None, quiet=False):
     global ALLOW_HTTP
     base = base.rstrip("/")
     ALLOW_HTTP = base.startswith("http://127.0.0.1") or base.startswith("http://localhost")
-    problems, entries, objects = [], [], {}
+    problems, entries, objects, named_problems = [], [], {}, []
     st, body = fetch(base + "/ledger?format=json")
     if st != 200:
         print("cannot read %s/ledger?format=json (status %s)" % (base, st)); return 2
@@ -212,12 +259,39 @@ def pull(base, d, n_from=None, n_to=None, quiet=False):
             objects[sha] = {"url": url, "kind": kind, "ok": ok, "addressed_by": rule, "bytes": len(b)}
             if not ok:
                 problems.append({"n": n, "what": "object_on_disk_mismatch", "sha": sha, "kind": kind})
+        for sha, kind, rpath in named_records(entry):
+            path = os.path.join(d, "objects", sha)
+            if sha in objects:
+                e["objects"].append(sha); continue
+            if not os.path.exists(path):
+                st, body = fetch(base + rpath); time.sleep(PAUSE)
+                b, env = record_bytes(kind, body) if st == 200 and body else (None, None)
+                # a record the ledger did not serve, or served wrong, is listed in named_record_problems only: the
+                # objects map and the content digest describe what this copy holds, not what one fetch failed to get
+                if b is None:
+                    named_problems.append({"n": n, "what": "named_record_unreachable", "sha": sha, "kind": kind, "status": st}); continue
+                if sha256_hex(b) != sha:
+                    named_problems.append({"n": n, "what": "named_record_sha_mismatch", "sha": sha, "kind": kind, "got_sha256": sha256_hex(b)}); continue
+                _write(path, b)
+                if env is not None:   # the signature and the key travel beside the bytes, so a reader can verify without the ledger
+                    keep = {k: env[k] for k in ("public_key_ed25519_b64", "signature_ed25519_b64", "signed_domain", "key_url") if k in env}
+                    if isinstance(env.get("record"), dict):
+                        keep.update({k: env["record"][k] for k in ("public_key_ed25519_b64", "signature_ed25519_b64", "signed_domain", "key_url") if k in env["record"]})
+                    if keep:
+                        _write(path + ".sig.json", json.dumps(keep, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+            b = _read(path)
+            e["objects"].append(sha)
+            objects[sha] = {"kind": kind, "ok": sha256_hex(b) == sha, "addressed_by": "sha256", "bytes": len(b)}
+            if not objects[sha]["ok"]:
+                problems.append({"n": n, "what": "object_on_disk_mismatch", "sha": sha, "kind": kind})
         entries.append(e)
         say("  %3d  claim %s  raw %s  ots %s  objects %d%s" % (n, (claim or "")[:12], "ok" if e["raw_ok"] else "NO", "ok" if e["ots"] else "NO",
                                                           len(e["objects"]), "  block %s" % e.get("bitcoin_block") if e.get("bitcoin_block") else ""))
     man = {"schema": SCHEMA, "base": base, "mirrored_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "ledger_count_reported": count, "range": [lo, hi], "entries": entries,
            "objects": {k: objects[k] for k in sorted(objects)}, "problems": problems,
+           # named records the ledger did not serve are listed, not failed: the copy is still honest about what it holds
+           "named_record_problems": named_problems,
            "establishes": ["that the bytes listed here, with these digests, were obtainable from base at mirrored_at",
                            "that every digest here recomputes offline from the files in this directory (run verify)",
                            "that another mirror with the same content_sha256 holds byte-identical evidence for the same range"],
@@ -226,7 +300,7 @@ def pull(base, d, n_from=None, n_to=None, quiet=False):
     man["content_sha256"], man["entries_sha256"] = content_digests(man)
     mb = json.dumps(man, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     _write(os.path.join(d, "manifest.json"), mb)
-    say("manifest.json sha256 %s; %d entries, %d objects, %d problem(s)" % (sha256_hex(mb), len(entries), len(objects), len(problems)))
+    say("manifest.json sha256 %s; %d entries, %d objects, %d problem(s), %d named record(s) not obtained" % (sha256_hex(mb), len(entries), len(objects), len(problems), len(named_problems)))
     say("content_sha256 %s  entries_sha256 %s  (compare these with another mirror; the manifest sha never matches by design)" % (man["content_sha256"], man["entries_sha256"]))
     return 0 if not problems else 1
 
@@ -246,6 +320,7 @@ def content_digests(man):
 def verify(d, quiet=False):
     say = (lambda *a: None) if quiet else print
     problems, n_raw, n_obj, kinds = [], 0, 0, {}
+    named_total, named_held, named_missing = 0, 0, []
     ld = os.path.join(d, "ledger")
     for name in sorted(os.listdir(ld) if os.path.isdir(ld) else []):
         if not name.endswith(".json"):
@@ -271,6 +346,12 @@ def verify(d, quiet=False):
             if not os.path.exists(path):
                 problems.append({"n": n, "what": "object_missing", "sha": sha, "kind": kind}); continue
             kinds[sha] = kind
+        for sha, kind, _p in named_records(entry):
+            named_total += 1
+            if os.path.exists(os.path.join(d, "objects", sha)):
+                kinds[sha] = kind; named_held += 1
+            else:
+                named_missing.append({"n": n, "sha": sha, "kind": kind})
     od = os.path.join(d, "objects")
     for name in sorted(os.listdir(od) if os.path.isdir(od) else []):
         if not _is_hex64(name):
@@ -293,6 +374,7 @@ def verify(d, quiet=False):
         except Exception:  # noqa: BLE001
             problems.append({"what": "manifest_json_unparseable"})
     say("verify %s: %d raw claims, %d objects, manifest %s, %d problem(s)" % (d, n_raw, n_obj, (msha or "absent")[:16], len(problems)))
+    say("records named by batches without bytes_url: %d held of %d%s" % (named_held, named_total, "" if not named_missing else " (not held: %s)" % ", ".join(m["sha"][:12] for m in named_missing[:20])))
     if csha:
         say("content_sha256 %s  entries_sha256 %s" % (csha, esha))
     for p in problems:

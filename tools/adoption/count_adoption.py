@@ -40,6 +40,7 @@ OUT_DIR = os.path.join(ROOT, "ops", "adoption")
 README = os.path.join(ROOT, "README.md")
 LEDGER = os.environ.get("HS_LEDGER", "https://ledger.horizonshield.dev")
 POOL = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "recovery-v0", "pool_report.json")
+DIVERSITY = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "recovery-v0", "witness_diversity_report.json")
 MUSUBI = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "musubi-v0")
 AGREEMENT = os.path.join(ROOT, "workers", "hs-ledger", "nenrin", "agreement-v0")
 TEMPLATE = "ogasurfproject-jpg/conduct-witness-template"
@@ -96,7 +97,10 @@ def implementations(reg):
     by_subject = {}
     for r in items:
         by_subject[r["subject"]] = by_subject.get(r["subject"], 0) + 1
-    return {"count": len(items), "distinct_authors": len({r["who"] for r in items}), "links_answering": alive,
+    # Authors are counted by a stable id (a GitHub account, or a domain for an author with no account), never by the
+    # free-text "who": the same person written two ways was counted twice until 2026-10-09 (8 reported, 7 real).
+    authors = {str(r.get("author") or r["who"]).strip().lower() for r in items}
+    return {"count": len(items), "distinct_authors": len(authors), "authors": sorted(authors), "links_answering": alive,
             "by_subject": dict(sorted(by_subject.items())), "open_calls": reg.get("open_calls", {}), "items": items}
 
 
@@ -200,7 +204,7 @@ def published_contracts(reg, our):
 
 
 def contracts(our, published=(), published_problems=()):
-    out = []
+    out, repo_refused = [], []
     for p in tracked(MUSUBI, True):
         try:
             d = json.load(io.open(p, encoding="utf-8"))
@@ -211,6 +215,18 @@ def contracts(our, published=(), published_problems=()):
         sigs = d.get("signatures") if isinstance(d.get("signatures"), (list, dict)) else None
         if not sigs or len(sigs) < 2:
             continue   # only contracts both sides signed
+        # Two signature fields are not two signatures: every contract in the repository goes through the same
+        # verify_contract as the ones the parties publish (red team 2026-10-09: a file with two forged fields counted).
+        try:
+            sys.path.insert(0, MUSUBI)
+            import contract_v0 as _v0
+            if _v0.verify_contract(d).get("verdict") != "accepted":
+                repo_refused.append({"file": os.path.relpath(p, ROOT), "why": "verify_contract did not accept it"})
+                continue
+        except SystemExit as e:
+            repo_refused.append({"file": os.path.relpath(p, ROOT), "why": "signatures not checked here: %s" % e}); continue
+        except Exception as e:
+            repo_refused.append({"file": os.path.relpath(p, ROOT), "why": "contract_v0 not importable: %s" % e}); continue
         domains = [str(x.get("domain") or "").lower() for x in d["parties"] if isinstance(x, dict)]
         cid = d["contract_id"]
         if any(o["contract_id"] == cid for o in out):
@@ -223,7 +239,7 @@ def contracts(our, published=(), published_problems=()):
     with_outside = [c for c in out if c["outside_parties"]]
     without_us = [c for c in out if c["parties"] and not any(ours(x, our) for x in c["parties"])]
     return {"signed_by_both": len(out), "with_an_outside_party": len(with_outside), "with_no_party_from_us": len(without_us),
-            "items": out, "published_not_counted": list(published_problems)}
+            "items": out, "published_not_counted": list(published_problems), "repo_not_counted": repo_refused}
 
 
 def agreements(our):
@@ -278,11 +294,13 @@ def measure():
         w = None
         not_measured.append({"metric": "independent_witnesses", "reason": "ledger not readable: %s" % e})
     pool = json.load(io.open(POOL, encoding="utf-8")) if os.path.exists(POOL) else {}
+    diversity = json.load(io.open(DIVERSITY, encoding="utf-8")) if os.path.exists(DIVERSITY) else {}
     m["independent_witnesses"] = {
         "count": None if w is None else len(w["signed_domains"]),
         "ledger": w,
         "reverification_pool": {"admitted": pool.get("admitted", []), "file": os.path.relpath(POOL, ROOT),
-                                "generated_at": pool.get("generated_at"), "quorum_of_independent_controls_needed": 2},
+                                "generated_at": pool.get("generated_at"), "quorum_of_independent_controls_needed": 2,
+                                "control_clusters": diversity.get("control_clusters"), "diversity_file": os.path.relpath(DIVERSITY, ROOT)},
     }
 
     try:
@@ -351,7 +369,9 @@ def readme_block(d):
         % (imp["count"], imp["distinct_authors"], ", ".join("%s %d" % kv for kv in imp["by_subject"].items())),
         "| Outside domains that signed a walk and filed it to the ledger | %s | every `nenrin-witness-batch-v1` entry on the ledger |"
         % (fmt(wit["count"]) if wit["count"] is None else "%d (%s)" % (wit["count"], doms)),
-        "| Re-verification pool | %d control cluster(s), %d needed for a quorum | `%s` |" % (len(pool["admitted"]), pool["quorum_of_independent_controls_needed"], pool["file"]),
+        ("| Re-verification pool | %d member(s) in %s control cluster(s), %d clusters needed for a quorum | `%s`, clusters from `%s` |" % (len(pool["admitted"]), pool["control_clusters"], pool["quorum_of_independent_controls_needed"], pool["file"], pool.get("diversity_file", ""))
+         if pool.get("control_clusters") is not None else
+         "| Re-verification pool | %d member(s), %d independent control clusters needed for a quorum | `%s` |" % (len(pool["admitted"]), pool["quorum_of_independent_controls_needed"], pool["file"])),
         "| MUSUBI contracts signed with an outside party | %d (with no party from this project: %d) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |" % (con["with_an_outside_party"], con["with_no_party_from_us"]),
         "| Outside identities that signed evidence (walk, contract or agreement) | %s | the three rows above and the agreement records |" % fmt(pro["count"]),
         "| Outside TRACE signing keys whose records were pinned with trace-pin-v0 | %s | every `nenrin-trace-pin-batch-v0` entry on the ledger and the pending pool |" % fmt((m.get("outside_trace_pins") or {}).get("count")),

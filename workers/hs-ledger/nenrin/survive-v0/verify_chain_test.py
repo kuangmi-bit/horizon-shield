@@ -259,11 +259,27 @@ def main():
                      ("live ledger one entry ahead of the copy", t_live_ahead),
                      ("stamped checkpoint head that disagrees with the copy", t_stamped_head_wrong),
                      ("live head reporting a broken chain", t_head_error),
+                     ("head held from an earlier day: honest matches, forged and longer are caught", t_held_head),
                      ("export built by the ledger's own chain_v1.mjs", t_js_export)]:
         case(name, fn)
     print("%d passed, %d failed" % (len(PASS), len(FAIL)))
     return 1 if FAIL else 0
 
+
+
+def t_held_head(root):
+    # red team 2026-10-09 R3-4: a head held from an earlier day is checked against the copy at its own n
+    entries, lines, d, ex, hd = setup(root, count=6)
+    def held(path, n, head):
+        with open(path, "w") as f:
+            json.dump({"n": n, "head": head, "entry_sha256": V.marker_sha(n, head)}, f)
+        return path
+    honest = held(os.path.join(root, "held_honest.json"), 4, lines[3]["entry_sha256"])
+    forged = held(os.path.join(root, "held_forged.json"), 4, "ab" * 32)
+    ahead = held(os.path.join(root, "held_ahead.json"), 9, "cd" * 32)
+    assert whats(V.run(d, held=[honest])) == [], whats(V.run(d, held=[honest]))
+    assert whats(V.run(d, held=[forged])) == ["held_head_differs_from_copy"], whats(V.run(d, held=[forged]))
+    assert whats(V.run(d, held=[ahead])) == ["copy_shorter_than_held_head"], whats(V.run(d, held=[ahead]))
 
 if __name__ == "__main__":
     sys.exit(main())

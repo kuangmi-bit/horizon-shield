@@ -119,10 +119,11 @@ def main():
     try:
         imp = C.implementations({"implementations": [
             {"who": "A", "subject": "s1", "what": "free text naming CASE-001", "evidence": "https://example.com/1", "date": "2026-10-02"},
-            {"who": "B", "subject": "s1", "what": "more free text", "evidence": "https://example.com/2", "date": "2026-10-03"}]})
+            {"who": "B", "subject": "s1", "what": "more free text", "evidence": "https://example.com/2", "date": "2026-10-03"},
+            {"who": "A, written another way", "author": "a", "subject": "s1", "what": "x", "evidence": "https://example.com/3", "date": "2026-10-04"}]})
     finally:
         C.get = real_get
-    check("the snapshot counts the registry rows", (imp["count"], imp["distinct_authors"], imp["links_answering"], imp["by_subject"]), (2, 2, 2, {"s1": 2}))
+    check("the snapshot counts the registry rows, authors by id not by spelling", (imp["count"], imp["distinct_authors"], imp["links_answering"], imp["by_subject"]), (3, 2, 3, {"s1": 3}))
     check("a row keeps who, subject, evidence and date", sorted(imp["items"][0]), ["date", "evidence", "link_ok", "link_status", "subject", "who"])
     check("the free-text 'what' of a registry row is not copied into the snapshot", "CASE-001" in json.dumps(imp), False)
     print("\n%s" % ("all passed" if not bad else "%d failed" % bad))

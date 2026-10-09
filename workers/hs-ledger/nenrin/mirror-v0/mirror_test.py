@@ -42,16 +42,32 @@ class Ledger:
         self.raw = {1: "外壁塗装 30坪 一式（シリコン）: claim one".encode("utf-8"),
                     2: b'{"schema":"jidec-claim","work":"claim two"}',
                     3: batch.encode("utf-8")}
+        self.witness = {}              # sha -> envelope served at /witness/<sha> (only in the named-record ledger)
         self.lie_about = None          # sha of an object to serve wrong bytes for
         self.missing = set()           # entry numbers whose json 404s
         self.requests = []
+
+    def add_witness_batch(self):
+        """Entry 4: a nenrin-witness-batch-v1 naming three walks by sha with no bytes_url, as the real batches do.
+        The ledger serves two of them at /witness/<sha>; the third it no longer has."""
+        shas = []
+        for i in range(3):
+            rc = json.dumps({"schema": "nenrin-witness-v1", "walk": i, "endpoint": "https://example.org/a2a"}, sort_keys=True, separators=(",", ":"))
+            h = sha(rc.encode("utf-8")); shas.append(h)
+            if i < 2:
+                self.witness[h] = {"sha": h, "record": {"record_canonical": rc, "public_key_ed25519_b64": "PK%d" % i,
+                                                        "signature_ed25519_b64": "SIG%d" % i, "signed_domain": "w%d.example" % i}}
+        batch = {"schema": "nenrin-witness-batch-v1", "count": 3, "records": [{"sha": h, "submitted_at": "2026-10-01T00:00:00Z"} for h in shas]}
+        self.raw[4] = json.dumps(batch, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return shas
 
     def entry(self, n):
         return {"n": n, "work": "entry %d" % n, "claim_sha256": sha(self.raw[n]), "record_canonical": self.raw[n].decode("utf-8"),
                 "ots_status": "confirmed", "bitcoin_block": 968000 + n, "created_at": "2026-09-26T00:00:00Z"}
 
     def index(self):
-        return {"ledger": "JIDEC", "count": 3, "entries": [{"n": n, "claim_sha256": sha(self.raw[n])} for n in (3, 2, 1)]}
+        ns = sorted(self.raw, reverse=True)
+        return {"ledger": "JIDEC", "count": len(ns), "entries": [{"n": n, "claim_sha256": sha(self.raw[n])} for n in ns]}
 
 
 def make_handler(L):
@@ -77,6 +93,11 @@ def make_handler(L):
                 if q.get("format") == ["raw"]:
                     return self._send(200, L.raw[n], "application/octet-stream")
                 return self._send(200, json.dumps(L.entry(n), ensure_ascii=False).encode("utf-8"))
+            if parts[0] == "witness" and len(parts) == 2 and parts[1] in L.witness:
+                env = dict(L.witness[parts[1]])
+                if L.lie_about == parts[1]:
+                    env = {**env, "record": {**env["record"], "record_canonical": env["record"]["record_canonical"] + " "}}
+                return self._send(200, json.dumps(env).encode("utf-8"))
             if parts[0] == "object" and len(parts) == 2 and parts[1] in L.objects:
                 b = L.objects[parts[1]]
                 if L.lie_about == parts[1]:
@@ -197,9 +218,37 @@ def main():
         open(cp, "wb").write(orig)
         assert M.verify(A, quiet=True) == 0
         n += 1; print("[8] contract object: signatures stripped still matches its contract_sha256 address; one action added does not")
+
+        # [9] red team R3-1: a witness batch names its walks by sha with no bytes_url. The mirror fetches each from
+        # /witness/<sha>, keeps the record's own bytes under that sha and the signature beside them; a walk the ledger
+        # cannot serve, or serves altered, is named in named_record_problems and not stored; verify counts held of named
+        w = L.add_witness_batch()
+        L.lie_about = w[1]
+        E = os.path.join(tmp, "E")
+        assert M.pull(base, E, quiet=True) == 0       # named-record misses are listed, not fatal
+        man = json.loads(open(os.path.join(E, "manifest.json"), encoding="utf-8").read())
+        nps = {(pb["what"], pb["sha"]) for pb in man["named_record_problems"]}
+        assert nps == {("named_record_sha_mismatch", w[1]), ("named_record_unreachable", w[2])}, nps
+        assert os.path.exists(os.path.join(E, "objects", w[0])) and not os.path.exists(os.path.join(E, "objects", w[1]))
+        assert sha(open(os.path.join(E, "objects", w[0]), "rb").read()) == w[0]
+        sig = json.loads(open(os.path.join(E, "objects", w[0] + ".sig.json"), encoding="utf-8").read())
+        assert sig == {"public_key_ed25519_b64": "PK0", "signature_ed25519_b64": "SIG0", "signed_domain": "w0.example"}, sig
+        assert w[1] not in man["objects"] and w[2] not in man["objects"] and man["objects"][w[0]]["ok"]
+        rr = subprocess.run([sys.executable, os.path.join(HERE, "mirror.py"), "verify", "--dir", E], capture_output=True, text=True)
+        assert rr.returncode == 0 and "held 1 of 3" not in rr.stdout and "1 held of 3" in rr.stdout, rr.stdout
+        L.lie_about = None
+        before = len(L.requests)
+        assert M.pull(base, E, quiet=True) == 0       # resume: the walk now served honestly is fetched, the held one is not
+        assert ("/witness/" + w[0]) not in L.requests[before:] and ("/witness/" + w[1]) in L.requests[before:]
+        rr = subprocess.run([sys.executable, os.path.join(HERE, "mirror.py"), "verify", "--dir", E], capture_output=True, text=True)
+        assert rr.returncode == 0 and "2 held of 3" in rr.stdout, rr.stdout
+        p0 = os.path.join(E, "objects", w[0]); b0 = open(p0, "rb").read(); open(p0, "wb").write(b0 + b"x")
+        assert M.verify(E, quiet=True) == 1
+        open(p0, "wb").write(b0)
+        n += 1; print("[9] witness batch without bytes_url: walks fetched from /witness/<sha>, bytes and signature kept; an altered and a missing walk listed, not stored; resume fetches only what is missing; 2 held of 3")
     finally:
         srv.shutdown(); shutil.rmtree(tmp, ignore_errors=True)
-    print("\nSELF-TEST PASSED: nenrin-mirror-v0, %d checks (honest pull, resume, tampered copy, lying server, diff, unreachable entry, content digests, CLI, contract address rule)" % n)
+    print("\nSELF-TEST PASSED: nenrin-mirror-v0, %d checks (honest pull, resume, tampered copy, lying server, diff, unreachable entry, content digests, CLI, contract address rule, records named without bytes_url)" % n)
 
 
 if __name__ == "__main__":

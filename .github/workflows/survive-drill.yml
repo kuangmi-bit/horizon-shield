@@ -169,15 +169,24 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "survive-v0: drill $(date -u +%Y-%m-%d)"
           for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
-      - name: red when the copy disagrees with itself or with Bitcoin
+      - name: red when the copy disagrees with itself or with Bitcoin, or cannot be rebuilt at all
+        # 2026-10-09 (red team R3-3): a copy that is gone used to leave this step green. Now red when any copy has
+        # findings, when any copy is empty, or when no copy could be rebuilt. One custodian being unavailable while
+        # the other rebuilds (Software Heritage is sometimes busy) is a warning, not red.
         run: |
           python3 - <<'PY'
           import json, os, sys
-          sv = os.environ["SV"]; bad = []
+          sv = os.environ["SV"]; outcomes = {}
           for src in ("swh", "github"):
               p = os.path.join(sv, "drills", "latest-%s.json" % src)
-              if os.path.exists(p) and json.load(open(p)).get("outcome") in ("findings", "fence_failed"):
-                  bad.append(src)
-          if bad:
-              print("findings in: " + ", ".join(bad)); sys.exit(1)
+              outcomes[src] = json.load(open(p)).get("outcome") if os.path.exists(p) else "no_report"
+          print("outcomes: " + json.dumps(outcomes, sort_keys=True))
+          red = [s for s, o in outcomes.items() if o in ("findings", "fence_failed", "empty_copy")]
+          if red:
+              print("::error::copy problems in: " + ", ".join(red)); sys.exit(1)
+          if "rebuilt" not in outcomes.values():
+              print("::error::no copy could be rebuilt today"); sys.exit(1)
+          for s, o in outcomes.items():
+              if o != "rebuilt":
+                  print("::warning::%s: %s (the other copy rebuilt)" % (s, o))
           PY

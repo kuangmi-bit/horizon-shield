@@ -174,7 +174,27 @@ def check_head(path, copy_n, copy_head, export_tip):
     return {"n": n, "head": head, "matches": not findings}, findings
 
 
-def run(d, export=None, head=None):
+def check_held_head(path, copy_n, hashes):
+    """A head the reader obtained on an earlier day (2026-10-09, red team R3-4). Unlike the live head, it is expected to
+    be behind the copy: it must equal the copy's head at its own n. A copy shorter than a head someone already held
+    has lost entries."""
+    with open(path, "rb") as f:
+        h = json.loads(f.read().decode("utf-8"))
+    n, head = h.get("n"), h.get("head")
+    if not isinstance(n, int) or not _is_hex64(head):
+        return {"n": None}, [{"what": "held_head_malformed"}]
+    findings = []
+    if h.get("entry_sha256") is not None and h.get("entry_sha256") != marker_sha(n, head):
+        findings.append({"what": "held_head_marker_rehash_mismatch", "n": n})
+    if n > copy_n:
+        findings.append({"what": "copy_shorter_than_held_head", "held_n": n, "copy_n": copy_n,
+                         "why": "a head someone held earlier names entries this copy does not have"})
+    elif hashes.get(n) != head:
+        findings.append({"what": "held_head_differs_from_copy", "n": n, "held": head, "copy": hashes.get(n)})
+    return {"n": n, "head": head, "matches": not findings}, findings
+
+
+def run(d, export=None, head=None, held=None):
     part, findings, entries, hashes = check_copy(d)
     if not entries:
         return {"schema": SCHEMA, "dir": d, "copy": part, "findings": findings or [{"what": "empty_copy"}], "ok": False}
@@ -187,6 +207,10 @@ def run(d, export=None, head=None):
     if head:
         hp, hf = check_head(head, part["rebuilt_through"], part["head"], tip)
         rep["head"] = hp
+        findings += hf
+    for i, hpath in enumerate(held or []):
+        hp, hf = check_held_head(hpath, part["rebuilt_through"], hashes)
+        rep.setdefault("held_heads", []).append(hp)
         findings += hf
     rep["findings"] = findings
     rep["ok"] = not findings
@@ -201,9 +225,10 @@ def main(argv=None):
     ap.add_argument("--dir", required=True, help="a mirror-v0 layout copy, for example kept/")
     ap.add_argument("--export", help="the ledger's /ledger/export.jsonl, saved to a file")
     ap.add_argument("--head", help="the ledger's /ledger/head, saved to a file")
+    ap.add_argument("--held-head", action="append", default=[], help="a /ledger/head you saved on an earlier day; repeatable. It must equal the copy's head at its own n")
     ap.add_argument("--json", action="store_true", help="print the report as JSON")
     a = ap.parse_args(argv)
-    rep = run(a.dir, a.export, a.head)
+    rep = run(a.dir, a.export, a.head, a.held_head)
     if a.json:
         print(json.dumps(rep, indent=2, sort_keys=True))
     else:
@@ -215,6 +240,8 @@ def main(argv=None):
             print("export: %s rows, tip %s, ahead of copy by %s" % (e["rows"], e["tip_n"], e["ahead_of_copy_by"]))
         if "head" in rep:
             print("head: n %s, %s" % (rep["head"].get("n"), "matches" if rep["head"].get("matches") else "see findings"))
+        for hh in rep.get("held_heads", []):
+            print("held head: n %s, %s" % (hh.get("n"), "matches the copy" if hh.get("matches") else "see findings"))
         print("findings: %d" % len(rep["findings"]))
         for f in rep["findings"]:
             print("  " + json.dumps(f, sort_keys=True))
