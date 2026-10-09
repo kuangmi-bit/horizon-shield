@@ -80,6 +80,7 @@ Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_
 | Outside domains that signed a walk and filed it to the ledger | 3 (`api.babyblueviper.com`, `kuangmi-bit.github.io`, `pipavlo82.github.io`) | every `nenrin-witness-batch-v1` entry on the ledger |
 | Re-verification pool | 1 member(s) in 1 control cluster(s), 2 clusters needed for a quorum | `workers/hs-ledger/nenrin/recovery-v0/pool_report.json`, clusters from `workers/hs-ledger/nenrin/recovery-v0/witness_diversity_report.json` |
 | MUSUBI contracts signed with an outside party | 3 (with no party from this project: 1) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |
+| ...of which settled final, the parties' settlement recomputed here byte for byte | 1 | the settle verifier of the version each settlement names, run on the parties' own contract, event and header view |
 | Outside identities that signed evidence (walk, contract or agreement) | 4 | the three rows above and the agreement records |
 | Outside TRACE signing keys whose records were pinned with trace-pin-v0 | 0 | every `nenrin-trace-pin-batch-v0` entry on the ledger and the pending pool |
 | Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | 1 | GitHub API |

@@ -1,6 +1,6 @@
 {
   "schema": "hs-adoption-count-v1",
-  "measured_at": "2026-10-09T22:03:58Z",
+  "measured_at": "2026-10-09T22:19:08Z",
   "metrics": {
     "independent_implementations": {
       "count": 14,
@@ -212,6 +212,7 @@
       "signed_by_both": 3,
       "with_an_outside_party": 3,
       "with_no_party_from_us": 1,
+      "settled_final_recomputed": 1,
       "items": [
         {
           "contract_id": "4e392387a71a2dcf59fbc43314231d4c",
@@ -248,7 +249,17 @@
             "kuangmi-bit.github.io"
           ],
           "published_by_the_parties": true,
-          "settlement_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/settlement.json"
+          "settlement_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/settlement.json",
+          "settlement": {
+            "settlement_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/settlement.json",
+            "recomputed_identical": true,
+            "schema": "a2a-settlement-v1.10",
+            "status": "final",
+            "verdict": "within_grant",
+            "final_at_height": 970543,
+            "settlement_sha256": "a21190c7f30ed2436b96efe05d7434f9319b41d5cf42e50ed8c730d6b4067fe7",
+            "recomputed_with": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_10.py"
+          }
         }
       ],
       "published_not_counted": [],
