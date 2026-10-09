@@ -221,6 +221,15 @@
       "what": "The 1,466 rows of the 2026-08-23 walk skipped as robots_disallowed, checked again: robots.txt fetched once per origin (1,395 origins) with the walk's User-Agent, redirects recorded up to 5 hops. One row per skipped endpoint with the final status, redirect hops, content type, body sha256, the user-agent groups either reading applies, the verdict of the walk's own parser on today's file and the RFC 9309 verdict (longest match, Allow, consecutive user-agent lines, * and $; 4xx allows, 5xx or no answer disallows). Category per row is derived only from stored fields. Read only. Recompute: python3 tools/survey7_robots_recheck.py --recompute <this file>.",
       "made_by": "tools/survey7_robots_recheck.py",
       "role": "correction"
+    },
+    {
+      "file": "survey8_plan_2026-10-10.json",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey8_plan_2026-10-10.json",
+      "bytes": 22167,
+      "sha256": "43f6d57b32a80b5ab38d58c865e270525b255eaa225740871176525b9cf23415",
+      "what": "The sample for survey8, fixed before any request: the 1,106 rows of the 2026-08-23 walk that failed in transport (not_reached by DNS, TLS, timeout or reset; gateway 5xx; initialize answered 429), split into six classes from each row's stored reason, and 300 of them drawn per class from the seed written in the file (proportional allocation, largest remainders). Its sha256 was posted on modelcontextprotocol/registry discussion #1547 before the run. Recompute: python3 tools/survey8_transport_recheck.py plan <run2> --seed <seed> --n 300 --out <file> gives the same bytes.",
+      "made_by": "tools/survey8_transport_recheck.py",
+      "role": "plan"
     }
   ]
 }

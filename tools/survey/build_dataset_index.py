@@ -188,6 +188,23 @@ WHAT_PREFIX = {
         "made_by": "tools/survey7_robots_recheck.py",
         "role": "correction",
     },
+    "survey8_plan_": {
+        "what": "The sample for survey8, fixed before any request: the 1,106 rows of the 2026-08-23 walk that failed in "
+                "transport (not_reached by DNS, TLS, timeout or reset; gateway 5xx; initialize answered 429), split into six "
+                "classes from each row's stored reason, and 300 of them drawn per class from the seed written in the file "
+                "(proportional allocation, largest remainders). Its sha256 was posted on modelcontextprotocol/registry "
+                "discussion #1547 before the run. Recompute: python3 tools/survey8_transport_recheck.py plan <run2> --seed "
+                "<seed> --n 300 --out <file> gives the same bytes.",
+        "made_by": "tools/survey8_transport_recheck.py",
+        "role": "plan",
+    },
+    "survey8_transport_recheck_": {
+        "what": "The 300 planned rows measured again with the walk's own instrument (robots re-read, control address, "
+                "retries), the class written at write time, the vantage stated. Read only, no tool calls. Recompute: python3 "
+                "tools/survey8_transport_recheck.py recompute <run2> <this file>.",
+        "made_by": "tools/survey8_transport_recheck.py",
+        "role": "correction",
+    },
 }
 
 
