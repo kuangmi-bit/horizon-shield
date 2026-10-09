@@ -40,7 +40,7 @@ HISTORY_KEEP = 60
 # What outside code must not be able to change between runs: the corpora the board scores against, the generator, and
 # the board's own tools and adapters. Snapshotted before anything outside runs, checked and restored after each run.
 GUARDED = [os.path.join(NENRIN, d) for d in ("interop-v0", "interop-v0.1", "interop-v0.2", "conformance-v0", "sdk", "sdk-python/src",
-                                             "musubi-v0")] + [HERE]
+                                             "musubi-v0", "trace-intake-v0", "trace-bind-v0", "trace-span-v0", "trace-pin-v0")] + [HERE]
 
 # The a2a-approval-v2 vectors (babyblueviper1, settle v1.10's approver), refereed by the board from this repository's pinned copy,
 # not from the author's repository: an implementation cannot change the answers it is scored against (2026-10-09, #34).
@@ -229,7 +229,10 @@ def run_batch(cases_batch, cmd, cwd, env, impl_dir, vectors):
     with tempfile.TemporaryDirectory(prefix="tsunagi-io-") as t:
         io = {"@in": os.path.join(t, "in.json"), "@out": os.path.join(t, "out.json")}
         with open(io["@in"], "w", encoding="utf-8") as f:
-            json.dump(cases_batch, f, ensure_ascii=False)
+            if isinstance(cases_batch, str):   # a refereed corpus: the fixtures' exact bytes (REFEREE.batch_text)
+                f.write(cases_batch)
+            else:
+                json.dump(cases_batch, f, ensure_ascii=False)
         argv = [expand(x, impl_dir, HERE, vectors, io) for x in cmd]
         code, out, err, secs = sh(argv, cwd=cwd, env=env)
         try:
@@ -260,6 +263,7 @@ def run_board(spec, ext_dir, local=None):
     rows, vectors, heads, dirs = [], {}, {}, {}
     local = local or {}
     corpora = {n: REFEREE.load_corpus(n, NENRIN) for n in REFEREE.CORPORA}   # read before any outside code runs
+    batch_texts = {n: REFEREE.batch_text(n, NENRIN) for n in REFEREE.CORPORA}
     approval = {n: load_approval_corpus(n) for n in APPROVAL_CORPORA}
     snap = snapshot()
     for impl in spec["implementations"]:
@@ -299,8 +303,8 @@ def run_board(spec, ext_dir, local=None):
                     rows.append(row); continue
             if run["parse"] in ("batch_referee", "batch_approval_referee"):
                 if run["parse"] == "batch_referee":
-                    cases, batch = corpora[run["corpus"]]
-                    code, result, secs, tail = run_batch(batch, run["cmd"], cwd, env, impl_dir, vectors)
+                    cases, _ = corpora[run["corpus"]]
+                    code, result, secs, tail = run_batch(batch_texts[run["corpus"]], run["cmd"], cwd, env, impl_dir, vectors)
                     res = refereed(run["corpus"], code, result, run["total"], cases)
                 else:
                     cases, batch = approval[run["corpus"]]

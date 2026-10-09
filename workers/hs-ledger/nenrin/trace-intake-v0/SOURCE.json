@@ -1,0 +1,119 @@
+{
+  "repository": "https://github.com/agentrust-io/trace-spec",
+  "commit": "4c7d6eccc468c87f2d00e02118b29164a4a5479b",
+  "license": "Apache-2.0 (conformance/LICENSE)",
+  "files": {
+    "canonicalization__01-non-ascii-values": {
+      "path": "conformance/tests/vectors/canonicalization/01-non-ascii-values.json",
+      "sha256": "43e2d76ab67f944b5f57d583e4e084f12c0598c0e5d7963bd74816f619d87154"
+    },
+    "canonicalization__02-non-bmp-values": {
+      "path": "conformance/tests/vectors/canonicalization/02-non-bmp-values.json",
+      "sha256": "bdc3d511dd2941e9a2dbdae7199403dec317d4b1e5415b17982dda8b1b86cd12"
+    },
+    "canonicalization__03-utf16-key-order": {
+      "path": "conformance/tests/vectors/canonicalization/03-utf16-key-order.json",
+      "sha256": "22b68288c2db09b31f91fac70a4ce9aa03b44668589a5401b7a0674f30827b4c"
+    },
+    "canonicalization__04-utf16-key-order-nested": {
+      "path": "conformance/tests/vectors/canonicalization/04-utf16-key-order-nested.json",
+      "sha256": "7ae2634497d7306a56ad5657de484bcbfa28b3dbcb11cf63afec4245e47b0b2a"
+    },
+    "invalid_canonical_integer_out_of_range": {
+      "path": "conformance/tests/vectors/invalid_canonical_integer_out_of_range.json",
+      "sha256": "c8a9471c527d70c0bfd26164b37693b9c4a7e6944d7c5e506437214f17cab352"
+    },
+    "invalid_canonical_lone_surrogate": {
+      "path": "conformance/tests/vectors/invalid_canonical_lone_surrogate.json",
+      "sha256": "d3d28d1ed10060d4519e53d4cf34a7aed9d5302d21a2d921acd663cd32f8ab56"
+    },
+    "invalid_canonical_non_finite_float": {
+      "path": "conformance/tests/vectors/invalid_canonical_non_finite_float.json",
+      "sha256": "58742eaccb6a234beeed96d93bfa449aebf43527b754cb204d039c7bd2e7edd7"
+    },
+    "invalid_canonical_plain_trace": {
+      "path": "conformance/tests/vectors/invalid_canonical_plain_trace.json",
+      "sha256": "280cd0fc060d5678dc5db56fedf72c2be6f6a4cd5f206eaa7e9c344487ad02d4"
+    },
+    "invalid_missing_runtime": {
+      "path": "conformance/tests/vectors/invalid_missing_runtime.json",
+      "sha256": "6a7e2c37c0f697e4410f1928bacafffaa6ba8ed4d6377a7ecc095041cb26157e"
+    },
+    "invalid_wrong_profile": {
+      "path": "conformance/tests/vectors/invalid_wrong_profile.json",
+      "sha256": "358cf1060d1787d9065e971f854c01dc65ee530da5586e502a98446c63209b6c"
+    },
+    "policy-resolution__01-no-policy-uri": {
+      "path": "conformance/tests/vectors/policy-resolution/01-no-policy-uri.json",
+      "sha256": "108357db0edf74e03329b16ab26f6a37f7c2a52214a295143ae255b44316acfe"
+    },
+    "policy-resolution__02-resolved-and-matches": {
+      "path": "conformance/tests/vectors/policy-resolution/02-resolved-and-matches.json",
+      "sha256": "3b1228fc534d1e0f9fd888e6c77a15672f64ba7255eb09067c702edb94dadf6d"
+    },
+    "policy-resolution__03-digest-mismatch-minimal-mutation": {
+      "path": "conformance/tests/vectors/policy-resolution/03-digest-mismatch-minimal-mutation.json",
+      "sha256": "5e15b7f4ec642cafc67605d286a81414201286e663786900a1f7fad236893193"
+    },
+    "policy-resolution__04-digest-mismatch-different-object": {
+      "path": "conformance/tests/vectors/policy-resolution/04-digest-mismatch-different-object.json",
+      "sha256": "8182e4869b5caa85ac345a3536a691ba3c9f51eb9bac6698047ffc019a565e1e"
+    },
+    "policy-resolution__05-referent-unreachable-no-route": {
+      "path": "conformance/tests/vectors/policy-resolution/05-referent-unreachable-no-route.json",
+      "sha256": "6010ecc13d49931b90d32b2cde2e6a3f74a1630d76e2d67f39d07e8d6b16b9c8"
+    },
+    "policy-resolution__06-resolved-and-matches-sha384": {
+      "path": "conformance/tests/vectors/policy-resolution/06-resolved-and-matches-sha384.json",
+      "sha256": "ae8311ee3605081b4f4d62fc273ff9c3122dda4a240bf9a2fe56cd642a4e62f6"
+    },
+    "policy-resolution__07-digest-bound-to-other-referent": {
+      "path": "conformance/tests/vectors/policy-resolution/07-digest-bound-to-other-referent.json",
+      "sha256": "bbb850139c42b8c21bf265c7ac115e292d54666ac655c47e8f2652f75f47dd98"
+    },
+    "policy-resolution__08-policy-uri-is-a-relative-reference": {
+      "path": "conformance/tests/vectors/policy-resolution/08-policy-uri-is-a-relative-reference.json",
+      "sha256": "c423272d3d64d971d6b2a3a98b2c62caf0595861377f70022a3ebfe00fe443b2"
+    },
+    "policy-resolution__09-sha384-bound-to-other-referent": {
+      "path": "conformance/tests/vectors/policy-resolution/09-sha384-bound-to-other-referent.json",
+      "sha256": "0d66d191357a99509b9dba3d94e3dbd8f71fcad5c4f52ecd76d54fb344910c44"
+    },
+    "policy-resolution__10-policy-uri-carries-a-space": {
+      "path": "conformance/tests/vectors/policy-resolution/10-policy-uri-carries-a-space.json",
+      "sha256": "aa9bbd7d406d82918dc8151b935ffc331ab84f9d8fd876a544ef9e4b02ed25b8"
+    },
+    "policy-resolution__11-referent-unreachable-route-fails": {
+      "path": "conformance/tests/vectors/policy-resolution/11-referent-unreachable-route-fails.json",
+      "sha256": "085c30f5bafc4cd16c7981cf51cf87ac35c035cba523861bfb47ac45e8561ba1"
+    },
+    "signed_delegated_hop": {
+      "path": "conformance/tests/vectors/signed_delegated_hop.json",
+      "sha256": "8236f393a8259a675be9c78343ab85bcd3454563fbfce5d4646235cecb0098c2"
+    },
+    "signed_root": {
+      "path": "conformance/tests/vectors/signed_root.json",
+      "sha256": "5b070a09c278d2730438d38ea2b542f437ae7c8b23e6b36b345aa0bed8572aab"
+    },
+    "valid_appraisal_full": {
+      "path": "conformance/tests/vectors/valid_appraisal_full.json",
+      "sha256": "06ef56b43851815a97069eb82b164ef98c83256ffad83521bde81f8bd73025bb"
+    },
+    "valid_cmcp_runtime": {
+      "path": "conformance/tests/vectors/valid_cmcp_runtime.json",
+      "sha256": "80116953e08ee93021b95ee0366dc0a3afde1b86082510276d7d6df623561563"
+    },
+    "valid_level0": {
+      "path": "conformance/tests/vectors/valid_level0.json",
+      "sha256": "808d969b22386fea15a33ee3a26db3571299f3d5042d4c0bc74f5a4b65632554"
+    },
+    "valid_level0_with_transcript": {
+      "path": "conformance/tests/vectors/valid_level0_with_transcript.json",
+      "sha256": "1e8ec56a262f38140ff11cf0cc9a61b2494d3ac0586209497795adb0112a01ce"
+    },
+    "valid_openshell_import": {
+      "path": "conformance/tests/vectors/valid_openshell_import.json",
+      "sha256": "dba5392e9312e3cf6f276a4658efec3969badc2ba8790a6ba8c7558be34914e6"
+    }
+  }
+}

@@ -5,6 +5,9 @@
 //	nenrin-verify-go --batch in.json out.json
 //	                                        in: [{"name", "bundle"}, ...]; out: {name: signature or {"error"}}
 //	                                        (the form conformance-v0/differential.py reads)
+//	nenrin-verify-go --trace-batch intake|bind|span in.json out.json
+//	                                        the TRACE intake and nenrin-trace-bind-v0 verdicts (trace-bind-v0/SPEC.md)
+//	                                        for the corpora trace-intake-v0 and trace-bind-v0, same batch form
 //	nenrin-verify-go --lines                one bundle per line (JSON text) on stdin, one result per line on stdout:
 //	                                        {"threw", "signature", "codes"} (the form parity/parity.py reads)
 package main
@@ -31,7 +34,7 @@ func readJSON(path string) (nv.Value, error) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: nenrin-verify-go <bundle.json> | --corpus <dir> | --batch <in.json> <out.json> | --version")
+	fmt.Fprintln(os.Stderr, "usage: nenrin-verify-go <bundle.json> | --corpus <dir> | --batch <in.json> <out.json> | --trace-batch intake|bind|span <in.json> <out.json> | --version")
 	os.Exit(2)
 }
 
@@ -49,6 +52,11 @@ func main() {
 		os.Exit(corpus(os.Args[2]))
 	case "--lines":
 		os.Exit(lines())
+	case "--trace-batch":
+		if len(os.Args) != 5 {
+			usage()
+		}
+		os.Exit(traceBatch(os.Args[2], os.Args[3], os.Args[4]))
 	case "--batch":
 		if len(os.Args) != 4 {
 			usage()
@@ -168,6 +176,58 @@ func batch(in, out string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
+	return 0
+}
+
+func traceBatch(kind, in, out string) int {
+	var fn func(nv.Value) (nv.Signature, error)
+	switch kind {
+	case "intake":
+		fn = nv.VerifyTraceIntake
+	case "bind":
+		fn = nv.VerifyTraceBind
+	case "span":
+		fn = func(b nv.Value) (nv.Signature, error) {
+			o, ok := b.(*nv.Object)
+			if !ok {
+				return nv.Signature{}, fmt.Errorf("a span case is {span, bind_bundle}")
+			}
+			return nv.CheckSpanAttributes(nv.Get(o, "span"), nv.Get(o, "bind_bundle"))
+		}
+	default:
+		fmt.Fprintln(os.Stderr, "--trace-batch takes intake, bind or span")
+		return 2
+	}
+	v, err := readJSON(in)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	arr, ok := v.(*nv.Array)
+	if !ok {
+		fmt.Fprintln(os.Stderr, "batch input must be an array of {name, bundle}")
+		return 2
+	}
+	res := map[string]interface{}{}
+	for _, it := range arr.Items {
+		o, ok := it.(*nv.Object)
+		if !ok {
+			continue
+		}
+		name, _ := nv.Get(o, "name").(string)
+		sig, err := fn(nv.Get(o, "bundle"))
+		if err != nil {
+			res[name] = map[string]string{"error": err.Error()}
+		} else {
+			res[name] = sig
+		}
+	}
+	b, _ := json.Marshal(res)
+	if err := os.WriteFile(out, b, 0o644); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	fmt.Printf("wrote %d verdict signatures (trace %s)\n", len(res), kind)
 	return 0
 }
 

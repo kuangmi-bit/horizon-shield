@@ -1,0 +1,304 @@
+{
+  "schema": "nenrin-interop-expected-v0",
+  "version": "0.1.0",
+  "verifier": "TRACE intake (trace-bind-v0/SPEC.md section 2; sdk/trace_verify.mjs and trace-pin-v0, npm: nenrin-verify)",
+  "note": "one case per TRACE Trust Record among the agentrust-io/trace-spec conformance vectors; the verdict signature the ledger's intake must give it",
+  "cases": {
+    "canonicalization__01-non-ascii-values": {
+      "intent": "signed record with non-ASCII values; pinned only if the RFC 8785 bytes are right",
+      "source": "conformance/tests/vectors/canonicalization/01-non-ascii-values.json",
+      "expect": {
+        "verdict": "pinnable",
+        "refusals": [],
+        "findings": []
+      }
+    },
+    "canonicalization__02-non-bmp-values": {
+      "intent": "signed record with characters outside the BMP",
+      "source": "conformance/tests/vectors/canonicalization/02-non-bmp-values.json",
+      "expect": {
+        "verdict": "pinnable",
+        "refusals": [],
+        "findings": []
+      }
+    },
+    "canonicalization__03-utf16-key-order": {
+      "intent": "signed record whose key order differs between UTF-16 and code point order",
+      "source": "conformance/tests/vectors/canonicalization/03-utf16-key-order.json",
+      "expect": {
+        "verdict": "pinnable",
+        "refusals": [],
+        "findings": []
+      }
+    },
+    "canonicalization__04-utf16-key-order-nested": {
+      "intent": "the same, nested",
+      "source": "conformance/tests/vectors/canonicalization/04-utf16-key-order-nested.json",
+      "expect": {
+        "verdict": "pinnable",
+        "refusals": [],
+        "findings": []
+      }
+    },
+    "invalid_canonical_integer_out_of_range": {
+      "intent": "an integer beyond 2^53 - 1 inside a cMCP envelope; the canonical form is checked before the envelope",
+      "source": "conformance/tests/vectors/invalid_canonical_integer_out_of_range.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "unsafe_integer"
+        ],
+        "findings": []
+      }
+    },
+    "invalid_canonical_lone_surrogate": {
+      "intent": "a lone surrogate inside a cMCP envelope",
+      "source": "conformance/tests/vectors/invalid_canonical_lone_surrogate.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "lone_surrogate"
+        ],
+        "findings": []
+      }
+    },
+    "invalid_canonical_non_finite_float": {
+      "intent": "1e400, which parses to Infinity, inside a cMCP envelope",
+      "source": "conformance/tests/vectors/invalid_canonical_non_finite_float.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "non_finite_number"
+        ],
+        "findings": []
+      }
+    },
+    "invalid_canonical_plain_trace": {
+      "intent": "iat of 1e20 in a bare record",
+      "source": "conformance/tests/vectors/invalid_canonical_plain_trace.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "unsafe_integer"
+        ],
+        "findings": []
+      }
+    },
+    "invalid_missing_runtime": {
+      "intent": "no runtime member",
+      "source": "conformance/tests/vectors/invalid_missing_runtime.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "missing_required"
+        ],
+        "findings": []
+      }
+    },
+    "invalid_wrong_profile": {
+      "intent": "an eat_profile that is not TRACE v0.2",
+      "source": "conformance/tests/vectors/invalid_wrong_profile.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "unsupported_profile"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__01-no-policy-uri": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/01-no-policy-uri.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__02-resolved-and-matches": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/02-resolved-and-matches.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__03-digest-mismatch-minimal-mutation": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/03-digest-mismatch-minimal-mutation.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__04-digest-mismatch-different-object": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/04-digest-mismatch-different-object.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__05-referent-unreachable-no-route": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/05-referent-unreachable-no-route.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__06-resolved-and-matches-sha384": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/06-resolved-and-matches-sha384.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__07-digest-bound-to-other-referent": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/07-digest-bound-to-other-referent.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__08-policy-uri-is-a-relative-reference": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/08-policy-uri-is-a-relative-reference.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__09-sha384-bound-to-other-referent": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/09-sha384-bound-to-other-referent.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__10-policy-uri-carries-a-space": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/10-policy-uri-carries-a-space.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "policy-resolution__11-referent-unreachable-route-fails": {
+      "intent": "a policy-resolution vector; its record carries no embedded signature",
+      "source": "conformance/tests/vectors/policy-resolution/11-referent-unreachable-route-fails.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "signed_delegated_hop": {
+      "intent": "a signed delegated hop",
+      "source": "conformance/tests/vectors/signed_delegated_hop.json",
+      "expect": {
+        "verdict": "pinnable",
+        "refusals": [],
+        "findings": []
+      }
+    },
+    "signed_root": {
+      "intent": "a signed root record",
+      "source": "conformance/tests/vectors/signed_root.json",
+      "expect": {
+        "verdict": "pinnable",
+        "refusals": [],
+        "findings": []
+      }
+    },
+    "valid_appraisal_full": {
+      "intent": "valid TRACE, no embedded signature",
+      "source": "conformance/tests/vectors/valid_appraisal_full.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "valid_cmcp_runtime": {
+      "intent": "a valid cMCP RuntimeClaim; the outer signature is the gateway's",
+      "source": "conformance/tests/vectors/valid_cmcp_runtime.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "enveloped_form"
+        ],
+        "findings": []
+      }
+    },
+    "valid_level0": {
+      "intent": "valid TRACE, no embedded signature: out of scope for a pin",
+      "source": "conformance/tests/vectors/valid_level0.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "valid_level0_with_transcript": {
+      "intent": "valid TRACE, no embedded signature",
+      "source": "conformance/tests/vectors/valid_level0_with_transcript.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    },
+    "valid_openshell_import": {
+      "intent": "valid TRACE, no embedded signature",
+      "source": "conformance/tests/vectors/valid_openshell_import.json",
+      "expect": {
+        "verdict": "refused",
+        "refusals": [
+          "no_embedded_signature"
+        ],
+        "findings": []
+      }
+    }
+  }
+}

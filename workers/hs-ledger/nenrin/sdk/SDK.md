@@ -72,6 +72,28 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.5.0 (2026-10-09): TRACE, joined to NENRIN and MUSUBI
+
+`trace_verify.mjs` (`npx -p nenrin-verify nenrin-trace-verify`, export `nenrin-verify/trace`) reads TRACE Trust
+Records ([agentrust-io/trace-spec](https://github.com/agentrust-io/trace-spec) v0.2) and the new link between them
+and NENRIN. The normative text is `trace-bind-v0/SPEC.md`.
+
+- `intake <record.json>`: whether the NENRIN ledger pins this record (the rule behind `POST /evidence/trace`).
+- `bind <bundle.json>`: a `nenrin-trace-bind-v0` record, signed by the party whose act it is, names one NENRIN or
+  MUSUBI record and one TRACE record by sha256 and says the act was performed under that attestation. The relying
+  party pins the binder keys and the TRACE key thumbprints it accepts (the TRACE registry's `producers/` list is one
+  public source). Verdict `bound` or `not_bound` with every reason.
+- `sign-bind`: make one.
+- `annotateSpan(span, bind)` / `spanAttributes(bind)`: the bind's identifiers as `nenrin.*` attributes on the agent's
+  OpenTelemetry GenAI span (`execute_tool`, `invoke_agent`), and `span <attrs.json> <bundle.json>` to check an
+  exported span against the bind.
+
+Three new TSUNAGI corpora travel in `tsunagi_corpora.json`: `nenrin-trace-intake-v0` (28, every Trust Record among the
+trace-spec conformance vectors), `nenrin-trace-bind-v0` (28, over real records from trace-registry and from
+agentrust-trace 0.11.0) and `nenrin-trace-span-v0` (16). The Python package (0.5.0) and the Go port carry the same
+three verifiers; each reproduces all three corpora, and 8,640 mutated bundles gave the same verdict signature in all
+three languages. The provenance, TSUGI and agreement verifiers are unchanged.
+
 ## 0.4.9 (2026-10-09): the TSUNAGI board's referee, in JavaScript
 
 `npx nenrin-tsunagi` scores any NENRIN verifier the way the nightly TSUNAGI board does, offline and with no clone:

@@ -146,6 +146,16 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.5.0 (2026-10-09)
+
+`nenrin_verify.trace` (`nenrin-trace-verify`): the TRACE intake rule of the NENRIN ledger, the `nenrin-trace-bind-v0`
+link between a NENRIN or MUSUBI record and a TRACE Trust Record, and the OpenTelemetry helpers (`span_attributes`,
+`annotate_span(span, bind)` for an opentelemetry-api span, `check_span_attributes`). A port of `trace_verify.mjs`,
+held to it by the corpora trace-intake-v0, trace-bind-v0 and trace-span-v0, which `nenrin-tsunagi` now carries too.
+`nenrin-tsunagi run` writes each fixture's exact bytes into the batch, as the JavaScript referee always did: it used
+to re-serialise parsed fixtures, which cannot write back a lone surrogate or a literal like `1e400`, exactly what
+trace-intake-v0 tests. The other verifiers are unchanged.
+
 ## 0.4.9 (2026-10-08)
 
 `nenrin-tsunagi`: the TSUNAGI board's referee, with interop-v0 (5), interop-v0.1 (13) and interop-v0.2/edge (36)

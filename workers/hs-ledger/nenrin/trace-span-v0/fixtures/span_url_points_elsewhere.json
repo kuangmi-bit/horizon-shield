@@ -1,0 +1,91 @@
+{
+ "span": {
+  "nenrin.otel.schema": "nenrin-otel-v0",
+  "nenrin.bind.sha256": "86381eb45b065127d53c54ec01fd86b9abc94e45ddac77760425b438266edfe5",
+  "nenrin.record.sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53",
+  "nenrin.trace.sha256": "dded4f16f5724d5788ffd38502ffda6b778cc0380802617c0be1a0390cbe09ec",
+  "nenrin.trace.key_thumbprint": "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8",
+  "nenrin.trace.url": "https://example.org/x"
+ },
+ "bind_bundle": {
+  "bind": {
+   "schema": "nenrin-trace-bind-v0",
+   "relation": "performed_under",
+   "record_sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53",
+   "trace_sha256": "dded4f16f5724d5788ffd38502ffda6b778cc0380802617c0be1a0390cbe09ec",
+   "trace_key_thumbprint": "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8",
+   "acted_at": 1789923786,
+   "binder_public_key_ed25519_b64": "fesyj3aL4Pb3Vv3cYWNwEDez3nnVlY0OW+Wely9YHzw=",
+   "sig_b64": "D/dIDwhyJrWdZpiJjwbA2pMZux273UxyDU5D1bKrs8eJe80bVd8gEgCt5CXdkp+cuFKEy8UJ+NPswSc56uVBBg=="
+  },
+  "trace": {
+   "appraisal": {
+    "status": "none",
+    "timestamp": 1789923666,
+    "verifier": "https://bernstein.run/trace/verifier"
+   },
+   "build_provenance": {
+    "digest": "sha256:b77a81d8049d1bfbfbd322124eb8ceb3c6a05f91336e874a388cef7059cef1e0",
+    "provenance_uri": "https://github.com/sipyourdrink-ltd/bernstein/releases",
+    "slsa_level": 0
+   },
+   "cnf": {
+    "jwk": {
+     "crv": "Ed25519",
+     "kid": "install-0000000000000000",
+     "kty": "OKP",
+     "x": "ff3LjX7m5f7vj3YD5NS_LqtEzEa_wkD5ZnNPBpSD3o8"
+    }
+   },
+   "data_class": "confidential",
+   "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+   "iat": 1789923666,
+   "model": {
+    "model_id": "claude-haiku-4-5-20251001",
+    "provider": "anthropic"
+   },
+   "policy": {
+    "bundle_hash": "sha256:a8bc7643a9c822bf7a3a410fff1f1be4bce47f2ea99ec22c444d85c9ec67094f",
+    "enforcement_mode": "enforce"
+   },
+   "runtime": {
+    "measurement": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "platform": "software-only"
+   },
+   "signature": "8WWLHXTC0fe_63KDjaiihseCL6dSm2MasRDurSyV_6o2x1lgiwzNAU3Vrnt0f7Ho9E0rfajNF22gedCI6yNoCg",
+   "subject": "spiffe://bernstein.run/run/20260920-165918/exec/backend-99365805"
+  },
+  "record": {
+   "approvals": [],
+   "contract_ref": {
+    "contract_id": "8f113a3ea64a109085de8a83f47121eb",
+    "contract_sha256": "14474983d760126e1a918ab1cd9f750985f7ee7c97a1c0c235bf450f7718f9f8",
+    "payload_digest": "05e6afe19e44e0faed09110869e9d53dcc5829e0f022f61f74232b2deefd5690"
+   },
+   "delegated_to": [],
+   "nenrin_ref": "8bf29f1ad15165b970b508703a5b49cbd816cbfcc4a3fb6f77a9f80a4cb69771",
+   "performed_actions": [
+    "read",
+    "observe",
+    "emit_witness"
+   ],
+   "schema": "a2a-execution-v0",
+   "signatures": [
+    {
+     "role": "contractor",
+     "sig_b64": "nhSOFEP68zoVZU/413M9CUO7ErpTA7yhSmf0G6yhS/UFhMlxau929Kt4SIbOoeiPm7WQ+CVL0LhSKnLHdbosCA=="
+    }
+   ]
+  },
+  "policy": {
+   "binder_keys": [
+    "fesyj3aL4Pb3Vv3cYWNwEDez3nnVlY0OW+Wely9YHzw="
+   ],
+   "trace_key_thumbprints": [
+    "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8",
+    "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU",
+    "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ"
+   ]
+  }
+ }
+}

@@ -58,3 +58,10 @@ python3 parity/parity.py ./nenrin-verify-go --edge /tmp/edge.json
 
 Cite what it was checked against: Oga, T. (2026). NENRIN provenance verifier: normative procedure (VERIFIER.md),
 interoperability vectors and reference verifiers. Zenodo. https://doi.org/10.5281/zenodo.23136978
+
+## TRACE (2026-10-09)
+
+`nenrinverify/trace.go` ports the TRACE intake rule, the `nenrin-trace-bind-v0` verifier and the span check of
+`../sdk/trace_verify.mjs` (normative text `../trace-bind-v0/SPEC.md`): `CheckTraceRecord`, `VerifyTraceIntake`,
+`VerifyTraceBind`, `SpanAttributes`, `CheckSpanAttributes`. `nenrin-verify-go --trace-batch intake|bind|span in out`
+is the TSUNAGI batch form. `go test ./...` runs the three corpora (28, 28, 16); the board referees them nightly.

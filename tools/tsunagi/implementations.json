@@ -44,6 +44,48 @@
           ],
           "parse": "batch_referee",
           "total": 36
+        },
+        {
+          "corpus": "nenrin-trace-intake-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk",
+          "cmd": [
+            "node",
+            "trace_verify.mjs",
+            "--batch",
+            "intake",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        },
+        {
+          "corpus": "nenrin-trace-bind-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk",
+          "cmd": [
+            "node",
+            "trace_verify.mjs",
+            "--batch",
+            "bind",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        },
+        {
+          "corpus": "nenrin-trace-span-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk",
+          "cmd": [
+            "node",
+            "trace_verify.mjs",
+            "--batch",
+            "span",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 16
         }
       ]
     },
@@ -96,6 +138,51 @@
           ],
           "parse": "batch_referee",
           "total": 36
+        },
+        {
+          "corpus": "nenrin-trace-intake-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+          "cmd": [
+            "go",
+            "run",
+            "./cmd/nenrin-verify-go",
+            "--trace-batch",
+            "intake",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        },
+        {
+          "corpus": "nenrin-trace-bind-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+          "cmd": [
+            "go",
+            "run",
+            "./cmd/nenrin-verify-go",
+            "--trace-batch",
+            "bind",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        },
+        {
+          "corpus": "nenrin-trace-span-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-go",
+          "cmd": [
+            "go",
+            "run",
+            "./cmd/nenrin-verify-go",
+            "--trace-batch",
+            "span",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 16
         }
       ]
     },
@@ -145,6 +232,73 @@
           ],
           "parse": "batch_referee",
           "total": 36
+        },
+        {
+          "corpus": "nenrin-trace-intake-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-python/src",
+          "cmd": [
+            "python3",
+            "-m",
+            "nenrin_verify.trace",
+            "--batch",
+            "intake",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        },
+        {
+          "corpus": "nenrin-trace-bind-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-python/src",
+          "cmd": [
+            "python3",
+            "-m",
+            "nenrin_verify.trace",
+            "--batch",
+            "bind",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        },
+        {
+          "corpus": "nenrin-trace-span-v0",
+          "cwd": "@hs/workers/hs-ledger/nenrin/sdk-python/src",
+          "cmd": [
+            "python3",
+            "-m",
+            "nenrin_verify.trace",
+            "--batch",
+            "span",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 16
+        }
+      ]
+    },
+    {
+      "id": "hs-ledger-trace-pin",
+      "ours": true,
+      "author": "ogasurfproject-jpg",
+      "repo": null,
+      "language": "JavaScript",
+      "note": "The ledger's production TRACE intake (workers/hs-ledger/nenrin/trace-pin-v0/trace_pin_v0.mjs, the code behind POST /evidence/trace on ledger.horizonshield.dev), held to the same TRACE conformance vectors as the SDK ports. Same author; not an independent implementation.",
+      "runs": [
+        {
+          "corpus": "nenrin-trace-intake-v0",
+          "cwd": "@board/adapters",
+          "cmd": [
+            "node",
+            "js_trace_pin_batch.mjs",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
         }
       ]
     },

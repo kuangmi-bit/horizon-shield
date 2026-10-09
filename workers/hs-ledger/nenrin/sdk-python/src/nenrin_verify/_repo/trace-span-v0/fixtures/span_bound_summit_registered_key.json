@@ -1,0 +1,100 @@
+{
+ "span": {
+  "nenrin.otel.schema": "nenrin-otel-v0",
+  "nenrin.bind.sha256": "5f71c510f4be99a369416a9b04c9a1bfa5048d099eaf4faba6e2732238bdda5d",
+  "nenrin.record.sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53",
+  "nenrin.trace.sha256": "1046f475f6232a178b58d300c603ef5f0c46d7a6386540a0a2522edd8536d3b5",
+  "nenrin.trace.key_thumbprint": "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU",
+  "nenrin.trace.url": "https://ledger.horizonshield.dev/evidence/trace/1046f475f6232a178b58d300c603ef5f0c46d7a6386540a0a2522edd8536d3b5"
+ },
+ "bind_bundle": {
+  "bind": {
+   "schema": "nenrin-trace-bind-v0",
+   "relation": "performed_under",
+   "record_sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53",
+   "trace_sha256": "1046f475f6232a178b58d300c603ef5f0c46d7a6386540a0a2522edd8536d3b5",
+   "trace_key_thumbprint": "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU",
+   "acted_at": 1787245367,
+   "binder_public_key_ed25519_b64": "fesyj3aL4Pb3Vv3cYWNwEDez3nnVlY0OW+Wely9YHzw=",
+   "sig_b64": "Iv4lTDxXSFreCTx4Qk8Km7pzb/Tt4RBL1oLirpfK0j6ZV5TS/vGd4Pih10LPC/IMAxTBxxGoKwkjY78+rZeWAQ=="
+  },
+  "trace": {
+   "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+   "iat": 1787244767,
+   "subject": "spiffe://example.org/agent/planner",
+   "model": {
+    "provider": "example",
+    "model_id": "summarizer-v3",
+    "version": "20260601"
+   },
+   "runtime": {
+    "platform": "azure-cvm-sev-snp",
+    "measurement": "sha384:5b0ce64ad1c1f6375dbda5f760b98526ca1bcf91b8195091afc28e7b024251d68fe32e05af34048d6607678cd23283ff",
+    "firmware_version": "15787368493747273732"
+   },
+   "policy": {
+    "bundle_hash": "sha256:f4c26445ea31e0c9209efe7c065cc398f1100b77bbb9a6124a12a72439da6bb3",
+    "enforcement_mode": "enforce",
+    "version": "cui-summarize-v2.1",
+    "policy_uri": "https://registry.example/policy/cui-summarize-v2.1"
+   },
+   "data_class": "confidential",
+   "tool_transcript": {
+    "hash": "sha256:553494dbca57c42653cc782ef423977ca64ed1917f3423f31e79674f296aacc0",
+    "call_count": 4
+   },
+   "build_provenance": {
+    "slsa_level": 2,
+    "builder": "https://github.com/example-org/agent-runtime/.github/workflows/release.yml",
+    "digest": "sha256:8aacb0f60ce141de3b7f341dd7a488e8281c7d8df9a4c1936a77ec67d4e2a827",
+    "provenance_uri": "https://transparency.example/entries/demo"
+   },
+   "appraisal": {
+    "status": "affirming",
+    "verifier": "https://verifier.example/tpm",
+    "policy_ref": "https://registry.example/policy/tpm2-appraisal-v1",
+    "timestamp": 1787244767
+   },
+   "cnf": {
+    "jwk": {
+     "kty": "OKP",
+     "crv": "Ed25519",
+     "x": "MlMDcC9FD2XTwcHx_cMV7aTqq8sfXlTcyFNSDkqsgSE"
+    }
+   },
+   "signature": "o-gOt6MwCWuizcQ8uHy89Fl4G9e8E_9VXFd0tA0UbMJv9vlQZRStnwJX5b3KVfydXGFMAQAz1hBtzJrrGoVYDQ"
+  },
+  "record": {
+   "approvals": [],
+   "contract_ref": {
+    "contract_id": "8f113a3ea64a109085de8a83f47121eb",
+    "contract_sha256": "14474983d760126e1a918ab1cd9f750985f7ee7c97a1c0c235bf450f7718f9f8",
+    "payload_digest": "05e6afe19e44e0faed09110869e9d53dcc5829e0f022f61f74232b2deefd5690"
+   },
+   "delegated_to": [],
+   "nenrin_ref": "8bf29f1ad15165b970b508703a5b49cbd816cbfcc4a3fb6f77a9f80a4cb69771",
+   "performed_actions": [
+    "read",
+    "observe",
+    "emit_witness"
+   ],
+   "schema": "a2a-execution-v0",
+   "signatures": [
+    {
+     "role": "contractor",
+     "sig_b64": "nhSOFEP68zoVZU/413M9CUO7ErpTA7yhSmf0G6yhS/UFhMlxau929Kt4SIbOoeiPm7WQ+CVL0LhSKnLHdbosCA=="
+    }
+   ]
+  },
+  "policy": {
+   "binder_keys": [
+    "fesyj3aL4Pb3Vv3cYWNwEDez3nnVlY0OW+Wely9YHzw="
+   ],
+   "trace_key_thumbprints": [
+    "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8",
+    "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU",
+    "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ"
+   ]
+  }
+ }
+}

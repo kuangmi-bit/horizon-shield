@@ -5,7 +5,7 @@
 // Offline. Run: node nenrin/trace-pin-v0/trace_pin_v0.test.mjs   (in workers/hs-ledger)   exit 1 on any failure.
 import { readFileSync } from "node:fs";
 import { createHash, generateKeyPairSync, sign as edSign } from "node:crypto";
-import { jcs, checkTraceRecord, jwkThumbprint, Refusal, DOES_NOT_ESTABLISH, TRACE_PROFILE_V0_2 } from "./trace_pin_v0.mjs";
+import { jcs, checkTraceRecord, jwkThumbprint, Refusal, DOES_NOT_ESTABLISH, TRACE_PROFILE_V0_2, TRACE_PRODUCERS, registeredProducer, handleTracePin } from "./trace_pin_v0.mjs";
 
 const FX = JSON.parse(readFileSync(new URL("./fixtures/trace_fixtures.json", import.meta.url), "utf8"));
 const R = [];
@@ -129,6 +129,30 @@ t("control", "the profile constant is TRACE's v0.2 tag", TRACE_PROFILE_V0_2 === 
   t("attack", "a cMCP RuntimeClaim envelope is refused by name (enveloped_form), not as a wrong profile", (await refusal(env)) === "enveloped_form", await refusal(env));
   const r = clone(V); r.cmcp_version = "0.1"; r.trace = {};
   t("control", "...a bare record that merely carries extra cmcp_version and trace members still gets its own check", (await refusal(r)) !== "enveloped_form", await refusal(r));
+}
+
+// ---- registered TRACE producers (trace-registry producers/) ------------------------------------------------
+// The registry's own records, copied into ../trace-bind-v0/sources with the producer files (CC BY 4.0).
+{
+  const SRC = new URL("../trace-bind-v0/sources/", import.meta.url);
+  const rd = (p) => JSON.parse(readFileSync(new URL(p, SRC), "utf8"));
+  for (const p of TRACE_PRODUCERS) {
+    const f = rd(p.file);
+    t("control", "producer " + p.producer_id + ": the pinned thumbprint is RFC 7638 of the registry file's key, and x matches", (await jwkThumbprint(f.public_key_jwk)) === p.key_thumbprint && f.public_key_jwk.x === p.x && f.producer_id === p.producer_id, await jwkThumbprint(f.public_key_jwk));
+  }
+  const bern = rd("bernstein-3.20.0-20260920-165918-backend-99365805.json").trace;
+  const cb = await checkTraceRecord(bern, bern.iat + 60);
+  t("control", "a real Bernstein 3.20.0 record from the registry is pinnable and its key is the registered bernstein/3.20.0 key", registeredProducer(cb.key_thumbprint) && registeredProducer(cb.key_thumbprint).producer_id === "bernstein/3.20.0", cb.key_thumbprint);
+  const summit = rd("summit-demo-record.json");
+  const cs = await checkTraceRecord(summit, summit.iat + 60);
+  t("control", "the registry's summit demo record is under the registered verifiable-agent-summit-demo/0.1.0 key", registeredProducer(cs.key_thumbprint) && registeredProducer(cs.key_thumbprint).producer_id === "verifiable-agent-summit-demo/0.1.0", cs.key_thumbprint);
+  t("control", "...and the listing points at the registry file at a fixed commit", /trace-registry\/blob\/[0-9a-f]{40}\/producers\//.test(registeredProducer(cs.key_thumbprint).listed_in));
+  const cl = await checkTraceRecord(V, IAT + 60);
+  t("attack", "a record under a key the registry does not list gets registered_producer null, never a near match", registeredProducer(cl.key_thumbprint) === null);
+  t("attack", "a thumbprint is matched exactly: one character changed is not a registered producer", registeredProducer(cb.key_thumbprint.slice(0, -1) + (cb.key_thumbprint.endsWith("A") ? "B" : "A")) === null);
+  const res = await handleTracePin("/evidence/trace/producers", new Request("https://ledger.example/evidence/trace/producers"), new URL("https://ledger.example/evidence/trace/producers"), {}, "https://ledger.example");
+  const body = await res.json();
+  t("control", "GET /evidence/trace/producers lists the pinned producers with the registry commit", res.status === 200 && body.producers.length === TRACE_PRODUCERS.length && /^[0-9a-f]{40}$/.test(body.source.commit), res.status);
 }
 
 // ---- report -----------------------------------------------------------------------------------------------

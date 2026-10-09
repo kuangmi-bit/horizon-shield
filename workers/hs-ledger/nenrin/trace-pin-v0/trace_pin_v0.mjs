@@ -165,6 +165,33 @@ export async function checkTraceRecord(record, nowSec) {
   };
 }
 
+// ---- registered TRACE producers ---------------------------------------------------------------------------
+// The producer keys agentrust-io/trace-registry lists under producers/, as of the commit named here (registry data
+// CC BY 4.0). This is the TRACE ecosystem's own public list of which key belongs to which producer, and this ledger
+// already mirrors and Bitcoin-witnesses that registry (ogasurfproject-jpg/trace-registry-mirror). When a pinned
+// record's key thumbprint is one of these, the answer names the producer and where the binding was published, so a
+// reader does not have to take "the key the record carries" on faith. It is a lookup, not a judgement: the registry
+// could be wrong, a listed key could be stolen, and a key that is not listed is not thereby suspect.
+// To refresh: copy producers/*.json from the registry, recompute each thumbprint (RFC 7638) and file sha256, and bump
+// TRACE_PRODUCERS_SOURCE.commit. trace_pin_v0.test.mjs recomputes every thumbprint from its x.
+export const TRACE_PRODUCERS_SOURCE = {
+  repository: "https://github.com/agentrust-io/trace-registry",
+  commit: "58850e9d0f7113be2a4c89b3c2e7b03447f2dcce",
+  path: "producers/",
+  license: "CC BY 4.0 (registry data)",
+};
+export const TRACE_PRODUCERS = [
+  { producer_id: "bernstein/3.20.0", key_thumbprint: "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8", x: "ff3LjX7m5f7vj3YD5NS_LqtEzEa_wkD5ZnNPBpSD3o8", active_since: "2026-09-20T17:02:42Z", file: "producers/bernstein-3.20.0.json" },
+  { producer_id: "cmcp-gateway/0.1.0", key_thumbprint: "USN7TcX0GDCWDXb2H2ekb4KDthrGK8bTQxk8I4FfPgg", x: "ToB3lvrNHGjbh8ZPnK0Ogh0zTxLNURCt1rjk5L_M18Q", active_since: "2026-06-12T00:00:00Z", file: "producers/cmcp-gateway-0.1.0.json" },
+  { producer_id: "verifiable-agent-summit-demo/0.1.0", key_thumbprint: "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU", x: "MlMDcC9FD2XTwcHx_cMV7aTqq8sfXlTcyFNSDkqsgSE", active_since: "2026-08-20T19:34:17Z", file: "producers/verifiable-agent-summit-demo-0.1.0.json" },
+];
+export function registeredProducer(thumbprint) {
+  const p = TRACE_PRODUCERS.find((x) => x.key_thumbprint === thumbprint);
+  if (!p) return null;
+  return { producer_id: p.producer_id, active_since: p.active_since, listed_in: TRACE_PRODUCERS_SOURCE.repository + "/blob/" + TRACE_PRODUCERS_SOURCE.commit + "/" + p.file };
+}
+export const PRODUCER_NOTE = "registered_producer names the producer whose key agentrust-io/trace-registry lists with this thumbprint (producers/, at the commit linked). It says the TRACE registry published this key as that producer's; it does not say the record's claims are true, that the key was not stolen, or anything about a record whose key is not listed";
+
 // ---- what every answer says -----------------------------------------------------------------------------
 export const ESTABLISHES = [
   "the ledger received exactly these bytes (the RFC 8785 form of the record as submitted) and their sha256 is the pinned sha",
@@ -184,7 +211,9 @@ export function selfDescription(origin) {
     schema: PIN_SCHEMA,
     what: "Pin a TRACE Trust Record (agentrust-io/trace-spec v0.2) by the sha256 of its RFC 8785 form, so the exact bytes outlive TRACE's 24 hour freshness window and carry a Bitcoin-anchored upper bound on iat",
     post: { url: origin + "/evidence/trace", body: { record: "<the signed TRACE Trust Record, a JSON object with its embedded signature>" } },
-    read: { record: origin + "/evidence/trace/{sha}", raw_bytes: origin + "/evidence/trace/{sha}?format=raw", pending: origin + "/evidence/trace/pending" },
+    read: { record: origin + "/evidence/trace/{sha}", raw_bytes: origin + "/evidence/trace/{sha}?format=raw", pending: origin + "/evidence/trace/pending", registered_producers: origin + "/evidence/trace/producers" },
+    registered_producers: "a pinned record whose key thumbprint agentrust-io/trace-registry lists under producers/ is answered with registered_producer (the producer id and the registry file at a fixed commit); see /evidence/trace/producers",
+    link_to_nenrin_records: "a nenrin-trace-bind-v0 record (workers/hs-ledger/nenrin/trace-bind-v0/SPEC.md) signed by the actor links a NENRIN or MUSUBI record to a pinned TRACE record by sha; npx nenrin-trace-verify bind, or pip install nenrin-verify, checks it offline",
     checks_at_intake: [
       "eat_profile is " + TRACE_PROFILE_V0_2 + " (the v0.1 identifier is refused, as TRACE v0.2 requires)",
       "the ten members the TRACE v0.2 schema requires are present (the full schema is not validated here; run agentrust_trace.validate_json yourself)",
@@ -244,7 +273,8 @@ async function handlePost(request, env, origin, nowSec) {
   await env.LEDGER.put(nKey, String(nc + 1), { expirationTtl: 90000 });
   return j({
     sha: c.sha, status: "pending", url: origin + "/evidence/trace/" + c.sha,
-    key_thumbprint: c.key_thumbprint, iat: c.iat, fresh_at_intake: c.fresh_at_intake,
+    key_thumbprint: c.key_thumbprint, registered_producer: registeredProducer(c.key_thumbprint), producer_note: PRODUCER_NOTE,
+    iat: c.iat, fresh_at_intake: c.fresh_at_intake,
     establishes: ESTABLISHES, does_not_establish: DOES_NOT_ESTABLISH,
   }, 201);
 }
@@ -266,7 +296,8 @@ async function handleGetOne(sha, url, env, origin) {
   return j({
     schema: PIN_SCHEMA, sha, status: n !== null ? "anchored" : "pending",
     received_at: stored.received_at, profile: stored.profile, iat: stored.iat, subject: stored.subject,
-    key_thumbprint: stored.key_thumbprint, transparency: stored.transparency,
+    key_thumbprint: stored.key_thumbprint, registered_producer: registeredProducer(stored.key_thumbprint), producer_note: PRODUCER_NOTE,
+    transparency: stored.transparency,
     age_seconds_at_intake: stored.age_seconds_at_intake, fresh_at_intake: stored.fresh_at_intake,
     anchor: bitcoin, raw_url: origin + "/evidence/trace/" + sha + "?format=raw", record,
     establishes: ESTABLISHES, does_not_establish: DOES_NOT_ESTABLISH,
@@ -277,7 +308,7 @@ async function handlePending(env, origin) {
   const listed = await env.LEDGER.list({ prefix: PENDING_PREFIX });
   const out = [];
   for (const k of listed.keys.slice(0, BATCH_MAX)) {
-    try { const s = JSON.parse(await env.LEDGER.get(k.name)); out.push({ sha: s.sha, iat: s.iat, subject: s.subject, key_thumbprint: s.key_thumbprint, received_at: s.received_at, url: origin + "/evidence/trace/" + s.sha }); } catch (_e) {}
+    try { const s = JSON.parse(await env.LEDGER.get(k.name)); out.push({ sha: s.sha, iat: s.iat, subject: s.subject, key_thumbprint: s.key_thumbprint, registered_producer: (registeredProducer(s.key_thumbprint) || {}).producer_id || null, received_at: s.received_at, url: origin + "/evidence/trace/" + s.sha }); } catch (_e) {}
   }
   out.sort((a, b) => (a.sha < b.sha ? -1 : 1));
   return j({ count: out.length, pending: out, note: "queued for the daily batch at 00:30 UTC" });
@@ -294,6 +325,7 @@ export async function handleTracePin(p, request, url, env, origin, nowSec = Math
   if (request.method !== "GET") return j({ error: "method_not_allowed" }, 405);
   const rest = p.slice("/evidence/trace/".length);
   if (rest === "pending") return handlePending(env, origin);
+  if (rest === "producers") return j({ source: TRACE_PRODUCERS_SOURCE, producers: TRACE_PRODUCERS, note: PRODUCER_NOTE, how_to_check: "fetch each listed file at the commit, compute the RFC 7638 thumbprint of public_key_jwk (sha256 over {\"crv\",\"kty\",\"x\"} in that order, base64url), and compare it with key_thumbprint" });
   const sha = rest.toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(sha)) return j({ error: "sha_must_be_64_hex" }, 400);
   return handleGetOne(sha, url, env, origin);

@@ -17,6 +17,9 @@ export const SOURCES = {
   "nenrin-interop-v0": "interop-v0",
   "nenrin-interop-v0.1": "interop-v0.1",
   "nenrin-interop-v0.2-edge": "interop-v0.2/edge",
+  "nenrin-trace-intake-v0": "trace-intake-v0",
+  "nenrin-trace-bind-v0": "trace-bind-v0",
+  "nenrin-trace-span-v0": "trace-span-v0",
 };
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 

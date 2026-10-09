@@ -13,6 +13,11 @@ The Python twin of the npm package nenrin-verify. Three verifiers held to their 
                written in Python and has no JavaScript twin; the package carries the repository's files byte for
                byte, so nothing has to be cloned to recompute a contract or a settlement
 
+  TRACE        trace.verify_trace_intake / verify_trace_bind (0.5): whether the NENRIN ledger pins a TRACE Trust Record,
+               and a nenrin-trace-bind-v0 record joining a NENRIN or MUSUBI record to a TRACE record (port of
+               trace_verify.mjs; trace-bind-v0/SPEC.md); span_attributes / annotate_span put the bind on the agent's
+               OpenTelemetry GenAI span
+
 And two things for the agent you are building (0.4):
 
   a2a_recorder Recorder: a ClientCallInterceptor for the official A2A Python SDK. Every call your agent makes is
@@ -29,13 +34,16 @@ from ._js import assign as _assign, stringify as _stringify, loads as js_loads
 from .provenance import (VERIFIER_VERSION, candidate_evidence_set, consume_evidence, did_key_resolver,
                          evidence_id, grant_ref, intent_id, posture_line, preflight_report,
                          public_key_from_did_key, receipt_id, verify_provenance)
-from . import agreement_verify, tsugi, musubi, policy
+from . import agreement_verify, tsugi, musubi, policy, trace
+from .trace import (verify_trace_intake, verify_trace_bind, check_trace_record, span_attributes, annotate_span,
+                    check_span_attributes)
 
-__version__ = "0.4.9"
+__version__ = "0.5.0"
 
 __all__ = ["verify_provenance", "consume_evidence", "posture_line", "candidate_evidence_set", "preflight_report",
            "public_key_from_did_key", "did_key_resolver", "evidence_id", "grant_ref", "receipt_id", "intent_id",
-           "agreement_verify", "tsugi", "musubi", "policy", "report_sha256", "report_json", "verify_bundle", "js_loads", "VERIFIER_VERSION", "__version__"]
+           "agreement_verify", "tsugi", "musubi", "policy", "trace", "verify_trace_intake", "verify_trace_bind",
+           "check_trace_record", "span_attributes", "annotate_span", "check_span_attributes", "report_sha256", "report_json", "verify_bundle", "js_loads", "VERIFIER_VERSION", "__version__"]
 
 
 def report_sha256(report):

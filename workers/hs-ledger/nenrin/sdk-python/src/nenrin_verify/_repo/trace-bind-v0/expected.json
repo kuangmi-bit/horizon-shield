@@ -1,0 +1,368 @@
+{
+  "schema": "nenrin-interop-expected-v0",
+  "version": "0.1.0",
+  "verifier": "nenrin-trace-bind-v0 (trace-bind-v0/SPEC.md section 4; sdk/trace_verify.mjs, npm: nenrin-verify)",
+  "note": "the verdict signature each bind bundle must reproduce: verdict, sorted refusal codes, sorted finding codes",
+  "producers_pinned": {
+    "bernstein/3.20.0": "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8",
+    "cmcp-gateway/0.1.0": "USN7TcX0GDCWDXb2H2ekb4KDthrGK8bTQxk8I4FfPgg",
+    "verifiable-agent-summit-demo/0.1.0": "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU"
+  },
+  "cases": {
+    "bound_bernstein_registered_key": {
+      "intent": "a real Bernstein 3.20.0 record; its key is the one trace-registry lists for bernstein/3.20.0, pinned by the relying party",
+      "expect": {
+        "verdict": "bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bound_summit_registered_key": {
+      "intent": "the registry's summit demo record under the key listed for verifiable-agent-summit-demo/0.1.0",
+      "expect": {
+        "verdict": "bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bound_trace_library_record": {
+      "intent": "a record signed by agentrust-trace 0.11.0",
+      "expect": {
+        "verdict": "bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bound_iat_300s_after_act": {
+      "intent": "TRACE issued exactly 300 seconds after the act: inside TRACE's clock skew",
+      "expect": {
+        "verdict": "bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bound_max_age_zero_same_second": {
+      "intent": "max_age_seconds 0 and the act in the same second as iat",
+      "expect": {
+        "verdict": "bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bound_stale_allowed_by_policy": {
+      "intent": "the act is 25 hours after iat and the relying party allows 100000 seconds",
+      "expect": {
+        "verdict": "bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "binder_not_pinned": {
+      "intent": "a valid bind by a binder the relying party did not pin",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "binder_not_pinned"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_signed_by_other_key": {
+      "intent": "binder A's key, binder B's signature",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_signature_invalid"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_signature_without_context": {
+      "intent": "signed over the canonical body without the nenrin-trace-bind-v0 context line: a signature made for another purpose",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_signature_invalid"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "record_changed_after_bind": {
+      "intent": "the NENRIN record differs from the one bound (one action added)",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "record_sha_mismatch"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_claim_tampered": {
+      "intent": "data_class changed in the TRACE record after it was signed and bound",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace:signature_invalid",
+          "trace_sha_mismatch"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_key_not_pinned": {
+      "intent": "a valid record whose key the relying party did not pin",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace_key_not_pinned"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_states_other_thumbprint": {
+      "intent": "the bind names the Bernstein thumbprint for a record signed by another key",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace_key_thumbprint_mismatch"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_issued_after_act": {
+      "intent": "TRACE issued 301 seconds after the act it is said to attest",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace:iat_in_future"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_stale_at_act": {
+      "intent": "the act is 25 hours after iat under the default 86400 second maximum age",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace_stale_at_act"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_enveloped": {
+      "intent": "the cMCP RuntimeClaim from the TRACE vectors: the outer signature is the gateway's, so no key of the record is checked",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace:enveloped_form"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_unsigned_level0": {
+      "intent": "a valid level 0 TRACE record with no embedded signature",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "trace:no_embedded_signature"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "three_independent_failures": {
+      "intent": "binder not pinned, TRACE key not pinned and stale: every stage B failure is listed",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "binder_not_pinned",
+          "trace_key_not_pinned",
+          "trace_stale_at_act"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_schema_other": {
+      "intent": "a bind record of another schema",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_schema"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_extra_member": {
+      "intent": "a ninth member no verifier reads",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_other_relation": {
+      "intent": "relation other than performed_under",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_sig_unpadded": {
+      "intent": "sig_b64 without its padding: one byte string, one spelling",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_acted_at_fraction": {
+      "intent": "acted_at that is not a whole second",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "bind_uppercase_sha": {
+      "intent": "record_sha256 in upper case hex",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "bind_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "policy_binder_keys_not_list": {
+      "intent": "a policy whose binder_keys is a string",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "policy_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "policy_max_age_negative": {
+      "intent": "a negative maximum age",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "policy_malformed"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "record_lone_surrogate": {
+      "intent": "the NENRIN record holds a lone surrogate, which has no RFC 8785 form",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "lone_surrogate"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "trace_unsafe_integer": {
+      "intent": "the TRACE record carries an integer past 2^53 - 1",
+      "expect": {
+        "verdict": "not_bound",
+        "refusals": [
+          "unsafe_integer"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    }
+  }
+}

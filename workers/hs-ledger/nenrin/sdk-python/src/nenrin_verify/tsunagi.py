@@ -37,6 +37,9 @@ CORPORA = {
     "nenrin-interop-v0": "interop-v0",
     "nenrin-interop-v0.1": "interop-v0.1",
     "nenrin-interop-v0.2-edge": "interop-v0.2/edge",
+    "nenrin-trace-intake-v0": "trace-intake-v0",
+    "nenrin-trace-bind-v0": "trace-bind-v0",
+    "nenrin-trace-span-v0": "trace-span-v0",
 }
 
 
@@ -56,6 +59,20 @@ def load_corpus(name, root=None):
         with open(os.path.join(d, "fixtures", case + ".json"), encoding="utf-8") as f:
             batch.append({"name": case, "bundle": json.load(f)})
     return cases, batch
+
+
+def batch_text(name, root=None):
+    """The batch file for a corpus with every fixture's bytes exactly as in the repository (tsunagi.mjs batchText).
+    Re-serialising a parsed fixture is not the same input: a literal like 1e400 or 100000000000000000000, or an escaped
+    lone surrogate, is exactly what some corpora test (trace-intake-v0), and json.dump cannot write all of them back."""
+    d = corpus_dir(name, root)
+    with open(os.path.join(d, "expected.json"), encoding="utf-8") as f:
+        cases = json.load(f)["cases"]
+    parts = []
+    for case in cases:
+        with open(os.path.join(d, "fixtures", case + ".json"), encoding="utf-8") as f:
+            parts.append('{"name":' + json.dumps(case) + ',"bundle":' + f.read().strip() + "}")
+    return "[" + ",".join(parts) + "]"
 
 
 def signature(sig):
@@ -117,7 +134,7 @@ def run(name, cmd, cwd=None, env=None, root=None, timeout=900):
     with tempfile.TemporaryDirectory(prefix="tsunagi-") as t:
         inp, outp = os.path.join(t, "in.json"), os.path.join(t, "out.json")
         with open(inp, "w", encoding="utf-8") as f:
-            json.dump(batch, f, ensure_ascii=False)
+            f.write(batch_text(name, root))
         argv = [a.replace("{in}", inp).replace("{out}", outp) for a in cmd]
         e = dict(os.environ)
         e.update(env or {})

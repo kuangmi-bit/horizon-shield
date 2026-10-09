@@ -1,0 +1,209 @@
+{
+  "schema": "nenrin-interop-expected-v0",
+  "version": "0.1.0",
+  "verifier": "nenrin-otel-v0 span check (trace-bind-v0/SPEC.md section 7; sdk/trace_verify.mjs checkSpanAttributes, npm: nenrin-verify)",
+  "note": "does an exported OpenTelemetry span name exactly the records of a bound nenrin-trace-bind-v0 record",
+  "cases": {
+    "span_bound_bernstein_registered_key": {
+      "intent": "the span carries the attributes spanAttributes() writes for this bound bind",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_bound_summit_registered_key": {
+      "intent": "the span carries the attributes spanAttributes() writes for this bound bind",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_bound_trace_library_record": {
+      "intent": "the span carries the attributes spanAttributes() writes for this bound bind",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_bound_iat_300s_after_act": {
+      "intent": "the span carries the attributes spanAttributes() writes for this bound bind",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_bound_max_age_zero_same_second": {
+      "intent": "the span carries the attributes spanAttributes() writes for this bound bind",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_bound_stale_allowed_by_policy": {
+      "intent": "the span carries the attributes spanAttributes() writes for this bound bind",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_url_points_elsewhere": {
+      "intent": "nenrin.trace.url is a convenience link, not an identifier: a span whose url differs still names the records",
+      "expect": {
+        "verdict": "span_bound",
+        "refusals": [],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_record_sha_swapped": {
+      "intent": "the span names another record than the one bound",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.record.sha256"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_without_bind_sha": {
+      "intent": "the span omits nenrin.bind.sha256",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.bind.sha256"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_other_schema": {
+      "intent": "nenrin.otel.schema other than nenrin-otel-v0",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.otel.schema"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_attributes_of_another_bind": {
+      "intent": "the summit bind's attributes on the Bernstein bundle: same NENRIN record, different bind and TRACE record",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.bind.sha256",
+          "span_attribute_mismatch:nenrin.trace.key_thumbprint",
+          "span_attribute_mismatch:nenrin.trace.sha256"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_thumbprint_case_changed": {
+      "intent": "the key thumbprint upper-cased in the span",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.trace.key_thumbprint"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_numeric_value": {
+      "intent": "an identifier exported as a number rather than a string",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.otel.schema"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_empty": {
+      "intent": "a span with no NENRIN attributes at all",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "span_attribute_mismatch:nenrin.bind.sha256",
+          "span_attribute_mismatch:nenrin.otel.schema",
+          "span_attribute_mismatch:nenrin.record.sha256",
+          "span_attribute_mismatch:nenrin.trace.key_thumbprint",
+          "span_attribute_mismatch:nenrin.trace.sha256"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_correct_but_binder_not_pinned": {
+      "intent": "the span names the bind exactly, but the bind itself is not bound for this relying party",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "binder_not_pinned"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    },
+    "span_correct_but_trace_tampered": {
+      "intent": "the span names the bind exactly, but the TRACE record was changed after signing",
+      "expect": {
+        "verdict": "span_not_bound",
+        "refusals": [
+          "trace:signature_invalid",
+          "trace_sha_mismatch"
+        ],
+        "findings": [
+          "acted_at_is_stated",
+          "trace_claims_not_appraised"
+        ]
+      }
+    }
+  }
+}

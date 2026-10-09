@@ -1,0 +1,79 @@
+{
+ "bind": {
+  "schema": "nenrin-trace-bind-v0",
+  "relation": "performed_under",
+  "record_sha256": "19c44a791a007f2a7f9038c455f70ab2d137083e9e06491136b8895d191e7a53",
+  "trace_sha256": "c44de5ac69363d629a165830ed6224b375bd883cca63d81c5f9f624310e6b8ed",
+  "trace_key_thumbprint": "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ",
+  "acted_at": 1790640060,
+  "binder_public_key_ed25519_b64": "fesyj3aL4Pb3Vv3cYWNwEDez3nnVlY0OW+Wely9YHzw=",
+  "sig_b64": "ePEMNFJkfHRHZFKtgu7AF1t+Sj69pRoSkxCzOwN/Yk6XF/d7ywCdM/XA0DVV83MNOl9Au0V+sVBq7wULlTgNBg=="
+ },
+ "trace": {
+  "appraisal": {
+   "status": "affirming",
+   "verifier": "https://verifier.example/appraise"
+  },
+  "build_provenance": {
+   "digest": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+   "slsa_level": 2
+  },
+  "cnf": {
+   "jwk": {
+    "crv": "Ed25519",
+    "kty": "OKP",
+    "x": "q3T2O3VtoP6y2UGTWeoCcN0E6VqAaeZuom0Ki9jCN30"
+   }
+  },
+  "data_class": "internal",
+  "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+  "iat": 1790640000,
+  "model": {
+   "model_id": "estimator-1",
+   "provider": "example"
+  },
+  "policy": {
+   "bundle_hash": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+   "enforcement_mode": "enforce"
+  },
+  "runtime": {
+   "measurement": "sha256:abababababababababababababababababababababababababababababababab",
+   "platform": "intel-tdx"
+  },
+  "signature": "3QYy5_qyuSXrjLY99YsCW74vS8V1OinFJpMKN3Gbslr9VzrckpHqIDRL9C3z3P-mhJ50J1kxmYKQay8R9i1tAA",
+  "subject": "spiffe://example.org/agent/estimator",
+  "transparency": "https://registry.example/claim/trace-2026-09-29-0001"
+ },
+ "record": {
+  "approvals": [],
+  "contract_ref": {
+   "contract_id": "8f113a3ea64a109085de8a83f47121eb",
+   "contract_sha256": "14474983d760126e1a918ab1cd9f750985f7ee7c97a1c0c235bf450f7718f9f8",
+   "payload_digest": "05e6afe19e44e0faed09110869e9d53dcc5829e0f022f61f74232b2deefd5690"
+  },
+  "delegated_to": [],
+  "nenrin_ref": "8bf29f1ad15165b970b508703a5b49cbd816cbfcc4a3fb6f77a9f80a4cb69771",
+  "performed_actions": [
+   "read",
+   "observe",
+   "emit_witness"
+  ],
+  "schema": "a2a-execution-v0",
+  "signatures": [
+   {
+    "role": "contractor",
+    "sig_b64": "nhSOFEP68zoVZU/413M9CUO7ErpTA7yhSmf0G6yhS/UFhMlxau929Kt4SIbOoeiPm7WQ+CVL0LhSKnLHdbosCA=="
+   }
+  ]
+ },
+ "policy": {
+  "binder_keys": [
+   "fesyj3aL4Pb3Vv3cYWNwEDez3nnVlY0OW+Wely9YHzw="
+  ],
+  "trace_key_thumbprints": [
+   "eXGZiAH6OxMgiUzqcTgubU9pYlSIP3-u6WdQ0w2nxL8",
+   "4PXGQSwQS0Wt33I0I0g7weN1lEupfL8rQRKMEzs1OFU",
+   "ROkhG1X0sq4bLkxcXiuD3yfxJRtv3i_JxIqTzjhbocQ"
+  ]
+ }
+}
