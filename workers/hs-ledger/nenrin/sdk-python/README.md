@@ -146,6 +146,15 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.5.1 (2026-10-09)
+
+`nenrin_verify.trace_pin` (`nenrin-trace-pin`): pin a TRACE Trust Record to the NENRIN ledger in one command and check
+it later. `nenrin-trace-pin trace.json` is a dry run (local intake, nothing sent); `--yes` pins it, and the record
+becomes public; `nenrin-trace-pin status <sha>` reports pending or anchored and recomputes the sha256 of the bytes the
+ledger serves. A record the ledger would refuse is refused locally first, and the ledger's answer must name the sha
+computed here. `--ledger <origin>` names another service with the same contract. The JavaScript twin is
+`npx -p nenrin-verify nenrin-trace-pin`. The verifiers are unchanged.
+
 ## 0.5.0 (2026-10-09)
 
 `nenrin_verify.trace` (`nenrin-trace-verify`): the TRACE intake rule of the NENRIN ledger, the `nenrin-trace-bind-v0`

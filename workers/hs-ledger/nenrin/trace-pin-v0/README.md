@@ -8,6 +8,14 @@ So a record that proves something today cannot be checked by a conformant verifi
 
 How a relying party uses a bound like this is described, without naming any service, in TRACE's informative page [Verifying a record after the freshness window](https://github.com/agentrust-io/trace-spec/blob/main/docs/verifying-after-the-freshness-window.md) (proposed in [agentrust-io Discussion #47](https://github.com/orgs/agentrust-io/discussions/47), merged in [agentrust-io/trace-spec#480](https://github.com/agentrust-io/trace-spec/pull/480) on 2026-10-08): replay the section 3.2.2 freshness comparison at a time T taken from evidence that the exact bytes existed, and report it as a separate, historical check with T and its source stated. A Bitcoin block over the pinned sha is a T of the kind that page calls a second, independent bound: it binds the RFC 8785 bytes, a reader checks it without us, and it bounds when the bytes existed and nothing about what they say.
 
+## Pin one in one command
+
+    npx -p nenrin-verify nenrin-trace-pin trace.json --yes      # or: pipx run --spec nenrin-verify nenrin-trace-pin trace.json --yes
+    npx -p nenrin-verify nenrin-trace-pin status <sha>
+
+Without `--yes` it is a dry run that sends nothing. The client runs this module's intake first, refuses locally what the
+ledger would refuse, and fails if the ledger's sha differs from its own (nenrin-verify 0.5.1).
+
 ## Routes (hs-ledger)
 
 | | |

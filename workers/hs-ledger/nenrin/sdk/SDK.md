@@ -72,6 +72,26 @@ account, no token, no trust in HS. A mismatch exits 2 and prints the two trees t
 attestation (who built it, from which commit) and this script (what that commit builds, on your
 machine), the chain source to package is closed at both ends by the reader, not by the operator.
 
+## 0.5.1 (2026-10-09): pin a TRACE record in one command
+
+`trace_pin_cli.mjs` (`npx -p nenrin-verify nenrin-trace-pin`, export `nenrin-verify/trace-pin`) puts a TRACE Trust
+Record on the NENRIN ledger and checks it later, so a producer no longer has to write the request by hand.
+
+    npx -p nenrin-verify nenrin-trace-pin trace.json          # dry run: checks the record, sends nothing
+    npx -p nenrin-verify nenrin-trace-pin trace.json --yes    # pins it; the record becomes public and cannot be withdrawn
+    npx -p nenrin-verify nenrin-trace-pin status <sha>        # pending or anchored, Bitcoin block, and do the bytes hash to <sha>
+
+Before anything is sent the record goes through the same intake the ledger runs (`nenrin-trace-verify intake`), so
+a record the ledger would refuse is refused locally and never leaves the machine. After a pin the ledger's sha must
+equal the one computed locally, or the command fails. `status` fetches `?format=raw` and recomputes the sha256 itself.
+`--ledger <origin>` names any service with the same contract (https; http only for localhost). Without `--yes` the
+command is a dry run, on purpose: pinning publishes the record.
+
+The Python package carries the same command (`nenrin-trace-pin`, `nenrin_verify.trace_pin`). Tests:
+`trace_pin_cli.test.mjs` runs the client against the ledger module itself (`../trace-pin-v0/trace_pin_v0.mjs`) over an
+in-memory store, with the records TRACE's own library signed (18 checks); `tests/test_trace_pin.py` is the Python
+side. The verifiers are unchanged.
+
 ## 0.5.0 (2026-10-09): TRACE, joined to NENRIN and MUSUBI
 
 `trace_verify.mjs` (`npx -p nenrin-verify nenrin-trace-verify`, export `nenrin-verify/trace`) reads TRACE Trust
