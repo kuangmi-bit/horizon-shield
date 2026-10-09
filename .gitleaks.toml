@@ -14,6 +14,12 @@
 # 2026-09-20: 運営者の公開鍵 (Ed25519、/keys/operator.json で配る公開値、TSUGI Policy Gate の信用アンカー)。
 # executor_test.mjs が OPKEY として持つ (auto でない実行を strict で断る試験の信用集合)。公開鍵で秘密やない。
 # 秘密鍵は運営者の Mac の外に出ん。generic-api-key が名前の KEY 付き代入に反応して赤になるので、この公開値だけ許す。
+# 2026-10-09: TRACE の鍵の thumbprint(RFC 7638、公開鍵の sha256 の base64url)と、bind の固定試験に入れる binder の
+# 公開鍵。どちらも公開鍵から出る公開値で、秘密やない。trace-registry が producers/ で公開する鍵の thumbprint を
+# trace_pin_v0.mjs が持ち、trace-bind-v0 / trace-span-v0 / trace-intake-v0 の fixture(と Python パッケージの写し)が
+# trace_key_thumbprint / nenrin.trace.key_thumbprint / binder_keys に持つ。generic-api-key が名前の key に反応する
+# (a3f0a1aa で 123 件)ので、その欄の形と fixture のファイルだけ許す。binder の秘密鍵は公開の文言から導く試験用で、
+# ファイルには書いてへん。
 title = "horizon-shield gitleaks config"
 
 [extend]
@@ -28,9 +34,11 @@ regexes = [
   "did:key:z[1-9A-HJ-NP-Za-km-z]{32,}",
   '''"(prior_)?key_sha256":\s*"[0-9a-f]{64}"''',
   "fqrEpRuYScHz52eeiuAWAFEeJB3T7VtZJlducNIhzZM=",
+  '''key_thumbprint"?\s*:\s*"[A-Za-z0-9_-]{43}"''',
 ]
 paths = [
   '''workers/hs-ledger/nenrin/task-delegation-bind-v0/t4_fixture\.json''',
   '''workers/hs-ledger/nenrin/provenance-v0/candidate_fixture\.json''',
   '''workers/hs-ledger/nenrin/interop-v0/fixtures/.*\.json''',
+  '''workers/hs-ledger/nenrin/(sdk-python/src/nenrin_verify/_repo/)?trace-(intake|bind|span)-v0/fixtures/.*\.json''',
 ]
