@@ -8,6 +8,13 @@
 <meta name="description" content="6問に答えるだけで、御社に要るAI社員の体数、それぞれのレベルと担当、料金の合計がその場で出ます。株式会社八工門(やくも)。">
 <meta name="theme-color" content="#FFFFFF">
 <meta name="color-scheme" content="light">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AI社員診断">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>html,body{margin:0}</style>
 </head>
 <body>
@@ -127,6 +134,9 @@
   .foot{padding-block:26px 44px;color:var(--mute);font-family:var(--f-mono);font-size:11px;line-height:1.8;border-top:1px solid var(--rule);margin-top:22px}
   .foot b{color:var(--ink)}
   .draft{color:var(--red)}
+  .foot .ver{display:inline-block;margin-top:6px}
+  .foot .ver a{color:var(--red)}
+  @media print{.foot .ver a,#net{display:none}}
 
   .ref{margin-top:24px;border-top:1px solid var(--rule-strong)}
   .ref summary{cursor:pointer;padding-block:16px;font-family:var(--f-mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);list-style:none}
@@ -346,7 +356,8 @@
   <div class="foot">
     <b>株式会社八工門（やくも）</b> ／ AI社員<br>
     お取扱い <span id="f_name">＿＿＿＿＿＿</span> ／ お問い合わせ TEL <span id="f_tel">＿＿＿＿＿＿</span><br>
-    <span>※ 料金は目安（税別、消費税は別途）。正式なお見積りは別途ご提示します。</span>
+    <span>※ 料金は目安（税別、消費税は別途）。正式なお見積りは別途ご提示します。</span><br>
+    <span class="ver">この画面の版 <b id="ver">2026-10-09</b>（料金は 2026-10-07 改定）<span id="net"></span> ／ <a href="#" id="refresh">最新の版を読み込む</a></span>
   </div>
 </div>
 
@@ -627,6 +638,24 @@
       setTimeout(function(){ document.title=t0; },1000);
     });
   }
+})();
+
+// 電波があるときは常に最新を取り、電波がないときは前に開いた版で動かす。
+(function(){
+  var net=document.getElementById('net');
+  function paintNet(){ if(net) net.textContent = navigator.onLine ? '' : ' ・ 電波なし（前に開いた版で動いています）'; }
+  window.addEventListener('online',paintNet); window.addEventListener('offline',paintNet); paintNet();
+  if('serviceWorker' in navigator){
+    try{ navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(function(){}); }catch(e){}
+  }
+  var rf=document.getElementById('refresh');
+  if(rf) rf.addEventListener('click',function(ev){
+    ev.preventDefault();
+    var jobs=[];
+    try{ if(window.caches) jobs.push(caches.keys().then(function(ks){ return Promise.all(ks.filter(function(k){return k.indexOf('ai-shain')===0;}).map(function(k){return caches.delete(k);})); })); }catch(e){}
+    try{ if(navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.scope.indexOf('/ai-shain/')>=0 ? r.unregister() : null; })); })); }catch(e){}
+    Promise.all(jobs).catch(function(){}).then(function(){ var q=new URLSearchParams(location.search); q.set('v',String(Date.now())); location.replace(location.pathname+'?'+q.toString()); });
+  });
 })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">

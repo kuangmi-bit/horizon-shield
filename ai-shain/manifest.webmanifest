@@ -1,0 +1,16 @@
+{
+  "name": "AI社員 レベル診断",
+  "short_name": "AI社員診断",
+  "description": "6問に答えるだけで、御社に要るAI社員の体数、レベルと担当、料金の合計がその場で出ます。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
