@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { generateKeyPairSync, sign } from 'node:crypto'
+import { createHash, generateKeyPairSync, sign } from 'node:crypto'
 import { APS, APS_CLAIMS, ROOT, pinFromDisk, request, setup } from './helpers.ts'
 import { createAdapter } from '../adapters/nenrin-conduct-walk/adapter.ts'
 
@@ -159,4 +159,36 @@ test('N07 as an optional component it never blocks: admitted without a walk, sta
     assert.equal((await e.rt.submit(req)).status, 'provider_confirmed')
     assert.deepEqual(claims(e, req.operation_id), { [C.auth]: 'not_established', [C.covers]: 'not_established', [C.passed]: 'not_established' })
   } finally { await e.close() }
+})
+
+// 0.2.0: nenrin.walk_covers_target, for the candidate v1 CheckInput.target (aeoess/agent-governance-vocabulary#177). v0's runtime
+// passes no target, so these call the component directly with the field set, as the v1 candidate vectors do.
+const T = 'nenrin.walk_covers_target'
+async function targetClaim(walk: unknown, target: string | undefined, trusted: Record<string, unknown> = { ...PAVLO, ...KUANGMI }) {
+  const a = createAdapter({ config: { endpoint: GATE_A2A, trusted_witnesses: trusted, max_age_s: LONG }, secrets: {}, fetch })
+  const input: any = { operation_id: 'op_t', workflow: 'refund', action: { tool: 'refund', args: {} }, evidence: bytes(walk), now: new Date().toISOString() }
+  if (target !== undefined) input.target = target
+  const out = await a.check!(input)
+  return out.claims.find((c: any) => c.claim === T)!
+}
+
+test('N08 target: a real walk of the runtime target establishes it and reports the walked URL as the subject; another endpoint, a trailing slash and no runtime target do not', async () => {
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A), { claim: T, status: 'established', reason: `subject:target=${GATE_A2A}` })
+  assert.deepEqual(await targetClaim(W.kuangmi_gate_mcp, GATE_A2A), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A + '/'), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, 'https://GATE.horizonshield.dev/a2a'), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, undefined), { claim: T, status: 'not_established', reason: 'no_runtime_target' })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A, KUANGMI), { claim: T, status: 'not_established', reason: 'walk_not_authentic' })
+})
+
+test('N09 target: a subject longer than the runtime reason bound is reported by sha256 of the URL, never cut', async () => {
+  const long = 'https://witness-target.example/' + 'a'.repeat(120) + '/a2a'
+  const w = testWalk(r => { r.purpose = 'a2a-conduct-walk-v1: ' + long })
+  const c = await targetClaim(w, long, TEST)
+  assert.equal(c.status, 'established')
+  assert.equal(c.reason, 'subject:target_sha256=' + createHash('sha256').update(long, 'utf8').digest('hex'))
+  assert.ok(c.reason.length <= 120)
+  const exact = 'https://x.example/' + 'b'.repeat(120 - 'subject:target=https://x.example/'.length)
+  const w2 = testWalk(r => { r.purpose = 'a2a-conduct-walk-v1: ' + exact })
+  assert.deepEqual(await targetClaim(w2, exact, TEST), { claim: T, status: 'established', reason: 'subject:target=' + exact })
 })

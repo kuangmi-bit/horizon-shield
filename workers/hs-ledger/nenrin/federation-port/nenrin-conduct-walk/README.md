@@ -19,6 +19,7 @@ claims, so a policy can require exactly what it needs:
 | `nenrin.walk_authentic` | `record_canonical` is a canonical `jidec-path-v1` record (sorted keys, no spaces; its sha256 recomputes when `sha` is given), its `witness.key_url` is on a domain in `trusted_witnesses` and not in `operator_domains`, and its Ed25519 signature over those exact bytes verifies under the key pinned for that domain |
 | `nenrin.walk_covers_endpoint` | the record's purpose is `a2a-conduct-walk-v1: <url>` and `<url>` equals the configured `endpoint` byte for byte |
 | `nenrin.walk_passed_recently` | it covers the endpoint, the verdict is `PASS` with `n_pass == n_total > 0`, and `walked_at` is no older than `max_age_s` (default 604800, seven days) and not later than now + `future_skew_s` (default 300). `valid_until` is `walked_at + max_age_s`, so the runtime's admission deadline enforces freshness |
+| `nenrin.walk_covers_target` | 0.2.0, candidate v1: the runtime passes `CheckInput.target` (not in v0) and the walked URL equals it, exact string, no normalisation. The reason carries the subject: `subject:target=<url>`, or `subject:target_sha256=<hex>` when that would exceed the runtime's 120-unit reason bound. Without a runtime target: `no_runtime_target`. Another URL: `walk_is_not_of_the_runtime_target` |
 
 Malformed input (bytes that are not JSON, not a witness record, a record that is not JSON, an impossible `walked_at`, or no
 `endpoint` in config) is `failed`. Anything else that does not hold is `not_established`, each with its own reason:
@@ -69,10 +70,12 @@ and submits it.
 
 Run `./reproduce.sh`. It clones `aeoess/federation-port` at `3a2f6ce`, adds this component without touching `src/`, seals it
 with the repo's own `scripts/seal.ts` (the sealed manifest is byte-identical to the one here), and runs the full suite:
-**61/61 (the 54 existing tests plus 7 here)**. The repo's `tsc -p tsconfig.json` reports 0 errors. At the first pin,
-`92d5078`, the same files gave 51/51 (44 plus 7); the component did not change between the two. Sealed digests: artifact
-`sha256:50bff064d3e3b9db25b63c96968b617c69182023f5e7d82e8aa515d000804205`, manifest
-`sha256:0d888abe203b1395efea14e4d841e21201708a3629a642c0cefd4731c49f791e`.
+**63/63 (the 54 existing tests plus 9 here)**. The repo's `tsc -p tsconfig.json` reports 0 errors. Sealed digests for 0.2.0:
+artifact `sha256:68efb46e6d7236b2ff8106e98910d4d43e16b442956e83e766481925a3531414`, manifest
+`sha256:33feb066ef01485ea97b6c27c18c74e9ac32888b3f15b88529dc2eacefcbeee4`. 0.1.0 (artifact `sha256:50bff064…`) gave 61/61 at
+the same pin and 51/51 at `92d5078`; 0.2.0 only adds `nenrin.walk_covers_target`, and the three 0.1.0 claims behave as before.
+
+Joint cases with an action-bound source (invinoveritas) on the candidate v1 rule are in `../v1-target-coverage-nenrin/`.
 
 The tests run on three real signed records from the ledger (`test/fixtures/walks.json`), by two outside witnesses:
 - **pipavlo82.github.io**, a walk of `https://gate.horizonshield.dev/a2a`, 7/7 PASS, 2026-10-07 (record `747ecd97…`).
@@ -88,7 +91,7 @@ equal to `walked_at + max_age_s` in the runtime's exact form; no walk, malformed
 each with their own reason; and, as an optional component, never blocking. In every refused case the provider receives no
 request. Records whose time or verdict a test chooses are signed in the test with a throwaway key for `witness.test`.
 
-Two mutations of the adapter were run as a check on the tests: accepting every signature fails N04, and accepting every
-endpoint fails N02.
+Mutations of the adapter were run as a check on the tests: accepting every signature fails N04, accepting every endpoint
+fails N02, and accepting every runtime target fails N08.
 
 MIT. Horizon Shield (The HORIZONs Co., Ltd.).

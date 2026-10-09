@@ -10,12 +10,12 @@
     "contact": "https://github.com/ogasurfproject-jpg"
   },
   "artifact": {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "entry": "adapter.ts",
     "files": [
       "adapter.ts"
     ],
-    "digest": "sha256:50bff064d3e3b9db25b63c96968b617c69182023f5e7d82e8aa515d000804205"
+    "digest": "sha256:68efb46e6d7236b2ff8106e98910d4d43e16b442956e83e766481925a3531414"
   },
   "role": "tool_admission",
   "schemas": {
@@ -53,6 +53,15 @@
         "A walk is one observation from one vantage at one instant; the endpoint may behave differently at another instant or from another vantage",
         "Freshness uses the signed walked_at and the runtime's clock; there is no trusted time source",
         "PASS covers the walk's own assertions (card stable, conduct extension declared and echoed, endpoint answered and bound), not the correctness or quality of any response"
+      ]
+    },
+    {
+      "id": "nenrin.walk_covers_target",
+      "establishes": "Candidate v1 (federation-port has no CheckInput.target in v0): the walk was of exactly the dispatch target the runtime declared for this operation, compared as an exact string with no normalisation. The reason carries the subject read from the signed record: subject:target=<url>, or subject:target_sha256=<hex> when that would exceed the runtime's 120-unit reason bound.",
+      "limits": [
+        "Binds the endpoint only, not the tool, the action arguments, the tenant, the approval id or the operation id",
+        "Reads CheckInput.target only when the runtime passes it; without it the claim is not established (no_runtime_target)",
+        "Says the walk was of that URL, not that the executor dispatches there"
       ]
     }
   ],

@@ -2,6 +2,8 @@
 // workflow dispatches to: that a witness the customer trusts signed exactly these record bytes, that the walk was of that
 // endpoint, and that it passed recently enough. The same check the NENRIN ledger runs when a witness files a record.
 // No network, no dependencies, no secrets. Written against src/contract only.
+// 0.2.0 adds nenrin.walk_covers_target for the candidate v1 CheckInput.target (aeoess/agent-governance-vocabulary#177):
+// the walked URL is compared, exact string, with the runtime's declared target, and reported as the claim's subject.
 import { createHash, createPublicKey, verify } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import type { Adapter, AdapterContext, CheckOutput, ClaimResult, Manifest } from '../../src/contract/types.ts'
@@ -10,6 +12,9 @@ const manifest: Manifest = JSON.parse(readFileSync(new URL('./manifest.json', im
 const C_AUTH = 'nenrin.walk_authentic'
 const C_COVERS = 'nenrin.walk_covers_endpoint'
 const C_PASSED = 'nenrin.walk_passed_recently'
+const C_TARGET = 'nenrin.walk_covers_target'
+/** The runtime bounds reasons to this many UTF-16 units (federation-port REASON_MAX); a longer subject is reported by digest. */
+const REASON_MAX = 120
 const SCHEMA = 'jidec-path-v1'
 const PURPOSE = 'a2a-conduct-walk-v1: '
 const SPKI_ED25519 = Buffer.from('302a300506032b6570032100', 'hex')
@@ -56,7 +61,16 @@ type Trusted = { public_key_ed25519_b64: string; key_url?: string }
 type Config = { endpoint?: string; trusted_witnesses?: Record<string, Trusted>; operator_domains?: string[]; max_age_s?: number; future_skew_s?: number }
 
 function all(status: ClaimResult['status'], reason: string, evidence: Uint8Array = new Uint8Array()): CheckOutput {
-  return { evidence, claims: [C_AUTH, C_COVERS, C_PASSED].map(claim => ({ claim, status, reason })) }
+  return { evidence, claims: [C_AUTH, C_COVERS, C_PASSED, C_TARGET].map(claim => ({ claim, status, reason })) }
+}
+
+/**
+ * The subject of an established target claim, as v0 has no subject field: `subject:target=<url>`, or when that would exceed
+ * the runtime's reason bound, `subject:target_sha256=<hex of sha256 over the URL's UTF-8 bytes>`, so it is never cut.
+ */
+export function targetSubject(url: string): string {
+  const plain = `subject:target=${url}`
+  return plain.length <= REASON_MAX ? plain : `subject:target_sha256=${createHash('sha256').update(url, 'utf8').digest('hex')}`
 }
 
 export function createAdapter(ctx: AdapterContext): Adapter {
@@ -70,6 +84,9 @@ export function createAdapter(ctx: AdapterContext): Adapter {
     describe: () => manifest,
     async check(input): Promise<CheckOutput> {
       const bytes = input.evidence
+      // candidate v1: the runtime's declared dispatch target. v0 has no such field, so it is read only when present as a string.
+      const rt = (input as { target?: unknown }).target
+      const runtimeTarget = typeof rt === 'string' ? rt : null
       if (!bytes || bytes.byteLength === 0) return all('not_established', 'no_walk_presented')
       if (endpoint === null) return all('failed', 'config_endpoint_missing', bytes)
       let w: Record<string, unknown>
@@ -109,7 +126,8 @@ export function createAdapter(ctx: AdapterContext): Adapter {
       }
       if (auth.status !== 'established') {
         return { evidence: bytes, claims: [auth, { claim: C_COVERS, status: 'not_established', reason: 'walk_not_authentic' },
-                                                  { claim: C_PASSED, status: 'not_established', reason: 'walk_not_authentic' }] }
+                                                  { claim: C_PASSED, status: 'not_established', reason: 'walk_not_authentic' },
+                                                  { claim: C_TARGET, status: 'not_established', reason: 'walk_not_authentic' }] }
       }
 
       // 2. coverage: the walk was of the endpoint this workflow dispatches to, byte for byte
@@ -119,6 +137,15 @@ export function createAdapter(ctx: AdapterContext): Adapter {
         : walked === endpoint
           ? { claim: C_COVERS, status: 'established' }
           : { claim: C_COVERS, status: 'not_established', reason: 'walk_is_of_a_different_endpoint' }
+
+      // 2b. target coverage (candidate v1): the walk was of the runtime's declared target, exact string, no normalisation
+      const target: ClaimResult = walked === null
+        ? { claim: C_TARGET, status: 'unsupported', reason: 'not_an_a2a_conduct_walk' }
+        : runtimeTarget === null
+          ? { claim: C_TARGET, status: 'not_established', reason: 'no_runtime_target' }
+          : walked === runtimeTarget
+            ? { claim: C_TARGET, status: 'established', reason: targetSubject(walked) }
+            : { claim: C_TARGET, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' }
 
       // 3. result: every assertion of the walk passed, and the walk is fresh enough to act on
       const v = r.verdict ?? {}
@@ -132,7 +159,7 @@ export function createAdapter(ctx: AdapterContext): Adapter {
       else if (at > nowMs + skewS * 1000) passed = { claim: C_PASSED, status: 'not_established', reason: 'walked_at_in_the_future' }
       else if (!(nowMs <= expiresMs)) passed = { claim: C_PASSED, status: 'not_established', reason: 'walk_older_than_max_age' }
       else passed = { claim: C_PASSED, status: 'established' }
-      const out: CheckOutput = { evidence: bytes, claims: [auth, covers, passed] }
+      const out: CheckOutput = { evidence: bytes, claims: [auth, covers, passed, target] }
       if (passed.status === 'established') out.valid_until = new Date(expiresMs).toISOString()
       return out
     },
