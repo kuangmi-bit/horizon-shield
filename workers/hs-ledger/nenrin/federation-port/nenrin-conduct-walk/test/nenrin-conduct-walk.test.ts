@@ -173,11 +173,12 @@ async function targetClaim(walk: unknown, target: string | undefined, trusted: R
 }
 
 test('N08 target: a real walk of the runtime target establishes it and reports the walked URL as the subject; another endpoint, a trailing slash and no runtime target do not', async () => {
-  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A), { claim: T, status: 'established', reason: `subject:target=${GATE_A2A}` })
-  assert.deepEqual(await targetClaim(W.kuangmi_gate_mcp, GATE_A2A), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' })
-  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A + '/'), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' })
-  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, 'https://GATE.horizonshield.dev/a2a'), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' })
-  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, undefined), { claim: T, status: 'not_established', reason: 'no_runtime_target' })
+  const sub = (u: string) => ({ subject: { target: u } })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A), { claim: T, status: 'established', reason: `subject:target=${GATE_A2A}`, ...sub(GATE_A2A) })
+  assert.deepEqual(await targetClaim(W.kuangmi_gate_mcp, GATE_A2A), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target', ...sub('https://gate.horizonshield.dev/mcp') })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A + '/'), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target', ...sub(GATE_A2A) })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, 'https://GATE.horizonshield.dev/a2a'), { claim: T, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target', ...sub(GATE_A2A) })
+  assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, undefined), { claim: T, status: 'not_established', reason: 'no_runtime_target', ...sub(GATE_A2A) })
   assert.deepEqual(await targetClaim(W.pavlo_gate_a2a, GATE_A2A, KUANGMI), { claim: T, status: 'not_established', reason: 'walk_not_authentic' })
 })
 
@@ -190,5 +191,79 @@ test('N09 target: a subject longer than the runtime reason bound is reported by 
   assert.ok(c.reason.length <= 120)
   const exact = 'https://x.example/' + 'b'.repeat(120 - 'subject:target=https://x.example/'.length)
   const w2 = testWalk(r => { r.purpose = 'a2a-conduct-walk-v1: ' + exact })
-  assert.deepEqual(await targetClaim(w2, exact, TEST), { claim: T, status: 'established', reason: 'subject:target=' + exact })
+  assert.deepEqual(await targetClaim(w2, exact, TEST), { claim: T, status: 'established', reason: 'subject:target=' + exact, subject: { target: exact } })
+  assert.deepEqual((c as any).subject, { target: long })   // the structured subject is never cut or hashed
+})
+
+// 0.3.0: the v1 draft (aeoess/federation-port#5). binds in the manifest, subject.target on both target-bound claims, and
+// walk_passed_recently bound to the runtime target when the runtime declares one.
+const P = 'nenrin.walk_passed_recently'
+async function claimsWith(walk: unknown, target: string | undefined, cfg: Record<string, unknown> = {}) {
+  const a = createAdapter({ config: { endpoint: GATE_A2A, trusted_witnesses: { ...PAVLO, ...KUANGMI, ...TEST }, max_age_s: LONG, ...cfg }, secrets: {}, fetch })
+  const input: any = { operation_id: 'op_p', workflow: 'refund', action: { tool: 'refund', args: {} }, evidence: bytes(walk), now: new Date().toISOString() }
+  if (target !== undefined) input.target = target
+  return Object.fromEntries((await a.check!(input)).claims.map((c: any) => [c.claim, c]))
+}
+
+/** Section 5 of the v1 draft, steps 1 to 6, for a claim declared binds: "target" (the same candidate rules as v1-candidates/target-subject). */
+function targetMatch(r: any, runtimeTarget: string): string {
+  const valid = (t: unknown) => typeof t === 'string' && t !== '' && !/\p{Cs}/u.test(t)
+  const plain = (v: unknown) => typeof v === 'object' && v !== null && [Object.prototype, null].includes(Object.getPrototypeOf(v))
+  if (Object.hasOwn(r, 'subject') && !plain(r.subject)) return 'invalid_subject'
+  if (Object.hasOwn(r, 'subject') && Object.hasOwn(r.subject, 'target') && !valid(r.subject.target)) return 'invalid_subject'
+  if (r.status !== 'established') return 'not_evaluated'
+  if (!Object.hasOwn(r, 'subject') || !Object.hasOwn(r.subject, 'target')) return 'missing_subject'
+  return r.subject.target === runtimeTarget ? 'matched' : 'mismatched'
+}
+
+test('N10 manifest 0.3.0 declares binds on every claim: context for authenticity and the configured endpoint, target for the two target-bound claims', () => {
+  const m = JSON.parse(readFileSync(join(ROOT, 'adapters/nenrin-conduct-walk/manifest.json'), 'utf8'))
+  assert.equal(m.artifact.version, '0.3.0')
+  assert.deepEqual(Object.fromEntries(m.claims.map((c: any) => [c.id, c.binds])),
+    { [C.auth]: 'context', [C.covers]: 'context', [P]: 'target', [T]: 'target' })
+})
+
+test('N11 passed_recently with a runtime target: a passing walk of another endpoint no longer passes; the pass and the coverage are about the same URL', async () => {
+  // the C6 shape inside one component: the configured endpoint is gate /a2a, the runtime target is gate /mcp
+  const kuangmi = await claimsWith(W.kuangmi_gate_mcp, GATE_A2A, { max_age_s: LONG })
+  assert.equal(kuangmi[P].status, 'not_established')
+  assert.equal(kuangmi[P].reason, 'walk_is_not_of_the_runtime_target')
+  // a v0 runtime (no target): unchanged from 0.2.0, the pass of the configured endpoint, no subject
+  const v0 = await claimsWith(W.pavlo_gate_a2a, undefined)
+  assert.equal(v0[P].status, 'established'); assert.equal(Object.hasOwn(v0[P], 'subject'), false)
+  // a v1 runtime whose target is the walked URL: both target-bound claims established with the same subject
+  const v1 = await claimsWith(W.pavlo_gate_a2a, GATE_A2A)
+  assert.equal(v1[P].status, 'established'); assert.deepEqual(v1[P].subject, { target: GATE_A2A })
+  assert.equal(v1[T].status, 'established'); assert.deepEqual(v1[T].subject, { target: GATE_A2A })
+  // the target is the walked URL even when the workflow's configured endpoint is another one
+  const other = await claimsWith(W.kuangmi_gate_mcp, 'https://gate.horizonshield.dev/mcp')
+  assert.equal(other[C.covers].status, 'not_established')
+  assert.equal(other[P].status, 'established'); assert.equal(other[T].status, 'established')
+  // a failing walk of the target: coverage established, the pass is not
+  const failing = testWalk(r => { r.verdict = { ...r.verdict, ok: false, outcome: 'FAIL', n_pass: 0 } })
+  const f = await claimsWith(failing, GATE_A2A)
+  assert.equal(f[T].status, 'established'); assert.equal(f[P].status, 'not_established'); assert.deepEqual(f[P].subject, { target: GATE_A2A })
+})
+
+test('N12 every result this component returns passes section 5 of the v1 draft: matched only on the exact runtime target, never invalid_subject', async () => {
+  const cases: [unknown, string, string, string][] = [
+    [W.pavlo_gate_a2a, GATE_A2A, 'matched', 'matched'],
+    [W.pavlo_gate_a2a, GATE_A2A + '/', 'not_evaluated', 'not_evaluated'],
+    [W.kuangmi_gate_mcp, GATE_A2A, 'not_evaluated', 'not_evaluated'],
+    [W.pavlo_gate_a2a, 'https://GATE.horizonshield.dev/a2a', 'not_evaluated', 'not_evaluated'],
+  ]
+  for (const [walk, rt, wantT, wantP] of cases) {
+    const c = await claimsWith(walk, rt)
+    assert.equal(targetMatch(c[T], rt), wantT, rt)
+    assert.equal(targetMatch(c[P], rt), wantP, rt)
+  }
+  // a component that reported a subject while not establishing must still be refused by the runtime: never matched
+  const long = 'https://witness-target.example/' + 'a'.repeat(200) + '/a2a'
+  const w = testWalk(r => { r.purpose = 'a2a-conduct-walk-v1: ' + long })
+  assert.equal(targetMatch((await claimsWith(w, long))[T], long), 'matched')
+  // a walked URL with a lone surrogate is never reported as a subject
+  const bad = testWalk(r => { r.purpose = 'a2a-conduct-walk-v1: https://x.example/\ud800' })
+  const b = await claimsWith(bad, 'https://x.example/\ud800')
+  assert.equal(Object.hasOwn(b[T], 'subject'), false); assert.equal(b[T].status, 'not_established')
+  assert.equal(Object.hasOwn(b[P], 'subject'), false)   // nor on the pass claim
 })

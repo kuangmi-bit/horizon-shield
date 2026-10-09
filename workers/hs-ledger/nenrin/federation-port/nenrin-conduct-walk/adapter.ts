@@ -4,6 +4,10 @@
 // No network, no dependencies, no secrets. Written against src/contract only.
 // 0.2.0 adds nenrin.walk_covers_target for the candidate v1 CheckInput.target (aeoess/agent-governance-vocabulary#177):
 // the walked URL is compared, exact string, with the runtime's declared target, and reported as the claim's subject.
+// 0.3.0 follows the v1 draft (aeoess/federation-port#5): binds on every claim in the manifest, the walked URL as the structured
+// subject.target of the two target-bound claims, and nenrin.walk_passed_recently bound to the runtime target when the runtime
+// declares one (otherwise a workflow could pair a walk of the target with a pass recorded for another endpoint, C6 inside one
+// component). v0 runtimes ignore subject; the established target claim keeps its subject:target= reason for them.
 import { createHash, createPublicKey, verify } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import type { Adapter, AdapterContext, CheckOutput, ClaimResult, Manifest } from '../../src/contract/types.ts'
@@ -59,6 +63,11 @@ const hostOf = (u: unknown): string | null => {
 
 type Trusted = { public_key_ed25519_b64: string; key_url?: string }
 type Config = { endpoint?: string; trusted_witnesses?: Record<string, Trusted>; operator_domains?: string[]; max_age_s?: number; future_skew_s?: number }
+
+/** ClaimResult plus the structured subject proposed for v1 (aeoess/federation-port#5, section 5). v0 runtimes ignore it. */
+type ClaimResultV1 = ClaimResult & { subject?: { target: string } }
+/** Section 3 of the v1 draft: a non-empty string of Unicode scalar values (no lone surrogates). */
+export const isValidTarget = (t: unknown): t is string => typeof t === 'string' && t !== '' && !/\p{Cs}/u.test(t)
 
 function all(status: ClaimResult['status'], reason: string, evidence: Uint8Array = new Uint8Array()): CheckOutput {
   return { evidence, claims: [C_AUTH, C_COVERS, C_PASSED, C_TARGET].map(claim => ({ claim, status, reason })) }
@@ -138,27 +147,35 @@ export function createAdapter(ctx: AdapterContext): Adapter {
           ? { claim: C_COVERS, status: 'established' }
           : { claim: C_COVERS, status: 'not_established', reason: 'walk_is_of_a_different_endpoint' }
 
-      // 2b. target coverage (candidate v1): the walk was of the runtime's declared target, exact string, no normalisation
-      const target: ClaimResult = walked === null
+      // 2b. target coverage (candidate v1): the walk was of the runtime's declared target, exact string, no normalisation.
+      // The subject is what the signed record names, reported whenever it is a valid target, so the runtime compares it (section 5).
+      const subj = walked !== null && isValidTarget(walked) ? { subject: { target: walked } } : {}
+      const target: ClaimResultV1 = walked === null
         ? { claim: C_TARGET, status: 'unsupported', reason: 'not_an_a2a_conduct_walk' }
-        : runtimeTarget === null
-          ? { claim: C_TARGET, status: 'not_established', reason: 'no_runtime_target' }
-          : walked === runtimeTarget
-            ? { claim: C_TARGET, status: 'established', reason: targetSubject(walked) }
-            : { claim: C_TARGET, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target' }
+        : !isValidTarget(walked)
+          ? { claim: C_TARGET, status: 'not_established', reason: 'walked_url_not_a_valid_target' }
+          : runtimeTarget === null
+            ? { claim: C_TARGET, status: 'not_established', reason: 'no_runtime_target', ...subj }
+            : walked === runtimeTarget
+              ? { claim: C_TARGET, status: 'established', reason: targetSubject(walked), ...subj }
+              : { claim: C_TARGET, status: 'not_established', reason: 'walk_is_not_of_the_runtime_target', ...subj }
 
       // 3. result: every assertion of the walk passed, and the walk is fresh enough to act on
       const v = r.verdict ?? {}
       const nowMs = Date.parse(input.now)
       const at = walkedAtMs(r.walked_at)
       const expiresMs = at + maxAgeS * 1000
-      let passed: ClaimResult
-      if (covers.status !== 'established') passed = { claim: C_PASSED, status: 'not_established', reason: covers.reason ?? 'walk_does_not_cover_endpoint' }
+      // With a runtime target the pass must be a pass of that target (binds: target); without one (a v0 runtime) it is the pass of
+      // the configured endpoint, as in 0.2.0.
+      let passed: ClaimResultV1
+      if (runtimeTarget !== null && walked !== runtimeTarget) passed = { claim: C_PASSED, status: 'not_established', reason: walked === null ? 'not_an_a2a_conduct_walk' : 'walk_is_not_of_the_runtime_target', ...subj }
+      else if (runtimeTarget === null && covers.status !== 'established') passed = { claim: C_PASSED, status: 'not_established', reason: covers.reason ?? 'walk_does_not_cover_endpoint' }
       else if (!(v.ok === true && v.outcome === 'PASS' && Number.isInteger(v.n_total) && v.n_total > 0 && v.n_pass === v.n_total)) passed = { claim: C_PASSED, status: 'not_established', reason: `walk_outcome_${String(v.outcome)}` }
       else if (!Number.isFinite(at)) passed = { claim: C_PASSED, status: 'failed', reason: 'walked_at_malformed' }
       else if (at > nowMs + skewS * 1000) passed = { claim: C_PASSED, status: 'not_established', reason: 'walked_at_in_the_future' }
       else if (!(nowMs <= expiresMs)) passed = { claim: C_PASSED, status: 'not_established', reason: 'walk_older_than_max_age' }
       else passed = { claim: C_PASSED, status: 'established' }
+      if (runtimeTarget !== null && passed.status !== 'failed') passed = { ...passed, ...subj }
       const out: CheckOutput = { evidence: bytes, claims: [auth, covers, passed, target] }
       if (passed.status === 'established') out.valid_until = new Date(expiresMs).toISOString()
       return out

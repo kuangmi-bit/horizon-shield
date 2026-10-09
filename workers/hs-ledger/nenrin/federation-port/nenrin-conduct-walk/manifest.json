@@ -10,12 +10,12 @@
     "contact": "https://github.com/ogasurfproject-jpg"
   },
   "artifact": {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "entry": "adapter.ts",
     "files": [
       "adapter.ts"
     ],
-    "digest": "sha256:68efb46e6d7236b2ff8106e98910d4d43e16b442956e83e766481925a3531414"
+    "digest": "sha256:181bb2e9e69037460d3ab2ece1afeae4a91ba65be62e27e722eb9a78a762ad86"
   },
   "role": "tool_admission",
   "schemas": {
@@ -36,7 +36,8 @@
         "A signature shows who asserted the record, not that its assertions are true",
         "Trusts the pinned key; the key the domain serves today, rotation and revocation are not checked in this version",
         "Says nothing about Bitcoin anchoring: whether the ledger has batched and stamped the record is not checked offline here"
-      ]
+      ],
+      "binds": "context"
     },
     {
       "id": "nenrin.walk_covers_endpoint",
@@ -44,25 +45,28 @@
       "limits": [
         "Binds the endpoint only, not the tool, the action arguments, the tenant, the approval id or the operation id",
         "The same record can be presented for any action dispatched to that endpoint"
-      ]
+      ],
+      "binds": "context"
     },
     {
       "id": "nenrin.walk_passed_recently",
-      "establishes": "On this endpoint every assertion of the walk passed (verdict PASS, n_pass equal to n_total), and the walk was made no more than max_age_s (default 604800) before the evaluation instant and not in its future beyond future_skew_s (default 300).",
+      "establishes": "Every assertion of the walk passed (verdict PASS, n_pass equal to n_total), and the walk was made no more than max_age_s (default 604800) before the evaluation instant and not in its future beyond future_skew_s (default 300). The walk is the one of the runtime's declared target when the runtime passes CheckInput.target (candidate v1, binds target, the walked URL reported as subject.target), and of the endpoint configured for this workflow when it does not (v0).",
       "limits": [
         "A walk is one observation from one vantage at one instant; the endpoint may behave differently at another instant or from another vantage",
         "Freshness uses the signed walked_at and the runtime's clock; there is no trusted time source",
         "PASS covers the walk's own assertions (card stable, conduct extension declared and echoed, endpoint answered and bound), not the correctness or quality of any response"
-      ]
+      ],
+      "binds": "target"
     },
     {
       "id": "nenrin.walk_covers_target",
-      "establishes": "Candidate v1 (federation-port has no CheckInput.target in v0): the walk was of exactly the dispatch target the runtime declared for this operation, compared as an exact string with no normalisation. The reason carries the subject read from the signed record: subject:target=<url>, or subject:target_sha256=<hex> when that would exceed the runtime's 120-unit reason bound.",
+      "establishes": "Candidate v1 (aeoess/federation-port#5): the walk was of exactly the dispatch target the runtime declared for this operation, compared as an exact string with no normalisation. The walked URL read from the signed record is reported as subject.target for the runtime to compare (section 5). For v0 runtimes the established reason also carries subject:target=<url>, or subject:target_sha256=<hex> when that would exceed the 120-unit reason bound.",
       "limits": [
         "Binds the endpoint only, not the tool, the action arguments, the tenant, the approval id or the operation id",
         "Reads CheckInput.target only when the runtime passes it; without it the claim is not established (no_runtime_target)",
         "Says the walk was of that URL, not that the executor dispatches there"
-      ]
+      ],
+      "binds": "target"
     }
   ],
   "profiles": [
