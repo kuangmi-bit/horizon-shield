@@ -1,30 +1,12 @@
 {
-  "board_sha256": "83409107456fe616f079173bfdff59a212af09dfbffd5f9b1168f24aa69db369",
+  "board_sha256": "23ae8ebe6550ee7ee73bd6ae2a52d4313c7c0dee6a0fb3b7b43257d96bcdc34d",
   "differential": {
-    "agree": 38,
+    "agree": 40,
     "bundles": 40,
-    "disagreements": [
-      {
-        "by": {
-          "hs-nenrin-go": "refused [execution_invalid] [evidence_bound_unchecked]",
-          "hs-nenrin-pypi": "refused [execution_invalid] [evidence_bound_unchecked]",
-          "hs-nenrin-reference": "refused [execution_invalid] [evidence_bound_unchecked]",
-          "kuangmi-bit-nenrin-independent-verifiers": "accepted [] [evidence_bound_unchecked]"
-        },
-        "case": "signed|gaction=null"
-      },
-      {
-        "by": {
-          "hs-nenrin-go": "refused [execution_invalid] [evidence_bound_unchecked]",
-          "hs-nenrin-pypi": "refused [execution_invalid] [evidence_bound_unchecked]",
-          "hs-nenrin-reference": "refused [execution_invalid] [evidence_bound_unchecked]",
-          "kuangmi-bit-nenrin-independent-verifiers": "accepted [] [evidence_bound_unchecked]"
-        },
-        "case": "signed|gaction missing both"
-      }
-    ],
+    "disagreements": [],
     "generator": "node gen_edge_bundles.mjs @gen",
     "implementations": [
+      "babyblueviper1-nenrin-cleanroom",
       "hs-nenrin-go",
       "hs-nenrin-pypi",
       "hs-nenrin-reference",
@@ -48,8 +30,18 @@
     "babyblueviper1-approval-v2": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "bcfa6dffe87e367dd5ab1ff78937dbaa8b259e4e",
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
       "id": "babyblueviper1-approval-v2",
+      "language": "Python",
+      "license": "MIT",
+      "ours": false,
+      "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git"
+    },
+    "babyblueviper1-nenrin-cleanroom": {
+      "author": "babyblueviper1",
+      "clone_error": null,
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "id": "babyblueviper1-nenrin-cleanroom",
       "language": "Python",
       "license": "MIT",
       "ours": false,
@@ -58,7 +50,7 @@
     "hs-nenrin-go": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "id": "hs-nenrin-go",
       "language": "Go",
       "license": null,
@@ -68,7 +60,7 @@
     "hs-nenrin-pypi": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "id": "hs-nenrin-pypi",
       "language": "Python",
       "license": null,
@@ -78,7 +70,7 @@
     "hs-nenrin-reference": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "id": "hs-nenrin-reference",
       "language": "JavaScript",
       "license": null,
@@ -88,7 +80,7 @@
     "hs-settle-v1.10-approval": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "id": "hs-settle-v1.10-approval",
       "language": "Python",
       "license": null,
@@ -98,7 +90,7 @@
     "kuangmi-bit-nenrin-independent-verifiers": {
       "author": "kuangmi-bit",
       "clone_error": null,
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "id": "kuangmi-bit-nenrin-independent-verifiers",
       "language": "Python",
       "license": "MIT",
@@ -108,7 +100,7 @@
     "probity-a2a-card-readers": {
       "author": "Sankalp Gilda (astrogilda), Probity AI",
       "clone_error": null,
-      "commit": "dfd182662f647644a8850544f0e14ab8a7f6c32e",
+      "commit": "2cb6f45004f7cbaf0d354d026cfa4a64d43b3d1f",
       "id": "probity-a2a-card-readers",
       "language": "Python",
       "license": "Apache-2.0",
@@ -116,7 +108,7 @@
       "repo": "https://github.com/probityai/agent-evidence-vectors.git"
     }
   },
-  "measured_at": "2026-10-08T23:33:52Z",
+  "measured_at": "2026-10-09T02:07:22Z",
   "pairs": [
     {
       "a": "babyblueviper1-approval-v2",
@@ -128,6 +120,17 @@
       "same": 9,
       "scored_by": "implementation",
       "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"
+    },
+    {
+      "a": "babyblueviper1-approval-v2",
+      "agree": true,
+      "b": "hs-settle-v1.10-approval",
+      "corpus": "musubi-approval-v2",
+      "differ": [],
+      "of": 9,
+      "same": 9,
+      "scored_by": "board",
+      "what": "the same nine vectors, answered by two implementations written by different people and compared by the board against this repository's pinned copy; per-vector result and reason must agree"
     },
     {
       "a": "hs-nenrin-reference",
@@ -174,10 +177,10 @@
       "what": "the edge vectors, read in Go and in Python by different people, compared case by case"
     }
   ],
-  "repository_commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+  "repository_commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
   "runs": [
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -219,11 +222,11 @@
       },
       "reproduced": 5,
       "scored_by": "board",
-      "seconds": 0.1,
+      "seconds": 0.2,
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -317,7 +320,7 @@
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -549,7 +552,7 @@
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -591,11 +594,11 @@
       },
       "reproduced": 5,
       "scored_by": "board",
-      "seconds": 9.7,
+      "seconds": 9.6,
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -689,7 +692,7 @@
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -917,11 +920,11 @@
       },
       "reproduced": 36,
       "scored_by": "board",
-      "seconds": 0.2,
+      "seconds": 0.3,
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -967,7 +970,7 @@
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1061,7 +1064,7 @@
       "status": "ran"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -1293,7 +1296,7 @@
       "status": "ran"
     },
     {
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1309,7 +1312,7 @@
       "stdout_sha256": "b97c6088c71964e16445d2293aa18ec011e890d40b13887d2eefb866c74a9295"
     },
     {
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1325,7 +1328,7 @@
       "stdout_sha256": "e1e79096aedc01ad60a3182d8ce6392c82501e8fee491a89f67552696ef233e0"
     },
     {
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -1341,7 +1344,7 @@
       "stdout_sha256": "021478294fa83a94a2dc7aef8e77830b1eace07cbea7cef9a67ff720e25f386e"
     },
     {
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1387,7 +1390,7 @@
       "status": "ran"
     },
     {
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1481,7 +1484,7 @@
       "status": "ran"
     },
     {
-      "commit": "a5e6bfbb1c6853e1c29ce37910cbe69fd4f74425",
+      "commit": "1c33429a7120180bbfae6ec9889b100f4966e62e",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -1713,7 +1716,379 @@
       "status": "ran"
     },
     {
-      "commit": "bcfa6dffe87e367dd5ab1ff78937dbaa8b259e4e",
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "corpus": "nenrin-interop-v0",
+      "exit": 0,
+      "expected_total": 5,
+      "implementation": "babyblueviper1-nenrin-cleanroom",
+      "of": 5,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "broken_chain": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_chain_broken] [evidence_bound_unchecked,no_digest_link]",
+          "want": "refused [delegation_chain_broken] [evidence_bound_unchecked,no_digest_link]"
+        },
+        "disagreement": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked,witness_disagreement]",
+          "want": "accepted [] [evidence_bound_unchecked,witness_disagreement]"
+        },
+        "equivocation": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_equivocation] [evidence_bound_unchecked]",
+          "want": "refused [execution_equivocation] [evidence_bound_unchecked]"
+        },
+        "forged_signature": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_observation_invalid] [evidence_bound_unchecked]",
+          "want": "refused [delegation_observation_invalid] [evidence_bound_unchecked]"
+        },
+        "pass": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        }
+      },
+      "reproduced": 5,
+      "scored_by": "board",
+      "seconds": 0.2,
+      "status": "ran"
+    },
+    {
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "corpus": "nenrin-interop-v0.1",
+      "exit": 0,
+      "expected_total": 13,
+      "implementation": "babyblueviper1-nenrin-cleanroom",
+      "of": 13,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "evidence_malformed": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [evidence_invalid] []",
+          "want": "refused [evidence_invalid] []"
+        },
+        "incomplete_pair": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_incomplete_pair] []",
+          "want": "refused [execution_incomplete_pair] []"
+        },
+        "linkage_unpresented": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [linkage_receipt_mismatch] [evidence_bound_unchecked]",
+          "want": "refused [linkage_receipt_mismatch] [evidence_bound_unchecked]"
+        },
+        "linkage_unreconciled": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [linkage_receipt_mismatch] [evidence_bound_unchecked]",
+          "want": "refused [linkage_receipt_mismatch] [evidence_bound_unchecked]"
+        },
+        "non_utc_timestamp": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "preflight_invalid": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [preflight_invalid] [declared_executed_divergence,evidence_bound_unchecked]",
+          "want": "refused [preflight_invalid] [declared_executed_divergence,evidence_bound_unchecked]"
+        },
+        "preflight_signature_invalid": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [preflight_signature_invalid] [evidence_bound_unchecked]",
+          "want": "refused [preflight_signature_invalid] [evidence_bound_unchecked]"
+        },
+        "preflight_without_grant": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [preflight_without_grant] [no_execution_records]",
+          "want": "refused [preflight_without_grant] [no_execution_records]"
+        },
+        "provider_sig_invalid": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "self_authorized": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked,self_authorized]",
+          "want": "accepted [] [evidence_bound_unchecked,self_authorized]"
+        },
+        "task_id_mismatch": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [task_id_mismatch] [evidence_bound_unchecked]",
+          "want": "refused [task_id_mismatch] [evidence_bound_unchecked]"
+        },
+        "task_id_missing": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [task_id_mismatch,task_id_missing] [evidence_bound_unchecked]",
+          "want": "refused [task_id_mismatch,task_id_missing] [evidence_bound_unchecked]"
+        },
+        "witness_is_party": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_observation_invalid] [evidence_bound_unchecked]",
+          "want": "refused [delegation_observation_invalid] [evidence_bound_unchecked]"
+        }
+      },
+      "reproduced": 13,
+      "scored_by": "board",
+      "seconds": 0.5,
+      "status": "ran"
+    },
+    {
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "corpus": "nenrin-interop-v0.2-edge",
+      "exit": 0,
+      "expected_total": 36,
+      "implementation": "babyblueviper1-nenrin-cleanroom",
+      "of": 36,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "evidence_empty_array": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [evidence_invalid] []",
+          "want": "refused [evidence_invalid] []"
+        },
+        "evidence_empty_object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [evidence_invalid] []",
+          "want": "refused [evidence_invalid] []"
+        },
+        "evidence_zero": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [no_evidence_bound]",
+          "want": "accepted [] [no_evidence_bound]"
+        },
+        "grant_key_not_object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_incomplete_pair,execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_incomplete_pair,execution_invalid] [evidence_bound_unchecked]"
+        },
+        "intent_key_not_object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [preflight_invalid] [evidence_bound_unchecked]",
+          "want": "refused [preflight_invalid] [evidence_bound_unchecked]"
+        },
+        "key_identity_noncanonical_signbit": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "key_identity_small_order": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "key_mixed_order": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "key_order8_small_order": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "obs_element_not_object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_observation_invalid] [evidence_bound_unchecked,no_digest_link]",
+          "want": "refused [delegation_observation_invalid] [evidence_bound_unchecked,no_digest_link]"
+        },
+        "obs_nonobject_with_valid": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_observation_invalid] [evidence_bound_unchecked]",
+          "want": "refused [delegation_observation_invalid] [evidence_bound_unchecked]"
+        },
+        "outcome_not_object": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [no_evidence_bound]",
+          "want": "accepted [] [no_evidence_bound]"
+        },
+        "prev_absent_seq0": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_chain_broken] [evidence_bound_unchecked]",
+          "want": "refused [delegation_chain_broken] [evidence_bound_unchecked]"
+        },
+        "receipt_key_not_object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "receipts_element_not_object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_incomplete_pair,execution_invalid] []",
+          "want": "refused [execution_incomplete_pair,execution_invalid] []"
+        },
+        "require_signatures_false": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        },
+        "require_signatures_zero": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "seq_duplicate_same_verdict": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        },
+        "seq_not_integer": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [delegation_chain_broken] [evidence_bound_unchecked]",
+          "want": "refused [delegation_chain_broken] [evidence_bound_unchecked]"
+        },
+        "sig_canonical_ok": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        },
+        "sig_missing_padding": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "sig_noncanonical_trailing_bits": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "sig_trailing_newline": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "sig_urlsafe_alphabet": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "sig_whitespace": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]",
+          "want": "refused [execution_signature_invalid,execution_unreconciled] [evidence_bound_unchecked]"
+        },
+        "ts_fraction_truncation_ok": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        },
+        "ts_hour_24": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "ts_impossible_day": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "ts_lowercase_tz": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "ts_offset": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "ts_real_day_ok": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        },
+        "ts_second_60": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "ts_trailing_newline": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "ts_year_zero": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [execution_invalid] [evidence_bound_unchecked]",
+          "want": "refused [execution_invalid] [evidence_bound_unchecked]"
+        },
+        "unknown_bundle_keys": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked]",
+          "want": "accepted [] [evidence_bound_unchecked]"
+        },
+        "verdict_missing_is_distinct": {
+          "ok": true,
+          "reason": null,
+          "result": "accepted [] [evidence_bound_unchecked,witness_disagreement]",
+          "want": "accepted [] [evidence_bound_unchecked,witness_disagreement]"
+        }
+      },
+      "reproduced": 36,
+      "scored_by": "board",
+      "seconds": 1.2,
+      "status": "ran"
+    },
+    {
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -1775,7 +2150,104 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "27694b120cdc1a2740fcd9b4a1451b53df9f3388",
+      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "corpus": "musubi-approval-v2",
+      "exit": 0,
+      "expected_total": 9,
+      "implementation": "babyblueviper1-approval-v2",
+      "of": 9,
+      "ours": false,
+      "passed": true,
+      "per_vector": {
+        "v2-action-not-permitted": {
+          "ok": true,
+          "reason": "action_not_permitted_for_approver",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "action_not_permitted_for_approver",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-approver-not-pinned": {
+          "ok": true,
+          "reason": "approver_not_pinned",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "approver_not_pinned",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-bare-action-string": {
+          "ok": true,
+          "reason": "not_an_approver_approval",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "not_an_approver_approval",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-forged-unpinned-key": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "bad_signature",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-malformed-nonce": {
+          "ok": true,
+          "reason": "malformed",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "malformed",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-no-approver-pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "approval_self_asserted",
+          "want": {
+            "reason": null,
+            "result": "approval_self_asserted"
+          }
+        },
+        "v2-replayed-to-other-contract": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "bad_signature",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-tampered-after-signing": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "bad_signature",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-valid-approval": {
+          "ok": true,
+          "reason": null,
+          "result": "approved",
+          "want": {
+            "reason": null,
+            "result": "approved"
+          }
+        }
+      },
+      "reproduced": 9,
+      "scored_by": "board",
+      "seconds": 0.0,
+      "status": "ran"
+    },
+    {
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -1837,7 +2309,104 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "dfd182662f647644a8850544f0e14ab8a7f6c32e",
+      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "corpus": "musubi-approval-v2",
+      "exit": 0,
+      "expected_total": 9,
+      "implementation": "hs-settle-v1.10-approval",
+      "of": 9,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "v2-action-not-permitted": {
+          "ok": true,
+          "reason": "action_not_permitted_for_approver",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "action_not_permitted_for_approver",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-approver-not-pinned": {
+          "ok": true,
+          "reason": "approver_not_pinned",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "approver_not_pinned",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-bare-action-string": {
+          "ok": true,
+          "reason": "not_an_approver_approval",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "not_an_approver_approval",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-forged-unpinned-key": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "bad_signature",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-malformed-nonce": {
+          "ok": true,
+          "reason": "malformed",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "malformed",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-no-approver-pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "approval_self_asserted",
+          "want": {
+            "reason": null,
+            "result": "approval_self_asserted"
+          }
+        },
+        "v2-replayed-to-other-contract": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "bad_signature",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-tampered-after-signing": {
+          "ok": true,
+          "reason": "bad_signature",
+          "result": "approval_unverified",
+          "want": {
+            "reason": "bad_signature",
+            "result": "approval_unverified"
+          }
+        },
+        "v2-valid-approval": {
+          "ok": true,
+          "reason": null,
+          "result": "approved",
+          "want": {
+            "reason": null,
+            "result": "approved"
+          }
+        }
+      },
+      "reproduced": 9,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "2cb6f45004f7cbaf0d354d026cfa4a64d43b3d1f",
       "corpus": "a2a-card-sign-v01/s3-unknown-fields (unknown-retain)",
       "exit": 0,
       "expected_total": 13,
@@ -1906,7 +2475,7 @@
       "stdout_sha256": "c20aeb271eb52ccd54b5bea5b1fe107db16d894eda4f50a22d1b332895c498e4"
     },
     {
-      "commit": "dfd182662f647644a8850544f0e14ab8a7f6c32e",
+      "commit": "2cb6f45004f7cbaf0d354d026cfa4a64d43b3d1f",
       "corpus": "a2a-card-sign-v01/s4-dual-name",
       "exit": 0,
       "expected_total": 5,
@@ -1956,7 +2525,7 @@
       "scored_by": "implementation",
       "seconds": 1.9,
       "status": "ran",
-      "stdout_sha256": "505b048eca0d279784a20a5e90abdc0747042c3bbb94819870216bec62b927e6"
+      "stdout_sha256": "e173149ae4a7d07bf2a0a59558af27878c827af0bd7e82bda6c485ccd7a63e9f"
     }
   ],
   "schema": "hs-tsunagi-board-v1",
@@ -1968,9 +2537,9 @@
       "babyblueviper1",
       "kuangmi-bit"
     ],
-    "outside_passed": 10,
-    "passed": 20,
-    "refereed_passed": 12,
-    "runs": 20
+    "outside_passed": 14,
+    "passed": 25,
+    "refereed_passed": 17,
+    "runs": 25
   }
 }
