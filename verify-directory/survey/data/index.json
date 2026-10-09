@@ -41,6 +41,24 @@
       "role": "limits"
     },
     {
+      "file": "lookup_details.json",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/lookup_details.json",
+      "bytes": 5276005,
+      "sha256": "62ca19da4e41e873357b81482fb862d51df48230a45ebb81cf7999527d336a2f",
+      "what": null,
+      "role": "undescribed",
+      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
+    },
+    {
+      "file": "lookup_index.json",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/lookup_index.json",
+      "bytes": 1581527,
+      "sha256": "5f503aab76f609a65f0de0678700eb975b6b749f7711d947347c8da7e3de7140",
+      "what": null,
+      "role": "undescribed",
+      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
+    },
+    {
       "file": "survey0_v4_2026-08-19.json",
       "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey0_v4_2026-08-19.json",
       "bytes": 2988,
@@ -230,6 +248,16 @@
       "what": "The sample for survey8, fixed before any request: the 1,106 rows of the 2026-08-23 walk that failed in transport (not_reached by DNS, TLS, timeout or reset; gateway 5xx; initialize answered 429), split into six classes from each row's stored reason, and 300 of them drawn per class from the seed written in the file (proportional allocation, largest remainders). Its sha256 was posted on modelcontextprotocol/registry discussion #1547 before the run. Recompute: python3 tools/survey8_transport_recheck.py plan <run2> --seed <seed> --n 300 --out <file> gives the same bytes.",
       "made_by": "tools/survey8_transport_recheck.py",
       "role": "plan"
+    },
+    {
+      "file": "survey8_transport_recheck_2026-10-10.jsonl",
+      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey8_transport_recheck_2026-10-10.jsonl",
+      "bytes": 166459,
+      "sha256": "c256833bc7b8251076166d5ca2dd2cece9f8a1119dbf942d8aa9de91894f62c1",
+      "lines": 300,
+      "what": "The 300 planned rows measured again with the walk's own instrument (robots re-read, control address, retries), the class written at write time, the vantage stated. Read only, no tool calls. Recompute: python3 tools/survey8_transport_recheck.py recompute <run2> <this file>.",
+      "made_by": "tools/survey8_transport_recheck.py",
+      "role": "correction"
     }
   ]
 }
