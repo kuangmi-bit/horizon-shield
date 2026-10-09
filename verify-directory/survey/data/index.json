@@ -41,24 +41,6 @@
       "role": "limits"
     },
     {
-      "file": "lookup_details.json",
-      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/lookup_details.json",
-      "bytes": 5276005,
-      "sha256": "62ca19da4e41e873357b81482fb862d51df48230a45ebb81cf7999527d336a2f",
-      "what": null,
-      "role": "undescribed",
-      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
-    },
-    {
-      "file": "lookup_index.json",
-      "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/lookup_index.json",
-      "bytes": 1581527,
-      "sha256": "5f503aab76f609a65f0de0678700eb975b6b749f7711d947347c8da7e3de7140",
-      "what": null,
-      "role": "undescribed",
-      "note": "This file has no description in tools/survey/build_dataset_index.py. It is listed anyway. A dataset index that quietly omits files is not an index."
-    },
-    {
       "file": "survey0_v4_2026-08-19.json",
       "url": "https://shield.the-horizons-innovation.com/verify-directory/survey/data/survey0_v4_2026-08-19.json",
       "bytes": 2988,

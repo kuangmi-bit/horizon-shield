@@ -22,6 +22,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -216,13 +217,29 @@ def sha256(path):
     return h.hexdigest()
 
 
+def git_ignored(names):
+    """The names git ignores in D (.gitignore). They are local build output, never published, so they have no URL to
+    list. Without this, --write on a machine that has built them (lookup_*.json) writes an index that a clean checkout,
+    such as CI, does not match (2026-10-10, survey-report run 38005752144). Files git does not ignore are all listed,
+    described or not."""
+    if not names:
+        return set()
+    try:
+        r = subprocess.run(["git", "-C", D, "check-ignore", "--"] + list(names), capture_output=True, text=True)
+    except OSError:
+        return set()
+    if r.returncode not in (0, 1):
+        return set()
+    return {os.path.basename(l.strip()) for l in r.stdout.splitlines() if l.strip()}
+
+
 def build():
     files = []
-    for name in sorted(os.listdir(D)):
+    names = sorted(n for n in os.listdir(D) if os.path.isfile(os.path.join(D, n)) and n != "index.json")
+    ignored = git_ignored(names)
+    for name in names:
         p = os.path.join(D, name)
-        if not os.path.isfile(p):
-            continue
-        if name == "index.json":
+        if name in ignored:
             continue
         meta = WHAT.get(name) or next((v for k, v in WHAT_PREFIX.items() if name.startswith(k)), None)
         row = {

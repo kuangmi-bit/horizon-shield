@@ -40,4 +40,17 @@ check("every sampled gateway row flipping adds the whole gateway class (151)", r
 fake[0]["outcome"] = "instrument_down"
 e2 = S.estimate(rows, fake)
 check("instrument_down rows are not counted as rechecked", e2["per_class"][d1[0]["class"]]["rechecked"], a1[d1[0]["class"]] - 1)
+# 2026-10-10: a robots_unreachable row is the host failing again, not a row we skipped. Half the gateway sample
+# unreachable at robots.txt and half flipping counts the unreachable half in the denominator.
+g = [x for x in d1 if x["class"] == "gateway_5xx"]
+fake3 = [{"endpoint": x["endpoint"], "run2_class": x["class"], "outcome": ("speaks_mcp_and_lists_tools" if i % 2 else "robots_unreachable"), "speaks_mcp": bool(i % 2)} for i, x in enumerate(g)]
+e3 = S.estimate(rows, fake3)
+check("robots_unreachable rows stay in the denominator as not flipped", (e3["per_class"]["gateway_5xx"]["rechecked"], e3["per_class"]["gateway_5xx"]["fraction"]), (len(g), (len(g) // 2) / len(g)))
+check("the excluded reading is still reported, and is larger", e3["estimated_flips_if_excluded"] > e3["estimated_flips"], True)
+fake3[0]["outcome"] = "robots_disallowed"
+check("robots_disallowed is left out (the server answered no)", S.estimate(rows, fake3)["per_class"]["gateway_5xx"]["rechecked"], len(g) - 1)
+REAL = os.path.join(os.path.dirname(RUN2), "survey8_transport_recheck_2026-10-10.jsonl")
+if os.path.exists(REAL):
+    er = S.estimate(rows, S.load_rows(REAL))
+    check("the 2026-10-10 run: 109 estimated flips, 53.8% of measured rows", (round(er["estimated_flips"]), round(100 * er["rate_measured"], 1)), (109, 53.8))
 print("\nall passed (%d)" % ok)

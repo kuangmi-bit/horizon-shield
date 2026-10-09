@@ -13,6 +13,7 @@ Three steps, in this order, so the sample cannot be chosen after seeing results:
   1. plan       draw the sample from the seed and write it (rows, classes, seed, sha256). Post the plan's sha256 first.
   2. run        measure exactly the planned rows, nothing else. Reads only, no tool calls.
   3. recompute  print both lines from one row set: the stratified estimate over 10,963 measured rows and over 12,429.
+                A robots_unreachable row counts as not flipped (see estimate()).
 
   python3 tools/survey8_transport_recheck.py plan verify-directory/survey/data/survey1_walk_2026-08-23_run2.jsonl \
       --seed survey8-2026-10-10 --n 300 --out verify-directory/survey/data/survey8_plan.json
@@ -170,24 +171,38 @@ def estimate(run2_rows, recheck_rows):
     speaks = sum(1 for r in run2_rows if r.get("outcome") in SPEAKS)
     measured = sum(1 for r in run2_rows if r.get("outcome") not in SKIPPED)
     total = len(run2_rows)
+    # A row whose robots.txt could not be fetched (robots_unreachable) failed again at the transport layer on the same
+    # host: DNS, TLS, timeout, or a 5xx on robots.txt. The walk does not request /mcp after that (RFC 9309 2.3.1.4, fail
+    # closed), but the host is still not reachable from here, so the row counts as not flipped. The first version left
+    # these rows out of the denominator; 245 of 300 rows were robots_unreachable, so that kept mostly the hosts that had
+    # recovered and overstated the flips about fourfold (410 against 109, 2026-10-10). That reading is still printed as
+    # "if excluded" so the difference is visible. Only robots_disallowed (the server answered and said no) and our own
+    # failures (instrument_down, probe_error) are left out.
+    left_out = ("robots_disallowed", "instrument_down", "probe_error")
     per = {}
     for c in CLASSES:
-        rs = [r for r in recheck_rows if r.get("run2_class") == c and r.get("outcome") not in SKIPPED + ("instrument_down", "probe_error")]
+        rs = [r for r in recheck_rows if r.get("run2_class") == c and r.get("outcome") not in left_out]
         flipped = sum(1 for r in rs if r.get("speaks_mcp"))
-        per[c] = {"population": sizes[c], "rechecked": len(rs), "flipped": flipped,
-                  "fraction": (flipped / len(rs)) if rs else None}
+        unreached = sum(1 for r in rs if r.get("outcome") == "robots_unreachable")
+        ex = len(rs) - unreached
+        per[c] = {"population": sizes[c], "rechecked": len(rs), "robots_unreachable": unreached, "flipped": flipped,
+                  "fraction": (flipped / len(rs)) if rs else None,
+                  "fraction_if_excluded": (flipped / ex) if ex else None}
     added = sum(v["population"] * v["fraction"] for v in per.values() if v["fraction"] is not None)
+    added_ex = sum(v["population"] * v["fraction_if_excluded"] for v in per.values() if v["fraction_if_excluded"] is not None)
     return {"speaks_run2": speaks, "measured": measured, "total": total, "per_class": per, "estimated_flips": added,
             "rate_measured": (speaks + added) / measured, "rate_total": (speaks + added) / total,
-            "floor_measured": speaks / measured, "floor_total": speaks / total}
+            "floor_measured": speaks / measured, "floor_total": speaks / total,
+            "estimated_flips_if_excluded": added_ex, "rate_measured_if_excluded": (speaks + added_ex) / measured}
 
 
 def cmd_recompute(a):
     e = estimate(load_rows(a.run2), load_rows(a.recheck))
     for c, v in e["per_class"].items():
-        print("  %-20s population %5d  rechecked %3d  flipped %3d  fraction %s" % (c, v["population"], v["rechecked"], v["flipped"], "n/a" if v["fraction"] is None else "%.3f" % v["fraction"]))
+        print("  %-20s population %5d  rechecked %3d  robots unreachable %3d  flipped %3d  fraction %s" % (c, v["population"], v["rechecked"], v["robots_unreachable"], v["flipped"], "n/a" if v["fraction"] is None else "%.3f" % v["fraction"]))
     print("floor:     %d / %d = %.1f%%   (%.1f%% of %d)" % (e["speaks_run2"], e["measured"], 100 * e["floor_measured"], 100 * e["floor_total"], e["total"]))
     print("estimate:  (%d + %.0f) / %d = %.1f%%   (%.1f%% of %d)" % (e["speaks_run2"], e["estimated_flips"], e["measured"], 100 * e["rate_measured"], 100 * e["rate_total"], e["total"]))
+    print("if robots-unreachable rows were left out (overstates, not used): (%d + %.0f) / %d = %.1f%%" % (e["speaks_run2"], e["estimated_flips_if_excluded"], e["measured"], 100 * e["rate_measured_if_excluded"]))
 
 
 def main():
