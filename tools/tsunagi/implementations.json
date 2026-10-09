@@ -250,6 +250,53 @@
       "refereed_through": "tools/tsunagi/adapters/py_module_batch.py, which imports the author's module and calls its verify(bundle).signature(); nothing else of this project touches the result"
     },
     {
+      "id": "babyblueviper1-nenrin-cleanroom",
+      "ours": false,
+      "author": "babyblueviper1",
+      "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git",
+      "language": "Python",
+      "license": "MIT",
+      "written_from": "VERIFIER.md alone, without reading the reference implementation or any other NENRIN verifier (the author's statement in examples/nenrin-cleanroom-verifier/README.md)",
+      "runs": [
+        {
+          "corpus": "nenrin-interop-v0",
+          "cwd": "@impl/examples/nenrin-cleanroom-verifier",
+          "cmd": [
+            "python3",
+            "nenrin_cleanroom.py",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 5
+        },
+        {
+          "corpus": "nenrin-interop-v0.1",
+          "cwd": "@impl/examples/nenrin-cleanroom-verifier",
+          "cmd": [
+            "python3",
+            "nenrin_cleanroom.py",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 13
+        },
+        {
+          "corpus": "nenrin-interop-v0.2-edge",
+          "cwd": "@impl/examples/nenrin-cleanroom-verifier",
+          "cmd": [
+            "python3",
+            "nenrin_cleanroom.py",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 36
+        }
+      ]
+    },
+    {
       "id": "babyblueviper1-approval-v2",
       "ours": false,
       "author": "babyblueviper1",
@@ -443,6 +490,16 @@
           "python3",
           "@board/adapters/py_module_batch.py",
           "nenrin_verify_v02_edge",
+          "@in",
+          "@out"
+        ]
+      },
+      {
+        "id": "babyblueviper1-nenrin-cleanroom",
+        "cwd": "@impl/examples/nenrin-cleanroom-verifier",
+        "cmd": [
+          "python3",
+          "nenrin_cleanroom.py",
           "@in",
           "@out"
         ]
