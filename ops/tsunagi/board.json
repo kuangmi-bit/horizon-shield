@@ -1,5 +1,5 @@
 {
-  "board_sha256": "23ae8ebe6550ee7ee73bd6ae2a52d4313c7c0dee6a0fb3b7b43257d96bcdc34d",
+  "board_sha256": "214d50000d3dacf77fa32fc21911f2898d43872be939e25a67eab83d98a5b49e",
   "differential": {
     "agree": 40,
     "bundles": 40,
@@ -30,7 +30,7 @@
     "babyblueviper1-approval-v2": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "id": "babyblueviper1-approval-v2",
       "language": "Python",
       "license": "MIT",
@@ -40,17 +40,27 @@
     "babyblueviper1-nenrin-cleanroom": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "id": "babyblueviper1-nenrin-cleanroom",
       "language": "Python",
       "license": "MIT",
       "ours": false,
       "repo": "https://github.com/babyblueviper1/preaction-governance-conformance.git"
     },
+    "hs-ledger-trace-pin": {
+      "author": "ogasurfproject-jpg",
+      "clone_error": null,
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "id": "hs-ledger-trace-pin",
+      "language": "JavaScript",
+      "license": null,
+      "ours": true,
+      "repo": null
+    },
     "hs-nenrin-go": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "id": "hs-nenrin-go",
       "language": "Go",
       "license": null,
@@ -60,7 +70,7 @@
     "hs-nenrin-pypi": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "id": "hs-nenrin-pypi",
       "language": "Python",
       "license": null,
@@ -70,7 +80,7 @@
     "hs-nenrin-reference": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "id": "hs-nenrin-reference",
       "language": "JavaScript",
       "license": null,
@@ -80,7 +90,7 @@
     "hs-settle-v1.10-approval": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "id": "hs-settle-v1.10-approval",
       "language": "Python",
       "license": null,
@@ -108,7 +118,7 @@
       "repo": "https://github.com/probityai/agent-evidence-vectors.git"
     }
   },
-  "measured_at": "2026-10-09T02:07:22Z",
+  "measured_at": "2026-10-09T04:19:21Z",
   "pairs": [
     {
       "a": "babyblueviper1-approval-v2",
@@ -177,10 +187,10 @@
       "what": "the edge vectors, read in Go and in Python by different people, compared case by case"
     }
   ],
-  "repository_commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+  "repository_commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
   "runs": [
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -222,11 +232,11 @@
       },
       "reproduced": 5,
       "scored_by": "board",
-      "seconds": 0.2,
+      "seconds": 0.1,
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -320,7 +330,7 @@
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -552,7 +562,487 @@
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-intake-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-nenrin-reference",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "canonicalization__01-non-ascii-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__02-non-bmp-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__03-utf16-key-order": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__04-utf16-key-order-nested": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "invalid_canonical_integer_out_of_range": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_canonical_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [lone_surrogate] []",
+          "want": "refused [lone_surrogate] []"
+        },
+        "invalid_canonical_non_finite_float": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [non_finite_number] []",
+          "want": "refused [non_finite_number] []"
+        },
+        "invalid_canonical_plain_trace": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_missing_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [missing_required] []",
+          "want": "refused [missing_required] []"
+        },
+        "invalid_wrong_profile": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsupported_profile] []",
+          "want": "refused [unsupported_profile] []"
+        },
+        "policy-resolution__01-no-policy-uri": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__02-resolved-and-matches": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__03-digest-mismatch-minimal-mutation": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__04-digest-mismatch-different-object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__05-referent-unreachable-no-route": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__06-resolved-and-matches-sha384": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__07-digest-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__08-policy-uri-is-a-relative-reference": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__09-sha384-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__10-policy-uri-carries-a-space": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__11-referent-unreachable-route-fails": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "signed_delegated_hop": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "signed_root": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "valid_appraisal_full": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_cmcp_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [enveloped_form] []",
+          "want": "refused [enveloped_form] []"
+        },
+        "valid_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_level0_with_transcript": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_openshell_import": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.0,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-bind-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-nenrin-reference",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "bind_acted_at_fraction": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_extra_member": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_other_relation": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_schema_other": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_sig_unpadded": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_signature_without_context": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_signed_by_other_key": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_states_other_thumbprint": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_key_thumbprint_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_key_thumbprint_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_uppercase_sha": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "binder_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_bernstein_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_iat_300s_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_max_age_zero_same_second": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_stale_allowed_by_policy": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_summit_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_trace_library_record": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "policy_binder_keys_not_list": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "policy_max_age_negative": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "record_changed_after_bind": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [record_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [record_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "record_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [lone_surrogate] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [lone_surrogate] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "three_independent_failures": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [binder_not_pinned,trace_key_not_pinned,trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [binder_not_pinned,trace_key_not_pinned,trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_claim_tampered": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_enveloped": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:enveloped_form] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:enveloped_form] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_issued_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:iat_in_future] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:iat_in_future] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_key_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_key_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_key_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_stale_at_act": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_unsafe_integer": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [unsafe_integer] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [unsafe_integer] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_unsigned_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:no_embedded_signature] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:no_embedded_signature] [acted_at_is_stated,trace_claims_not_appraised]"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-span-v0",
+      "exit": 0,
+      "expected_total": 16,
+      "implementation": "hs-nenrin-reference",
+      "of": 16,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "span_attributes_of_another_bind": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprint,span_attribute_mismatch:nenrin.trace.sha256] [acted_at_is_stated,trace_claims_not_appr...",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprint,span_attribute_mismatch:nenrin.trace.sha256] [acted_at_is_stated,trace_claims_not_appr..."
+        },
+        "span_bound_bernstein_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_iat_300s_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_max_age_zero_same_second": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_stale_allowed_by_policy": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_summit_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_trace_library_record": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_correct_but_binder_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_correct_but_trace_tampered": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_empty": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.otel.schema,span_attribute_mismatch:nenrin.record.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprin...",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.otel.schema,span_attribute_mismatch:nenrin.record.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprin..."
+        },
+        "span_numeric_value": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_other_schema": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_record_sha_swapped": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.record.sha256] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.record.sha256] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_thumbprint_case_changed": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.trace.key_thumbprint] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.trace.key_thumbprint] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_url_points_elsewhere": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_without_bind_sha": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256] [acted_at_is_stated,trace_claims_not_appraised]"
+        }
+      },
+      "reproduced": 16,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -594,11 +1084,11 @@
       },
       "reproduced": 5,
       "scored_by": "board",
-      "seconds": 9.6,
+      "seconds": 10.3,
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -692,7 +1182,7 @@
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -924,7 +1414,487 @@
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-intake-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-nenrin-go",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "canonicalization__01-non-ascii-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__02-non-bmp-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__03-utf16-key-order": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__04-utf16-key-order-nested": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "invalid_canonical_integer_out_of_range": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_canonical_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [lone_surrogate] []",
+          "want": "refused [lone_surrogate] []"
+        },
+        "invalid_canonical_non_finite_float": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [non_finite_number] []",
+          "want": "refused [non_finite_number] []"
+        },
+        "invalid_canonical_plain_trace": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_missing_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [missing_required] []",
+          "want": "refused [missing_required] []"
+        },
+        "invalid_wrong_profile": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsupported_profile] []",
+          "want": "refused [unsupported_profile] []"
+        },
+        "policy-resolution__01-no-policy-uri": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__02-resolved-and-matches": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__03-digest-mismatch-minimal-mutation": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__04-digest-mismatch-different-object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__05-referent-unreachable-no-route": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__06-resolved-and-matches-sha384": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__07-digest-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__08-policy-uri-is-a-relative-reference": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__09-sha384-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__10-policy-uri-carries-a-space": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__11-referent-unreachable-route-fails": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "signed_delegated_hop": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "signed_root": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "valid_appraisal_full": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_cmcp_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [enveloped_form] []",
+          "want": "refused [enveloped_form] []"
+        },
+        "valid_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_level0_with_transcript": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_openshell_import": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-bind-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-nenrin-go",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "bind_acted_at_fraction": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_extra_member": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_other_relation": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_schema_other": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_sig_unpadded": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_signature_without_context": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_signed_by_other_key": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_states_other_thumbprint": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_key_thumbprint_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_key_thumbprint_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_uppercase_sha": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "binder_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_bernstein_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_iat_300s_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_max_age_zero_same_second": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_stale_allowed_by_policy": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_summit_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_trace_library_record": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "policy_binder_keys_not_list": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "policy_max_age_negative": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "record_changed_after_bind": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [record_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [record_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "record_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [lone_surrogate] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [lone_surrogate] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "three_independent_failures": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [binder_not_pinned,trace_key_not_pinned,trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [binder_not_pinned,trace_key_not_pinned,trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_claim_tampered": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_enveloped": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:enveloped_form] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:enveloped_form] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_issued_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:iat_in_future] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:iat_in_future] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_key_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_key_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_key_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_stale_at_act": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_unsafe_integer": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [unsafe_integer] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [unsafe_integer] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_unsigned_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:no_embedded_signature] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:no_embedded_signature] [acted_at_is_stated,trace_claims_not_appraised]"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-span-v0",
+      "exit": 0,
+      "expected_total": 16,
+      "implementation": "hs-nenrin-go",
+      "of": 16,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "span_attributes_of_another_bind": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprint,span_attribute_mismatch:nenrin.trace.sha256] [acted_at_is_stated,trace_claims_not_appr...",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprint,span_attribute_mismatch:nenrin.trace.sha256] [acted_at_is_stated,trace_claims_not_appr..."
+        },
+        "span_bound_bernstein_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_iat_300s_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_max_age_zero_same_second": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_stale_allowed_by_policy": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_summit_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_trace_library_record": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_correct_but_binder_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_correct_but_trace_tampered": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_empty": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.otel.schema,span_attribute_mismatch:nenrin.record.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprin...",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.otel.schema,span_attribute_mismatch:nenrin.record.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprin..."
+        },
+        "span_numeric_value": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_other_schema": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_record_sha_swapped": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.record.sha256] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.record.sha256] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_thumbprint_case_changed": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.trace.key_thumbprint] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.trace.key_thumbprint] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_url_points_elsewhere": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_without_bind_sha": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256] [acted_at_is_stated,trace_claims_not_appraised]"
+        }
+      },
+      "reproduced": 16,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -966,11 +1936,11 @@
       },
       "reproduced": 5,
       "scored_by": "board",
-      "seconds": 0.1,
+      "seconds": 0.2,
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1064,7 +2034,7 @@
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -1293,6 +2263,670 @@
       "reproduced": 36,
       "scored_by": "board",
       "seconds": 0.4,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-intake-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-nenrin-pypi",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "canonicalization__01-non-ascii-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__02-non-bmp-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__03-utf16-key-order": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__04-utf16-key-order-nested": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "invalid_canonical_integer_out_of_range": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_canonical_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [lone_surrogate] []",
+          "want": "refused [lone_surrogate] []"
+        },
+        "invalid_canonical_non_finite_float": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [non_finite_number] []",
+          "want": "refused [non_finite_number] []"
+        },
+        "invalid_canonical_plain_trace": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_missing_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [missing_required] []",
+          "want": "refused [missing_required] []"
+        },
+        "invalid_wrong_profile": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsupported_profile] []",
+          "want": "refused [unsupported_profile] []"
+        },
+        "policy-resolution__01-no-policy-uri": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__02-resolved-and-matches": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__03-digest-mismatch-minimal-mutation": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__04-digest-mismatch-different-object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__05-referent-unreachable-no-route": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__06-resolved-and-matches-sha384": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__07-digest-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__08-policy-uri-is-a-relative-reference": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__09-sha384-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__10-policy-uri-carries-a-space": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__11-referent-unreachable-route-fails": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "signed_delegated_hop": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "signed_root": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "valid_appraisal_full": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_cmcp_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [enveloped_form] []",
+          "want": "refused [enveloped_form] []"
+        },
+        "valid_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_level0_with_transcript": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_openshell_import": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-bind-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-nenrin-pypi",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "bind_acted_at_fraction": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_extra_member": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_other_relation": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_schema_other": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_sig_unpadded": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_signature_without_context": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_signed_by_other_key": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_signature_invalid] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_states_other_thumbprint": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_key_thumbprint_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_key_thumbprint_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bind_uppercase_sha": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [bind_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "binder_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_bernstein_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_iat_300s_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_max_age_zero_same_second": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_stale_allowed_by_policy": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_summit_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "bound_trace_library_record": {
+          "ok": true,
+          "reason": null,
+          "result": "bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "policy_binder_keys_not_list": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "policy_max_age_negative": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [policy_malformed] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "record_changed_after_bind": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [record_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [record_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "record_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [lone_surrogate] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [lone_surrogate] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "three_independent_failures": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [binder_not_pinned,trace_key_not_pinned,trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [binder_not_pinned,trace_key_not_pinned,trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_claim_tampered": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_enveloped": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:enveloped_form] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:enveloped_form] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_issued_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:iat_in_future] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:iat_in_future] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_key_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_key_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_key_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_stale_at_act": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace_stale_at_act] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_unsafe_integer": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [unsafe_integer] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [unsafe_integer] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "trace_unsigned_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "not_bound [trace:no_embedded_signature] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "not_bound [trace:no_embedded_signature] [acted_at_is_stated,trace_claims_not_appraised]"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-span-v0",
+      "exit": 0,
+      "expected_total": 16,
+      "implementation": "hs-nenrin-pypi",
+      "of": 16,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "span_attributes_of_another_bind": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprint,span_attribute_mismatch:nenrin.trace.sha256] [acted_at_is_stated,trace_claims_not_appr...",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprint,span_attribute_mismatch:nenrin.trace.sha256] [acted_at_is_stated,trace_claims_not_appr..."
+        },
+        "span_bound_bernstein_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_iat_300s_after_act": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_max_age_zero_same_second": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_stale_allowed_by_policy": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_summit_registered_key": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_bound_trace_library_record": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_correct_but_binder_not_pinned": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [binder_not_pinned] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_correct_but_trace_tampered": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [trace:signature_invalid,trace_sha_mismatch] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_empty": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.otel.schema,span_attribute_mismatch:nenrin.record.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprin...",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256,span_attribute_mismatch:nenrin.otel.schema,span_attribute_mismatch:nenrin.record.sha256,span_attribute_mismatch:nenrin.trace.key_thumbprin..."
+        },
+        "span_numeric_value": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_other_schema": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.otel.schema] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_record_sha_swapped": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.record.sha256] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.record.sha256] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_thumbprint_case_changed": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.trace.key_thumbprint] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.trace.key_thumbprint] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_url_points_elsewhere": {
+          "ok": true,
+          "reason": null,
+          "result": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_bound [] [acted_at_is_stated,trace_claims_not_appraised]"
+        },
+        "span_without_bind_sha": {
+          "ok": true,
+          "reason": null,
+          "result": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256] [acted_at_is_stated,trace_claims_not_appraised]",
+          "want": "span_not_bound [span_attribute_mismatch:nenrin.bind.sha256] [acted_at_is_stated,trace_claims_not_appraised]"
+        }
+      },
+      "reproduced": 16,
+      "scored_by": "board",
+      "seconds": 0.1,
+      "status": "ran"
+    },
+    {
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
+      "corpus": "nenrin-trace-intake-v0",
+      "exit": 0,
+      "expected_total": 28,
+      "implementation": "hs-ledger-trace-pin",
+      "of": 28,
+      "ours": true,
+      "passed": true,
+      "per_vector": {
+        "canonicalization__01-non-ascii-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__02-non-bmp-values": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__03-utf16-key-order": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "canonicalization__04-utf16-key-order-nested": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "invalid_canonical_integer_out_of_range": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_canonical_lone_surrogate": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [lone_surrogate] []",
+          "want": "refused [lone_surrogate] []"
+        },
+        "invalid_canonical_non_finite_float": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [non_finite_number] []",
+          "want": "refused [non_finite_number] []"
+        },
+        "invalid_canonical_plain_trace": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsafe_integer] []",
+          "want": "refused [unsafe_integer] []"
+        },
+        "invalid_missing_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [missing_required] []",
+          "want": "refused [missing_required] []"
+        },
+        "invalid_wrong_profile": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [unsupported_profile] []",
+          "want": "refused [unsupported_profile] []"
+        },
+        "policy-resolution__01-no-policy-uri": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__02-resolved-and-matches": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__03-digest-mismatch-minimal-mutation": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__04-digest-mismatch-different-object": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__05-referent-unreachable-no-route": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__06-resolved-and-matches-sha384": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__07-digest-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__08-policy-uri-is-a-relative-reference": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__09-sha384-bound-to-other-referent": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__10-policy-uri-carries-a-space": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "policy-resolution__11-referent-unreachable-route-fails": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "signed_delegated_hop": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "signed_root": {
+          "ok": true,
+          "reason": null,
+          "result": "pinnable [] []",
+          "want": "pinnable [] []"
+        },
+        "valid_appraisal_full": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_cmcp_runtime": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [enveloped_form] []",
+          "want": "refused [enveloped_form] []"
+        },
+        "valid_level0": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_level0_with_transcript": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        },
+        "valid_openshell_import": {
+          "ok": true,
+          "reason": null,
+          "result": "refused [no_embedded_signature] []",
+          "want": "refused [no_embedded_signature] []"
+        }
+      },
+      "reproduced": 28,
+      "scored_by": "board",
+      "seconds": 0.0,
       "status": "ran"
     },
     {
@@ -1716,7 +3350,7 @@
       "status": "ran"
     },
     {
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1762,7 +3396,7 @@
       "status": "ran"
     },
     {
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1856,7 +3490,7 @@
       "status": "ran"
     },
     {
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -2088,7 +3722,7 @@
       "status": "ran"
     },
     {
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -2150,7 +3784,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "f82d69154d0b5eb9881f1ea1065926f86c33fec8",
+      "commit": "df6a9c4660771146ef14241d96c6b7e1e118657d",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -2247,7 +3881,7 @@
       "status": "ran"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -2309,7 +3943,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "ddc9c3ff0f8a816049de609d665eb9e1a8a25ab5",
+      "commit": "63a4d69d6b63ab483f0e76459c926e0b4a65e260",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -2523,7 +4157,7 @@
       "per_vector": null,
       "reproduced": 10,
       "scored_by": "implementation",
-      "seconds": 1.9,
+      "seconds": 2.6,
       "status": "ran",
       "stdout_sha256": "e173149ae4a7d07bf2a0a59558af27878c827af0bd7e82bda6c485ccd7a63e9f"
     }
@@ -2538,8 +4172,8 @@
       "kuangmi-bit"
     ],
     "outside_passed": 14,
-    "passed": 25,
-    "refereed_passed": 17,
-    "runs": 25
+    "passed": 35,
+    "refereed_passed": 27,
+    "runs": 35
   }
 }
