@@ -140,6 +140,84 @@ def scenarios(w):
     return S
 
 
+RP = {"domain": "shop.example", "key_url": "https://shop.example/keys/agreement.json"}
+VIEW = {"height": 99, "header_sha256": "ab" * 32}
+
+
+def raw_private_hex(label):
+    """The fixture key's 32 secret bytes, for the JavaScript twin to sign with. A label, not a secret."""
+    return hashlib.sha256(("admit-fixture:" + label).encode()).hexdigest()
+
+
+def admission_cases(w):
+    """Inputs for admit(), one per reason code and per attack in the threat model, each with the decision it must get.
+
+    Every case is {"name", "contract", "action_request", "presentation", "chain_view", "revocations", "seen_nonces",
+    "policy", "expect": (decision, reasons)}. Used by admit_redteam.py, admit_bytematch.py and admit_consistency.py.
+    """
+    import admit_v0 as A
+    P, N, X = w.contracts["plain"], w.contracts["pinned"], w.contracts["expiring"]
+    native = lambda c: [{"adapter": "musubi-native", "sha256": contract_sha256(c), "verified": True}]
+    cases = []
+
+    def add(name, c, action, expect, nonce=None, key_=None, pres=None, view=None, revs=(), seen=(), policy=None, edit=None, **kw):
+        nonce = nonce or hashlib.sha256(name.encode()).hexdigest()[:32]
+        req = A.build_action_request(c, action, nonce, kw.pop("expiry_height", 500), key_ or w.kb, **kw)
+        if edit:
+            edit(req)
+        cases.append({"name": name, "contract": c, "action_request": req, "presentation": native(c) if pres is None else pres,
+                      "chain_view": dict(view or VIEW), "revocations": list(revs), "seen_nonces": list(seen), "policy": policy,
+                      "expect": (expect[0], list(expect[1]))})
+
+    def anchored(rec, h):
+        return dict(rec, anchor={"height": h, "block_hash": "00" * 32, "proof": []})
+
+    add("a01_read_within_grant", P, "read", ("admit", ["within_grant"]))
+    add("a02_refund_needs_approval", P, "refund", ("escalate", ["conditional_needs_approval"]))
+    add("a03_refund_principal_approved", P, "refund", ("admit", ["within_grant"]), approvals=[w.principal_ok(P, "refund", "11" * 16)])
+    add("a04_delete_prohibited", P, "delete", ("refuse", ["prohibited_action"]))
+    add("a05_transfer_outside_grant", P, "transfer", ("refuse", ["outside_grant"]))
+    add("a06_emit_approver_approved", N, "emit_witness", ("admit", ["within_grant"]), approvals=[w.approver_ok(N)])
+    add("a07_emit_no_approval", N, "emit_witness", ("escalate", ["conditional_needs_approval"]))
+    add("a08_emit_principal_signed_gated", N, "emit_witness", ("escalate", ["conditional_needs_approval"]), approvals=[w.principal_ok(N, "emit_witness", "33" * 16)])
+    add("a09_emit_stranger_key", N, "emit_witness", ("escalate", ["conditional_needs_approval"]), approvals=[w.approver_ok(N, key_=w.kf)])
+    add("a10_amount_over_limit", P, "read", ("refuse", ["amount_over_limit"]), amount=150000,
+        pres=native(P) + [{"adapter": "aps-v2", "sha256": "d" * 64, "verified": True, "limits": {"read": 100000}}])
+    add("a11_delegation_exceeds_parent", P, "read", ("refuse", ["delegation_exceeds_parent"]),
+        pres=native(P) + [{"adapter": "musubi-native", "sha256": "d" * 64, "verified": True, "within_parent": False}])
+    add("a12_contract_expired_grant", X, "read", ("refuse", ["contract_expired"]), view={"height": 101, "header_sha256": "ab" * 32})
+    add("a13_request_expired", P, "read", ("refuse", ["contract_expired"]), expiry_height=98)
+    add("a14_nonce_reused", P, "read", ("refuse", ["nonce_reused"]), nonce="5a" * 16, seen=["5a" * 16])
+    add("a15_grant_revoked", P, "read", ("refuse", ["grant_revoked"]), revs=[anchored(A.build_revocation(P, w.ka), 99)])
+    add("a16_revocation_after_view_not_seen", P, "read", ("admit", ["within_grant"]), revs=[anchored(A.build_revocation(P, w.ka), 100)])
+    add("a17_key_revoked", P, "read", ("refuse", ["key_revoked"]), revs=[anchored(A.build_revocation(P, w.ka, revoked_key_b64=w.pb), 98)])
+    add("a18_presentation_null", P, "read", ("refuse", ["presentation_unverifiable"]),
+        pres=[{"adapter": "aps-v2", "sha256": "c" * 64, "verified": None, "self_asserted": True}])
+    add("a19_presentation_null_policy_escalate", P, "read", ("escalate", ["presentation_unverifiable"]),
+        pres=[{"adapter": "aps-v2", "sha256": "c" * 64, "verified": None, "self_asserted": True}], policy={"on_unverifiable": "escalate"})
+    add("a20_requester_signature_by_stranger", P, "read", ("refuse", ["presentation_unverifiable"]), key_=w.kf)
+
+    def retarget(req):
+        req["action"]["target"] = "/other"
+    add("a21_action_digest_mismatch", P, "read", ("refuse", ["presentation_unverifiable", "action_digest_mismatch"]), edit=retarget, target="/invoices")
+
+    def swap_action(req):
+        req["action"]["action"] = "delete"
+    add("a22_admitted_read_edited_to_delete", P, "read", ("refuse", ["prohibited_action", "presentation_unverifiable", "action_digest_mismatch"]), edit=swap_action)
+    add("a23_revocation_by_contractor_ignored", P, "read", ("admit", ["within_grant"]), revs=[anchored(A.build_revocation(P, w.kb), 98)])
+    add("a24_forged_revocation_other_terms", P, "read", ("admit", ["within_grant"]), revs=[anchored(A.build_revocation(N, w.ka), 98)])
+    add("a25_refund_in_pinned_contract_principal", N, "refund", ("admit", ["within_grant"]), approvals=[w.principal_ok(N, "refund", "77" * 16)])
+    add("a26_approval_expired", N, "emit_witness", ("escalate", ["conditional_needs_approval"]), approvals=[w.approver_ok(N, nonce="6a" * 16, vu=0)])
+    add("a27_delegated_grant_lacks_action", P, "read", ("refuse", ["outside_grant"]),
+        pres=native(P) + [{"adapter": "musubi-native", "sha256": "e" * 64, "verified": True, "within_parent": True,
+                           "grant": {"authorized_actions": ["emit_witness"], "prohibited_actions": ["delete"], "conditional": []}}])
+    add("a28_request_for_other_contract", N, "read", ("refuse", ["outside_grant", "action_digest_mismatch"]),
+        edit=lambda req: None, nonce="9c" * 16)
+    cases[-1]["contract"] = P            # the request above was built and signed for the pinned contract, shown at the plain one
+    cases[-1]["presentation"] = native(P)
+    return cases
+
+
 def settle_all(w=None, settle=None):
     import settle_v1_10 as v110
     w = w or World()

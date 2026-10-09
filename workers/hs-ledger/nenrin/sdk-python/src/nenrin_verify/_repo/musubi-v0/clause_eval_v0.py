@@ -194,5 +194,47 @@ def evaluate_action(contract, action, approvals=(), height=None, authority_ended
     return out
 
 
+# --------------------------------------------------------------------------- self test
+def _selftest():
+    from contract_v0 import parse_strict
+    n = 0
+    fix = os.path.join(HERE, "fixtures", "babyblueviper1_approver_v2", "vectors.json")
+    V = parse_strict(open(fix, encoding="utf-8").read())
+    agree = 0
+    for vec in V["vectors"]:
+        c = V["contracts"][vec["contract"]]
+        got = verify_approver_approval(c, vec["approval"]) if vec.get("approval") is not None else (policy_reading(c), None)
+        assert list(got) == [vec["expect"]["result"], vec["expect"].get("reason")], (vec["id"], got)
+        agree += 1
+    n += 1; print("[1] babyblueviper1's vectors through the shared approver rule: %d/%d agree" % (agree, len(V["vectors"])))
+
+    C = {"grant": {"authorized_actions": ["read", "write", "pay"], "prohibited_actions": ["delete", "pay"],
+                   "conditional": [{"action": "write", "requires": "principal_approval"}, {"action": "delete", "requires": "principal_approval"}],
+                   "expiry_height": 100}}
+    want = {"read": "authorized", "write": "conditional", "delete": "prohibited", "pay": "prohibited", "ship": "unauthorized"}
+    assert {a: classify_action(C, a) for a in want} == want
+    assert clause_path(C, "read") == "grant.authorized_actions[0]" and clause_path(C, "write") == "grant.conditional[0]"
+    assert clause_path(C, "delete") == "grant.prohibited_actions[0]" and clause_path(C, "ship") is None
+    n += 1; print("[2] one action against the grant: prohibited wins over conditional and authorized; an unnamed action is unauthorized")
+
+    ev = lambda a, **k: evaluate_action(C, a, **k)["clauses"]
+    assert ev("read") == [] and ev("ship") == ["unauthorized"] and ev("delete") == ["prohibited"] and ev("write") == ["conditional"]
+    assert ev("read", height=101) == ["after_expiry"] and ev("delete", height=101) == ["after_expiry", "prohibited"]
+    assert ev("ship", height=101) == ["after_expiry", "unauthorized"] and ev("read", height=100) == []
+    assert ev("read", authority_ended=True) == ["revoked"] and ev("delete", height=101, authority_ended=True) == ["revoked"]
+    assert evaluate_action({"grant": {"authorized_actions": []}}, "anything")["clauses"] == ["unauthorized"]
+    assert evaluate_action({}, "anything")["clauses"] == ["unauthorized"]
+    n += 1; print("[3] the walk's order for one action: revoked alone; after_expiry and then the grant clauses; an empty grant authorizes nothing")
+
+    a, b = evaluator_sha256(), evaluator_sha256()
+    assert a == b and len(a) == 64 and a == hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest()
+    n += 1; print("[4] evaluator_sha256 is the sha256 of this file: %s" % a)
+
+    print("\nSELF-TEST PASSED: MUSUBI clause evaluator v0, %d checks (babyblueviper1's 9 vectors; grant membership; the walk's order; the file names itself by sha256)" % n)
+
+
 if __name__ == "__main__":
-    print(RULES, evaluator_sha256())
+    if "--selftest" in sys.argv:
+        _selftest()
+    else:
+        print(RULES, evaluator_sha256())
