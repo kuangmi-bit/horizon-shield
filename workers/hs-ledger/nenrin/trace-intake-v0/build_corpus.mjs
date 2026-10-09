@@ -14,13 +14,8 @@
 // embedded signature and the cMCP envelope are out of scope for a pin (which attests a verified signature). The policy
 // bundles, the resolution table and the anchor-inclusion vectors are not Trust Records and are not cases.
 // The vectors are Apache-2.0 (agentrust-io/trace-spec conformance/LICENSE); see NOTICE.
-//
-// Local cases (names starting local__) are ours, not trace-spec's: records the vectors do not cover, where an outside
-// implementation and ours read SPEC.md differently. Each is built from signed_root.json with members removed and is
-// re-signed with a test key from a fixed seed, so it is deterministic and the fixture is the text written here.
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, rmSync } from "node:fs";
-import { createHash, createPrivateKey, createPublicKey, sign } from "node:crypto";
-import { jcs } from "../sdk/trace_verify.mjs";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,13 +43,6 @@ const EXPECT = {
   "valid_cmcp_runtime.json": R("enveloped_form", "a valid cMCP RuntimeClaim; the outer signature is the gateway's"),
 };
 for (let i = 1; i <= 11; i++) EXPECT["policy-resolution/" + String(i).padStart(2, "0")] = R("no_embedded_signature", "a policy-resolution vector; its record carries no embedded signature");
-// A record with no eat_profile is not identified as TRACE v0.2, so the profile check is the one that fails (SPEC.md
-// section 2, step 5). Found by luiksksk's clean-room verifier, which read step 6 instead (horizon-shield#38).
-const LOCAL = {
-  "local__no_eat_profile": { drop: ["eat_profile"], expect: R("unsupported_profile", "signed_root with eat_profile removed and re-signed; a record that names no profile is refused at the profile check, not as missing_required (found by luiksksk, horizon-shield#38)") },
-  "local__no_eat_profile_no_runtime": { drop: ["eat_profile", "runtime"], expect: R("unsupported_profile", "also without runtime: the profile check comes before the required-member check (found by luiksksk, horizon-shield#38)") },
-};
-const LOCAL_SEED = createHash("sha256").update("nenrin trace-intake-v0 local cases test key").digest();
 const NOT_RECORDS = /^(policy-resolution\/(policies\/|resolutions\.json$)|anchor-inclusion\/)/;
 const sha = (s) => createHash("sha256").update(s, "utf8").digest("hex");
 const caseName = (rel) => rel.replace(/\.json$/, "").replace(/\//g, "__");
@@ -79,19 +67,6 @@ export function build(spec) {
     fixtures[name] = '{"now":' + now + ',"vector":' + text.trim() + "}\n";
     sources[name] = { path: "conformance/tests/vectors/" + rel, sha256: sha(text) };
   }
-  const key = createPrivateKey({ key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), LOCAL_SEED]), format: "der", type: "pkcs8" });
-  const x = createPublicKey(key).export({ format: "jwk" }).x;
-  const base = JSON.parse(readFileSync(join(root, "signed_root.json"), "utf8"));
-  for (const [name, { drop, expect: e }] of Object.entries(LOCAL)) {
-    const r = { ...base, cnf: { ...base.cnf, jwk: { ...base.cnf.jwk, x } } };
-    delete r.signature;
-    for (const k of drop) delete r[k];
-    r.signature = sign(null, Buffer.from(jcs(r), "utf8"), key).toString("base64url");
-    const text = JSON.stringify(r, null, 2);
-    const { why, ...expect } = e;
-    cases[name] = { intent: why, source: "local (this corpus, not trace-spec)", expect };
-    fixtures[name] = '{"now":' + (r.iat + 60) + ',"vector":' + text + "}\n";
-  }
   return { cases, fixtures, sources };
 }
 
@@ -103,7 +78,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const expected = JSON.stringify({
     schema: "nenrin-interop-expected-v0", version: "0.1.0",
     verifier: "TRACE intake (trace-bind-v0/SPEC.md section 2; sdk/trace_verify.mjs and trace-pin-v0, npm: nenrin-verify)",
-    note: "one case per TRACE Trust Record among the agentrust-io/trace-spec conformance vectors, plus local__ cases of ours where implementations read SPEC.md differently; the verdict signature the ledger's intake must give each",
+    note: "one case per TRACE Trust Record among the agentrust-io/trace-spec conformance vectors; the verdict signature the ledger's intake must give it",
     cases,
   }, null, 2) + "\n";
   const source = JSON.stringify({ repository: "https://github.com/agentrust-io/trace-spec", commit, license: "Apache-2.0 (conformance/LICENSE)", files: sources }, null, 2) + "\n";

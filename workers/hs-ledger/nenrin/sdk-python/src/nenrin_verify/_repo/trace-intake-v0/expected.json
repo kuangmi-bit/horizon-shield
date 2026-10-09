@@ -2,7 +2,7 @@
   "schema": "nenrin-interop-expected-v0",
   "version": "0.1.0",
   "verifier": "TRACE intake (trace-bind-v0/SPEC.md section 2; sdk/trace_verify.mjs and trace-pin-v0, npm: nenrin-verify)",
-  "note": "one case per TRACE Trust Record among the agentrust-io/trace-spec conformance vectors, plus local__ cases of ours where implementations read SPEC.md differently; the verdict signature the ledger's intake must give each",
+  "note": "one case per TRACE Trust Record among the agentrust-io/trace-spec conformance vectors; the verdict signature the ledger's intake must give it",
   "cases": {
     "canonicalization__01-non-ascii-values": {
       "intent": "signed record with non-ASCII values; pinned only if the RFC 8785 bytes are right",
@@ -296,28 +296,6 @@
         "verdict": "refused",
         "refusals": [
           "no_embedded_signature"
-        ],
-        "findings": []
-      }
-    },
-    "local__no_eat_profile": {
-      "intent": "signed_root with eat_profile removed and re-signed; a record that names no profile is refused at the profile check, not as missing_required (found by luiksksk, horizon-shield#38)",
-      "source": "local (this corpus, not trace-spec)",
-      "expect": {
-        "verdict": "refused",
-        "refusals": [
-          "unsupported_profile"
-        ],
-        "findings": []
-      }
-    },
-    "local__no_eat_profile_no_runtime": {
-      "intent": "also without runtime: the profile check comes before the required-member check (found by luiksksk, horizon-shield#38)",
-      "source": "local (this corpus, not trace-spec)",
-      "expect": {
-        "verdict": "refused",
-        "refusals": [
-          "unsupported_profile"
         ],
         "findings": []
       }

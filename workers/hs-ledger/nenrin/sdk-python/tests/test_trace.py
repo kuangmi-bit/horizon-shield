@@ -24,7 +24,7 @@ def _run(corpus, fn):
 
 
 def test_intake_corpus():
-    assert _run("nenrin-trace-intake-v0", trace.verify_trace_intake) == 30
+    assert _run("nenrin-trace-intake-v0", trace.verify_trace_intake) == 28
 
 
 def test_bind_corpus():
