@@ -35,13 +35,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "494a8ece"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "494a8ece"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "babyblueviper1-approval-v2 | musubi-approval-v2": {
-   "commit": "8c1aea50a090",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "44e72e1df868",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -74,13 +79,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "8c1aea50"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "44e72e1d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "babyblueviper1-approval-v2 | musubi-approval-v2 | board": {
-   "commit": "8c1aea50a090",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "44e72e1df868",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T02:07:22Z",
    "first_seen": "2026-10-09T02:07:22Z",
    "runs": [
@@ -103,13 +113,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "8c1aea50"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "44e72e1d"
     ]
    ],
-   "streak": 4
+   "streak": 5
   },
   "babyblueviper1-nenrin-cleanroom | nenrin-interop-v0 | board": {
-   "commit": "8c1aea50a090",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "44e72e1df868",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T02:07:22Z",
    "first_seen": "2026-10-09T02:07:22Z",
    "runs": [
@@ -132,13 +147,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "8c1aea50"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "44e72e1d"
     ]
    ],
-   "streak": 4
+   "streak": 5
   },
   "babyblueviper1-nenrin-cleanroom | nenrin-interop-v0.1 | board": {
-   "commit": "8c1aea50a090",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "44e72e1df868",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T02:07:22Z",
    "first_seen": "2026-10-09T02:07:22Z",
    "runs": [
@@ -161,13 +181,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "8c1aea50"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "44e72e1d"
     ]
    ],
-   "streak": 4
+   "streak": 5
   },
   "babyblueviper1-nenrin-cleanroom | nenrin-interop-v0.2-edge | board": {
-   "commit": "8c1aea50a090",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "44e72e1df868",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T02:07:22Z",
    "first_seen": "2026-10-09T02:07:22Z",
    "runs": [
@@ -190,37 +215,47 @@
      "2026-10-09T06:24:53Z",
      true,
      "8c1aea50"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "44e72e1d"
+    ]
+   ],
+   "streak": 5
+  },
+  "hs-ledger-trace-pin | nenrin-trace-intake-v0 | board": {
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
+   "first_pass": "2026-10-09T04:19:21Z",
+   "first_seen": "2026-10-09T04:19:21Z",
+   "runs": [
+    [
+     "2026-10-09T04:19:21Z",
+     true,
+     "63a4d69d"
+    ],
+    [
+     "2026-10-09T05:48:39Z",
+     true,
+     "7fc45638"
+    ],
+    [
+     "2026-10-09T06:24:53Z",
+     true,
+     "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
    "streak": 4
   },
-  "hs-ledger-trace-pin | nenrin-trace-intake-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
-   "first_pass": "2026-10-09T04:19:21Z",
-   "first_seen": "2026-10-09T04:19:21Z",
-   "runs": [
-    [
-     "2026-10-09T04:19:21Z",
-     true,
-     "63a4d69d"
-    ],
-    [
-     "2026-10-09T05:48:39Z",
-     true,
-     "7fc45638"
-    ],
-    [
-     "2026-10-09T06:24:53Z",
-     true,
-     "9358dd47"
-    ]
-   ],
-   "streak": 3
-  },
   "hs-nenrin-go | nenrin-interop-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -253,13 +288,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-go | nenrin-interop-v0.1 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -292,13 +332,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-go | nenrin-interop-v0.2-edge | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -331,13 +376,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-go | nenrin-trace-bind-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -355,13 +405,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-go | nenrin-trace-intake-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -379,13 +434,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-go | nenrin-trace-span-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -403,13 +463,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-pypi | nenrin-interop-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -442,13 +507,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-pypi | nenrin-interop-v0.1 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -481,13 +551,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-pypi | nenrin-interop-v0.2-edge | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -520,13 +595,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-pypi | nenrin-trace-bind-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -544,13 +624,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-pypi | nenrin-trace-intake-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -568,13 +653,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-pypi | nenrin-trace-span-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -592,13 +682,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-reference | nenrin-interop-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -631,13 +726,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-reference | nenrin-interop-v0.1 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -670,13 +770,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-reference | nenrin-interop-v0.2-edge | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -709,13 +814,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-nenrin-reference | nenrin-trace-bind-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -733,13 +843,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-reference | nenrin-trace-intake-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -757,13 +872,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-nenrin-reference | nenrin-trace-span-v0 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T04:19:21Z",
    "first_seen": "2026-10-09T04:19:21Z",
    "runs": [
@@ -781,13 +901,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 3
+   "streak": 4
   },
   "hs-settle-v1.10-approval | musubi-approval-v2": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -820,13 +945,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "hs-settle-v1.10-approval | musubi-approval-v2 | board": {
-   "commit": "9358dd47b5de",
-   "commit_since": "2026-10-09T06:24:53Z",
+   "commit": "6106b85d0eb2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-09T02:07:22Z",
    "first_seen": "2026-10-09T02:07:22Z",
    "runs": [
@@ -849,9 +979,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "9358dd47"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "6106b85d"
     ]
    ],
-   "streak": 4
+   "streak": 5
   },
   "kuangmi-bit-nenrin-independent-verifiers | nenrin-interop-v0": {
    "commit": "1c33429a7120",
@@ -888,9 +1023,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1c33429a"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "1c33429a"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "kuangmi-bit-nenrin-independent-verifiers | nenrin-interop-v0 | board": {
    "commit": "1c33429a7120",
@@ -927,9 +1067,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1c33429a"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "1c33429a"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "kuangmi-bit-nenrin-independent-verifiers | nenrin-interop-v0.1": {
    "commit": "1c33429a7120",
@@ -966,9 +1111,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1c33429a"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "1c33429a"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "kuangmi-bit-nenrin-independent-verifiers | nenrin-interop-v0.1 | board": {
    "commit": "1c33429a7120",
@@ -1005,9 +1155,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1c33429a"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "1c33429a"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "kuangmi-bit-nenrin-independent-verifiers | nenrin-interop-v0.2-edge": {
    "commit": "1c33429a7120",
@@ -1044,9 +1199,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1c33429a"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "1c33429a"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "kuangmi-bit-nenrin-independent-verifiers | nenrin-interop-v0.2-edge | board": {
    "commit": "1c33429a7120",
@@ -1083,9 +1243,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1c33429a"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "1c33429a"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "luiksksk-nenrin-trace-intake-cleanroom | nenrin-trace-intake-v0 | board": {
    "commit": "0016e8e4bb22",
@@ -1102,13 +1267,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "0016e8e4"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "0016e8e4"
     ]
    ],
-   "streak": 2
+   "streak": 3
   },
   "probity-a2a-card-readers | a2a-card-sign-v01/s3-unknown-fields (unknown-retain)": {
-   "commit": "1f4fe3ea555a",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "c52823aedec2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -1141,13 +1311,18 @@
      "2026-10-09T06:24:53Z",
      true,
      "1f4fe3ea"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "c52823ae"
     ]
    ],
-   "streak": 6
+   "streak": 7
   },
   "probity-a2a-card-readers | a2a-card-sign-v01/s4-dual-name": {
-   "commit": "1f4fe3ea555a",
-   "commit_since": "2026-10-09T05:48:39Z",
+   "commit": "c52823aedec2",
+   "commit_since": "2026-10-09T22:54:02Z",
    "first_pass": "2026-10-08T14:47:44Z",
    "first_seen": "2026-10-08T14:47:44Z",
    "runs": [
@@ -1180,9 +1355,14 @@
      "2026-10-09T06:24:53Z",
      true,
      "1f4fe3ea"
+    ],
+    [
+     "2026-10-09T22:54:02Z",
+     true,
+     "c52823ae"
     ]
    ],
-   "streak": 6
+   "streak": 7
   }
  },
  "schema": "hs-tsunagi-history-v0"
