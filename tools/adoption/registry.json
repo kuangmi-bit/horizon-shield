@@ -99,6 +99,20 @@
       "what": "The official Python SDK merged the five s0-control vectors of a2a-card-sign-v01 into its own test suite: its canonicalizer reproduces canonical_utf8_hex byte for byte for one card signed by a2a-sdk, @a2a-js/sdk, a2a-go and a reference signer, the four signatures verify, the card edited after signing is rejected, and its CI runs them on every change",
       "evidence": "https://github.com/a2aproject/a2a-python/pull/1286",
       "date": "2026-10-07"
+    },
+    {
+      "who": "luiksksk",
+      "subject": "trace-intake",
+      "what": "A clean-room TRACE intake verifier in Node.js, written from trace-bind-v0/SPEC.md section 2 without reading the JavaScript, Python or Go implementations; it reproduces all 28 cases of trace-intake-v0 and the TSUNAGI board scores it from the author's own repository every night (row luiksksk-nenrin-trace-intake-cleanroom)",
+      "evidence": "https://github.com/ogasurfproject-jpg/horizon-shield/pull/38",
+      "date": "2026-10-09"
+    },
+    {
+      "who": "Sankalp Gilda (astrogilda), Probity AI",
+      "subject": "nenrin-witness-reader",
+      "what": "A second reader for signed NENRIN witness records, written by Probity from the record format without the producer reader: it verifies two outside walks (pipavlo82 and kuangmi-bit, ledger entry 73) under separately pinned keys, checks the signed target URL exactly and keeps true, false and null assertions apart; 62 tests, and a second operator (HORIZON SHIELD) reran it with the same answers",
+      "evidence": "https://github.com/probityai/agent-evidence-atlas/blob/2bff38d8c13f7038d8d773bc77e44ab4f160751a/examples/nenrin-witness-pair/README.md",
+      "date": "2026-10-09"
     }
   ],
   "open_calls": {
@@ -108,7 +122,7 @@
     {
       "contract_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/c.AB.json",
       "contract_sha256": "d7118f285250241513db1ce244a7ec4b4fbfd9160123ba466abdfad727b70f81",
-      "settlement_url": null,
+      "settlement_url": "https://raw.githubusercontent.com/kuangmi-bit/musubi-peer-contract/main/settlement.json",
       "note": "agent-passport.org (principal) and kuangmi-bit.github.io (contractor). The two met in horizon-shield#31. kuangmi-bit had contributed to this repository before (two independent NENRIN verifiers and PR #30). No party, witness or approver from this project; the parties keep the contract in their own repository."
     }
   ]
