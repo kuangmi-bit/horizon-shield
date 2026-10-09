@@ -32,6 +32,7 @@ REPO = os.path.normpath(os.path.join(ROOT, ".."))
 # network; the package opens no socket unless asked).
 MUSUBI_MODULES = ["contract_v0.py", "settle_v1.py", "settle_v1_1.py", "settle_v1_2.py", "settle_v1_3.py", "settle_v1_4.py",
                   "settle_v1_5.py", "settle_v1_6.py", "settle_v1_7.py", "settle_v1_8.py", "settle_v1_9.py", "settle_v1_10.py",
+                  "clause_eval_v0.py",
                   "convergence_v0.py", "spine_verify.py", "terms_v0.py", "independence_v0.py",
                   "corroboration_v0.py", "offer_v0.py", "bond_v0.py", "correction_v0.py", "correction_bundle_v0.py",
                   "anchor_compose.py"]

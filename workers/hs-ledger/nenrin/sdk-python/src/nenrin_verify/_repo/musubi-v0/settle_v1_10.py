@@ -55,57 +55,12 @@ from contract_v0 import canonical, parse_strict, ed25519_verify, contract_sha256
 
 SETTLE_SCHEMA = "a2a-settlement-v1.10"
 SAME_EXCEPT = ("schema", "settled_under", "establishes", "approval_gate")
-APPROVAL_V2_CONTEXT = b"a2a-approval-v2\n"
-HEX32 = re.compile(r"^[0-9a-f]{32}$")
-REASONS = ("not_an_approver_approval", "malformed", "approver_not_pinned", "action_not_permitted_for_approver",
-           "malformed_key_or_signature", "bad_signature")
-
-
-def approvers(contract):
-    ap = (contract.get("grant") or {}).get("approval_policy")
-    a = ap.get("approvers") if isinstance(ap, dict) else None
-    return [x for x in a if isinstance(x, dict)] if isinstance(a, list) else []
-
-
-def policy_reading(contract):
-    return "pinned" if approvers(contract) else "approval_self_asserted"
-
-
-def approver_approval_bytes(contract, e, approver_key_b64):
-    return APPROVAL_V2_CONTEXT + canonical({
-        "contract_sha256": contract_sha256(contract), "action": e.get("action"), "approver_key": approver_key_b64,
-        "valid_until_height": e.get("valid_until_height"), "nonce": e.get("nonce"), "single_use": e.get("single_use")}).encode("utf-8")
-
-
-def sign_approver_approval(key, contract, action, valid_until_height, nonce, approver_name, approver_key_b64, single_use=True):
-    e = {"action": action, "by": "approver", "approver": approver_name, "valid_until_height": valid_until_height,
-         "nonce": nonce, "single_use": single_use}
-    e["sig_b64"] = base64.b64encode(key.sign(approver_approval_bytes(contract, e, approver_key_b64))).decode("ascii")
-    return e
-
-
-def verify_approver_approval(contract, e):
-    """("approved", None) or ("approval_unverified", reason), in the order of babyblueviper1's reference verifier."""
-    if not isinstance(e, dict) or e.get("by") != "approver":
-        return "approval_unverified", "not_an_approver_approval"
-    vu, nonce, su = e.get("valid_until_height"), e.get("nonce"), e.get("single_use")
-    if not (isinstance(e.get("action"), str) and isinstance(vu, int) and not isinstance(vu, bool) and vu >= 0
-            and isinstance(nonce, str) and HEX32.match(nonce) and isinstance(su, bool)):
-        return "approval_unverified", "malformed"
-    pin = next((a for a in approvers(contract) if a.get("name") == e.get("approver")), None)
-    if pin is None:
-        return "approval_unverified", "approver_not_pinned"
-    if e["action"] not in (pin.get("actions") or []):
-        return "approval_unverified", "action_not_permitted_for_approver"
-    if b64_raw(pin.get("public_key_ed25519_b64"), 32) is None or b64_raw(e.get("sig_b64"), 64) is None:
-        return "approval_unverified", "malformed_key_or_signature"
-    if ed25519_verify(pin["public_key_ed25519_b64"], e["sig_b64"], approver_approval_bytes(contract, e, pin["public_key_ed25519_b64"])) is not True:
-        return "approval_unverified", "bad_signature"
-    return "approved", None
-
-
-def gated_actions(contract):
-    return sorted({x for a in approvers(contract) for x in (a.get("actions") or []) if isinstance(x, str)})
+# 2026-10-10. The pinned approver rule (the clause evaluation this file introduced) lives in clause_eval_v0.py, so that
+# admission (admit_v0.py) and settlement apply one copy of it. The names are imported back unchanged: this module's
+# namespace, its outputs and its self test are what they were. run0002, the second contract and the first contract
+# between two outside parties (contract_sha256 d7118f28...) settle to the same bytes before and after.
+from clause_eval_v0 import (APPROVAL_V2_CONTEXT, HEX32, REASONS, approvers, policy_reading, approver_approval_bytes,
+                            sign_approver_approval, verify_approver_approval, gated_actions)
 
 
 def _reason_for(contract, gated, e, original):

@@ -324,6 +324,11 @@
     "source_sha256": "f442eae1dfe3c340dedd483bde2654609efdf806c502e2f798ec302db9452bf1",
     "vendored_sha256": "f442eae1dfe3c340dedd483bde2654609efdf806c502e2f798ec302db9452bf1"
   },
+  "_repo/musubi-v0/clause_eval_v0.py": {
+    "source": "workers/hs-ledger/nenrin/musubi-v0/clause_eval_v0.py",
+    "source_sha256": "54a763eb21b883a623a7567d6f5192e07685028002b00ad27f7d473b8d0e3a89",
+    "vendored_sha256": "54a763eb21b883a623a7567d6f5192e07685028002b00ad27f7d473b8d0e3a89"
+  },
   "_repo/musubi-v0/contract_v0.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/contract_v0.py",
     "source_sha256": "cf2b61289672631c662b334c4baca98b877254c52394d8aea79ec58938ec148a",
@@ -481,8 +486,8 @@
   },
   "_repo/musubi-v0/settle_v1_10.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_10.py",
-    "source_sha256": "fe2e247f6e3ec2adc0b6969eb433cdf058b94b874ee44ddec3b1930759b8062e",
-    "vendored_sha256": "fe2e247f6e3ec2adc0b6969eb433cdf058b94b874ee44ddec3b1930759b8062e"
+    "source_sha256": "34beeebaa139705955fa39012c8a70081bec9e20fbe7fd49c51718cafe754023",
+    "vendored_sha256": "34beeebaa139705955fa39012c8a70081bec9e20fbe7fd49c51718cafe754023"
   },
   "_repo/musubi-v0/settle_v1_2.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/settle_v1_2.py",
