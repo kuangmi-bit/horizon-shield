@@ -121,7 +121,7 @@
   .ref summary{cursor:pointer;padding-block:16px;font-family:var(--f-mono);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);list-style:none}
   .ref summary::-webkit-details-marker{display:none}
   .ref summary::before{content:"+  "}
-  .ref[open] summary::before{content:"\2212  "}
+  .ref[open] summary::before{content:"×  "}
   .ref .tbl{overflow-x:auto}
   .ref table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;min-width:520px}
   .ref th,.ref td{border:1px solid var(--rule);padding:8px 10px;text-align:left;vertical-align:top}
@@ -130,6 +130,19 @@
   .ref .note{font-family:var(--f-mono);font-size:11px;color:var(--mute);line-height:1.7}
   .cnote{border:1px solid var(--red);padding:11px 13px;margin-bottom:18px;font-size:13px;line-height:1.5}
   .cnote b{color:var(--red)}
+
+  .units{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:6px}
+  .units th{font-family:var(--f-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--mute);font-weight:500;text-align:left;padding:0 8px 8px 0;border-bottom:1px solid var(--rule-strong)}
+  .units td{padding:10px 8px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+  .units td.n,.units th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:0;padding-left:12px}
+  .units td .s{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--mute);margin-top:2px}
+  .units td.lv{font-family:var(--f-mono);white-space:nowrap}
+  .units tr.tot td{border-bottom:1px solid var(--rule-strong);border-top:1px solid var(--rule-strong);font-weight:700}
+  .units-wrap{overflow-x:auto;margin-bottom:16px}
+  .alt{border:1px solid var(--rule);padding:12px 14px;margin-bottom:16px;font-size:13.5px;display:grid;gap:6px}
+  .alt .k{font-family:var(--f-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--mute)}
+  .alt .tnum{font-family:var(--f-mono)}
+  @media (max-width:520px){.units{font-size:13px}.units td .s{font-size:10px}}
 
   @media print{
     :root{--paper:#fff;--ink:#000;--mute:#444;--rule:#bbb;--rule-strong:#000;--red:#c01000;--band:#f3f3f3;--field:#fff}
@@ -142,9 +155,9 @@
 
 <div class="wrap">
   <header class="mast">
-    <div class="kick">その場で必要なレベルがわかる</div>
+    <div class="kick">何体・どのレベル・いくらかがその場でわかる</div>
     <h1>AI社員 レベル診断</h1>
-    <p>営業先で6問に答えるだけ。御社に合うエージェントのレベルと、料金の目安、入れ方がその場で出ます。</p>
+    <p>6問に答えるだけ。御社に何体のAI社員が要るか、それぞれのレベルと担当、料金の合計がその場で出ます。</p>
   </header>
 
   <form id="f" novalidate>
@@ -206,50 +219,50 @@
       <div class="grp">
         <div class="grp-h">受付・調べもの</div>
         <div class="opts">
-          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke"><span>電話・問い合わせの一次対応</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke"><span>予約・受付の対応</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke"><span>相場・規定・仕様の調べもの</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke"><span>議事録・文字起こし・要約</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke" data-dept="uketsuke"><span>電話・問い合わせの一次対応</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke" data-dept="uketsuke"><span>予約・受付の対応</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke" data-dept="uketsuke"><span>相場・規定・仕様の調べもの</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="1" data-area="uketsuke" data-dept="uketsuke"><span>議事録・文字起こし・要約</span></label>
         </div>
       </div>
 
       <div class="grp">
         <div class="grp-h">事務・書類の作成</div>
         <div class="opts">
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>見積書の作成</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>請求書の発行</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>原価・仕入れの照合</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>日報・報告書の作成</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>発注・在庫の管理</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>シフト・勤怠の集計</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu"><span>領収書・経費の仕分け下書き</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="eigyo"><span>見積書の作成</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="keiri"><span>請求書の発行</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="genba"><span>原価・仕入れの照合</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="genba"><span>日報・報告書の作成</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="genba"><span>発注・在庫の管理</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="keiri"><span>シフト・勤怠の集計</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="2" data-area="jimu" data-dept="keiri"><span>領収書・経費の仕分け下書き</span></label>
         </div>
       </div>
 
       <div class="grp">
         <div class="grp-h">まとめ・見張り</div>
         <div class="opts">
-          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari"><span>相見積の比較・業者チェック</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari"><span>抜け・期限・取りこぼしの見張り</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari"><span>クレーム・トラブルの一次分析</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari"><span>売上・原価率の集計と気づき</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari" data-dept="eigyo"><span>相見積の比較・業者チェック</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari" data-dept="genba"><span>抜け・期限・取りこぼしの見張り</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari" data-dept="genba"><span>クレーム・トラブルの一次分析</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="3" data-area="mihari" data-dept="keiei"><span>売上・原価率の集計と気づき</span></label>
         </div>
       </div>
 
       <div class="grp">
         <div class="grp-h">経営・分析</div>
         <div class="opts">
-          <label class="opt"><input type="checkbox" name="need" value="4" data-area="keiei"><span>経営数字の分析・レポート</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="4" data-area="keiei"><span>資金繰り・予実の管理</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="4" data-area="keiei"><span>リード開拓・営業リストづくり</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="4" data-area="keiei" data-dept="keiei"><span>経営数字の分析・レポート</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="4" data-area="keiei" data-dept="keiei"><span>資金繰り・予実の管理</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="4" data-area="keiei" data-dept="eigyo"><span>リード開拓・営業リストづくり</span></label>
         </div>
       </div>
 
       <div class="grp">
         <div class="grp-h">執行・機密</div>
         <div class="opts">
-          <label class="opt"><input type="checkbox" name="need" value="5" data-area="shikko"><span>人事・給与など機密の取り扱い</span></label>
-          <label class="opt"><input type="checkbox" name="need" value="5" data-area="shikko"><span>全社横断の戦略材料・統括</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="5" data-area="shikko" data-dept="keiei"><span>人事・給与など機密の取り扱い</span></label>
+          <label class="opt"><input type="checkbox" name="need" value="5" data-area="shikko" data-dept="keiei"><span>全社横断の戦略材料・統括</span></label>
         </div>
       </div>
 
@@ -284,37 +297,54 @@
     <div class="tbl">
       <table>
         <tr><th>Lv</th><th>呼び名</th><th>できること</th><th>構築費</th><th>運用費（込み時間）</th></tr>
-        <tr><td class="n">1</td><td>受付・調べもの</td><td>調べ物・定型応答</td><td class="n">¥300,000</td><td class="n">¥30,000／月（3h）</td></tr>
-        <tr><td class="n">2</td><td>事務担当</td><td>見積・請求・書類の下書き</td><td class="n">¥800,000</td><td class="n">¥60,000／月（6h）</td></tr>
-        <tr><td class="n">3</td><td>主任</td><td>部門まるごと＋見張り・異常検知</td><td class="n">¥1,500,000</td><td class="n">¥120,000／月（12h）</td></tr>
-        <tr><td class="n">4</td><td>課長・自律</td><td>枠内は自分で実行・経営分析</td><td class="n">¥2,500,000</td><td class="n">¥250,000／月（20h）</td></tr>
-        <tr><td class="n">5</td><td>執行・統括・機密</td><td>執行部専用・機密・下位を統括</td><td class="n">¥4,000,000〜</td><td class="n">¥500,000〜／月（40h）</td></tr>
+        <tr><td class="n">1</td><td>受付・調べもの</td><td>調べ物・定型応答</td><td class="n">¥500,000</td><td class="n">¥50,000／月（2h）</td></tr>
+        <tr><td class="n">2</td><td>事務担当</td><td>見積・請求・書類の下書き</td><td class="n">¥1,200,000</td><td class="n">¥120,000／月（6h）</td></tr>
+        <tr><td class="n">3</td><td>主任</td><td>部門まるごと＋見張り・異常検知</td><td class="n">¥2,000,000</td><td class="n">¥250,000／月（12h）</td></tr>
+        <tr><td class="n">4</td><td>課長・自律</td><td>枠内は自分で実行・経営分析</td><td class="n">¥3,500,000</td><td class="n">¥500,000／月（20h）</td></tr>
+        <tr><td class="n">5</td><td>執行・統括・機密</td><td>執行部専用・機密・下位を統括</td><td class="n">¥6,000,000〜</td><td class="n">¥1,000,000〜／月（40h）</td></tr>
       </table>
     </div>
-    <div class="note">超過1h ¥22,000。レベル1〜3はAI利用料を運用費に込み（客のClaude契約不要）、レベル4以上はお客様のClaude契約が別途必要。建設以外は専用ツール一式を作るため構築費は要見積。</div>
-    <div class="note" style="margin-top:6px">プラン: 単体 ／ 部門（2体目〜構築30%off） ／ 全社（2体目〜構築40%off・運用合計15%off）</div>
+    <div class="note">金額は税別。超過1h ¥20,000。レベル1〜3はAI利用料を運用費に込み（お客様のClaude契約不要）、レベル4以上はお客様のClaude契約が別途必要。建設以外は専用の道具一式を作るため構築費は要見積。</div>
+    <div class="note" style="margin-top:6px">何体か入れるとき: 同時にご契約なら、1体目は定価、2体目からは構築費20%off。運用費（月額）は何体でも1体ごとに定価。ご契約から12ヶ月以内に後から足す1体は構築費10%off。</div>
   </details>
 
   <div class="foot">
     <b>株式会社八工門（やくも）</b> ／ AI社員<br>
     お取扱い ＿＿＿＿＿＿ ／ お問い合わせ TEL ＿＿＿＿＿＿<br>
-    <span>※ 料金は目安（税込）。正式なお見積りは別途ご提示します。</span>
+    <span>※ 料金は目安（税別、消費税は別途）。正式なお見積りは別途ご提示します。</span>
   </div>
 </div>
 
 <script>
 (function(){
+  // 料金(税別)。正本は data.py。2026-10-07 改定案
   var LEVELS={
-    1:{name:"受付・調べもの",build:300000,run:30000,hours:3},
-    2:{name:"事務担当",build:800000,run:60000,hours:6},
-    3:{name:"主任",build:1500000,run:120000,hours:12},
-    4:{name:"課長・自律",build:2500000,run:250000,hours:20},
-    5:{name:"執行・統括・機密",build:4000000,run:500000,hours:40}
+    1:{name:"受付・調べもの",build:500000,run:50000,hours:2},
+    2:{name:"事務担当",build:1200000,run:120000,hours:6},
+    3:{name:"主任",build:2000000,run:250000,hours:12},
+    4:{name:"課長・自律",build:3500000,run:500000,hours:20},
+    5:{name:"執行・統括・機密",build:6000000,run:1000000,hours:40}
   };
+  var SET_OFF=0.20;            // 同時契約の2体目から 構築費
+  var HUMAN_YEAR=3790000;      // 事務職1人 年(平均年収329.2万円+会社負担の社会保険 約15%)
   var SHORT={1:"受付",2:"事務",3:"主任",4:"課長",5:"執行"};
   var AUTO_LABEL={1:"決まった手順だけ",2:"下書きまで",3:"気づいて知らせて",4:"枠内は実行",5:"機密含め全社"};
   var IND_LABEL={construction:"建設・リフォーム",food:"飲食",retail:"小売・サービス",other:"その他"};
   var SIZE_LABEL={0:"1人",1:"2〜9人",2:"10〜30人",3:"30〜100人",4:"100人以上"};
+  var MAX_UNITS=[1,2,3,5,8];   // 規模ごとの上限体数(この上は部署を束ねる)
+  var CAP=[2,3,4,5,5];         // 規模ごとの上限レベル
+  var DEPT_ORDER=["keiei","jimu","genba","eigyo","keiri","uketsuke","misc"];
+  function deptLabel(d,construction){
+    return {
+      keiei:"経営: 数字・資金繰り・機密",
+      jimu:"事務: 見積・請求・原価・書類",
+      genba:(construction?"現場":"現場・店舗")+": 原価・発注・日報・見張り",
+      eigyo:"営業: 見積・相見積・開拓",
+      keiri:"経理総務: 請求・勤怠・経費",
+      uketsuke:"受付: 電話・予約・調べもの",
+      misc:"ご相談の仕事"
+    }[d];
+  }
 
   var f=document.getElementById('f');
   var warn=document.getElementById('warn');
@@ -324,19 +354,18 @@
   function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
   if(mdate && !mdate.value) mdate.value=today();
 
-  function yen(n){return "¥"+n.toLocaleString('en-US');}
+  function yen(n){return "¥"+Math.round(n).toLocaleString('en-US');}
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function val(name){var el=f.querySelector('input[name="'+name+'"]:checked');return el?el.value:null;}
   function tv(id){var e=f.querySelector('#'+id);return e?(e.value||'').trim():'';}
-  function uniq(a){var o={},r=[];a.forEach(function(x){if(x&&!o[x]){o[x]=1;r.push(x);}});return r;}
   function checkedNeeds(){
     return Array.prototype.map.call(f.querySelectorAll('input[name="need"]:checked'),function(el){
       var sp=el.parentNode.querySelector('span');
-      return {lv:+el.value, area:el.getAttribute('data-area'), label:sp?sp.textContent.trim():''};
+      return {lv:+el.value, dept:el.getAttribute('data-dept'), label:sp?sp.textContent.trim():''};
     });
   }
 
-  // Free-text keyword scan. Only raises the level, never lowers it. Fuzzy by design.
+  // 自由入力のキーワード読み。レベルを上げるだけで、下げない。
   function scanHint(t){
     if(!t) return 0;
     if(/機密|経営|戦略|役員|人事|財務|統括|M&A|全社/.test(t)) return 5;
@@ -364,7 +393,6 @@
     document.querySelector('header').scrollIntoView({behavior:'smooth'});
   });
 
-  // Q1「その他」を選んだときだけ、業種・職種の自由入力欄を出す
   (function(){
     var wrap=document.getElementById('ind_other_wrap');
     Array.prototype.forEach.call(f.querySelectorAll('input[name="industry"]'),function(el){
@@ -378,109 +406,136 @@
     var construction=(industry==='construction');
     var indOther=tv('ind_other');
     var indShow=(industry==='other' && indOther) ? indOther : IND_LABEL[industry];
-
     var needs=checkedNeeds();
-    var levels=needs.map(function(n){return n.lv;});
-    var areas=uniq(needs.map(function(n){return n.area;}));
-    var needMax=levels.length?Math.max.apply(null,levels):0;
-    var needMin=levels.length?Math.min.apply(null,levels):0;
-
     var other=tv('need_other');
     var hint=scanHint(other);
 
-    var base=Math.max(needMax,auto,hint);
-    var rec=base, ideal=null;
-    if(size===0 && rec>2){ ideal=rec; rec=2; }
-    else if(size===1 && rec>3){ ideal=rec; rec=3; }
+    // 1) 仕事を部署の束に分ける。束のレベル=その束で一番重い仕事
+    // 部門の区切りが薄い会社は、見積・請求・原価を1つの「事務」の束で持つ(小さい会社は経営の数字も同じ束)
+    function bundleOf(d){
+      if(org===0 && (d==='eigyo'||d==='keiri'||d==='genba')) return 'jimu';
+      if(org===0 && size<=2 && d==='keiei') return 'jimu';
+      return d;
+    }
+    var depts={}, tasks={};
+    needs.forEach(function(n){
+      var d=bundleOf(n.dept);
+      depts[d]=Math.max(depts[d]||0,n.lv);
+      (tasks[d]=tasks[d]||[]).push(n.label);
+    });
+    if(!needs.length){ depts.misc=Math.max(hint,1); tasks.misc=[other]; }
+    var units=Object.keys(depts).map(function(d){return {dept:d, lv:depts[d], merged:[d]};});
+    function sortUnits(){
+      units.sort(function(a,b){ return (b.lv-a.lv) || (DEPT_ORDER.indexOf(a.dept)-DEPT_ORDER.indexOf(b.dept)); });
+    }
+    sortUnits();
 
-    var breadth = areas.length>=3 || (levels.length>=2 && (needMax-needMin)>=2);
+    // 2) 任せたい判断の重さ・自由入力・執行部は、主力の1体を引き上げる
+    var keiei=null; units.forEach(function(u){ if(u.dept==='keiei') keiei=u; });
+    if(org===2 && keiei) keiei.lv=Math.max(keiei.lv,4);
+    var lift=Math.max(auto,hint);
+    if(lift>units[0].lv){
+      var tgt=(lift>=4 && keiei)?keiei:units[0];
+      tgt.lv=Math.max(tgt.lv,lift);
+    }
+    sortUnits();
 
-    var multiDept=org>=1, multiStore=stores>=1, exec=(org===2 || base===5);
-    var plan;
-    if(exec && multiDept) plan='zensha';
-    else if(multiDept || multiStore) plan='bumon';
-    else plan='tantai';
-    if(breadth && size>=2 && plan==='tantai') plan='bumon';
+    // 3) 規模に合わせて上限レベルで抑える
+    var cap=CAP[size], capped=null;
+    units.forEach(function(u){ if(u.lv>cap){ capped=Math.max(capped||0,u.lv); u.lv=cap; } });
+
+    // 4) 規模に合わせて体数を決める。上限を超える束は、一番軽い1体にまとめる
+    var maxU=MAX_UNITS[size];
+    if(org===0 && size<=2) maxU=Math.min(maxU, size===0?1:2);
+    var mergedAway=0;
+    while(units.length>maxU){
+      var extra=units.pop(); var last=units[units.length-1];
+      last.lv=Math.max(last.lv,extra.lv); last.merged=last.merged.concat(extra.merged); mergedAway++;
+    }
+    sortUnits();
+
+    // 5) 値付け。1体目(一番重い)は定価、2体目からは構築費20%off。月額は割引なし
+    var totalB=0,totalR=0;
+    units.forEach(function(u,i){
+      var L=LEVELS[u.lv];
+      u.label=u.merged.map(function(d){return deptLabel(d,construction);}).join(" ＋ ");
+      u.tasks=[].concat.apply([],u.merged.map(function(d){return tasks[d]||[];}));
+      u.build=(i===0)?L.build:Math.round(L.build*(1-SET_OFF));
+      u.run=L.run; u.first=(i===0);
+      totalB+=u.build; totalR+=u.run;
+    });
 
     var why=[];
-    if(needs.length){
-      why.push("選んだ仕事の中で一番高いのがレベル"+needMax+"。ここに推奨レベルを合わせます。");
-    }
+    why.push("仕事を、見るデータと任せる判断が同じものごとに束ねると "+(units.length+mergedAway)+" つの束になります。1つの束に1体を置くのが基本です。");
+    if(mergedAway>0) why.push("従業員"+SIZE_LABEL[size]+"の規模なので、軽い束はまとめて "+units.length+" 体にしています。");
+    why.push("任せたい判断が「"+AUTO_LABEL[auto]+"」なので、主力の1体はレベル"+units[0].lv+"です。");
     if(other){
-      if(hint>0){ why.push("自由入力「"+esc(other)+"」はレベル"+hint+"相当と読み、判定に反映しています。"); }
-      else{ why.push("自由入力「"+esc(other)+"」はヒアリングで内容を詰めて反映します。"); }
+      why.push(hint>0 ? "自由入力「"+esc(other)+"」はレベル"+hint+"相当と読み、判定に入れています。" : "自由入力「"+esc(other)+"」はヒアリングで内容を詰めて反映します。");
     }
-    why.push("任せたい判断が「"+AUTO_LABEL[auto]+"」＝レベル"+auto+"相当。");
-    if(breadth){ why.push("やらせたいことが幅広い（"+areas.length+"分野）ので、1体に詰めるより複数体（部門/全社）や上位レベルの検討が向きます。"); }
-    if(ideal!==null){ why.push("従業員"+SIZE_LABEL[size]+"の規模なら、本来レベル"+ideal+"相当でも過剰になりがち。まずレベル"+rec+"で始め、育てて上げるのが堅実です。"); }
-    if(plan==='zensha'){ why.push("部門が分かれ、執行部があるので全社プラン向き。各部門にレベル2〜3、執行部にレベル5を置き、機密は壁で遮断します。"); }
-    else if(plan==='bumon'){ why.push((multiStore?"複数拠点・":"")+"複数の仕事/部門があるので部門プランが効きます。2体目以降は構築費30%off。"); }
-    else{ why.push("まずは1部署に1体（単体プラン）から。効いてから広げるのが安全です。"); }
-    if(!construction){ why.push(esc(indShow)+"は建設向けの道具がそのまま使えないため、専用の道具一式を作ります（構築費に含む・要見積）。"); }
+    if(capped!==null) why.push("本来はレベル"+capped+"相当ですが、"+SIZE_LABEL[size]+"の規模では上限をレベル"+cap+"にしています。育ててから上げられます。");
+    if(stores>=1 && size>=1) why.push("拠点が複数あります。多くは1体で全拠点をまとめられます。拠点ごとに分けるかはヒアリングで決めます。");
+    if(units.length>1) why.push("同時にご契約なら、1体目は定価、2体目からは構築費20%off。月額は1体ごとに定価です。");
+    if(!construction) why.push(esc(indShow)+"は建設向けの道具がそのまま使えないため、専用の道具一式を作ります（構築費は要見積）。");
 
-    return {rec:rec, ideal:ideal, plan:plan, construction:construction, industry:industry, indOther:indOther, indShow:indShow, size:size,
+    return {units:units, totalB:totalB, totalR:totalR, construction:construction, indShow:indShow,
             tasks:needs.map(function(n){return n.label;}), other:other, why:why,
             memo:{co:tv('m_co'), person:tv('m_person'), date:tv('m_date')}};
   }
 
   function render(r){
-    var L=LEVELS[r.rec];
-    var buildStr=(r.construction? yen(L.build) : yen(L.build)+"〜");
-    var runStr=yen(L.run);
-
-    var planName={tantai:"単体プラン",bumon:"部門プラン",zensha:"全社プラン"}[r.plan];
-    var planDesc={
-      tantai:"1部署に1体から。",
-      bumon:"同一/複数部門に2〜3体。2体目以降の構築費 30%off、運用費は体ごと。",
-      zensha:"各部門にレベル2〜3＋執行部にレベル5。2体目から構築費40%off・運用費合計15%off。全社は要見積。"
-    }[r.plan];
-
+    var U=r.units, n=U.length, tilde=r.construction?'':'〜';
+    var used={}; U.forEach(function(u){used[u.lv]=1;});
     var spine='';
     for(var i=1;i<=5;i++){
-      spine+='<div class="cell'+(i===r.rec?' on':'')+'"><span class="n">'+ (i<10?'0'+i:i) +'</span><span class="t">'+SHORT[i]+'</span></div>';
+      spine+='<div class="cell'+(used[i]?' on':'')+'"><span class="n">0'+i+'</span><span class="t">'+SHORT[i]+'</span></div>';
     }
 
-    var whyLi=r.why.map(function(w){return '<li><span class="m">＊</span><span>'+w+'</span></li>';}).join('');
-
-    var idealNote = r.ideal!==null
-      ? '<p class="plan-line" style="color:var(--mute);font-size:13px">本来はレベル'+r.ideal+'相当。規模に合わせてレベル'+r.rec+'から。</p>'
-      : '';
-
-    // memo + selected tasks block
     var m=r.memo, memoRows='';
     if(m.co) memoRows+='<div class="r"><span class="k">会社名</span><span>'+esc(m.co)+'</span></div>';
     if(m.person) memoRows+='<div class="r"><span class="k">ご担当者</span><span>'+esc(m.person)+'</span></div>';
     if(m.date) memoRows+='<div class="r"><span class="k">ヒアリング日</span><span>'+esc(m.date)+'</span></div>';
     memoRows+='<div class="r"><span class="k">業種</span><span>'+esc(r.indShow)+'</span></div>';
-    var taskStr = r.tasks.length ? r.tasks.map(esc).join('、') : '（チェックなし）';
-    memoRows+='<div class="r"><span class="k">選んだ仕事</span><span>'+taskStr+'</span></div>';
+    memoRows+='<div class="r"><span class="k">選んだ仕事</span><span>'+(r.tasks.length?r.tasks.map(esc).join('、'):'（チェックなし）')+'</span></div>';
     if(r.other) memoRows+='<div class="r"><span class="k">その他</span><span>'+esc(r.other)+'</span></div>';
-    var memoBlock='<div class="memo-out">'+memoRows+'</div>';
 
-    var priceNote = r.construction ? '' : '<div class="item"><div class="k">注意</div><div class="v" style="font-size:13px;line-height:1.4;font-family:var(--f-sans)">'+esc(r.indShow)+'は専用の道具一式を作るため構築費は要見積</div></div>';
+    var rows='';
+    U.forEach(function(u,i){
+      var L=LEVELS[u.lv];
+      rows+='<tr><td class="lv">'+(i+1)+'体目</td>'+
+        '<td>'+esc(u.label)+'<span class="s">レベル'+u.lv+' '+L.name+' ・ 月'+L.hours+'時間込み</span></td>'+
+        '<td class="n">'+yen(u.build)+tilde+'<span class="s">'+(u.first?'定価':'20%off')+'</span></td>'+
+        '<td class="n">'+yen(u.run)+'<span class="s">／月</span></td></tr>';
+    });
+    rows+='<tr class="tot"><td class="lv">合計</td><td>'+n+'体</td><td class="n">'+yen(r.totalB)+tilde+'</td><td class="n">'+yen(r.totalR)+'<span class="s">／月</span></td></tr>';
 
-    var claudeNote = r.rec>=4
-      ? '<div class="cnote"><b>お客様のClaude（Anthropic）契約が別途必要です。</b>レベル4以上は自律で動くぶん使用量が大きく、経営・機密データも扱うため、AIのご契約はお客様名義で持っていただきます（実費はお客様負担・当社運用費とは別。取得と設定は当社が支援）。</div>'
+    var head=U[0], HL=LEVELS[head.lv];
+    var alt = n>1
+      ? '<div class="alt"><div class="k">まず1体で始める場合</div><div>'+esc(head.label)+'（レベル'+head.lv+'）だけなら、構築 <span class="tnum">'+yen(HL.build)+tilde+'</span> ／ 月額 <span class="tnum">'+yen(HL.run)+'</span>。後から12ヶ月以内に足す1体は、構築費10%offです（同時なら20%off）。</div></div>'
+      : '';
+    var avg=r.totalR/n;
+    var cmp = avg < HUMAN_YEAR/12
+      ? '<div class="alt"><div class="k">比べる目安</div><div>事務の方を1人雇うと、月 約32万円（年 約379万円。一般事務の平均年収329.2万円に、会社負担の社会保険 約15%）。この表の月額は1体あたり'+(n>1?'平均 ':'')+'<span class="tnum">'+yen(avg)+'</span>です。</div></div>'
       : '';
 
+    var anyHigh=U.some(function(u){return u.lv>=4;});
+    var claudeNote = anyHigh
+      ? '<div class="cnote"><b>レベル4以上の1体は、お客様のClaude（Anthropic）契約が別途必要です。</b>自律で動くぶん使用量が大きく、経営・機密データも扱うため、AIのご契約はお客様名義で持っていただきます（実費はお客様負担・当社の運用費とは別。取得と設定は当社が支援）。</div>'
+      : '';
+    var whyLi=r.why.map(function(w){return '<li><span class="m">＊</span><span>'+w+'</span></li>';}).join('');
+
     out.innerHTML =
-      memoBlock+
+      '<div class="memo-out">'+memoRows+'</div>'+
       '<div class="rslt">'+
-        '<div class="lab">診断結果 ／ 推奨レベル</div>'+
-        '<div class="big"><span class="lv">レベル'+r.rec+'</span> '+L.name+'</div>'+
-        '<p class="plan-line">入れ方: <b>'+planName+'</b> ・ '+planDesc+'</p>'+
-        idealNote+
+        '<div class="lab">診断結果 ／ 御社に要るAI社員</div>'+
+        '<div class="big"><span class="lv">'+n+'体</span> 主力はレベル'+head.lv+' '+HL.name+'</div>'+
+        '<p class="plan-line">構築 <b class="tnum">'+yen(r.totalB)+tilde+'</b> ／ 月額 <b class="tnum">'+yen(r.totalR)+'</b>（税別）</p>'+
       '</div>'+
       '<div class="spine">'+spine+'</div>'+
-      '<div class="price-line">'+
-        '<div class="item"><div class="k">構築費（目安）</div><div class="v tnum">'+buildStr+'</div></div>'+
-        '<div class="item"><div class="k">運用費（目安）</div><div class="v tnum">'+runStr+'<span class="u"> ／月・月'+L.hours+'時間込み</span></div></div>'+
-        priceNote+
-      '</div>'+
-      claudeNote+
-      '<div class="why"><h3>なぜこのレベルか</h3><ul>'+whyLi+'</ul></div>'+
+      '<div class="units-wrap"><table class="units"><thead><tr><th></th><th>担当</th><th class="n">構築費</th><th class="n">月額</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      alt+cmp+claudeNote+
+      '<div class="why"><h3>なぜこの体数とレベルか</h3><ul>'+whyLi+'</ul></div>'+
       '<div class="next">'+
-        '<div><div class="t">次の一歩</div><div class="c">無料デモ／ヒアリング（1〜3日）→ 構築・検証（3〜4週）→ 試し運転（1週）→ 運用開始</div></div>'+
+        '<div><div class="t">次の一歩</div><div class="c">無料ヒアリング（1〜3日）→ 構築・検証（3〜4週）→ 試し運転（1週）→ 運用開始</div></div>'+
         '<button type="button" class="go" onclick="window.print()">この結果を印刷</button>'+
       '</div>';
     out.hidden=false;
