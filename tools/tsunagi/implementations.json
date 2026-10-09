@@ -576,6 +576,29 @@
           "total": 10
         }
       ]
+    },
+    {
+      "id": "luiksksk-nenrin-trace-intake-cleanroom",
+      "ours": false,
+      "author": "luiksksk",
+      "repo": "https://github.com/luiksksk/nenrin-trace-intake-cleanroom.git",
+      "language": "JavaScript",
+      "license": "MIT",
+      "written_from": "workers/hs-ledger/nenrin/trace-bind-v0/SPEC.md section 2 alone; no existing JS, Python, or Go verifier consulted",
+      "runs": [
+        {
+          "corpus": "nenrin-trace-intake-v0",
+          "cwd": "@impl",
+          "cmd": [
+            "node",
+            "trace_intake.mjs",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_referee",
+          "total": 28
+        }
+      ]
     }
   ],
   "pairs": [
