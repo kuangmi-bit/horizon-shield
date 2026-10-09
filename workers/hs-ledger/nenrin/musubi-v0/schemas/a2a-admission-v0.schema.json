@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/schemas/a2a-admission-v0.schema.json",
+  "title": "a2a-admission-v0",
+  "description": "What a relying party's admit() returned for one action under one signed MUSUBI contract, signed by the relying party. Signed bytes: the ASCII line a2a-admission-v0, a newline, then musubi-canonical-v0 of the record without signatures. The reference is admit_v0.py; this schema describes the shape and does not replace verify_admission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_ref",
+    "admission_id",
+    "chain_view",
+    "clause",
+    "contract_ref",
+    "decision",
+    "does_not_establish",
+    "establishes",
+    "presentation_ref",
+    "reasons",
+    "relying_party",
+    "revocations_seen",
+    "rules",
+    "schema",
+    "signatures"
+  ],
+  "properties": {
+    "schema": {
+      "const": "a2a-admission-v0"
+    },
+    "admission_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Chosen by the relying party."
+    },
+    "relying_party": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "key_url"
+      ],
+      "properties": {
+        "domain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "https URL on the relying party's own domain that serves {public_key_ed25519_b64}."
+        }
+      }
+    },
+    "contract_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "contract_sha256"
+      ],
+      "properties": {
+        "contract_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contract_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "action_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_binding_digest",
+        "nonce"
+      ],
+      "properties": {
+        "action_binding_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "sha256 of musubi-canonical-v0({contract_sha256, action, target, amount, nonce, expiry_height})."
+        },
+        "nonce": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "presentation_ref": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "adapter",
+          "sha256",
+          "verified"
+        ],
+        "properties": {
+          "adapter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verified": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "null means not verified. admit never reads null as true."
+          },
+          "self_asserted": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "chain_view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "height",
+        "header_sha256"
+      ],
+      "properties": {
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "header_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "revocations_seen": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "decision": {
+      "enum": [
+        "admit",
+        "escalate",
+        "refuse"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "within_grant",
+          "conditional_needs_approval",
+          "prohibited_action",
+          "outside_grant",
+          "amount_over_limit",
+          "delegation_exceeds_parent",
+          "contract_expired",
+          "nonce_reused",
+          "grant_revoked",
+          "key_revoked",
+          "presentation_unverifiable",
+          "signer_not_on_own_domain",
+          "action_digest_mismatch"
+        ]
+      }
+    },
+    "clause": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The grant entry that decided, as a path, for example grant.authorized_actions[2]."
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "admit",
+        "evaluator_sha256"
+      ],
+      "properties": {
+        "admit": {
+          "const": "a2a-admission-v0"
+        },
+        "evaluator_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of clause_eval_v0.py, the clause evaluator settle imports too."
+        }
+      }
+    },
+    "establishes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "does_not_establish": {
+      "const": [
+        "that HS allowed or blocked anything; the relying party ran the function at its own door",
+        "that the agent is who it claims to be beyond what the presented signatures and keys on its own domain show",
+        "that a revocation published after the chain view was known at admission time",
+        "that the action was lawful, safe or wise; only that it was inside or outside the signed grant",
+        "that this record is a legal authorization or determines liability"
+      ]
+    },
+    "publication": {
+      "const": "public",
+      "description": "Optional. The relying party's signed consent to publication. The intake stores only records that carry it."
+    },
+    "signatures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain",
+          "alg",
+          "sig"
+        ],
+        "properties": {
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "alg": {
+            "const": "ed25519"
+          },
+          "sig": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

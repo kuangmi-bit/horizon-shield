@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/schemas/a2a-revocation-v0.schema.json",
+  "title": "a2a-revocation-v0",
+  "description": "A principal's revocation under one MUSUBI contract. Without revoked_key it ends the grant; this is the record settle v1 has read since 2026-09 (settle_v1.REVOKE_SCHEMA), unchanged. With revoked_key it names one key that must no longer be admitted under the contract; that form is read by admit only and is not passed to settle as an event. Signed bytes: the ASCII line a2a-revocation-v0, a newline, then musubi-canonical-v0 of the record without signatures and anchor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "contract_ref",
+    "revoked_by",
+    "signatures"
+  ],
+  "properties": {
+    "schema": {
+      "const": "a2a-revocation-v0"
+    },
+    "contract_ref": {
+      "type": "object",
+      "required": [
+        "contract_id",
+        "contract_sha256"
+      ],
+      "properties": {
+        "contract_id": {
+          "type": "string"
+        },
+        "payload_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "revoked_by": {
+      "const": "principal"
+    },
+    "revoked_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public_key_ed25519_b64"
+      ],
+      "properties": {
+        "public_key_ed25519_b64": {
+          "type": "string"
+        }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "description": "Added when the record is anchored. admit reads the record only when anchor.height is at or below the chain view's height."
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "role",
+          "sig_b64"
+        ],
+        "properties": {
+          "role": {
+            "const": "principal"
+          },
+          "sig_b64": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
