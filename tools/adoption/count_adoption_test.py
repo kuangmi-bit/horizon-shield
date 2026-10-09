@@ -105,6 +105,16 @@ def main():
         check("one signature, an edited grant, a wrong pin, a missing file: each listed, none counted", len(probs), 4)
         c2 = C.contracts(our, pub, probs)
         check("with it, a contract with no party from this project", c2["with_no_party_from_us"], 1)
+        # a published settlement is counted as settled only when it is recomputed here byte for byte
+        csha = pub[0]["contract_sha256"]
+        sp = os.path.join(tdir, "s.json"); open(sp, "w").write(json.dumps({"schema": "a2a-settlement-v1.10", "status": "final", "contract_sha256": csha}))
+        wp = os.path.join(tdir, "w.json"); open(wp, "w").write(json.dumps({"schema": "a2a-settlement-v1.10", "status": "final", "contract_sha256": "e" * 64}))
+        no_inputs = C.recompute_settlement({"settlement_url": "file://" + sp}, open(both, "rb").read(), csha)
+        other = C.recompute_settlement({"settlement_url": "file://" + wp, "settle_inputs": {"event_url": "file://" + sp, "view_url": "file://" + sp}}, open(both, "rb").read(), csha)
+        check("a settlement with no inputs to recompute it, and one naming another contract: neither counts as settled",
+              (no_inputs["recomputed_identical"], "settle_inputs" in no_inputs["why"], other["recomputed_identical"], "names contract" in other["why"]), (False, True, False, True))
+        pub[0]["settlement"] = no_inputs
+        check("an unrecomputed settlement leaves settled_final_recomputed at 0", C.contracts(our, pub, probs)["settled_final_recomputed"], 0)
     else:
         print("skip  published contracts (the cryptography package is not installed, signatures cannot be checked)")
     d = {"measured_at": "2026-10-02T00:00:00Z", "metrics": {

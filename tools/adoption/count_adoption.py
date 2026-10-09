@@ -32,7 +32,7 @@ counted as zero: an outage of ours is not a finding about anyone.
 
 GITHUB_TOKEN, when set, is sent to api.github.com only (higher rate limit). Standard library only.
 """
-import argparse, datetime, glob, io, json, os, subprocess, sys, urllib.error, urllib.request
+import argparse, datetime, glob, hashlib, io, json, os, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REG = os.path.join(ROOT, "tools", "adoption", "registry.json")
@@ -199,8 +199,56 @@ def published_contracts(reg, our):
         domains = [str(x.get("domain") or "").lower() for x in d.get("parties") or [] if isinstance(x, dict)]
         out.append({"contract_id": d.get("contract_id"), "file": url, "contract_sha256": csha, "parties": domains,
                     "outside_parties": [x for x in domains if x and not ours(x, our)], "published_by_the_parties": True,
-                    "settlement_url": r.get("settlement_url")})
+                    "settlement_url": r.get("settlement_url"), "settlement": recompute_settlement(r, body, csha)})
     return out, problems
+
+
+SETTLE_SCRIPTS = {"a2a-settlement-v1.10": "settle_v1_10.py"}
+
+
+def recompute_settlement(row, contract_bytes, csha):
+    """A settlement the parties publish counts as settled only when this count recomputes it: the settle verifier of
+    the version the settlement names, run here on the contract bytes counted above and the event and header view the
+    parties publish (registry row: settle_inputs {event_url, view_url}), must print the same bytes as settlement_url.
+    Anything short of that is reported with the reason and not counted as settled."""
+    url = row.get("settlement_url")
+    if not url:
+        return None
+    res = {"settlement_url": url, "recomputed_identical": False}
+    try:
+        st, sb = get(url)
+        sd = json.loads(sb.decode("utf-8"))
+    except Exception as e:
+        return {**res, "why": "settlement not readable: %s" % e}
+    res.update({"schema": sd.get("schema"), "status": sd.get("status"), "verdict": sd.get("verdict"),
+                "final_at_height": (sd.get("finality_horizon") or {}).get("height"),
+                "settlement_sha256": hashlib.sha256(sb).hexdigest()})
+    if sd.get("contract_sha256") != csha:
+        return {**res, "why": "the settlement names contract %s, the contract counted is %s" % (sd.get("contract_sha256"), csha)}
+    script = SETTLE_SCRIPTS.get(sd.get("schema"))
+    inp = row.get("settle_inputs") or {}
+    if not script or not inp.get("event_url") or not inp.get("view_url"):
+        return {**res, "why": "no settle_inputs in the registry row, or a settlement schema this count does not recompute"}
+    tdir = tempfile.mkdtemp()
+    try:
+        paths = {}
+        for k, u in (("c", None), ("e", inp["event_url"]), ("v", inp["view_url"])):
+            b = contract_bytes if u is None else get(u)[1]
+            paths[k] = os.path.join(tdir, k + ".json"); open(paths[k], "wb").write(b)
+        outp = os.path.join(tdir, "s.json")
+        rr = subprocess.run([sys.executable, os.path.join(MUSUBI, script), "--settle", paths["c"], "--event", paths["e"],
+                             "--view", paths["v"], "--out", outp], capture_output=True, timeout=300)
+        if not os.path.exists(outp):
+            return {**res, "why": "%s wrote nothing (exit %d)" % (script, rr.returncode)}
+        same = open(outp, "rb").read() == sb
+        res.update({"recomputed_identical": same, "recomputed_with": "workers/hs-ledger/nenrin/musubi-v0/" + script})
+        if not same:
+            res["why"] = "recomputed bytes differ from the published settlement"
+        return res
+    except Exception as e:
+        return {**res, "why": "recompute failed: %s" % e}
+    finally:
+        shutil.rmtree(tdir, ignore_errors=True)
 
 
 def contracts(our, published=(), published_problems=()):
@@ -238,7 +286,9 @@ def contracts(our, published=(), published_problems=()):
             out.append(c)
     with_outside = [c for c in out if c["outside_parties"]]
     without_us = [c for c in out if c["parties"] and not any(ours(x, our) for x in c["parties"])]
+    settled = [c for c in with_outside if (c.get("settlement") or {}).get("recomputed_identical") and c["settlement"].get("status") == "final"]
     return {"signed_by_both": len(out), "with_an_outside_party": len(with_outside), "with_no_party_from_us": len(without_us),
+            "settled_final_recomputed": len(settled),
             "items": out, "published_not_counted": list(published_problems), "repo_not_counted": repo_refused}
 
 
@@ -373,6 +423,7 @@ def readme_block(d):
          if pool.get("control_clusters") is not None else
          "| Re-verification pool | %d member(s), %d independent control clusters needed for a quorum | `%s` |" % (len(pool["admitted"]), pool["quorum_of_independent_controls_needed"], pool["file"])),
         "| MUSUBI contracts signed with an outside party | %d (with no party from this project: %d) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |" % (con["with_an_outside_party"], con["with_no_party_from_us"]),
+        "| ...of which settled final, the parties' settlement recomputed here byte for byte | %d | the settle verifier of the version each settlement names, run on the parties' own contract, event and header view |" % con.get("settled_final_recomputed", 0),
         "| Outside identities that signed evidence (walk, contract or agreement) | %s | the three rows above and the agreement records |" % fmt(pro["count"]),
         "| Outside TRACE signing keys whose records were pinned with trace-pin-v0 | %s | every `nenrin-trace-pin-batch-v0` entry on the ledger and the pending pool |" % fmt((m.get("outside_trace_pins") or {}).get("count")),
         "| Public repositories created from conduct-witness-template whose reproduce run succeeded in the last 30 days | %s | GitHub API |" % fmt(ci.get("count")),
