@@ -392,3 +392,5 @@ body.lp .top.on-photo::before{content:"";position:absolute;inset:0 0 -40px 0;bac
 .quick-out .note,.pane>.note{color:var(--mute);font-size:13px;margin:0}
 .chk-list{margin:0;padding-left:18px;font-size:14px;color:var(--mute)}
 @media (max-width:900px){.two-forms{grid-template-columns:1fr;gap:48px}}
+/* header nav with seven links (home and guide index): hide a little earlier so it never crowds the brand */
+@media (max-width:1080px){.nav.n7{display:none}}

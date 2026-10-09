@@ -38,6 +38,7 @@ import { sourceTitles, sourceUrls } from "./sources.js";
 import { FONTS } from "./fonts.js";
 import { ENGINE_VERSION } from "./engine.js";
 import { normalizeHearing, hearingText, followUpQuestions, followUpFieldIds, HEARING_VERSION } from "./hearing.js";
+import { handleTeardown, handleBoardSubmit, handleBoard, handleBoardReview, handleEvent, readStats, dailyStats } from "./teardown.js";
 
 const DAY = 86400000;
 const FOLLOWUP_WAIT = 8 * 3600000;     // how long a draft waits for follow-up answers
@@ -503,6 +504,15 @@ async function route(request, env, ctx) {
   if (p === "/intake" && request.method === "POST") return await handleIntake(request, env);
   if (p === "/quick" && request.method === "POST") return await handleQuick(request, env);
   if (p === "/webhook/paypal" && request.method === "POST") return await handleIpn(request, env, ctx);
+  // Free Quote Teardown and the public board (teardown.js, 2026-10-09).
+  if (p === "/teardown" && request.method === "POST") return await handleTeardown(request, env);
+  if (p === "/board/submit" && request.method === "POST") return await handleBoardSubmit(request, env);
+  if (p === "/board" && request.method === "GET") return await handleBoard(request, env);
+  if (p === "/event" && request.method === "POST") return await handleEvent(request, env);
+  {
+    const bm = p.match(/^\/board\/review\/(td_[a-z2-9]{12})(\/publish|\/reject)?$/);
+    if (bm) return await handleBoardReview(request, env, bm[1], bm[2] || "");
+  }
 
   let m = p.match(/^\/files\/(US-\d{8}-[A-Z2-9]{6})\/([0-9a-f]{16})\/([a-z0-9.-]+)$/);
   if (m && request.method === "GET") {
@@ -548,6 +558,7 @@ async function route(request, env, ctx) {
 
   if (p.startsWith("/admin/")) {
     if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
+    if (p === "/admin/stats" && request.method === "GET") return json({ days: await readStats(env, Math.min(60, Math.max(1, Number(url.searchParams.get("days") || 7)))) });
     if (p === "/admin/orders" && request.method === "GET") {
       const list = await env.US_ORDERS.list({ prefix: "order:", limit: 1000 });
       const rows = list.keys.map((k) => ({ id: k.name.slice(6), ...(k.metadata || {}) })).filter((r) => !url.searchParams.get("status") || r.status === url.searchParams.get("status"));
@@ -608,6 +619,7 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
       if (event.cron === "0 * * * *") {
+        try { await dailyStats(env); } catch { /* the count report never blocks the sweep */ }
         try { await sweep(env); } catch (e) { await lineToshi(env, `【US】削除の巡回に失敗: ${String(e.message || e).slice(0, 200)}。R2 の lifecycle が控え。`); }
         return;
       }
