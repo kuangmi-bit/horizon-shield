@@ -28,7 +28,7 @@ const CARD_TTL_S = 86400;
 const ID_RE = /^td_[a-z2-9]{12}$/;
 export const TEARDOWN_PER_HOUR = 3;       // per network
 export const TEARDOWN_PER_DAY_ALL = 200;  // whole service, to cap the AI cost
-export const SOURCES_OK = ["direct", "home", "x", "threads", "reply", "series", "guide", "share", "board", "reddit", "other"];
+export const SOURCES_OK = ["direct", "home", "x", "threads", "reply", "series", "guide", "share", "board", "reddit", "fb", "other"];
 export const EVENTS = [
   ...SOURCES_OK.map((s) => "land_" + s),
   "teardown_ok", "teardown_fail", "board_submit", "board_publish", "cta_check", "share_x", "share_copy",

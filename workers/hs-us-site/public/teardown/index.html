@@ -41,7 +41,6 @@
   {"@type":"Question","name":"Is the Quote Teardown free?","acceptedAnswer":{"@type":"Answer","text":"Yes. No account, no email and no payment. To keep it free for everyone, one network can run three teardowns an hour."}},
   {"@type":"Question","name":"What do you keep?","acceptedAnswer":{"@type":"Answer","text":"An anonymous card for 24 hours: the trade, the state, the total, how the lines split by kind, and our own flags and questions. We do not keep your files or the text of the lines, and we do not train AI on your uploads. An AI model reads the pages; everything else is computed from those lines and public data. If you post the card to the board, it is reviewed before it appears. Otherwise it is deleted after 24 hours."}},
   {"@type":"Question","name":"Is this a verdict on my contractor?","acceptedAnswer":{"@type":"Answer","text":"No. A teardown reads the lines and asks what is missing. It is not a fairness verdict, an inspection or a bid. A flag is a question to ask, not proof that anything is wrong, and a quote with no flags is not proof that it is fair."}},
-  {"@type":"Question","name":"What does the $39 Quote Check add?","acceptedAnswer":{"@type":"Answer","text":"A Quote Check puts every line in a reference ledger against U.S. public data, with the source, date and formula beside each reference, the questions to ask the contractor, and a SHA-256 receipt anyone can recompute to confirm the report was not altered. It is $39 per quote, delivered within one business day, and paid by the homeowner. We take no fees from contractors."}},
   {"@type":"Question","name":"Where does the wage number come from?","acceptedAnswer":{"@type":"Answer","text":"From the U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics: the hourly wage for the trade's main occupation in your metro area, or in your state when the metro has no figure, at the mean and at the 90th percentile. In Texas we also apply the labor loading TxDOT publishes for labor markup, insurance and payroll taxes; elsewhere the wage is shown without a loading and the teardown says so. When the quote states crew size and days or hours, we multiply to give a labor-dollar range. The source and period are printed with the number."}}
  ]}
 ]}
@@ -177,8 +176,8 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap">
  <a class="brand" href="/">HORIZON SHIELD <span class="mono">US</span></a>
- <nav class="nav" aria-label="Main"><a href="/teardown/" aria-current="page">Teardown</a><a href="/board/">Board</a><a href="/guides/">Guides</a><a href="/#sample">Sample report</a><a href="/#pricing">Pricing</a></nav>
- <a class="cta" href="/?from=teardown#check" data-cta-check>Check a quote</a>
+ <nav class="nav" aria-label="Main"><a href="/teardown/" aria-current="page">Teardown</a><a href="/teardowns/">Worked examples</a><a href="/board/">Board</a><a href="/guides/">Guides</a></nav>
+ <a class="cta" href="#td-form">Tear down a quote, free</a>
 </div></header>
 <main id="main">
 
@@ -270,10 +269,10 @@
     <p class="msg" id="b-msg" role="status" aria-live="polite"></p>
    </div>
    <div class="pane">
-    <span class="mono">Quote Check &nbsp;/&nbsp; $39 per quote</span>
-    <h3>Check every line against public data</h3>
-    <p>Every line in a reference ledger against U.S. public data, with the source, date and formula beside each reference, the questions to ask, and a SHA-256 receipt anyone can recompute. Within one business day. Paid by homeowners only, no contractor fees.</p>
-    <div class="actions" style="margin-top:4px"><a class="cta" href="/?from=teardown#check" data-cta-check>Order a Quote Check, $39</a><a class="cta ghost" href="/#sample">See a sample report</a></div>
+    <span class="mono">Free &nbsp;/&nbsp; worked examples</span>
+    <h3>See how other quotes were read</h3>
+    <p>Eight worked teardowns: a roof, an AC, a water heater, windows, paint, a bathroom, overhead and profit, and a sign-tonight discount. Each shows the one line to ask about and the public source behind it.</p>
+    <div class="actions" style="margin-top:4px"><a class="cta" href="/teardowns/">Read the teardowns</a><a class="cta ghost" href="/board/">See the board</a></div>
    </div>
   </div>
  </div>
@@ -327,7 +326,7 @@
   <ol class="steps">
    <li><div><h3>Upload the quote</h3><p>A photo, a PDF of up to three pages, or the lines pasted as text. Add a ZIP code if you want the local wage.</p></div></li>
    <li><div><h3>An AI model reads the lines</h3><p>It copies each line, its amount and its kind. Everything you see after that is computed from those lines and from public wage data, with the source printed.</p></div></li>
-   <li><div><h3>You get the questions</h3><p>Send them to the contractor. A contractor with a reason for each number can answer quickly. Then decide whether a full Quote Check is worth $39 to you.</p></div></li>
+   <li><div><h3>You get the questions</h3><p>Send them to the contractor. A contractor with a reason for each number can answer quickly.</p></div></li>
   </ol>
   <p style="margin-top:28px">Want to see what other homeowners found? <a href="/board/">Browse the teardown board</a>.</p>
  </div>
@@ -356,7 +355,6 @@
   <details><summary>Is the Quote Teardown free?</summary><p>Yes. No account, no email and no payment. To keep it free for everyone, one network can run three teardowns an hour.</p></details>
   <details><summary>What do you keep?</summary><p>An anonymous card for 24 hours: the trade, the state, the total, how the lines split by kind, and our own flags and questions. We do not keep your files or the text of the lines, and we do not train AI on your uploads. An AI model reads the pages; everything else is computed from those lines and public data. If you post the card to the board, it is reviewed before it appears. Otherwise it is deleted after 24 hours.</p></details>
   <details><summary>Is this a verdict on my contractor?</summary><p>No. A teardown reads the lines and asks what is missing. It is not a fairness verdict, an inspection or a bid. A flag is a question to ask, not proof that anything is wrong, and a quote with no flags is not proof that it is fair.</p></details>
-  <details><summary>What does the $39 Quote Check add?</summary><p>A Quote Check puts every line in a reference ledger against U.S. public data, with the source, date and formula beside each reference, the questions to ask the contractor, and a SHA-256 receipt anyone can recompute to confirm the report was not altered. It is $39 per quote, delivered within one business day, and paid by the homeowner. We take no fees from contractors.</p></details>
   <details><summary>Where does the wage number come from?</summary><p>From the U.S. Bureau of Labor Statistics, Occupational Employment and Wage Statistics: the hourly wage for the trade's main occupation in your metro area, or in your state when the metro has no figure, at the mean and at the 90th percentile. In Texas we also apply the labor loading TxDOT publishes for labor markup, insurance and payroll taxes; elsewhere the wage is shown without a loading and the teardown says so. When the quote states crew size and days or hours, we multiply to give a labor-dollar range. The source and period are printed with the number.</p></details>
  </div>
 </div></section>
@@ -378,7 +376,7 @@
 "use strict";
 var API = "https://hs-us-report.oga-surf-project.workers.dev";
 var SITE = "https://horizonshield.dev";
-var SOURCES = ["direct","home","x","threads","reply","series","guide","share","board","reddit","other"];
+var SOURCES = ["direct","home","x","threads","reply","series","guide","share","board","reddit","fb","other"];
 var TRADES = ["roof","exterior_paint","interior_paint","flooring","kitchen","bathroom","hvac","water_heater","windows","other"];
 var KIND = {labor:"Labor", material:"Materials", permit:"Permit", overhead:"Overhead and profit", disposal:"Disposal", other:"Other"};
 var FLAG = {big_lump:["Cannot check","acc"], vague:["Cannot check","acc"], overhead:["Overhead","acc"], labor_hidden:["Missing","acc"], labor_folded:["Missing","acc"], no_squares:["Missing","acc"], sum_mismatch:["Does not add up","acc"], labor_above:["Above reference","acc"]};
@@ -681,7 +679,7 @@ $("r-again").addEventListener("click", function(){
      var r = await run(text.slice(0, 20000), zip, trade, []);
      if(!r.ok) return {ok:false, error:r.error || "teardown failed"};
      try{ render(r, false); }catch(e){}
-     return {ok:true, teardown_id:r.teardown_id, teardown:r.teardown, next_steps:{post_to_board:"The homeowner can post the anonymous card from this page after ticking the consent box.", quote_check_usd:39, quote_check_url:SITE + "/?from=teardown#check", board_url:SITE + "/board/"}};
+     return {ok:true, teardown_id:r.teardown_id, teardown:r.teardown, next_steps:{post_to_board:"The homeowner can post the anonymous card from this page after ticking the consent box.", board_url:SITE + "/board/", worked_examples_url:SITE + "/teardowns/"}};
     }
    });
   }catch(e){}
