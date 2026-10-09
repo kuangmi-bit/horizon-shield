@@ -28,13 +28,17 @@ every reading, so accepting it counts as fa= in both columns, never as div=.
 """
 import json, os, sys
 
-READINGS = ["rule-1-served-scope", "rule-1-descriptor-scope", "prune-empty", "served-as-is"]
+READINGS = ["rule-1-served-scope", "rule-1-descriptor-scope", "prune-empty", "served-as-is", "field-level-prune", "rule-1-element-collapse"]
+# Named only on S1-009/S1-010 (securityRequirements: [{}]); on every other vector they read as the reading they refine.
+ELEMENT_ALIASES = {"field-level-prune": "prune-empty", "rule-1-element-collapse": "rule-1-served-scope"}
 S3_READINGS = ["unknown-retain", "unknown-exclude", "unknown-reject"]
 S4_READINGS = ["dual-name-tolerate", "dual-name-refuse"]
 
 
 def expected(doc, reading):
     acc = set(doc["accept_under"])
+    if reading in ELEMENT_ALIASES and reading not in acc | set(doc["reject_under"]):
+        reading = ELEMENT_ALIASES[reading]
     if "rule-1-as-written" in acc:
         acc |= {"rule-1-served-scope", "rule-1-descriptor-scope"}
     return reading in acc
