@@ -57,7 +57,7 @@
             "@out"
           ],
           "parse": "batch_referee",
-          "total": 28
+          "total": 30
         },
         {
           "corpus": "nenrin-trace-bind-v0",
@@ -152,7 +152,7 @@
             "@out"
           ],
           "parse": "batch_referee",
-          "total": 28
+          "total": 30
         },
         {
           "corpus": "nenrin-trace-bind-v0",
@@ -246,7 +246,7 @@
             "@out"
           ],
           "parse": "batch_referee",
-          "total": 28
+          "total": 30
         },
         {
           "corpus": "nenrin-trace-bind-v0",
@@ -298,7 +298,7 @@
             "@out"
           ],
           "parse": "batch_referee",
-          "total": 28
+          "total": 30
         }
       ]
     },
@@ -596,7 +596,7 @@
             "@out"
           ],
           "parse": "batch_referee",
-          "total": 28
+          "total": 30
         }
       ]
     }

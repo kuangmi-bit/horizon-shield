@@ -36,8 +36,8 @@ The checks run in this order; the first that fails is the only refusal.
 2. `JCS(R)` (section 1).
 3. `too_large`: `JCS(R)` is more than 65536 UTF-8 bytes.
 4. `enveloped_form`: `R` has `cmcp_version` and `trace` and no `eat_profile` (a cMCP RuntimeClaim; the outer signature is the gateway's).
-5. `superseded_profile`: `eat_profile` is `tag:agentrust.io,2026:trace-v0.1`. `unsupported_profile`: any other value but `tag:agentrust-io.com,2026:trace-v0.2`.
-6. `missing_required`: one of `eat_profile iat subject model runtime policy data_class build_provenance appraisal cnf` is absent.
+5. `superseded_profile`: `eat_profile` is `tag:agentrust.io,2026:trace-v0.1`. `unsupported_profile`: `eat_profile` is absent, or is any other value but `tag:agentrust-io.com,2026:trace-v0.2`. A record that names no profile is not identified as TRACE v0.2, and the member list in step 6 is the v0.2 list, so this check comes first.
+6. `missing_required`: one of `iat subject model runtime policy data_class build_provenance appraisal cnf` is absent. (`eat_profile` is also required by TRACE v0.2; its absence is decided at step 5.)
 7. `bad_iat`: `iat` is not an integer-valued number, or is below 1700000000.
 8. `bad_subject`: `subject` is not a non-empty string.
 9. `no_embedded_signature`: no `signature` member.
@@ -47,6 +47,8 @@ The checks run in this order; the first that fails is the only refusal.
 13. `iat_in_future`: `iat > now + 300`.
 
 Verdict: `pinnable` with no refusals, or `refused` with the one code. Findings are always empty in v0.
+
+Step 5 read "any other value" until 2026-10-09, which left a record with no `eat_profile` open to two readings (`unsupported_profile` at step 5, or `missing_required` at step 6, which listed `eat_profile`). luiksksk's clean-room verifier, written from this section alone, took the second; the reference, the ledger and the ports took the first. The text now says the first, and `trace-intake-v0` has the two cases (`local__no_eat_profile`, `local__no_eat_profile_no_runtime`). Found by luiksksk ([horizon-shield#38](https://github.com/ogasurfproject-jpg/horizon-shield/pull/38)).
 
 When pinnable, the record's pin identity is `sha(R)` (the signature member included) and its key is named by the RFC 7638 thumbprint of `cnf.jwk`: base64url, unpadded, of sha256 over `{"crv":<crv>,"kty":<kty>,"x":<x>}` written in that order with no whitespace.
 

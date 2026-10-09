@@ -686,8 +686,8 @@
   },
   "_repo/trace-intake-v0/expected.json": {
     "source": "workers/hs-ledger/nenrin/trace-intake-v0/expected.json",
-    "source_sha256": "9f0bf703e461ea7f001100e011979fb5dba3cc0e52a62732fdbaed651a1af1ef",
-    "vendored_sha256": "9f0bf703e461ea7f001100e011979fb5dba3cc0e52a62732fdbaed651a1af1ef"
+    "source_sha256": "1227aae365215896762a98f452052fba7a533430a2c77be1fd96547b847d550d",
+    "vendored_sha256": "1227aae365215896762a98f452052fba7a533430a2c77be1fd96547b847d550d"
   },
   "_repo/trace-intake-v0/fixtures/canonicalization__01-non-ascii-values.json": {
     "source": "workers/hs-ledger/nenrin/trace-intake-v0/fixtures/canonicalization__01-non-ascii-values.json",
@@ -738,6 +738,16 @@
     "source": "workers/hs-ledger/nenrin/trace-intake-v0/fixtures/invalid_wrong_profile.json",
     "source_sha256": "2fa92c3d74770b7261bdcf6a6b941d6598dc1c4f5190d320bc45074b1356386d",
     "vendored_sha256": "2fa92c3d74770b7261bdcf6a6b941d6598dc1c4f5190d320bc45074b1356386d"
+  },
+  "_repo/trace-intake-v0/fixtures/local__no_eat_profile.json": {
+    "source": "workers/hs-ledger/nenrin/trace-intake-v0/fixtures/local__no_eat_profile.json",
+    "source_sha256": "1ae5b6975e1e2206bb8f4d850631dff2d03d90d1c5f672dc76ca5b7167cfd070",
+    "vendored_sha256": "1ae5b6975e1e2206bb8f4d850631dff2d03d90d1c5f672dc76ca5b7167cfd070"
+  },
+  "_repo/trace-intake-v0/fixtures/local__no_eat_profile_no_runtime.json": {
+    "source": "workers/hs-ledger/nenrin/trace-intake-v0/fixtures/local__no_eat_profile_no_runtime.json",
+    "source_sha256": "30d22137b2b068649799d5e08704ec508f93c922e4c4ffe76a807296598644f5",
+    "vendored_sha256": "30d22137b2b068649799d5e08704ec508f93c922e4c4ffe76a807296598644f5"
   },
   "_repo/trace-intake-v0/fixtures/policy-resolution__01-no-policy-uri.json": {
     "source": "workers/hs-ledger/nenrin/trace-intake-v0/fixtures/policy-resolution__01-no-policy-uri.json",

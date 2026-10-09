@@ -20,7 +20,7 @@ Put its identifiers on the agent's OpenTelemetry span: `annotateSpan(span, bind)
 
 | corpus | cases | what |
 |---|---|---|
-| [trace-intake-v0](../trace-intake-v0) | 28 | every TRACE Trust Record among the trace-spec conformance vectors, and what the ledger's intake does with it |
+| [trace-intake-v0](../trace-intake-v0) | 30 | every TRACE Trust Record among the trace-spec conformance vectors, and what the ledger's intake does with it, plus two local cases (a record with no `eat_profile`) |
 | [trace-bind-v0](.) | 28 | bind bundles over real TRACE records (Bernstein 3.20.0 and the summit demo from trace-registry, and records signed by agentrust-trace 0.11.0) |
 | [trace-span-v0](../trace-span-v0) | 16 | exported span attributes against bind bundles |
 

@@ -957,7 +957,7 @@
   },
   "nenrin-trace-intake-v0": {
    "source": "workers/hs-ledger/nenrin/trace-intake-v0",
-   "expected_sha256": "9f0bf703e461ea7f001100e011979fb5dba3cc0e52a62732fdbaed651a1af1ef",
+   "expected_sha256": "1227aae365215896762a98f452052fba7a533430a2c77be1fd96547b847d550d",
    "cases": {
     "canonicalization__01-non-ascii-values": {
      "intent": "signed record with non-ASCII values; pinned only if the RFC 8785 bytes are right",
@@ -1254,6 +1254,28 @@
       ],
       "findings": []
      }
+    },
+    "local__no_eat_profile": {
+     "intent": "signed_root with eat_profile removed and re-signed; a record that names no profile is refused at the profile check, not as missing_required (found by luiksksk, horizon-shield#38)",
+     "source": "local (this corpus, not trace-spec)",
+     "expect": {
+      "verdict": "refused",
+      "refusals": [
+       "unsupported_profile"
+      ],
+      "findings": []
+     }
+    },
+    "local__no_eat_profile_no_runtime": {
+     "intent": "also without runtime: the profile check comes before the required-member check (found by luiksksk, horizon-shield#38)",
+     "source": "local (this corpus, not trace-spec)",
+     "expect": {
+      "verdict": "refused",
+      "refusals": [
+       "unsupported_profile"
+      ],
+      "findings": []
+     }
     }
    },
    "fixtures": {
@@ -1368,6 +1390,14 @@
     "valid_openshell_import": {
      "sha256": "7e9c8486a51e812716936e25f6edbcf9d08da6e27ebd6e115e22404d8a1fff47",
      "text": "{\"now\":1775014199,\"vector\":{\n  \"eat_profile\": \"tag:agentrust-io.com,2026:trace-v0.2\",\n  \"iat\": 1775014139,\n  \"subject\": \"spiffe://example.org/agent/codex\",\n  \"model\": {\n    \"provider\": \"example-provider\",\n    \"model_id\": \"example-model\"\n  },\n  \"runtime\": {\n    \"platform\": \"software-only\",\n    \"measurement\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n  },\n  \"policy\": {\n    \"bundle_hash\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n    \"enforcement_mode\": \"enforce\",\n    \"version\": \"openshell-acs-v1\"\n  },\n  \"data_class\": \"internal\",\n  \"tool_transcript\": {\n    \"hash\": \"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n    \"call_count\": 1\n  },\n  \"origin\": {\n    \"kind\": \"third-party-control-plane\",\n    \"producer\": \"nvidia-openshell/0.3.0\",\n    \"source_event_id\": \"sbx-123\"\n  },\n  \"build_provenance\": {\n    \"slsa_level\": 0,\n    \"digest\": \"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"\n  },\n  \"appraisal\": {\n    \"status\": \"none\",\n    \"verifier\": \"nvidia-openshell/0.3.0\"\n  },\n  \"cnf\": {\n    \"jwk\": {\n      \"kty\": \"OKP\",\n      \"crv\": \"Ed25519\",\n      \"x\": \"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo\"\n    }\n  }\n}}\n"
+    },
+    "local__no_eat_profile": {
+     "sha256": "1ae5b6975e1e2206bb8f4d850631dff2d03d90d1c5f672dc76ca5b7167cfd070",
+     "text": "{\"now\":1785000060,\"vector\":{\n  \"iat\": 1785000000,\n  \"subject\": \"spiffe://acme.example/agent/orchestrator\",\n  \"model\": {\n    \"provider\": \"anthropic\",\n    \"model_id\": \"claude-sonnet-4-6\"\n  },\n  \"runtime\": {\n    \"platform\": \"software-only\",\n    \"measurement\": \"sha256:0000000000000000000000000000000000000000000000000000000000000000\"\n  },\n  \"policy\": {\n    \"bundle_hash\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"enforcement_mode\": \"enforce\"\n  },\n  \"data_class\": \"restricted\",\n  \"build_provenance\": {\n    \"slsa_level\": 0,\n    \"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"\n  },\n  \"appraisal\": {\n    \"status\": \"affirming\",\n    \"verifier\": \"https://verifier.example/v1\"\n  },\n  \"cnf\": {\n    \"jwk\": {\n      \"kty\": \"OKP\",\n      \"crv\": \"Ed25519\",\n      \"x\": \"bdDLZ5Gh7t5xx_vYpIc56RnSdLnIf_bN2BTC-iagegE\"\n    }\n  },\n  \"signature\": \"7dTMRuaBa4bVjoMv_GxbmGl3Vih7YgUJfK84fLsTO34wA7V03VlkNJx7Y2RF0uXeITnTWYUAr65jiAjojT32BQ\"\n}}\n"
+    },
+    "local__no_eat_profile_no_runtime": {
+     "sha256": "30d22137b2b068649799d5e08704ec508f93c922e4c4ffe76a807296598644f5",
+     "text": "{\"now\":1785000060,\"vector\":{\n  \"iat\": 1785000000,\n  \"subject\": \"spiffe://acme.example/agent/orchestrator\",\n  \"model\": {\n    \"provider\": \"anthropic\",\n    \"model_id\": \"claude-sonnet-4-6\"\n  },\n  \"policy\": {\n    \"bundle_hash\": \"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"enforcement_mode\": \"enforce\"\n  },\n  \"data_class\": \"restricted\",\n  \"build_provenance\": {\n    \"slsa_level\": 0,\n    \"digest\": \"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"\n  },\n  \"appraisal\": {\n    \"status\": \"affirming\",\n    \"verifier\": \"https://verifier.example/v1\"\n  },\n  \"cnf\": {\n    \"jwk\": {\n      \"kty\": \"OKP\",\n      \"crv\": \"Ed25519\",\n      \"x\": \"bdDLZ5Gh7t5xx_vYpIc56RnSdLnIf_bN2BTC-iagegE\"\n    }\n  },\n  \"signature\": \"mWVpjIUQa2ecvg8xLxqy_OkvMZEVwdVB2vrJVtS8yoQ13Doxz4vWZ7A_8DPmFc3Oia2EQ-RNgFNuLM5O8VTmAA\"\n}}\n"
     }
    }
   },
