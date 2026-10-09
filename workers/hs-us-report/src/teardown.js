@@ -106,7 +106,9 @@ export function buildTeardown(ex, { tk, geo, wage, loading } = {}) {
 
   // 1. One line carrying a large share with no quantity or unit.
   for (const l of priced) {
-    if (total > 0 && l.amount / total >= 0.25 && l.qty == null && !l.unit) {
+    const lb = l.labor || {};
+    const crewStated = (typeof lb.hours === "number" && lb.hours > 0) || (typeof lb.workers === "number" && typeof lb.days === "number");
+    if (total > 0 && l.amount / total >= 0.25 && l.qty == null && !l.unit && !crewStated) {
       add("big_lump", `One line carries ${pct(l.amount, total)}% of the total with no quantity or unit.`, `What quantity and unit is "${String(l.item).slice(0, 60)}" priced on, and what does it include?`);
       break;
     }

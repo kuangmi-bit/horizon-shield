@@ -45,6 +45,9 @@ hr{border:0;border-top:1px solid var(--line);margin:0}
 .cta.ghost{background:transparent;color:var(--fg);border-color:var(--line2)}
 .cta.ghost:hover{border-color:var(--fg);background:transparent;color:var(--fg)}
 @media (max-width:900px){.nav{display:none}}
+@media (max-width:1080px){.nav.n7 + .cta{margin-left:auto}}
+@media (max-width:900px){.top .cta{margin-left:auto}}
+
 
 /* hero */
 .hero{border-bottom:1px solid var(--line)}
