@@ -29,7 +29,7 @@ No server needed: put [`github-action/nenrin-mirror.yml`](github-action/nenrin-m
                        bytes for agreements and executions; for a contract, contract_sha256 (sha256 over "a2a-contract-v0" plus a
                        newline plus the canonical record without its signatures, the digest both parties sign), the same address
                        whether one or both signatures are present. verify applies each rule and says which one matched.
-                       Batches that name records by digest with no bytes_url (witness walks, TRACE pins, agreements) are
+                       Batches that name records by digest with no bytes_url (witness walks, TRACE pins, Vouch credentials, agreements) are
                        fetched from the ledger's own address for that record and kept the same way, with the signature
                        served beside them in objects/<sha256>.sig.json; a record the ledger no longer serves is listed in
                        the manifest's named_record_problems, and verify prints how many named records this copy holds.

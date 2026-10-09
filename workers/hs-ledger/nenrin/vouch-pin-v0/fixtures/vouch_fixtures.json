@@ -1,0 +1,345 @@
+{
+ "_about": {
+  "made_at": "2026-10-09T12:00:00+00:00",
+  "origin": "https://ledger.horizonshield.dev",
+  "vouch_protocol": "2.2.1"
+ },
+ "cases": [
+  {
+   "credential": {
+    "@context": [
+     "https://www.w3.org/ns/credentials/v2",
+     "https://vouch-protocol.com/contexts/v1"
+    ],
+    "credentialSubject": {
+     "claim": {
+      "market": "BTC above 100k on 2026-12-31",
+      "verdict": "yes"
+     },
+     "claimType": "prediction",
+     "commitment": {
+      "algorithm": "sha-256-jcs",
+      "anchor": [
+       {
+        "establishes": "pre-outcome-ordering",
+        "method": "nenrin-opentimestamps",
+        "recomputeCmd": "curl -sO https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/workers/hs-ledger/nenrin/vouch-pin-v0/vouch_check.py && python3 vouch_check.py --ledger https://ledger.horizonshield.dev --credential <this credential as JSON> --outcome-time <the settlement time>",
+        "reference": "https://ledger.horizonshield.dev/evidence/vouch/id/urn%3Auuid%3A7f1c2a90-4b1e-4f7a-9d55-0a1b2c3d4e5f"
+       }
+      ],
+      "digest": "uDzqB8rvOI8WAKmN0sP7tP8AUNkoRpwF36ilpn1g-_Ic",
+      "salted": false
+     },
+     "id": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+     "settlement": {
+      "method": "public-price-feed",
+      "resolutionCriteria": "close above 100000 USD",
+      "resolveBy": "2026-12-31T23:59:59Z"
+     }
+    },
+    "id": "urn:uuid:7f1c2a90-4b1e-4f7a-9d55-0a1b2c3d4e5f",
+    "issuer": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+    "proof": {
+     "created": "2026-10-09T15:26:35Z",
+     "cryptosuite": "eddsa-jcs-2022",
+     "proofPurpose": "assertionMethod",
+     "proofValue": "z5dcnUXBi1eeWtuJicNKksVaTzP5j9z99eCoe4EtPW34fswzPCQxjUrAYvvousL3EGxpDSVCFu6WL7m2AcdJVhzXR",
+     "type": "DataIntegrityProof",
+     "verificationMethod": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh#key-1"
+    },
+    "type": [
+     "VerifiableCredential",
+     "OutcomeCommitmentCredential"
+    ],
+    "validFrom": "2026-10-09T12:00:00Z"
+   },
+   "issuer_public_key_b64": "/FPuZ5YhrOlDA/l6s+dE3X/CMYnrYCCaRr2UYiMK8aQ=",
+   "name": "commitment_didkey",
+   "note": "did:key commitment whose anchor names this ledger, establishes pre-outcome-ordering",
+   "vouch_claims_precedence": true,
+   "vouch_jcs_sha256": "5f9402d9d29c35f67b32782ffa6ee7f6ff3e1a37100a5a4f44247b4dd0c0d674",
+   "vouch_verify_commitment": true,
+   "vouch_verify_proof": true
+  },
+  {
+   "credential": {
+    "@context": [
+     "https://www.w3.org/ns/credentials/v2",
+     "https://vouch-protocol.com/contexts/v1"
+    ],
+    "credentialSubject": {
+     "claim": {
+      "market": "BTC above 100k on 2026-12-31",
+      "verdict": "no"
+     },
+     "claimType": "prediction",
+     "commitment": {
+      "algorithm": "sha-256-jcs",
+      "anchor": [
+       {
+        "establishes": "pre-outcome-ordering",
+        "method": "nenrin-opentimestamps",
+        "recomputeCmd": "curl -sO https://raw.githubusercontent.com/ogasurfproject-jpg/horizon-shield/main/workers/hs-ledger/nenrin/vouch-pin-v0/vouch_check.py && python3 vouch_check.py --ledger https://ledger.horizonshield.dev --credential <this credential as JSON> --outcome-time <the settlement time>",
+        "reference": "https://ledger.horizonshield.dev/evidence/vouch/id/urn%3Auuid%3A7f1c2a90-4b1e-4f7a-9d55-0a1b2c3d4e5f"
+       }
+      ],
+      "digest": "uE0YOwLJYQWsU_N4RPsuRXi4EdaagDTXPQVc3YX0snMM",
+      "salted": false
+     },
+     "id": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+     "settlement": {
+      "method": "public-price-feed",
+      "resolutionCriteria": "close above 100000 USD",
+      "resolveBy": "2026-12-31T23:59:59Z"
+     }
+    },
+    "id": "urn:uuid:7f1c2a90-4b1e-4f7a-9d55-0a1b2c3d4e5f",
+    "issuer": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+    "proof": {
+     "created": "2026-10-09T15:26:35Z",
+     "cryptosuite": "eddsa-jcs-2022",
+     "proofPurpose": "assertionMethod",
+     "proofValue": "z4NykNH9fZ2gGmTC4jJXWBK8RrxUjUYLTbEYvy65yxX8HSSXunim8ZwZNdVM4UbGAsecfhbMfQqgkDTX2dZuBsaR4",
+     "type": "DataIntegrityProof",
+     "verificationMethod": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh#key-1"
+    },
+    "type": [
+     "VerifiableCredential",
+     "OutcomeCommitmentCredential"
+    ],
+    "validFrom": "2026-10-09T12:00:00Z"
+   },
+   "issuer_public_key_b64": "/FPuZ5YhrOlDA/l6s+dE3X/CMYnrYCCaRr2UYiMK8aQ=",
+   "name": "commitment_didkey_same_id_other_verdict",
+   "note": "same issuer and id as commitment_didkey, opposite verdict",
+   "vouch_jcs_sha256": "17d3b75cfee359320fbce8ecee1bea89937aa9ec8f43a577b52b1288ad75b203",
+   "vouch_verify_proof": true
+  },
+  {
+   "credential": {
+    "@context": [
+     "https://www.w3.org/ns/credentials/v2",
+     "https://vouch-protocol.com/contexts/v1"
+    ],
+    "credentialSubject": {
+     "claim": {
+      "q": "jwk"
+     },
+     "claimType": "prediction",
+     "commitment": {
+      "algorithm": "sha-256-jcs",
+      "digest": "uqpKXvPt198LiMTDRw0adP39m8NQbaeE1UpHrCL4qrGs",
+      "salted": false
+     },
+     "id": "did:web:witness-jwk.example.org",
+     "settlement": {
+      "method": "public-price-feed",
+      "resolutionCriteria": "close above 100000 USD",
+      "resolveBy": "2026-12-31T23:59:59Z"
+     }
+    },
+    "id": "urn:uuid:00000000-0000-4000-8000-000000000001",
+    "issuer": "did:web:witness-jwk.example.org",
+    "proof": {
+     "created": "2026-10-09T15:26:35Z",
+     "cryptosuite": "eddsa-jcs-2022",
+     "proofPurpose": "assertionMethod",
+     "proofValue": "z5FV5AHgRye4gxGzNKVq7eU7D5Fqmc5zQamjJmpJVZMrbKCne3Up4VkymwCzKJ89ybB1Gj2PXPDcak6eBifLhAeYA",
+     "type": "DataIntegrityProof",
+     "verificationMethod": "did:web:witness-jwk.example.org#key-1"
+    },
+    "type": [
+     "VerifiableCredential",
+     "OutcomeCommitmentCredential"
+    ],
+    "validFrom": "2026-10-09T12:00:00Z"
+   },
+   "issuer_public_key_b64": "s1kpsqGrV0aribKopdGccpP8IFo+vbQ6U/zIHJdrzro=",
+   "name": "commitment_didweb_jwk",
+   "note": "did:web issuer, key served as jwk",
+   "vouch_jcs_sha256": "8b3c87d56b846bfd0e40cb5a946d092a7731d2b35cc1dacd3c55f39464500cb0",
+   "vouch_verify_proof": true
+  },
+  {
+   "credential": {
+    "@context": [
+     "https://www.w3.org/ns/credentials/v2",
+     "https://vouch-protocol.com/contexts/v1"
+    ],
+    "credentialSubject": {
+     "claim": {
+      "q": "multibase"
+     },
+     "claimType": "prediction",
+     "commitment": {
+      "algorithm": "sha-256-jcs",
+      "digest": "uZu7l3Fa_K47WYlVkgBvxLgEa2AazMvx9WEKfWjMNyVM",
+      "salted": false
+     },
+     "id": "did:web:witness-multibase.example.org",
+     "settlement": {
+      "method": "public-price-feed",
+      "resolutionCriteria": "close above 100000 USD",
+      "resolveBy": "2026-12-31T23:59:59Z"
+     }
+    },
+    "id": "urn:uuid:00000000-0000-4000-8000-000000000002",
+    "issuer": "did:web:witness-multibase.example.org",
+    "proof": {
+     "created": "2026-10-09T15:26:35Z",
+     "cryptosuite": "eddsa-jcs-2022",
+     "proofPurpose": "assertionMethod",
+     "proofValue": "z2JJB4fJ51JYZwcaGJPjEPWGz3dmxaHdBdcHocVKYR6sj3J3snagKiKmjYHMjdtt5YEFoyZUXjysCwpykCjaYL5by",
+     "type": "DataIntegrityProof",
+     "verificationMethod": "did:web:witness-multibase.example.org#key-1"
+    },
+    "type": [
+     "VerifiableCredential",
+     "OutcomeCommitmentCredential"
+    ],
+    "validFrom": "2026-10-09T12:00:00Z"
+   },
+   "issuer_public_key_b64": "TSQUtE6YkA2dQtcWEhK1iA1YGmwG/CceGYRKyLS/Ar0=",
+   "name": "commitment_didweb_multibase",
+   "note": "did:web issuer, key served as multibase",
+   "vouch_jcs_sha256": "98b97d4f471ae204874cd0e0d3e46b75307694f80fc303db58c2ae608422ef3f",
+   "vouch_verify_proof": true
+  },
+  {
+   "credential": {
+    "@context": [
+     "https://www.w3.org/ns/credentials/v2",
+     "https://vouch-protocol.com/contexts/v1"
+    ],
+    "credentialSubject": {
+     "commitment": {
+      "committedAt": "2026-10-09T12:00:00Z",
+      "credentialId": "urn:uuid:7f1c2a90-4b1e-4f7a-9d55-0a1b2c3d4e5f",
+      "digest": "uDzqB8rvOI8WAKmN0sP7tP8AUNkoRpwF36ilpn1g-_Ic",
+      "issuer": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh"
+     },
+     "id": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+     "outcome": {
+      "matchesCommitment": true,
+      "observedAt": "2027-01-01T00:00:00Z",
+      "result": {
+       "close": 101000
+      }
+     },
+     "reveal": {
+      "claim": {
+       "market": "BTC above 100k on 2026-12-31",
+       "verdict": "yes"
+      }
+     }
+    },
+    "id": "urn:uuid:aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "issuer": "did:key:z6Mkr42F2Agwy1Smh44KkU1cUBih5xFmmnmYcFS1ajfEtt82",
+    "proof": {
+     "created": "2026-10-09T15:26:35Z",
+     "cryptosuite": "eddsa-jcs-2022",
+     "proofPurpose": "assertionMethod",
+     "proofValue": "zd5QkWwysgyLiSUhkRxnZjyYSZWRooFdTAjnkJrxVqXKzN899uGdWUrQu1HAMn9tjGjg26mmWBb4GvM5Sr8viwes",
+     "type": "DataIntegrityProof",
+     "verificationMethod": "did:key:z6Mkr42F2Agwy1Smh44KkU1cUBih5xFmmnmYcFS1ajfEtt82#key-1"
+    },
+    "type": [
+     "VerifiableCredential",
+     "OutcomeAttestationCredential"
+    ],
+    "validFrom": "2027-01-01T00:00:00Z"
+   },
+   "issuer_public_key_b64": "rFhHCMG1LwzPALT64ou7SzHIZwauFozzDaJOZNQQgEs=",
+   "name": "attestation_didkey",
+   "note": "settlement attestation by a third party, settled 2027-01-01",
+   "vouch_jcs_sha256": "888f1db10efd66b18f167d57c4c89f5b28a3b83f0562a764c1b3a5a726612870",
+   "vouch_verify_proof": true
+  },
+  {
+   "credential": {
+    "@context": [
+     "https://www.w3.org/ns/credentials/v2",
+     "https://vouch-protocol.com/contexts/v1"
+    ],
+    "credentialSubject": {
+     "claim": {
+      "market": "BTC above 100k on 2026-12-31",
+      "verdict": "yes"
+     },
+     "claimType": "prediction",
+     "commitment": {
+      "algorithm": "sha-256-jcs",
+      "digest": "uDzqB8rvOI8WAKmN0sP7tP8AUNkoRpwF36ilpn1g-_Ic",
+      "salted": false
+     },
+     "id": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+     "settlement": {
+      "method": "public-price-feed",
+      "resolutionCriteria": "close above 100000 USD",
+      "resolveBy": "2026-12-31T23:59:59Z"
+     }
+    },
+    "id": "urn:uuid:11111111-2222-4333-8444-555555555555",
+    "issuer": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh",
+    "proof": {
+     "created": "2026-10-09T12:00:00Z",
+     "cryptosuite": "eddsa-jcs-2022",
+     "proofPurpose": "assertionMethod",
+     "proofValue": "zcvjA87yDCeKMA4WxmLJDYbFWbjEpzF3CFXmegXmZyiPC7qT2wvQW65iCY6UVEBkLofnHCsiBBFPfSpggMnmfHR9",
+     "type": "DataIntegrityProof",
+     "verificationMethod": "did:key:z6MkwSF1oDNpTNhmJ2d76WtvYqNV4Q5AgFUMtWkxJHb86aqh#key-1"
+    },
+    "type": [
+     "VerifiableCredential",
+     "OutcomeCommitmentCredential"
+    ],
+    "validFrom": "2026-10-09T12:00:00Z"
+   },
+   "issuer_public_key_b64": "/FPuZ5YhrOlDA/l6s+dE3X/CMYnrYCCaRr2UYiMK8aQ=",
+   "name": "legacy_digest_didkey",
+   "note": "signed over Vouch's pre-alignment digest, which Vouch's verify_proof still accepts",
+   "vouch_jcs_sha256": "9b71d6ea3955dd0455270287ad2607e3e2742e1c807060143b1bcc2c33338d29",
+   "vouch_verify_proof": true
+  }
+ ],
+ "did_documents": {
+  "did:web:witness-jwk.example.org": {
+   "@context": [
+    "https://www.w3.org/ns/did/v1"
+   ],
+   "assertionMethod": [
+    "did:web:witness-jwk.example.org#key-1"
+   ],
+   "id": "did:web:witness-jwk.example.org",
+   "verificationMethod": [
+    {
+     "controller": "did:web:witness-jwk.example.org",
+     "id": "did:web:witness-jwk.example.org#key-1",
+     "publicKeyJwk": {
+      "crv": "Ed25519",
+      "kty": "OKP",
+      "x": "s1kpsqGrV0aribKopdGccpP8IFo-vbQ6U_zIHJdrzro"
+     },
+     "type": "JsonWebKey2020"
+    }
+   ]
+  },
+  "did:web:witness-multibase.example.org": {
+   "@context": [
+    "https://www.w3.org/ns/did/v1"
+   ],
+   "assertionMethod": [
+    "did:web:witness-multibase.example.org#key-1"
+   ],
+   "id": "did:web:witness-multibase.example.org",
+   "verificationMethod": [
+    {
+     "controller": "did:web:witness-multibase.example.org",
+     "id": "did:web:witness-multibase.example.org#key-1",
+     "publicKeyMultibase": "z6MkjePM9zUjAtJBA9vm55vVCG8qk1Ai1WX9wviZfHT5Nhdn",
+     "type": "Multikey"
+    }
+   ]
+  }
+ }
+}

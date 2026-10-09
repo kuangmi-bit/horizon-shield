@@ -2,18 +2,18 @@
 
 For an organisation that holds a copy of the NENRIN ledger with `github-action/nenrin-mirror-vendored.yml`. The point of the vendored variant is that you review this file once, commit it into your own repository, and pin its sha256 in the workflow. No code is fetched at run time, and a change upstream changes nothing on your side until you commit a new copy and a new pin.
 
-File: `mirror.py`, 444 lines, Python 3 standard library only (`argparse, hashlib, json, os, sys, time, urllib`). No subprocess, no `eval`/`exec`, no dynamic import, no third-party package. sha256 at the time of writing: `354c6d21eabc9cb90a4e6fbe596c1eae57ae99c259f5585008f0ff30a4f08cfd`.
+File: `mirror.py`, 445 lines, Python 3 standard library only (`argparse, hashlib, json, os, sys, time, urllib`). No subprocess, no `eval`/`exec`, no dynamic import, no third-party package. sha256 at the time of writing: `8ef515b19f3973924c7364e227e6aa853750c81cff5fdcb80d7d8b9506bc8a9c`.
 
 ## Every network call (all HTTP GET, through one function, `fetch`, line 54)
 
 | Line | URL | What is kept |
 |---|---|---|
-| 188 | `<base>/ledger?format=json` | the entry count |
-| 202 | `<base>/ledger/<n>?format=json` | the entry as served |
-| 218 | `<base>/ledger/<n>?format=raw` | the claim bytes, kept only if their sha256 equals the entry's `claim_sha256` |
-| 235 | `<base>/ledger/<n>/ots` | the OpenTimestamps proof bytes |
-| 248 | the `bytes_url` a batch entry names for each record it carries | the bytes, kept only if they hash to the digest the batch names them by (`object_ok`, line 100) |
-| 267 | for a record a known batch names by digest without a `bytes_url` (`NAMED_KINDS`, line 122): `<base>/witness/<sha>`, `<base>/evidence/trace/<sha>?format=raw` or `<base>/agreement/<sha>` | the record's own bytes (`record_bytes`, line 148), kept only if they hash to that digest, and the signature, key and domain served with them in `<sha>.sig.json` |
+| 189 | `<base>/ledger?format=json` | the entry count |
+| 203 | `<base>/ledger/<n>?format=json` | the entry as served |
+| 219 | `<base>/ledger/<n>?format=raw` | the claim bytes, kept only if their sha256 equals the entry's `claim_sha256` |
+| 236 | `<base>/ledger/<n>/ots` | the OpenTimestamps proof bytes |
+| 249 | the `bytes_url` a batch entry names for each record it carries | the bytes, kept only if they hash to the digest the batch names them by (`object_ok`, line 100) |
+| 268 | for a record a known batch names by digest without a `bytes_url` (`NAMED_KINDS`, line 122): `<base>/witness/<sha>`, `<base>/evidence/trace/<sha>?format=raw`, `<base>/evidence/vouch/<sha>?format=raw` or `<base>/agreement/<sha>` | the record's own bytes (`record_bytes`, line 149), kept only if they hash to that digest, and the signature, key and domain served with them in `<sha>.sig.json` |
 
 `<base>` is `https://ledger.horizonshield.dev` unless `--base` says otherwise. Plain `http://` is refused except for a loopback address in the self test (`_url_ok`, line 85). Nothing is ever sent: there is no POST, no upload and no credential.
 
