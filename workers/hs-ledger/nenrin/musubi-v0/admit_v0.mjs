@@ -151,10 +151,10 @@ export function decide(contract, req, presentation, chainView, revocations, { se
   return { decision, reasons, clause, action_digest: digest, revocations_seen: seenRev };
 }
 
-export function admit(contract, req, presentation, chainView, revocations, { relyingParty = null, admissionId = null, seenNonces = [], policy = null } = {}) {
+export function admit(contract, req, presentation, chainView, revocations, { relyingParty = null, admissionId = null, seenNonces = [], policy = null, publication = null } = {}) {
   const d = decide(contract, req, presentation, chainView, revocations, { seenNonces, policy });
   const cv = isObj(chainView) ? chainView : {}, rp = isObj(relyingParty) ? relyingParty : {};
-  return {
+  const rec = {
     schema: SCHEMA,
     admission_id: admissionId ?? null,
     relying_party: { domain: rp.domain ?? null, key_url: rp.key_url ?? null },
@@ -172,6 +172,8 @@ export function admit(contract, req, presentation, chainView, revocations, { rel
       "that the decision and reasons are what the shared clause evaluator (rules.evaluator_sha256) returns for those inputs; anyone holding them can recompute it"],
     does_not_establish: [...DOES_NOT_ESTABLISH],
     signatures: [] };
+  if (publication !== null && publication !== undefined) rec.publication = publication;
+  return rec;
 }
 
 export const admissionSigningBytes = (record) => ctx(SCHEMA, body(record, ["signatures"]));
@@ -192,7 +194,7 @@ if (isMain) {
   const many = Array.isArray(inp) ? inp : [inp];
   const out = many.map((x) => {
     const rec = admit(x.contract, x.action_request, x.presentation, x.chain_view, x.revocations,
-      { relyingParty: x.relying_party, admissionId: x.admission_id, seenNonces: x.seen_nonces || [], policy: x.policy || null });
+      { relyingParty: x.relying_party, admissionId: x.admission_id, seenNonces: x.seen_nonces || [], policy: x.policy || null, publication: x.publication ?? null });
     if (x.sign_with_raw_key_hex) signAdmission(rec, Buffer.from(x.sign_with_raw_key_hex, "hex"));
     return { record: canonical(rec), admission_sha256: admissionSha256(rec), decision: rec.decision, reasons: rec.reasons };
   });

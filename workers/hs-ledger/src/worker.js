@@ -27,6 +27,9 @@ import {
   DAILY_GLOBAL as AGREEMENT_DAILY_GLOBAL, DAILY_PER_NETWORK as AGREEMENT_DAILY_PER_NETWORK,
 } from "../nenrin/agreement-v0/agreement_intake.mjs";
 export { AgreementDedupeDO } from "../nenrin/agreement-v0/agreement_intake.mjs";
+// a2a-admission-v0 and a2a-revocation-v0 (2026-10-10). The relying party runs admit() at its own door and signs; this
+// ledger stores what was signed and anchors it with the agreement pool's daily batch. It renders no decision.
+import { handleAdmissionIntake, handleRevocationIntake, handleStoredGet, admissionSelfDescription } from "../nenrin/musubi-v0/admission_intake.mjs";
 
 const enc = new TextEncoder();
 
@@ -1429,7 +1432,7 @@ async function handle(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     if (p === "/" || p === "/health")
-      return json({ ok: true, service: "hs-ledger", ledger: "JIDEC", anchor: "Bitcoin via OpenTimestamps", claim_schema: "jidec-claim-v1", path_schema: "jidec-path-v1", spec: "SPEC_HASH_INDEPENDENCE_v1.md (entry #2); JIDEC_PATH_SPEC_v1.md (entry #5)", routes: ["/ledger", "/ledger/head", "/ledger/export.jsonl", "/ledger/{n}", "/ledger/{n}/ots", "/verify/{n}", "/reference/{sha}", "/paths", "/paths/{sha}", "/paths/{sha}/replay", "/paths/query", "/witness", "/witness/pending", "/witness/{sha}", "/resume?endpoint={url}", "/trust-signal?endpoint={url}", "/agreement", "/agreement/pending", "/agreement/{canonical_sha256}", "/evidence/trace", "/evidence/vouch", "/evidence/vouch/{sha}", "/evidence/vouch/id/{credential id}"], discovery: { api_catalog: "/.well-known/api-catalog", agent_card: "/.well-known/agent-card.json", jwks: "/.well-known/jwks.json", security_txt: "/.well-known/security.txt", llms_txt: "/llms.txt", a2a: "/a2a", cite: "/cite/{citation}", precedence: "/precedence/{citation}", mcp: MCP_ORIGIN + "/mcp" }, transparency: TRANSPARENCY, privacy: PRIVACY });
+      return json({ ok: true, service: "hs-ledger", ledger: "JIDEC", anchor: "Bitcoin via OpenTimestamps", claim_schema: "jidec-claim-v1", path_schema: "jidec-path-v1", spec: "SPEC_HASH_INDEPENDENCE_v1.md (entry #2); JIDEC_PATH_SPEC_v1.md (entry #5)", routes: ["/ledger", "/ledger/head", "/ledger/export.jsonl", "/ledger/{n}", "/ledger/{n}/ots", "/verify/{n}", "/reference/{sha}", "/paths", "/paths/{sha}", "/paths/{sha}/replay", "/paths/query", "/witness", "/witness/pending", "/witness/{sha}", "/resume?endpoint={url}", "/trust-signal?endpoint={url}", "/agreement", "/agreement/pending", "/agreement/{canonical_sha256}", "/admission", "/admission/{canonical_sha256}", "/revocation", "/revocation/{canonical_sha256}", "/evidence/trace", "/evidence/vouch", "/evidence/vouch/{sha}", "/evidence/vouch/id/{credential id}"], discovery: { api_catalog: "/.well-known/api-catalog", agent_card: "/.well-known/agent-card.json", jwks: "/.well-known/jwks.json", security_txt: "/.well-known/security.txt", llms_txt: "/llms.txt", a2a: "/a2a", cite: "/cite/{citation}", precedence: "/precedence/{citation}", mcp: MCP_ORIGIN + "/mcp" }, transparency: TRANSPARENCY, privacy: PRIVACY });
 
     /* ---------------------- 看板 routes (additive, read-only) ---------------------- */
 
@@ -1711,6 +1714,27 @@ async function handle(request, env) {
       if (!(await auth(request, env))) return json({ error: "unauthorized" }, 401);
       const r = await anchorAgreementPool(env, origin, "operator");
       return json(r.body, r.status);
+    }
+    // Admission and revocation intake (a2a-admission-v0, a2a-revocation-v0). Same store, same dedupe, same daily batch as /agreement.
+    if ((p === "/admission" || p === "/revocation") && request.method === "GET") {
+      return json(admissionSelfDescription(origin));
+    }
+    if ((p === "/admission" || p === "/revocation") && request.method === "POST") {
+      const handle = p === "/admission" ? handleAdmissionIntake : handleRevocationIntake;
+      const out = await handle(request, {
+        fetchKey: (u) => witnessFetchDomainKey(env, u),
+        store: agreementStore(env),
+        now: () => new Date().toISOString(),
+        recorderDomain: witnessHost(origin),
+        rateLimit: () => agreementRateLimit(env, request),
+        origin,
+      });
+      return json(out.body, out.status, out.headers);
+    }
+    const admM = p.match(/^\/(admission|revocation)\/([0-9a-f]{64})$/i);
+    if (admM && request.method === "GET") {
+      const out = await handleStoredGet(admM[1].toLowerCase(), admM[2], { store: agreementStore(env), origin });
+      return json(out.body, out.status, out.headers);
     }
     const agrM = p.match(/^\/agreement\/([0-9a-f]{64})$/i);
     if (agrM && request.method === "GET") {

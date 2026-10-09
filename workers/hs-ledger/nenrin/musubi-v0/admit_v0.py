@@ -272,13 +272,17 @@ def decide(contract, action_request, presentation, chain_view, revocations, seen
 
 
 def admit(contract, action_request, presentation, chain_view, revocations, relying_party=None, admission_id=None,
-          seen_nonces=(), policy=None):
-    """The unsigned a2a-admission-v0 record. relying_party is {"domain", "key_url"}; sign_admission adds the signature."""
+          seen_nonces=(), policy=None, publication=None):
+    """The unsigned a2a-admission-v0 record. relying_party is {"domain", "key_url"}; sign_admission adds the signature.
+
+    publication="public" writes the relying party's consent to publication into the bytes it signs. The intake at
+    ledger.horizonshield.dev stores and anchors only records that carry it (record-privacy-v1: nobody but the signer
+    can make a record public). Without it the record is the same as before and stays between the parties."""
     d = decide(contract, action_request, presentation, chain_view, revocations, seen_nonces=seen_nonces, policy=policy)
     csha = contract_sha256(contract) if isinstance(contract, dict) else None
     cv = chain_view if isinstance(chain_view, dict) else {}
     rp = relying_party if isinstance(relying_party, dict) else {}
-    return {
+    rec = {
         "schema": SCHEMA,
         "admission_id": admission_id,
         "relying_party": {"domain": rp.get("domain"), "key_url": rp.get("key_url")},
@@ -297,6 +301,9 @@ def admit(contract, action_request, presentation, chain_view, revocations, relyi
             "that the decision and reasons are what the shared clause evaluator (rules.evaluator_sha256) returns for those inputs; anyone holding them can recompute it"],
         "does_not_establish": list(DOES_NOT_ESTABLISH),
         "signatures": []}
+    if publication is not None:
+        rec["publication"] = publication
+    return rec
 
 
 # --------------------------------------------------------------------------- the record: signing and verifying
@@ -331,7 +338,7 @@ def verify_admission(record, relying_key_b64, contract=None):
     ref = []
     if not isinstance(record, dict) or record.get("schema") != SCHEMA:
         return {"verdict": "refused", "refusals": ["malformed"]}
-    if set(record) - RECORD_KEYS or not RECORD_KEYS <= set(record):
+    if set(record) - RECORD_KEYS - {"publication"} or not RECORD_KEYS <= set(record) or record.get("publication", "public") != "public":
         ref.append("malformed")
     rp = record.get("relying_party") if isinstance(record.get("relying_party"), dict) else {}
     dom = rp.get("domain") if isinstance(rp.get("domain"), str) else None
@@ -464,6 +471,10 @@ def _selftest():
     b = sign_admission(run(P, req(P, "read")), w.kr); b["does_not_establish"] = b["does_not_establish"][:4]
     assert "does_not_establish_altered" in verify_admission(b, w.pr, P)["refusals"]
     assert verify_admission(a, w.pr, N)["refusals"] == ["other_contract"]
+    pub = sign_admission(admit(P, req(P, "read"), NATIVE, VIEW, [], relying_party=RP, admission_id="adm-1", publication="public"), w.kr)
+    assert pub["publication"] == "public" and verify_admission(pub, w.pr, P)["verdict"] == "accepted" and "publication" not in a
+    assert verify_admission({k: v for k, v in pub.items() if k != "publication"}, w.pr, P)["refusals"] == ["bad_signature"]
+    assert "malformed" in verify_admission(sign_admission(admit(P, req(P, "read"), NATIVE, VIEW, [], relying_party=RP, publication="private"), w.kr), w.pr, P)["refusals"]
     n += 1; print("[7] record accepted with the relying party's key; edited decision, another key: bad_signature; signed with the applicant's key: self_admission; key served off the domain: signer_not_on_own_domain; limits removed: refused")
 
     # [8] determinism, and no score anywhere

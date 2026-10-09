@@ -22,13 +22,15 @@ def main():
     py, inputs = [], []
     for c in cases:
         rec = A.admit(c["contract"], c["action_request"], c["presentation"], c["chain_view"], c["revocations"],
-                      relying_party=F.RP, admission_id="adm-" + c["name"], seen_nonces=c["seen_nonces"], policy=c["policy"])
+                      relying_party=F.RP, admission_id="adm-" + c["name"], seen_nonces=c["seen_nonces"], policy=c["policy"],
+                      publication="public" if c["name"].startswith("a0") else None)
         A.sign_admission(rec, w.kr)
         assert A.verify_admission(rec, w.pr, c["contract"])["verdict"] == "accepted", c["name"]
         py.append({"record": canonical(rec), "admission_sha256": A.admission_sha256(rec), "decision": rec["decision"], "reasons": rec["reasons"]})
         inputs.append({"contract": c["contract"], "action_request": c["action_request"], "presentation": c["presentation"],
                        "chain_view": c["chain_view"], "revocations": c["revocations"], "relying_party": F.RP,
                        "admission_id": "adm-" + c["name"], "seen_nonces": c["seen_nonces"], "policy": c["policy"],
+                       "publication": "public" if c["name"].startswith("a0") else None,
                        "sign_with_raw_key_hex": F.raw_private_hex("relying-party")})
     with tempfile.TemporaryDirectory() as d:
         p = os.path.join(d, "in.json")
