@@ -1,16 +1,19 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<title>AI社員 レベル診断</title>
+<meta name="description" content="6問に答えるだけで、御社に要るAI社員の体数、それぞれのレベルと担当、料金の合計がその場で出ます。株式会社八工門(やくも)。">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light">
 <style>html,body{margin:0}</style>
 </head>
 <body>
-<title>AI社員 レベル診断</title>
 <style>
   :root{
-    --paper:#FBFBFA;--ink:#141412;--mute:#6B6B64;--rule:#D7D7D1;--rule-strong:#141412;
+    --paper:#FFFFFF;--ink:#141412;--mute:#6B6B64;--rule:#D7D7D1;--rule-strong:#141412;
     --red:#D81E05;--band:#F1F1ED;--field:#FFFFFF;
     --maxw:760px;
     --f-sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -49,10 +52,10 @@
   @media (max-width:440px){.opts.two{grid-template-columns:1fr}}
   .opt{display:block;position:relative}
   .opt input{position:absolute;opacity:0;width:1px;height:1px}
-  .opt span{display:block;border:1px solid var(--rule);background:var(--field);
+  .opt > span{display:block;border:1px solid var(--rule);background:var(--field);
     padding:11px 13px;font-size:14px;cursor:pointer;line-height:1.35}
   .opt span .sub{display:block;font-size:11px;color:var(--mute);font-family:var(--f-mono);margin-top:2px}
-  .opt:hover span{border-color:var(--mute)}
+  .opt:hover > span{border-color:var(--mute)}
   .opt input:checked + span{border-color:var(--red);box-shadow:inset 3px 0 0 var(--red);background:var(--band)}
   .opt input:focus-visible + span{outline:2px solid var(--red);outline-offset:2px}
 
@@ -76,6 +79,14 @@
   @media (max-width:520px){.memo-grid{grid-template-columns:1fr}}
   .memo-grid label{display:block;font-family:var(--f-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--mute)}
   .memo-grid input{margin-top:5px}
+  .memo-grid.agent{grid-template-columns:2fr 1fr;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+  @media (max-width:520px){.memo-grid.agent{grid-template-columns:1fr}}
+  .agent-note{margin-top:8px;font-family:var(--f-mono);font-size:10.5px;color:var(--mute)}
+  input[type=tel]{width:100%;border:1px solid var(--rule);background:var(--field);color:var(--ink);font-family:var(--f-sans);font-size:14px;padding:11px 13px}
+  input[type=tel]:focus{outline:2px solid var(--red);outline-offset:2px;border-color:var(--red)}
+  .q.miss{box-shadow:inset 3px 0 0 var(--red);padding-left:12px}
+  .q.miss .q-head h2{color:var(--red)}
+  .rslt .tax{margin-top:4px;font-family:var(--f-mono);font-size:12px;color:var(--mute)}
   .grp{margin-top:16px}
   .grp:first-of-type{margin-top:4px}
   .grp-h{font-family:var(--f-mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
@@ -146,7 +157,26 @@
 
   @media print{
     :root{--paper:#fff;--ink:#000;--mute:#444;--rule:#bbb;--rule-strong:#000;--red:#c01000;--band:#f3f3f3;--field:#fff}
-    form,.actions{display:none}
+    form,.actions,.ref,.next .go{display:none}
+    @page{size:A4;margin:12mm}
+    body{font-size:13px}
+    header.mast{padding-top:12px;padding-bottom:10px}
+    header.mast p{display:none}
+    .rslt{padding:16px 18px 18px;margin-bottom:12px}
+    .spine{margin:12px 0}
+    .why li{padding-block:5px;font-size:12.5px}
+    .alt,.cnote,.units-wrap,.memo-out{margin-bottom:10px}
+    .foot{padding-block:8px 0;margin-top:8px;border-top:1px solid #000;color:#000;break-inside:avoid}
+    header.mast{border-top-width:4px}
+    header.mast h1{font-size:24px}
+    .kick{margin-bottom:6px}
+    .rslt .big{font-size:26px}
+    .memo-out{padding:8px 12px;font-size:12.5px}
+    .memo-out .r{padding-block:1px}
+    .units td{padding-block:6px}
+    .alt{padding:8px 12px;font-size:12.5px}
+    .why{margin-bottom:10px}
+    .next{padding:10px 14px}
     .rslt,.why,.next{break-inside:avoid}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -168,6 +198,11 @@
         <label>ご担当者<input type="text" id="m_person" name="m_person" autocomplete="off" placeholder="例：〇〇 様"></label>
         <label>ヒアリング日<input type="text" id="m_date" name="m_date" autocomplete="off"></label>
       </div>
+      <div class="memo-grid agent">
+        <label>お取扱い（会社名・お名前）<input type="text" id="a_name" name="a_name" autocomplete="organization" placeholder="例：〇〇株式会社 〇〇"></label>
+        <label>お問い合わせ TEL<input type="tel" id="a_tel" name="a_tel" autocomplete="tel" inputmode="tel" placeholder="例：090-0000-0000"></label>
+      </div>
+      <p class="agent-note">お取扱いとTELは、この端末に覚えておきます。印刷した結果の下に入ります。</p>
     </div>
 
     <div class="q" data-q="industry">
@@ -310,7 +345,7 @@
 
   <div class="foot">
     <b>株式会社八工門（やくも）</b> ／ AI社員<br>
-    お取扱い ＿＿＿＿＿＿ ／ お問い合わせ TEL ＿＿＿＿＿＿<br>
+    お取扱い <span id="f_name">＿＿＿＿＿＿</span> ／ お問い合わせ TEL <span id="f_tel">＿＿＿＿＿＿</span><br>
     <span>※ 料金は目安（税別、消費税は別途）。正式なお見積りは別途ご提示します。</span>
   </div>
 </div>
@@ -354,6 +389,28 @@
   function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
   if(mdate && !mdate.value) mdate.value=today();
 
+  // お取扱い(代理店)の会社名とTEL。この端末に覚える。?by=〜&tel=〜 で配った専用リンクからも入る。
+  var aName=document.getElementById('a_name'), aTel=document.getElementById('a_tel');
+  var fName=document.getElementById('f_name'), fTel=document.getElementById('f_tel');
+  var BLANK='＿＿＿＿＿＿';
+  function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+  function paintAgent(){
+    if(fName) fName.textContent=(aName&&aName.value.trim())||BLANK;
+    if(fTel) fTel.textContent=(aTel&&aTel.value.trim())||BLANK;
+  }
+  function saveAgent(){
+    if(aName) store('aishain_agent_name',aName.value.trim());
+    if(aTel) store('aishain_agent_tel',aTel.value.trim());
+    paintAgent();
+  }
+  (function(){
+    var qs={}; try{ new URLSearchParams(location.search).forEach(function(v,k){ qs[k]=v; }); }catch(e){}
+    if(aName) aName.value=(qs.by||store('aishain_agent_name')||'').slice(0,60);
+    if(aTel) aTel.value=(qs.tel||store('aishain_agent_tel')||'').slice(0,20);
+    if(qs.by||qs.tel) saveAgent(); else paintAgent();
+    [aName,aTel].forEach(function(el){ if(el) el.addEventListener('input',paintAgent); el&&el.addEventListener('change',saveAgent); });
+  })();
+
   function yen(n){return "¥"+Math.round(n).toLocaleString('en-US');}
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function val(name){var el=f.querySelector('input[name="'+name+'"]:checked');return el?el.value:null;}
@@ -378,16 +435,29 @@
 
   f.addEventListener('submit',function(e){
     e.preventDefault();
-    var singles=['industry','size','stores','org','auto'];
-    for(var i=0;i<singles.length;i++){ if(val(singles[i])===null){ warn.hidden=false; return; } }
-    if(val('industry')==='other' && !tv('ind_other')){ warn.hidden=false; return; }
-    if(checkedNeeds().length===0 && !tv('need_other')){ warn.hidden=false; return; }
+    Array.prototype.forEach.call(f.querySelectorAll('.q.miss'),function(q){q.classList.remove('miss');});
+    var miss=[];
+    ['industry','size','stores','org'].forEach(function(k){ if(val(k)===null) miss.push(k); });
+    if(val('industry')==='other' && !tv('ind_other') && miss.indexOf('industry')<0) miss.push('industry');
+    if(checkedNeeds().length===0 && !tv('need_other')) miss.push('need');
+    if(val('auto')===null) miss.push('auto');
+    if(miss.length){
+      miss.forEach(function(k){ var q=f.querySelector('.q[data-q="'+k+'"]'); if(q) q.classList.add('miss'); });
+      warn.textContent='答えていない質問が'+miss.length+'つあります（赤の印）';
+      warn.hidden=false;
+      var first=f.querySelector('.q.miss'); if(first) first.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
     warn.hidden=true;
+    saveAgent();
     render(diagnose());
     out.scrollIntoView({behavior:'smooth',block:'start'});
   });
   document.getElementById('reset').addEventListener('click',function(){
+    var keepN=aName?aName.value:'', keepT=aTel?aTel.value:'';
     f.reset(); out.hidden=true; out.innerHTML=''; warn.hidden=true;
+    if(aName) aName.value=keepN; if(aTel) aTel.value=keepT; paintAgent();
+    Array.prototype.forEach.call(f.querySelectorAll('.q.miss'),function(q){q.classList.remove('miss');});
     var w0=document.getElementById('ind_other_wrap'); if(w0) w0.hidden=true;
     if(mdate) mdate.value=today();
     document.querySelector('header').scrollIntoView({behavior:'smooth'});
@@ -434,6 +504,7 @@
     var keiei=null; units.forEach(function(u){ if(u.dept==='keiei') keiei=u; });
     if(org===2 && keiei) keiei.lv=Math.max(keiei.lv,4);
     var lift=Math.max(auto,hint);
+    var taskTop=units[0].lv, lifted=(lift>taskTop);
     if(lift>units[0].lv){
       var tgt=(lift>=4 && keiei)?keiei:units[0];
       tgt.lv=Math.max(tgt.lv,lift);
@@ -468,7 +539,13 @@
     var why=[];
     why.push("仕事を、見るデータと任せる判断が同じものごとに束ねると "+(units.length+mergedAway)+" つの束になります。1つの束に1体を置くのが基本です。");
     if(mergedAway>0) why.push("従業員"+SIZE_LABEL[size]+"の規模なので、軽い束はまとめて "+units.length+" 体にしています。");
-    why.push("任せたい判断が「"+AUTO_LABEL[auto]+"」なので、主力の1体はレベル"+units[0].lv+"です。");
+    if(lifted && auto>=hint){
+      why.push("任せたい判断が「"+AUTO_LABEL[auto]+"」なので、主力の1体をレベル"+units[0].lv+"にしています。");
+    }else if(!lifted){
+      why.push(auto===taskTop
+        ? "選んだ仕事と任せたい判断（「"+AUTO_LABEL[auto]+"」）が、どちらもレベル"+taskTop+"です。主力の1体はレベル"+units[0].lv+"です。"
+        : "選んだ仕事で一番重いのはレベル"+taskTop+"（"+LEVELS[taskTop].name+"）の仕事です。任せたい判断は「"+AUTO_LABEL[auto]+"」ですが、仕事の重さに合わせて主力の1体はレベル"+units[0].lv+"です。");
+    }
     if(other){
       why.push(hint>0 ? "自由入力「"+esc(other)+"」はレベル"+hint+"相当と読み、判定に入れています。" : "自由入力「"+esc(other)+"」はヒアリングで内容を詰めて反映します。");
     }
@@ -497,6 +574,8 @@
     memoRows+='<div class="r"><span class="k">業種</span><span>'+esc(r.indShow)+'</span></div>';
     memoRows+='<div class="r"><span class="k">選んだ仕事</span><span>'+(r.tasks.length?r.tasks.map(esc).join('、'):'（チェックなし）')+'</span></div>';
     if(r.other) memoRows+='<div class="r"><span class="k">その他</span><span>'+esc(r.other)+'</span></div>';
+    var an=aName?aName.value.trim():'', at=aTel?aTel.value.trim():'';
+    if(an||at) memoRows+='<div class="r"><span class="k">お取扱い</span><span>'+esc(an)+(at?' ／ TEL '+esc(at):'')+'</span></div>';
 
     var rows='';
     U.forEach(function(u,i){
@@ -529,6 +608,7 @@
         '<div class="lab">診断結果 ／ 御社に要るAI社員</div>'+
         '<div class="big"><span class="lv">'+n+'体</span> 主力はレベル'+head.lv+' '+HL.name+'</div>'+
         '<p class="plan-line">構築 <b class="tnum">'+yen(r.totalB)+tilde+'</b> ／ 月額 <b class="tnum">'+yen(r.totalR)+'</b>（税別）</p>'+
+        '<p class="tax">税込の目安 構築 '+yen(r.totalB*1.1)+tilde+' ／ 月額 '+yen(r.totalR*1.1)+'</p>'+
       '</div>'+
       '<div class="spine">'+spine+'</div>'+
       '<div class="units-wrap"><table class="units"><thead><tr><th></th><th>担当</th><th class="n">構築費</th><th class="n">月額</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
@@ -536,9 +616,16 @@
       '<div class="why"><h3>なぜこの体数とレベルか</h3><ul>'+whyLi+'</ul></div>'+
       '<div class="next">'+
         '<div><div class="t">次の一歩</div><div class="c">無料ヒアリング（1〜3日）→ 構築・検証（3〜4週）→ 試し運転（1週）→ 運用開始</div></div>'+
-        '<button type="button" class="go" onclick="window.print()">この結果を印刷</button>'+
+        '<button type="button" class="go" id="printBtn">PDFに保存・印刷</button>'+
       '</div>';
     out.hidden=false;
+    var pb=document.getElementById('printBtn');
+    if(pb) pb.addEventListener('click',function(){
+      var t0=document.title;
+      document.title='AI社員_レベル診断_'+((m.co||'').replace(/[\\/:*?"<>|\s]+/g,'')||'結果')+'_'+(m.date||today());
+      window.print();
+      setTimeout(function(){ document.title=t0; },1000);
+    });
   }
 })();
 </script>
