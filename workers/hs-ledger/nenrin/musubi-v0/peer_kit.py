@@ -19,6 +19,22 @@ path, for two parties A and B, using only these verification files, OpenTimestam
     stampable       anyone: the bytes to give `ots stamp` (anchor_direct)
     anchor          anyone: the settle anchor from the confirmed .ots and a header view (anchor_direct)
     settle          anyone: settle v1.10 (v1.9, v1.8 and v1.7 underneath) on the anchored records
+    request         the contractor (admission, optional): a signed action request, before acting
+    admit           the relying party (admission, optional): admit() at its own door, and the signed a2a-admission-v0
+
+Admission (a2a-admission-v0). When params.json carries "requirements": {..., "admission": "required_before_execution"},
+the contractor asks before it acts and the relying party (the principal, or whoever guards the resource) answers with
+admit, escalate or refuse, signed with its own key. The contractor's execution record then names that admission, and
+settle (v1.11) reads the execution against it. Nobody else is in the path: admit runs on the relying party's machine.
+
+    python3 peer_kit.py request --contract c.AB.json --key b.pem --action read --valid-until <height> --out req.json
+    python3 peer_kit.py admit --contract c.AB.json --request req.json --key a.pem --domain a.example
+        --key-url https://a.example/keys/agreement.json --height <verified height> --header-sha256 <64 hex> --out adm.json
+        (add --public to write the relying party's consent to publication into the signed bytes)
+    python3 peer_kit.py exec --contract c.AB.json --key b.pem --actions read --nenrin-ref <64 hex> --request req.json
+        --admission adm.json --out e.json
+    python3 peer_kit.py settle --contract c.AB.json --event e.anchored.json --view headers.json --admission adm.anchored.json
+        --relying-key a.example=<base64 public key>
 
 Block headers come from any explorer; header_view_fetch.py builds a view from two and checks they agree. Nothing
 here sends anything anywhere, and no step needs an account, a key or a server of ours.
@@ -137,7 +153,44 @@ def approve(contract, pem, name, action, valid_until_height):
     return v110.sign_approver_approval(key, contract, action, int(valid_until_height), secrets.token_hex(16), name, pub)
 
 
-def make_exec(contract, pem, actions, nenrin_ref, approvals=()):
+def make_request(contract, pem, action, valid_until_height, target=None, amount=None, approvals=()):
+    """The contractor's signed action request (admit_v0.build_action_request), asked before acting."""
+    import admit_v0 as A
+    key, pub = v0._load_priv(pem)
+    me = next((p for p in contract["parties"] if p.get("role") == "contractor"), {})
+    if me.get("public_key_ed25519_b64") != pub:
+        raise SystemExit("this key is not the contractor key the contract pins")
+    return A.build_action_request(contract, action, secrets.token_hex(16), int(valid_until_height), key, target=target, amount=amount, approvals=list(approvals))
+
+
+def make_admission(contract, request, pem, domain, key_url, height, header_sha256, revocations=(), presentation=(), publication=None, admission_id=None):
+    """The relying party's admit() over the contract and the request, signed with its own key.
+
+    The presentation is what the musubi-native adapter reads from the contract, plus any items passed in. The
+    contractor's own key is refused here: an applicant cannot admit itself."""
+    import admit_v0 as A
+    import adapter_musubi_native as native
+    key, pub = v0._load_priv(pem)
+    if pub == next((p.get("public_key_ed25519_b64") for p in contract["parties"] if p.get("role") == "contractor"), None):
+        raise SystemExit("this is the contractor's key; the party asking cannot sign its own admission")
+    rec = A.admit(contract, request, [native.read(contract)] + list(presentation), {"height": int(height), "header_sha256": header_sha256},
+                  list(revocations), relying_party={"domain": domain, "key_url": key_url},
+                  admission_id=admission_id or secrets.token_hex(8), publication=publication)
+    A.sign_admission(rec, key)
+    v = A.verify_admission(rec, pub, contract)
+    if v["verdict"] != "accepted":
+        raise SystemExit("the admission does not verify as written: %s" % ", ".join(v["refusals"]))
+    return rec
+
+
+def admission_ref(request, admission):
+    import admit_v0 as A
+    a = request["action"]
+    return {"action": a["action"], "admission_sha256": A.admission_sha256(admission),
+            "executed": {"action": a["action"], "target": a.get("target"), "amount": a.get("amount"), "nonce": request["nonce"], "expiry_height": request["expiry_height"]}}
+
+
+def make_exec(contract, pem, actions, nenrin_ref, approvals=(), admitted=()):
     key, pub = v0._load_priv(pem)
     me = next((p for p in contract["parties"] if p.get("role") == "contractor"), {})
     if me.get("public_key_ed25519_b64") != pub:
@@ -146,6 +199,8 @@ def make_exec(contract, pem, actions, nenrin_ref, approvals=()):
          "contract_ref": {"contract_id": contract["contract_id"], "payload_digest": (contract.get("task") or {}).get("payload_digest"),
                           "contract_sha256": contract_sha256(contract)},
          "performed_actions": list(actions), "approvals": list(approvals), "delegated_to": [], "nenrin_ref": nenrin_ref}
+    if admitted:
+        r["admission_ref"] = [admission_ref(req, adm) for req, adm in admitted]
     return v12.sign_record(r, key, "contractor")
 
 
@@ -225,12 +280,46 @@ def _selftest():
         except SystemExit:
             pass
     n += 1; print("[6] pinned contract_id, nonce and agreed_at: two builds of the same params are byte-identical; --pins-from an earlier draft keeps its three values and takes the current wording; malformed pins (not hex, Feb 30, hour 24, trailing newline) are refused")
+    # [7] admission between two parties: the contractor asks, the principal answers at its own door, the execution names the answer
+    import admit_v0 as A
+    import settle_v1_11 as v111
+    p7 = dict(params, requirements={"evidence": "nenrin_required", "recovery": "n/a", "admission": "required_before_execution"},
+              contract_id="7" * 32, nonce="8" * 32, agreed_at="2026-10-10T00:00:00Z")
+    c7 = build(p7); sign(c7, os.path.join(t, "a.pem"), "a.example"); sign(c7, os.path.join(t, "b.pem"), "b.example")
+    assert v0.verify_contract(c7)["verdict"] == "accepted" and v111.admission_required(c7) and not v111.admission_required(c)
+    rq = make_request(c7, os.path.join(t, "b.pem"), "read", 970500, target="/invoices")
+    adm = make_admission(c7, rq, os.path.join(t, "a.pem"), "a.example", "https://a.example/keys/agreement.json", 970000, "ab" * 32, publication="public")
+    assert (adm["decision"], adm["reasons"]) == ("admit", ["within_grant"]) and adm["publication"] == "public"
+    assert A.verify_admission(adm, pa, c7) == {"verdict": "accepted", "refusals": []}
+    assert adm["presentation_ref"] == [{"adapter": "musubi-native", "sha256": contract_sha256(c7), "verified": True}]
+    no = make_admission(c7, make_request(c7, os.path.join(t, "b.pem"), "delete", 970500), os.path.join(t, "a.pem"), "a.example", "https://a.example/keys/agreement.json", 970000, "ab" * 32)
+    assert (no["decision"], no["reasons"]) == ("refuse", ["prohibited_action"]) and "publication" not in no
+    for bad in (lambda: make_admission(c7, rq, os.path.join(t, "b.pem"), "b.example", "https://b.example/keys/agreement.json", 970000, "ab" * 32),
+                lambda: make_request(c7, os.path.join(t, "a.pem"), "read", 970500),
+                lambda: make_admission(c7, rq, os.path.join(t, "a.pem"), "a.example", "https://elsewhere.example/k.json", 970000, "ab" * 32)):
+        try:
+            bad(); raise AssertionError("accepted what it must refuse")
+        except SystemExit:
+            pass
+    e7 = make_exec(c7, os.path.join(t, "b.pem"), ["read"], "7" * 64, admitted=[(rq, adm)])
+    with v111._exec_field("admission_ref"):
+        assert v12.authenticate(e7, c7) is None
+    anchored = lambda rec, h: dict(rec, anchor={"height": h})
+    keys = {"a.example": pa}
+    assert v111.admission_deviations(c7, [anchored(e7, 970010)], [anchored(adm, 970005)], keys)[0] == []
+    late = [d["clause"] for d in v111.admission_deviations(c7, [anchored(e7, 970010)], [anchored(adm, 970020)], keys)[0]]
+    other = dict(rq, action=dict(rq["action"], target="/payments"))
+    e8 = make_exec(c7, os.path.join(t, "b.pem"), ["read"], "6" * 64, admitted=[(other, adm)])
+    moved = [d["clause"] for d in v111.admission_deviations(c7, [anchored(e8, 970010)], [anchored(adm, 970005)], keys)[0]]
+    bare = [d["clause"] for d in v111.admission_deviations(c7, [anchored(make_exec(c7, os.path.join(t, "b.pem"), ["read"], "5" * 64), 970010)], [anchored(adm, 970005)], keys)[0]]
+    assert (late, moved, bare) == (["admission_after_execution"], ["executed_other_than_admitted"], ["unadmitted_execution"]), (late, moved, bare)
+    n += 1; print("[7] admission: the contractor's request, the principal's admit() signed at its own door (admit for read, refuse for delete), the execution naming it; the contractor's own key, a principal-signed request and an off-domain key_url are refused; later, moved and missing admissions are each named by the settle v1.11 rule")
     print("ALL PASS (peer_kit: %d checks)" % n)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["selftest", "keygen", "contract", "sign", "verify", "approve", "exec", "stampable", "anchor", "settle"])
+    ap.add_argument("cmd", choices=["selftest", "keygen", "contract", "sign", "verify", "approve", "exec", "stampable", "anchor", "settle", "request", "admit"])
     ap.add_argument("--out"); ap.add_argument("--params"); ap.add_argument("--contract"); ap.add_argument("--key"); ap.add_argument("--domain")
     ap.add_argument("--actions"); ap.add_argument("--nenrin-ref"); ap.add_argument("--record"); ap.add_argument("--ots")
     ap.add_argument("--view", action="append", default=[]); ap.add_argument("--event", action="append", default=[])
@@ -238,6 +327,11 @@ def main():
     ap.add_argument("--approval", action="append", default=[])
     ap.add_argument("--pins-from"); ap.add_argument("--expect")
     ap.add_argument("--nenrin", action="append", default=[])   # settle: NENRIN records, passed through to settle_v1_10
+    # admission (a2a-admission-v0): request, admit, and the admission named by an execution and read by settle v1.11
+    ap.add_argument("--request", action="append", default=[]); ap.add_argument("--admission", action="append", default=[])
+    ap.add_argument("--target"); ap.add_argument("--amount", type=int); ap.add_argument("--key-url"); ap.add_argument("--height", type=int)
+    ap.add_argument("--header-sha256"); ap.add_argument("--revocation", action="append", default=[]); ap.add_argument("--presentation", action="append", default=[])
+    ap.add_argument("--public", action="store_true"); ap.add_argument("--relying-key", action="append", default=[])
     a = ap.parse_args()
     rd = lambda p: parse_strict(open(p, encoding="utf-8").read())
     wr = lambda obj: open(a.out, "w", encoding="utf-8", newline="").write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
@@ -266,8 +360,22 @@ def main():
     if a.cmd == "approve":
         e = approve(rd(a.contract), a.key, a.name, a.action, a.valid_until); wr(e); print(json.dumps({"wrote": a.out})); return 0
     if a.cmd == "exec":
-        e = make_exec(rd(a.contract), a.key, [x for x in a.actions.split(",") if x], a.nenrin_ref, [rd(x) for x in a.approval]); wr(e)
+        if len(a.request) != len(a.admission):
+            raise SystemExit("give one --request for each --admission, in the same order")
+        e = make_exec(rd(a.contract), a.key, [x for x in a.actions.split(",") if x], a.nenrin_ref, [rd(x) for x in a.approval],
+                      admitted=[(rd(q), rd(m)) for q, m in zip(a.request, a.admission)]); wr(e)
         print(json.dumps({"wrote": a.out})); return 0
+    if a.cmd == "request":
+        q = make_request(rd(a.contract), a.key, a.action, a.valid_until, target=a.target, amount=a.amount, approvals=[rd(x) for x in a.approval]); wr(q)
+        print(json.dumps({"wrote": a.out, "action_binding_digest": q["action_binding"]["digest"]["value"], "nonce": q["nonce"]})); return 0
+    if a.cmd == "admit":
+        import admit_v0 as A
+        m = make_admission(rd(a.contract), rd(a.request[0]), a.key, a.domain, a.key_url, a.height, a.header_sha256,
+                           revocations=[rd(x) for x in a.revocation], presentation=[rd(x) for x in a.presentation],
+                           publication="public" if a.public else None); wr(m)
+        print(json.dumps({"wrote": a.out, "decision": m["decision"], "reasons": m["reasons"], "admission_sha256": A.admission_sha256(m),
+                          "next": "anchor these bytes before the action runs (ots stamp, or POST /admission when --public); the contractor names admission_sha256 in its execution"}))
+        return {"admit": 0, "escalate": 3, "refuse": 4}[m["decision"]]
     if a.cmd == "stampable":
         sys.argv = ["anchor_direct.py", "--stampable", a.record, "--out", a.out]; return ad.main()
     if a.cmd == "anchor":
@@ -277,9 +385,15 @@ def main():
         import settle_v1_10 as v19
         # 2026-10-09 (kuangmi-bit, #31): --out and --nenrin were not passed through, so `settle ... --out f` printed the
         # settlement and wrote no file. Every option settle_v1_10 takes is now forwarded.
-        sys.argv = (["settle_v1_10.py", "--settle", a.contract] + sum((["--event", x] for x in a.event), [])
-                    + sum((["--view", x] for x in a.view), []) + sum((["--nenrin", x] for x in a.nenrin), [])
-                    + (["--out", a.out] if a.out else []))
+        common = (sum((["--event", x] for x in a.event), []) + sum((["--view", x] for x in a.view), [])
+                  + sum((["--nenrin", x] for x in a.nenrin), []) + (["--out", a.out] if a.out else []))
+        import settle_v1_11 as v111
+        if a.admission or a.relying_key or v111.admission_required(rd(a.contract)):
+            # a contract that requires admission settles under v1.11; for any other contract v1.11 returns v1.10's bytes
+            sys.argv = (["settle_v1_11.py", "--settle", a.contract] + common + sum((["--admission", x] for x in a.admission), [])
+                        + sum((["--relying-key", x] for x in a.relying_key), []))
+            return v111.main()
+        sys.argv = ["settle_v1_10.py", "--settle", a.contract] + common
         return v19.main()
     return 1
 
