@@ -72,11 +72,11 @@ Every night the [TSUNAGI board](ops/tsunagi/BOARD.md) runs these outside impleme
 | Rows on the public register that are not ours | 2 of 10: one still pending, one added anonymously with `POST /watch` and not measured yet | `curl -s https://gate.horizonshield.dev/register` |
 
 <!-- adoption-count:start -->
-Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_adoption.py), last on 2026-10-08. Every number comes from a source you can read; one that could not be read says so instead of counting zero. The whole count: [`ops/adoption/latest.json`](ops/adoption/latest.json).
+Counted every week by [`tools/adoption/count_adoption.py`](tools/adoption/count_adoption.py), last on 2026-10-09. Every number comes from a source you can read; one that could not be read says so instead of counting zero. The whole count: [`ops/adoption/latest.json`](ops/adoption/latest.json).
 
 | What | Count | From |
 |---|---|---|
-| Independent implementations that reproduced our bytes or verdicts | 12 rows by 7 authors (a2a-card-canonical-form 1, a2a-card-sign-v01 7, agent-card-signature 1, musubi-approval-v2 1, nenrin-provenance 2) | [`tools/adoption/registry.json`](tools/adoption/registry.json), each row with its public link |
+| Independent implementations that reproduced our bytes or verdicts | 14 rows by 8 authors (a2a-card-canonical-form 1, a2a-card-sign-v01 7, agent-card-signature 1, musubi-approval-v2 1, nenrin-provenance 2, nenrin-witness-reader 1, trace-intake 1) | [`tools/adoption/registry.json`](tools/adoption/registry.json), each row with its public link |
 | Outside domains that signed a walk and filed it to the ledger | 3 (`api.babyblueviper.com`, `kuangmi-bit.github.io`, `pipavlo82.github.io`) | every `nenrin-witness-batch-v1` entry on the ledger |
 | Re-verification pool | 1 control cluster(s), 2 needed for a quorum | `workers/hs-ledger/nenrin/recovery-v0/pool_report.json` |
 | MUSUBI contracts signed with an outside party | 3 (with no party from this project: 1) | the signed contracts in `workers/hs-ledger/nenrin/musubi-v0/`, and contracts the parties publish themselves, listed in `registry.json` and signature-checked |
