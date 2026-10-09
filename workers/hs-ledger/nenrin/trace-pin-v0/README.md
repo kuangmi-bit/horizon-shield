@@ -6,6 +6,8 @@ TRACE ([agentrust-io/trace-spec](https://github.com/agentrust-io/trace-spec), v0
 
 So a record that proves something today cannot be checked by a conformant verifier next month, and nothing in it bounds `iat` from outside. This module adds that half. It checks the signature at intake, keeps the exact bytes, and anchors their sha in a daily batch that is stamped to Bitcoin.
 
+How a relying party uses a bound like this is described, without naming any service, in TRACE's informative page [Verifying a record after the freshness window](https://github.com/agentrust-io/trace-spec/blob/main/docs/verifying-after-the-freshness-window.md) (proposed in [agentrust-io Discussion #47](https://github.com/orgs/agentrust-io/discussions/47), merged in [agentrust-io/trace-spec#480](https://github.com/agentrust-io/trace-spec/pull/480) on 2026-10-08): replay the section 3.2.2 freshness comparison at a time T taken from evidence that the exact bytes existed, and report it as a separate, historical check with T and its source stated. A Bitcoin block over the pinned sha is a T of the kind that page calls a second, independent bound: it binds the RFC 8785 bytes, a reader checks it without us, and it bounds when the bytes existed and nothing about what they say.
+
 ## Routes (hs-ledger)
 
 | | |
