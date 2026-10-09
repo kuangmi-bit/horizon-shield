@@ -14,6 +14,11 @@ endorsement, and a red one is written down, never hidden.
 - **Refereed by the board** (`"parse": "batch_referee"`, NENRIN corpora). The board writes the fixtures to one batch
   file, your command writes one verdict signature per fixture, and the board compares each with the frozen
   `expected.json` itself. Your own count is not read. This is the form to use for a new NENRIN verifier.
+- **Refereed by the board, approvals** (`"parse": "batch_approval_referee"`, the a2a-approval-v2 vectors). The board
+  writes `[{"name", "contract", "approval"}]` without the expected values, your command writes
+  `{"<name>": {"result", "reason"}}`, and the board compares each answer exactly with this repository's pinned copy of
+  the vectors (`workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_approver_v2/vectors.json`, sha256 pinned in
+  `run_board.py`), not with the copy in your repository. Self-reported rows for the same corpus stay beside them.
 - **Self-reported** (`count_line`, `all_pass`, `approval_lines`, `json_results`, `pytest`). The board reads the count
   your command prints. Kept for implementations that registered that way; the board says so in the "scored by" column.
 - **Tonight's fresh bundles.** The adversary in `workers/hs-ledger/nenrin/conformance-v0` signs a new set of edge

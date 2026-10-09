@@ -166,6 +166,9 @@ the verdict.
 { verdict, refusals: the sorted set of refusal codes, findings: the sorted set of finding codes }. Codes are
 compared as sets; a code that occurs more than once in a report (for example delegation_observation_invalid for
 two bad observations) counts once. Reasons are reported for readers and are not part of the signature.
+How many times a report lists a code is not part of the signature either. The reference lists a code once per step
+that adds it: a self-authorized grant with an intent gives self_authorized from step 2a and again from step 3, and
+a report that lists it once is equally conformant (clarified 2026-10-09, reported by @kuangmi-bit).
 
 ## 5. Edge rules (outside the corpora, pinned so two implementations agree)
 These follow the reference verifier (sdk/nenrin_verify.mjs, a JavaScript runtime). Where the reference has a known
@@ -191,7 +194,10 @@ weakness it is said so, with the fix.
   observation and read a non-object record as a record.
 - **Missing fields inside a record.** Any field missing from a record stays missing in its preimage (it is not
   turned into null). If grant.action or the receipt's executed_action (or the intent's proposed_action) is missing,
-  null, false, 0 or "", E1 (or the preflight action check) fails with action_diverged. An edge whose task_id or hop is
+  null, false, 0 or "", E1 (or the preflight action check) fails with reason action_diverged, so step 2 adds the
+  refusal execution_invalid (step 3: preflight_invalid); action_diverged is a reason, not a code in the signature.
+  This holds even when both sides are the same degenerate value (null against null, 0 against 0). An empty object {}
+  is not degenerate: it is an action like any other and is compared canonically, so {} against {} passes E1. An edge whose task_id or hop is
   missing cannot be canonicalized, so edge_sig does not verify. hop.seq must be a JSON integer; any other value fails
   R3 with seq_gap.
 - **R4 distinctness.** conduct.verdict is a string, and two verdicts are distinct when the strings differ. A missing

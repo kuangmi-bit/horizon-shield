@@ -39,7 +39,52 @@ NENRIN = os.path.join(ROOT, "workers", "hs-ledger", "nenrin")
 HISTORY_KEEP = 60
 # What outside code must not be able to change between runs: the corpora the board scores against, the generator, and
 # the board's own tools and adapters. Snapshotted before anything outside runs, checked and restored after each run.
-GUARDED = [os.path.join(NENRIN, d) for d in ("interop-v0", "interop-v0.1", "interop-v0.2", "conformance-v0", "sdk", "sdk-python/src")] + [HERE]
+GUARDED = [os.path.join(NENRIN, d) for d in ("interop-v0", "interop-v0.1", "interop-v0.2", "conformance-v0", "sdk", "sdk-python/src",
+                                             "musubi-v0")] + [HERE]
+
+# The a2a-approval-v2 vectors (babyblueviper1, settle v1.10's approver), refereed by the board from this repository's pinned copy,
+# not from the author's repository: an implementation cannot change the answers it is scored against (2026-10-09, #34).
+APPROVAL_CORPORA = {
+    "musubi-approval-v2": (os.path.join(NENRIN, "musubi-v0", "fixtures", "babyblueviper1_approver_v2", "vectors.json"),
+                           "75b03692f44bc7dd68791e2135d9f8c11569cc95e86fce35bf866906b7904c9b"),
+}
+
+
+def load_approval_corpus(name):
+    """(cases {id: {result, reason}}, batch [{name, contract, approval}]). The batch carries no expected value."""
+    path, pin = APPROVAL_CORPORA[name]
+    raw = open(path, "rb").read()
+    if hashlib.sha256(raw).hexdigest() != pin:
+        raise ValueError("%s does not match its pinned sha256" % os.path.relpath(path, ROOT))
+    V = json.loads(raw.decode("utf-8"))
+    cases = {v["id"]: {"result": v["expect"]["result"], "reason": v["expect"].get("reason")} for v in V["vectors"]}
+    batch = [{"name": v["id"], "contract": V["contracts"][v["contract"]], "approval": v.get("approval")} for v in V["vectors"]]
+    return cases, batch
+
+
+def score_approval(cases, result, total):
+    """Compare each {result, reason} with the pinned expectation, exactly. A missing case, an error, an extra key or an extra
+    case counts against the implementation. Same shape of cell as the NENRIN referee's."""
+    per, n = {}, 0
+    ok_out = isinstance(result, dict)
+    for k, want in cases.items():
+        got = result.get(k) if ok_out else None
+        good = (isinstance(got, dict) and set(got) <= {"result", "reason"}
+                and got.get("result") == want["result"] and got.get("reason") == want["reason"])
+        n += good
+        per[k] = {"ok": good, "result": got.get("result") if isinstance(got, dict) else None,
+                  "reason": got.get("reason") if isinstance(got, dict) else None, "want": want}
+        if isinstance(got, dict) and "error" in got:
+            per[k]["error"] = str(got["error"])[:200]
+    extra = sorted(set(result) - set(cases))[:20] if ok_out else []
+    out = {"reproduced": n, "of": len(cases), "expected_total": total, "per_vector": per, "scored_by": "board"}
+    if extra:
+        out["extra_cases"] = extra
+    if result is None:
+        out["problem"] = "the implementation wrote no readable output file"
+    elif not ok_out:
+        out["problem"] = "the output file is not a JSON object keyed by case name"
+    return out
 
 
 def snapshot():
@@ -215,6 +260,7 @@ def run_board(spec, ext_dir, local=None):
     rows, vectors, heads, dirs = [], {}, {}, {}
     local = local or {}
     corpora = {n: REFEREE.load_corpus(n, NENRIN) for n in REFEREE.CORPORA}   # read before any outside code runs
+    approval = {n: load_approval_corpus(n) for n in APPROVAL_CORPORA}
     snap = snapshot()
     for impl in spec["implementations"]:
         impl_dir = None
@@ -239,7 +285,8 @@ def run_board(spec, ext_dir, local=None):
             if run.get("vectors") and impl_dir:
                 vectors[run["corpus"]] = expand(run["vectors"], impl_dir, HERE, vectors)
             row = {"implementation": impl["id"], "ours": impl["ours"], "corpus": run["corpus"], "commit": info["commit"],
-                   "scored_by": "board" if run["parse"] == "batch_referee" else "implementation", "expected_total": run["total"]}
+                   "scored_by": "board" if run["parse"] in ("batch_referee", "batch_approval_referee") else "implementation",
+                   "expected_total": run["total"]}
             if info["clone_error"]:
                 row.update({"status": "not_run", "reason": "the repository could not be cloned: " + info["clone_error"]})
                 rows.append(row); continue
@@ -250,10 +297,17 @@ def run_board(spec, ext_dir, local=None):
                 if code != 0:
                     row.update({"status": "not_run", "reason": "setup failed (exit %d): %s" % (code, (err or out).strip()[-300:])})
                     rows.append(row); continue
-            if run["parse"] == "batch_referee":
-                cases, batch = corpora[run["corpus"]]
-                code, result, secs, tail = run_batch(batch, run["cmd"], cwd, env, impl_dir, vectors)
-                res = refereed(run["corpus"], code, result, run["total"], cases)
+            if run["parse"] in ("batch_referee", "batch_approval_referee"):
+                if run["parse"] == "batch_referee":
+                    cases, batch = corpora[run["corpus"]]
+                    code, result, secs, tail = run_batch(batch, run["cmd"], cwd, env, impl_dir, vectors)
+                    res = refereed(run["corpus"], code, result, run["total"], cases)
+                else:
+                    cases, batch = approval[run["corpus"]]
+                    code, result, secs, tail = run_batch(batch, run["cmd"], cwd, env, impl_dir, vectors)
+                    res = score_approval(cases, result, run["total"])
+                    res["passed"] = (code == 0 and isinstance(result, dict) and res["reproduced"] == res["of"] == run["total"]
+                                     and not res.get("extra_cases"))
                 row.update({"status": "ran", "exit": code, "seconds": secs, **res})
                 if result is None or code != 0:
                     row["stderr_tail"] = tail
@@ -424,7 +478,7 @@ def to_md(board, hist=None):
         streak = str(c.get("streak", "")) + ((" (since %s)" % c["first_pass"][:10]) if c.get("first_pass") and c.get("streak") else "")
         by = {"board": "board", "implementation": "self"}.get(r.get("scored_by"), "")
         L.append("| %s | %s | %s | %s | %s | %s | `%s` |" % (link, who, r["corpus"], res, by, streak, (r.get("commit") or "")[:8]))
-    L += ["", "## Two implementations, one corpus", "", "| corpus | a | b | agree |", "|---|---|---|---|"]
+    L += ["", "## Two implementations, one corpus", "", "| corpus | a | b | scored by | agree |", "|---|---|---|---|---|"]
     for p in board["pairs"]:
         if p["agree"] is None:
             ag = "not compared: " + p["reason"]
@@ -432,7 +486,7 @@ def to_md(board, hist=None):
             ag = "%s, %d/%d vectors%s" % ("yes" if p["agree"] else "NO", p["same"], p["of"], "" if p["agree"] else " (differ: " + ", ".join(p["differ"]) + ")")
         else:
             ag = ("yes" if p["agree"] else "NO") + ", " + p["basis"]
-        L.append("| %s | %s | %s | %s |" % (p["corpus"], p["a"], p["b"], ag))
+        L.append("| %s | %s | %s | %s | %s |" % (p["corpus"], p["a"], p["b"], {"board": "board"}.get(p.get("scored_by"), "self"), ag))
     d = board.get("differential")
     if d:
         L += ["", "## Tonight's fresh bundles", ""]

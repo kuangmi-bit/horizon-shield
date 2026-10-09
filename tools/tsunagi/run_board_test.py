@@ -104,6 +104,33 @@ with tempfile.TemporaryDirectory() as tmp:
                    "runs": [], "pairs": [], "differential": d})
     t("board markdown: a bundle name with a pipe does not break the table", "a\\|b" in md)
 
+# approval corpus refereed by the board (2026-10-09, #34): the pinned copy, no expected value in the batch, exact comparison
+cases, batch = rb.load_approval_corpus("musubi-approval-v2")
+t("approval corpus: nine cases from the pinned copy", len(cases) == 9 and len(batch) == 9)
+t("approval corpus: the batch carries no expected value", all(set(b) == {"name", "contract", "approval"} for b in batch))
+right = {k: dict(v) for k, v in cases.items()}
+r = rb.score_approval(cases, right, 9)
+t("approval referee: every answer equal is 9/9 with no extra", r["reproduced"] == 9 and not r.get("extra_cases"))
+wrong = dict(right); k0 = sorted(cases)[0]; wrong[k0] = {"result": right[k0]["result"], "reason": "something_else"}
+t("approval referee: a different reason is not reproduced", rb.score_approval(cases, wrong, 9)["reproduced"] == 8)
+padded = dict(right); padded[k0] = dict(right[k0], note="x")
+t("approval referee: an extra key in an answer is not reproduced", rb.score_approval(cases, padded, 9)["reproduced"] == 8)
+extra = dict(right); extra["made-up"] = {"result": "approved", "reason": None}
+t("approval referee: an extra case is listed", rb.score_approval(cases, extra, 9).get("extra_cases") == ["made-up"])
+t("approval referee: no output is 0 and says so", rb.score_approval(cases, None, 9)["reproduced"] == 0 and "problem" in rb.score_approval(cases, None, 9))
+t("approval referee: a list instead of an object is 0", rb.score_approval(cases, [1, 2], 9)["reproduced"] == 0)
+impls = __import__("json").load(open(os.path.join(rb.HERE, "implementations.json"), encoding="utf-8"))["implementations"]
+appr_runs = [r for i in impls for r in i["runs"] if r["parse"] == "batch_approval_referee"]
+t("every approval-refereed run names a pinned approval corpus", appr_runs and all(r["corpus"] in rb.APPROVAL_CORPORA for r in appr_runs))
+import shutil
+saved = rb.APPROVAL_CORPORA["musubi-approval-v2"]
+rb.APPROVAL_CORPORA["musubi-approval-v2"] = (saved[0], "0" * 64)
+try:
+    rb.load_approval_corpus("musubi-approval-v2"); t("approval corpus: a changed pin is refused", False)
+except ValueError:
+    t("approval corpus: a changed pin is refused", True)
+rb.APPROVAL_CORPORA["musubi-approval-v2"] = saved
+
 snap = rb.snapshot()
 target = os.path.join(rb.HERE, "README.md")
 keep = open(target, "rb").read()

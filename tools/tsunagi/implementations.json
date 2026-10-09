@@ -314,6 +314,18 @@
           "parse": "approval_lines",
           "total": 9,
           "vectors": "@impl/examples/musubi-approver-v2/vectors.json"
+        },
+        {
+          "corpus": "musubi-approval-v2",
+          "cwd": "@impl/examples/musubi-approver-v2",
+          "cmd": [
+            "python3",
+            "batch_approval_v2.py",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_approval_referee",
+          "total": 9
         }
       ]
     },
@@ -333,6 +345,18 @@
             "@vectors:musubi-approval-v2"
           ],
           "parse": "approval_lines",
+          "total": 9
+        },
+        {
+          "corpus": "musubi-approval-v2",
+          "cwd": "@hs/workers/hs-ledger/nenrin/musubi-v0",
+          "cmd": [
+            "python3",
+            "@board/hs_approval_batch.py",
+            "@in",
+            "@out"
+          ],
+          "parse": "batch_approval_referee",
           "total": 9
         }
       ]
@@ -406,6 +430,13 @@
       "a": "babyblueviper1-approval-v2",
       "b": "hs-settle-v1.10-approval",
       "what": "the same nine vectors, read by two implementations written by different people; per-vector result and reason must agree"
+    },
+    {
+      "corpus": "musubi-approval-v2",
+      "a": "babyblueviper1-approval-v2",
+      "b": "hs-settle-v1.10-approval",
+      "scored_by": "board",
+      "what": "the same nine vectors, answered by two implementations written by different people and compared by the board against this repository's pinned copy; per-vector result and reason must agree"
     },
     {
       "corpus": "nenrin-interop-v0",

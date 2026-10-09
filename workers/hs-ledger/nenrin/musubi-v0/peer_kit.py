@@ -237,6 +237,7 @@ def main():
     ap.add_argument("--name"); ap.add_argument("--action"); ap.add_argument("--valid-until", type=int)
     ap.add_argument("--approval", action="append", default=[])
     ap.add_argument("--pins-from"); ap.add_argument("--expect")
+    ap.add_argument("--nenrin", action="append", default=[])   # settle: NENRIN records, passed through to settle_v1_10
     a = ap.parse_args()
     rd = lambda p: parse_strict(open(p, encoding="utf-8").read())
     wr = lambda obj: open(a.out, "w", encoding="utf-8", newline="").write(json.dumps(obj, ensure_ascii=False, indent=2) + "\n")
@@ -274,7 +275,11 @@ def main():
         return ad.main()
     if a.cmd == "settle":
         import settle_v1_10 as v19
-        sys.argv = ["settle_v1_10.py", "--settle", a.contract] + sum((["--event", x] for x in a.event), []) + sum((["--view", x] for x in a.view), [])
+        # 2026-10-09 (kuangmi-bit, #31): --out and --nenrin were not passed through, so `settle ... --out f` printed the
+        # settlement and wrote no file. Every option settle_v1_10 takes is now forwarded.
+        sys.argv = (["settle_v1_10.py", "--settle", a.contract] + sum((["--event", x] for x in a.event), [])
+                    + sum((["--view", x] for x in a.view), []) + sum((["--nenrin", x] for x in a.nenrin), [])
+                    + (["--out", a.out] if a.out else []))
         return v19.main()
     return 1
 
