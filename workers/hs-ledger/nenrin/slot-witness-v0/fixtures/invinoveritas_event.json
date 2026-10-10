@@ -1,0 +1,30 @@
+{
+ "source": "github.com/babyblueviper1/invinoveritas at c892046d9c3c500ebbcc8526544415df6b5b1a47, examples/proofrun-composition/fixtures/review_proof_signed.json (sha256 841e2e6b650a163e5a89940d86b87609941c41d8e2d3678f74dfbb9b4377c915), member proof.event",
+ "why": "a real event signed by the invinoveritas verifier key, to test NIP-01 id and BIP-340 against the issuer's own bytes",
+ "event": {
+  "id": "77fdaebd16d5bb4a10cb7d6639d2c0ef7b59b53af4ee4f95651f2898712c3072",
+  "pubkey": "6786e18a864893a900bd9858e650f67ccc3513f248fed374b591e2ff6922fbb7",
+  "created_at": 1786889259,
+  "kind": 30078,
+  "tags": [
+   [
+    "d",
+    "invinoveritas-proof-e0b0dc557bb89124b8edfe53e86ad08b42ae28004746f9cf801206d527cafe24-1786889259-5ec66c8f"
+   ],
+   [
+    "t",
+    "invinoveritas"
+   ],
+   [
+    "t",
+    "proof"
+   ],
+   [
+    "schema",
+    "invinoveritas.verdict_proof.v1"
+   ]
+  ],
+  "content": "{\"artifact_hash\":\"e0b0dc557bb89124b8edfe53e86ad08b42ae28004746f9cf801206d527cafe24\",\"artifact_type\":\"code_diff\",\"confidence\":0.98,\"conformance_suite\":\"https://github.com/babyblueviper1/preaction-governance-conformance\",\"decision_ref\":\"sha256:d3c074db49259adbe8820e53f2b498c12c64a1c59ff8e684d694752e99032ff7\",\"decision_ref_preimage_fields\":[\"artifact_hash\",\"artifact_type\",\"policy_version\",\"verdict\",\"source_class\",\"vantage_limitation\",\"related_decision_ref\",\"intended_audience\",\"confidentiality_tier\",\"disclosed_summary\",\"intended_verifier\",\"policy_commitment\",\"verified_at\",\"registry_as_of\",\"registry_snapshot_sha256\"],\"decision_ref_preimage_rule\":\"every name in decision_ref_preimage_fields is a key in the hashed preimage object, always -- absent fields (e.g. vantage_limitation when not applicable) are present as JSON null, never omitted from the object.\",\"engine_generation\":1,\"independent_nodes\":[\"https://invinoveritas-castra.babyblueviper.workers.dev/verify\",\"https://babyblueviper1--2aba75da693711f185891607ee4eb77e.web.val.run\"],\"key_id\":\"6786e18a864893a900bd9858e650f67ccc3513f248fed374b591e2ff6922fbb7\",\"platform\":\"invinoveritas\",\"policy_commitment\":\"sha256:b0d29b374874515c8ffa392326fd05d80fcee28dc791fdbb5edbeb6fd50396dd\",\"policy_commitment_inputs\":{\"conformance_suite_commit\":\"62d32e519c39ba060950140ee7ceb5327371a0fe\",\"conformance_suite_repo\":\"babyblueviper1/preaction-governance-conformance\",\"rubric_doc_path\":\"docs/policy_spec/invinoveritas.review.v10.md\",\"rubric_sha256\":\"a4af5917fb2d37a685476458a6e326e6cc870fc24e8b49b41243b685fb9eb1b5\"},\"policy_version\":\"invinoveritas.review.v11\",\"registry_as_of\":null,\"registry_snapshot_sha256\":null,\"schema\":\"invinoveritas.verdict_proof.v1\",\"source_class\":\"agent_reported\",\"summary_hash\":\"413746a05dce5bd249e3e653237ebc8369cdf046b23e38cd87902b56b9619ea1\",\"verdict\":\"reject\",\"verified_at\":1786889259,\"verifier_keys\":\"https://api.babyblueviper.com/.well-known/verifier-keys.json\",\"verifier_pubkey\":\"6786e18a864893a900bd9858e650f67ccc3513f248fed374b591e2ff6922fbb7\",\"verify_how\":\"Easiest: install the offline verifier above and recompute locally. Or POST this proof's signed `event` to verify_url (or an independent_node), OR run NIP-01 yourself: recompute the Nostr event id = sha256([0,pubkey,created_at,kind,tags,content]), verify the schnorr signature against verifier_pubkey. valid ⇒ invinoveritas issued this, untampered. No trust required.\",\"verify_offline\":\"npm i invinoveritas-verify  ·  pip install invinoveritas-verify  — recompute this proof on your own machine against verifier_pubkey; you never have to call us.\",\"verify_url\":\"https://api.babyblueviper.com/verify-proof\"}",
+  "sig": "f50fa3c4b30d23306585a6bb190750e5dd09435fecc79648e2c93670d52f9053d96f256d05c12064faf9dfa9be74cc384d8e78dc55be2d2a0c77976919abda51"
+ }
+}

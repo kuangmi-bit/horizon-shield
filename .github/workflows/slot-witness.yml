@@ -1,0 +1,42 @@
+# slot-witness-v0: NENRIN reads an issuer's one-receipt-per-request slot (invinoveritas decision receipts) as an outside
+# witness. BIP-340 in JS and in Python against the BIP's own vectors and a real invinoveritas event, the intake on a fake
+# ledger and a fake slot endpoint, and the Python checker recomputing the observations the JS intake wrote.
+name: slot-witness
+
+on:
+  push:
+    paths:
+      - "workers/hs-ledger/nenrin/slot-witness-v0/**"
+      - "workers/hs-ledger/nenrin/trace-pin-v0/trace_pin_v0.mjs"
+      - "workers/hs-ledger/nenrin/vouch-pin-v0/vouch_check.py"
+      - "workers/hs-ledger/nenrin/musubi-v0/anchor_compose.py"
+      - ".github/workflows/slot-witness.yml"
+  pull_request:
+    paths:
+      - "workers/hs-ledger/nenrin/slot-witness-v0/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: the intake and BIP-340 (Node, Web Crypto)
+        working-directory: workers/hs-ledger
+        run: node nenrin/slot-witness-v0/slot_witness_v0.test.mjs
+      - name: the reader-side checker (Python, standard library only)
+        run: python3 workers/hs-ledger/nenrin/slot-witness-v0/slot_check_test.py
+      - name: the ledger worker still parses
+        run: node --check workers/hs-ledger/src/worker.js

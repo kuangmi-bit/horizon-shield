@@ -68,6 +68,11 @@ const EXPECTED_ROUTES = [
   "/resume?endpoint={url}",
   "/trust-signal?endpoint={url}",
   "/agreement", "/agreement/pending", "/agreement/{canonical_sha256}", "/admission", "/admission/{canonical_sha256}", "/revocation", "/revocation/{canonical_sha256}",
+  // 2026-10-10: /evidence/trace (trace-pin-v0) and the three /evidence/vouch routes (vouch-pin-v0) were added to /health
+  // without being named here, so this check had been failing since; named now, with slot-witness-v0's three.
+  "/evidence/trace",
+  "/evidence/vouch", "/evidence/vouch/{sha}", "/evidence/vouch/id/{credential id}",
+  "/evidence/slot", "/evidence/slot/{sha}", "/evidence/slot/s/{request_slot}",
 ];
 const routesMatch = Array.isArray(hj.routes)
   && JSON.stringify([...hj.routes].sort()) === JSON.stringify([...EXPECTED_ROUTES].sort());

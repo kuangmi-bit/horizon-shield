@@ -124,6 +124,7 @@ NAMED_KINDS = {
     "nenrin-trace-pin-batch-v0": ("sha", "trace_record", "/evidence/trace/%s?format=raw"),
     "nenrin-agreement-batch-v1": ("canonical_sha256", "agreement_record", "/agreement/%s"),
     "nenrin-vouch-pin-batch-v0": ("sha", "vouch_record", "/evidence/vouch/%s?format=raw"),
+    "nenrin-slot-witness-batch-v0": ("sha", "slot_record", "/evidence/slot/%s?format=raw"),
 }
 
 
@@ -147,9 +148,9 @@ def named_records(entry):
 
 
 def record_bytes(kind, body):
-    """The record's own bytes from what the ledger serves: raw for a TRACE record or a Vouch credential, the record_canonical string of the
-    JSON envelope for a witness walk or an agreement. Returns (bytes or None, envelope dict or None)."""
-    if kind in ("trace_record", "vouch_record"):
+    """The record's own bytes from what the ledger serves: raw for a TRACE record, a Vouch credential or a slot observation, the
+    record_canonical string of the JSON envelope for a witness walk or an agreement. Returns (bytes or None, envelope dict or None)."""
+    if kind in ("trace_record", "vouch_record", "slot_record"):
         return body, None
     try:
         env = json.loads(body.decode("utf-8"))
