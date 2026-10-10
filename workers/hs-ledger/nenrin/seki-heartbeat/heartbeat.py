@@ -1,0 +1,488 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SEKI heartbeat: the first door works every day, whether or not anyone else calls it, and every day is settled.
+
+The door (hs-seki-door) stands in front of HORIZON SHIELD's own paid tool, hs-gateway /report, for the store
+hs-seki-demo, under the demonstration contract musubi-v0/run0003/contract.json. Principal, agent and door are all
+The HORIZONs Co., Ltd., and the contract says so. A door that is only exercised on the day it was built proves little,
+so once a day this file does two things, and the scheduled workflow .github/workflows/seki-heartbeat.yml commits what
+they wrote under runs/<UTC date>/:
+
+  run      The agent makes the same three calls as run0003, each with a fresh nonce:
+             report   20 tickets, the limit is 20      must be admitted, run, and filed as an execution record
+             audit    30 tickets, the limit is 25      must be refused amount_over_limit, nothing spent
+             compare  50 tickets, prohibited           must be refused prohibited_action, nothing spent
+           Every record the door signs is checked here under the key keys/seki-door.json publishes and must be on
+           the ledger. Anything other than the expected answer is a failure (exit 1), so a broken door shows up as a
+           failed run, not as a quiet gap.
+  settle   Every earlier day whose records the ledger has batched and Bitcoin has confirmed is settled with
+           settle v1.15 (and v1.12, which must agree on the verdict). The anchors are composed with anchor_compose
+           from the ledger's own batch bytes and .ots proofs; the header view comes from two explorers, extended
+           from final headers kept in view-chunks/ (written once, never rewritten) and checked again in full every time. Days not yet confirmed are left for a
+           later run. settlement.json and the anchored records are written next to the day's records.
+
+Only the agent's key is used here (SEKI_AGENT_SEED_B64, the 32 byte Ed25519 seed in base64, from the repository's
+Actions secrets) with the store's gateway token (HSG_STORE_TOKEN). The agent can do nothing the contract does not
+allow and the tickets of the pilot carry no monetary value. The door's key never leaves Cloudflare and is not here.
+
+  python3 heartbeat.py run    [--root runs] [--date YYYY-MM-DD]
+  python3 heartbeat.py settle [--root runs] [--view-chunks view-chunks]
+  python3 heartbeat.py --selftest
+"""
+import argparse, base64, datetime, hashlib, json, os, secrets, sys, tempfile, time, urllib.error, urllib.request
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+MUSUBI = os.path.normpath(os.path.join(HERE, "..", "musubi-v0"))
+REPO = os.path.normpath(os.path.join(HERE, "..", "..", "..", ".."))
+sys.path.insert(0, MUSUBI)
+import admission_verify_v0 as A  # noqa: E402
+import anchor_compose as AC  # noqa: E402
+import header_view_fetch as HV  # noqa: E402
+import peer_kit  # noqa: E402
+import settle_v1_1 as v11  # noqa: E402
+import settle_v1_12 as s12  # noqa: E402
+import settle_v1_15 as s15  # noqa: E402
+from contract_v0 import canonical, contract_sha256, parse_strict  # noqa: E402
+
+CONTRACT_PATH = os.path.join(MUSUBI, "run0003", "contract.json")
+GATEWAY = "https://hs-gateway.oga-surf-project.workers.dev"
+LEDGER = "https://ledger.horizonshield.dev"
+AGREEMENT = "https://agreement.horizonshield.dev"
+STORE = "hs-seki-demo"
+TARGET = GATEWAY + "/report?store=" + STORE
+DOOR_DOMAIN = "shield.the-horizons-innovation.com"
+DISCLOSURE = ("a demonstration: the principal, the contractor and the relying party are all The HORIZONs Co., Ltd.; "
+              "the door is exercised every day on its own paid path; this is not an arm's-length agreement and the pilot's "
+              "tickets carry no monetary value")
+EXPECT = [("report", 20, "admit", ["within_grant"], 200),
+          ("audit", 30, "refuse", ["amount_over_limit"], 403),
+          ("compare", 50, "refuse", ["prohibited_action"], 403)]
+PAYLOAD = {
+    "report": {"koji_type": "gaiheki_30tsubo", "teiji_kingaku": 1200000},
+    "audit": {"note": "SEKI heartbeat: the door refuses this call before the payload is read"},
+    "compare": {"note": "SEKI heartbeat: the door refuses this call before the payload is read"},
+}
+UA = "seki-heartbeat/1 (+https://github.com/ogasurfproject-jpg/horizon-shield)"
+SCAN_ENTRIES = 40
+
+
+def http(method, url, body=None, headers=None, timeout=120):
+    data = body if isinstance(body, (bytes, type(None))) else body.encode("utf-8")
+    rq = urllib.request.Request(url, data=data, headers=dict({"user-agent": UA}, **(headers or {})), method=method)
+    try:
+        with urllib.request.urlopen(rq, timeout=timeout) as r:
+            return r.status, dict(r.headers), r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, dict(e.headers), e.read()
+
+
+def jl(b):
+    try:
+        return json.loads(b)
+    except Exception:
+        return None
+
+
+def rd(p):
+    return parse_strict(open(p, encoding="utf-8").read())
+
+
+def door_key():
+    k = json.load(open(os.path.join(REPO, "keys", "seki-door.json"), encoding="utf-8"))
+    return k["public_key_ed25519_b64"]
+
+
+def tip_height():
+    """The lower of the two explorers' tips; both must answer."""
+    tips = [int(HV._get(base + "/blocks/tip/height").strip()) for base in HV.SOURCES.values()]
+    return min(tips)
+
+
+# --------------------------------------------------------------------------- run
+def run(root, date):
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    out = os.path.join(root, date)
+    if os.path.exists(os.path.join(out, "RUN.json")):
+        prev = json.load(open(os.path.join(out, "RUN.json"), encoding="utf-8"))
+        print("already ran for %s (%s); nothing is spent twice" % (date, prev.get("result")))
+        return 0 if prev.get("result") == "as expected" else 1
+    seed_b64 = os.environ.get("SEKI_AGENT_SEED_B64", "").strip()
+    token = os.environ.get("HSG_STORE_TOKEN", "").strip()
+    if not seed_b64 or not token:
+        print("FAIL: SEKI_AGENT_SEED_B64 and HSG_STORE_TOKEN are required (repository Actions secrets)")
+        return 1
+    seed = base64.b64decode(seed_b64, validate=True)
+    if len(seed) != 32:
+        print("FAIL: SEKI_AGENT_SEED_B64 is not a 32 byte seed")
+        return 1
+    key = Ed25519PrivateKey.from_private_bytes(seed)
+    agent_pub = base64.b64encode(key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)).decode()
+    ctext = open(CONTRACT_PATH, encoding="utf-8").read()
+    contract = parse_strict(ctext)
+    csha = contract_sha256(contract)
+    door_pub = door_key()
+    fails = []
+
+    def check(name, cond, detail=""):
+        print(("ok   " if cond else "NG   ") + name + ("" if cond else "   <<< " + str(detail)[:400]))
+        if not cond:
+            fails.append(name)
+        return cond
+
+    contractor = next(p for p in contract["parties"] if p["role"] == "contractor")
+    if not check("the secret is the contractor key the contract pins", contractor["public_key_ed25519_b64"] == agent_pub):
+        return 1
+    st, _h, b = http("GET", "%s/balance?store=%s" % (GATEWAY, STORE), headers={"x-store-token": token})
+    bal = (jl(b) or {}).get("tickets")
+    if not check("the store holds at least the 20 tickets the report needs (balance %s)" % bal, st == 200 and isinstance(bal, int) and bal >= 20, (st, b[:200])):
+        return 1
+    os.makedirs(out, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="seki-heartbeat-")
+    pem = os.path.join(tmp, "agent.pem")
+    fd = os.open(pem, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        f.write(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    try:
+        record = {"schema": "seki-heartbeat-run-v0", "note": DISCLOSURE, "date": date, "contract_sha256": csha, "store": STORE,
+                  "target": TARGET, "door_public_key_ed25519_b64": door_pub, "gateway": GATEWAY, "balance_before": bal,
+                  "ran_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "calls": []}
+        st, _h, b = http("POST", AGREEMENT + "/contract", ctext.encode("utf-8"), {"content-type": "application/json"})
+        j = jl(b) or {}
+        check("the contract is on file at the agreement intake", st in (200, 201, 409) and (j.get("verdict") == "accepted" or j.get("dedup") is True), (st, b[:300]))
+        tip = tip_height()
+        expiry = tip + 18
+        record["tip_height_at_request"] = tip
+        for service, price, want_decision, want_reasons, want_status in EXPECT:
+            nonce = secrets.token_hex(16)
+            req = A.build_action_request(contract, service, nonce, expiry, key, target=TARGET, amount=price)
+            body = dict(PAYLOAD[service], seki={"action_request": req, "presentation": [{"adapter": "musubi-native", "material": {"contract": contract}}]})
+            st, hd, rb = http("POST", "%s/report?store=%s&service=%s" % (GATEWAY, STORE, service), json.dumps(body),
+                              {"content-type": "application/json", "x-store-token": token})
+            hl = {k.lower(): v for k, v in hd.items()}
+            call = {"service": service, "tickets": price, "request_sha256": hashlib.sha256(canonical(req).encode()).hexdigest(), "nonce": nonce,
+                    "status": st, "decision": hl.get("x-seki-decision"), "admission_sha256": hl.get("x-seki-admission-sha256"),
+                    "record_sha256": hl.get("x-seki-record-sha256"), "published": hl.get("x-seki-published"), "tickets_spent": hl.get("x-tickets-spent")}
+            with open(os.path.join(out, "request_%s.json" % service), "w", encoding="utf-8") as f:
+                f.write(canonical(req))
+            check("%s: HTTP %d" % (service, want_status), st == want_status, (st, rb[:300]))
+            rec = None
+            if st == 200:
+                call["report_sha256"] = hashlib.sha256(rb).hexdigest()
+                check("%s: a PDF came back and %d tickets were spent" % (service, price), rb[:4] == b"%PDF" and hl.get("x-tickets-spent") == str(price), (rb[:20], hl.get("x-tickets-spent")))
+            else:
+                check("%s: nothing was spent" % service, "x-tickets-spent" not in hl)
+            rs = call["record_sha256"]
+            check("%s: the door named its signed record (decision %s)" % (service, want_decision), call["decision"] == want_decision and isinstance(rs, str) and len(rs) == 64, call)
+            if isinstance(rs, str) and len(rs) == 64:
+                gst, _, gb = http("GET", "%s/seki/record/%s" % (GATEWAY, rs))
+                check("%s: the door serves the record by its sha256" % service, gst == 200 and hashlib.sha256(gb).hexdigest() == rs, gst)
+                rec = parse_strict(gb.decode("utf-8"))
+                v = A.verify_admission(rec, door_pub, contract)
+                check("%s: the record verifies under the door's published key" % service, v.get("verdict") == "accepted", v)
+                check("%s: decision %s, reasons %s" % (service, want_decision, want_reasons), rec.get("decision") == want_decision and rec.get("reasons") == want_reasons, (rec.get("decision"), rec.get("reasons")))
+                with open(os.path.join(out, "admission_%s.json" % service), "w", encoding="utf-8") as f:
+                    f.write(gb.decode("utf-8"))
+                lst = None
+                for _ in range(6):
+                    lst, _, _ = http("GET", "%s/admission/%s" % (LEDGER, rs))
+                    if lst == 200:
+                        break
+                    time.sleep(5)
+                check("%s: the ledger holds the record" % service, lst == 200, lst)
+                call["ledger_url"] = LEDGER + "/admission/" + rs
+            if st == 200 and rec is not None:
+                e = peer_kit.make_exec(contract, pem, [service], call["report_sha256"], admitted=[(req, rec)])
+                etext = canonical(e)
+                est, _, eb = http("POST", AGREEMENT + "/execution", etext.encode("utf-8"), {"content-type": "application/json"})
+                ej = jl(eb) or {}
+                check("%s: the execution record naming the admission is filed" % service, est in (201, 409) and (ej.get("verdict") == "accepted" or ej.get("dedup") is True), (est, eb[:300]))
+                with open(os.path.join(out, "execution_%s.json" % service), "w", encoding="utf-8") as f:
+                    f.write(etext)
+                call["execution_sha256"] = hashlib.sha256(etext.encode("utf-8")).hexdigest()
+                call["execution_url"] = AGREEMENT + "/execution/" + call["execution_sha256"]
+            record["calls"].append(call)
+        record["result"] = "as expected" if not fails else "NOT as expected: " + "; ".join(fails)
+        with open(os.path.join(out, "RUN.json"), "w", encoding="utf-8") as f:
+            f.write(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
+    finally:
+        if os.path.exists(pem):
+            os.unlink(pem)
+        os.rmdir(tmp)
+    print(("\nHEARTBEAT %s: report admitted and executed, audit and compare refused, nothing spent on the refusals" % date)
+          if not fails else "\nFAIL %d: %s" % (len(fails), ", ".join(fails)))
+    return 1 if fails else 0
+
+
+# --------------------------------------------------------------------------- settle
+def locate(shas, get=None):
+    """{sha: (entry n, batch bytes)} for the shas listed in records[] of a recent ledger entry."""
+    get = get or (lambda u: http("GET", u))
+    st, _, b = get(LEDGER + "/ledger/head?cb=%d" % int(time.time()))
+    head = (jl(b) or {}).get("n") if st == 200 else None
+    if not isinstance(head, int):
+        raise RuntimeError("the ledger head did not answer (%s)" % st)
+    want, found = set(shas), {}
+    for n in range(head, max(0, head - SCAN_ENTRIES), -1):
+        st, _, raw = get("%s/ledger/%d?format=raw" % (LEDGER, n))
+        if st != 200:
+            continue
+        d = jl(raw)
+        for r in (d or {}).get("records") or []:
+            s = r.get("sha") if isinstance(r, dict) else None
+            if s in want and s not in found:
+                found[s] = (n, raw)
+        if len(found) == len(want):
+            break
+    return found
+
+
+CHUNK = 1000
+
+
+def _chunks(chunk_dir):
+    if not chunk_dir or not os.path.isdir(chunk_dir):
+        return []
+    names = [x for x in os.listdir(chunk_dir) if x.endswith(".json") and x[:-5].count("-") == 1]
+    return sorted(names, key=lambda x: int(x.split("-")[0]))
+
+
+def extend_view(contract, chunk_dir, sources=None, get=HV._get, chunk=CHUNK):
+    """The verified view lower_bound..tip.
+
+    Final headers (more than 6 below the tip) are kept in chunk_dir as files of `chunk` headers each, written once and
+    never rewritten, so a year of headers costs the repository about 10 MB once instead of a growing file every day.
+    Only the headers after the last chunk are fetched, from both explorers, and they must be byte identical. The whole
+    view, chunks included, is checked with verify_view under the contract's rules on every run; a chunk that does not
+    fit is an error, never silently replaced."""
+    sources = sources or HV.SOURCES
+    lo = contract["lower_bound"]["height"]
+    headers = []
+    for name in _chunks(chunk_dir):
+        part = json.load(open(os.path.join(chunk_dir, name), encoding="utf-8"))["headers"]
+        a, b = (int(x) for x in name[:-5].split("-"))
+        expect = lo if not headers else headers[-1]["height"] + 1
+        if a != expect or part[0]["height"] != a or part[-1]["height"] != b or len(part) != b - a + 1:
+            raise RuntimeError("view chunk %s does not continue the view at %d" % (name, expect))
+        headers.extend(part)
+    tips = {name: int(get(base + "/blocks/tip/height").strip()) for name, base in sources.items()}
+    hi = min(tips.values())
+    start = headers[-1]["height"] + 1 if headers else lo
+    if start <= hi:
+        got = {name: HV.fetch_source(base, start, hi, get) for name, base in sources.items()}
+        names = sorted(got)
+        for h in range(start, hi + 1):
+            if len({got[n][h] for n in names}) != 1:
+                raise RuntimeError("explorers disagree at height %d" % h)
+            headers.append({"height": h, "hex": got[names[0]][h].hex()})
+    view = {"headers": headers}
+    cv, problem = v11.verify_view(view, contract)
+    if cv is None:
+        raise RuntimeError("view rejected under the contract's rules: " + problem)
+    if chunk_dir:
+        os.makedirs(chunk_dir, exist_ok=True)
+        done = int(_chunks(chunk_dir)[-1][:-5].split("-")[1]) if _chunks(chunk_dir) else lo - 1
+        final = hi - 6
+        while final - done >= chunk:
+            a, b = done + 1, done + chunk
+            part = [x for x in headers if a <= x["height"] <= b]
+            with open(os.path.join(chunk_dir, "%d-%d.json" % (a, b)), "w", encoding="utf-8") as f:
+                json.dump({"headers": part}, f, separators=(",", ":"))
+            done = b
+    return view
+
+
+def settle_day(day_dir, contract, chunk_dir, get=None):
+    get = get or (lambda u: http("GET", u))
+    runp = os.path.join(day_dir, "RUN.json")
+    if not os.path.exists(runp) or os.path.exists(os.path.join(day_dir, "settlement.json")):
+        return "skip"
+    r = json.load(open(runp, encoding="utf-8"))
+    if r.get("result") != "as expected":
+        return "skip (the run itself failed; nothing to settle)"
+    adm_files = {c["service"]: os.path.join(day_dir, "admission_%s.json" % c["service"]) for c in r["calls"]}
+    exe_file = os.path.join(day_dir, "execution_report.json")
+    shas = [c["record_sha256"] for c in r["calls"]] + [next(c["execution_sha256"] for c in r["calls"] if c.get("execution_sha256"))]
+    found = locate(shas, get)
+    if len(found) != len(shas):
+        return "pending: %d of %d records are in a ledger batch" % (len(found), len(shas))
+    entries = sorted({n for n, _ in found.values()})
+    ots = {}
+    for n in entries:
+        st, _, b = get("%s/verify/%d" % (LEDGER, n))
+        if st != 200 or (jl(b) or {}).get("bitcoin_status") != "confirmed":
+            return "pending: ledger entry %d is not confirmed in Bitcoin yet" % n
+        st, _, ob = get("%s/ledger/%d/ots" % (LEDGER, n))
+        if st != 200:
+            return "pending: no proof served for entry %d" % n
+        ots[n] = ob
+    view = extend_view(contract, chunk_dir)
+    anchored = {}
+    for path, sha in [(adm_files[c["service"]], c["record_sha256"]) for c in r["calls"]] + [(exe_file, shas[-1])]:
+        rec = rd(path)
+        n, batch = found[sha]
+        res = AC.compose(rec, batch, ots[n], contract, view)
+        if res["status"] != "anchored":
+            return "pending: the proof for %s does not reach Bitcoin yet" % sha[:12]
+        a = AC.anchored_record(rec, res["anchor"])
+        anchored[path] = a
+        with open(path.replace(".json", ".anchored.json"), "w", encoding="utf-8") as f:
+            f.write(canonical(a))
+    admissions = [anchored[adm_files[c["service"]]] for c in r["calls"]]
+    events = [anchored[exe_file]]
+    keys = {DOOR_DOMAIN: door_key()}
+    s = s15.settle_v1_15(contract, events, view, admissions=admissions, relying_keys=keys)
+    s_12 = s12.settle_v1_12(contract, events, view, admissions=admissions, relying_keys=keys)
+    if s.get("verdict") != s_12.get("verdict"):
+        raise RuntimeError("settle v1.15 says %s and v1.12 says %s for %s" % (s.get("verdict"), s_12.get("verdict"), day_dir))
+    tip = view["headers"][-1]["height"]
+    with open(os.path.join(day_dir, "settlement.json"), "w", encoding="utf-8") as f:
+        f.write(canonical(s))
+    with open(os.path.join(day_dir, "SETTLED.json"), "w", encoding="utf-8") as f:
+        f.write(json.dumps({"schema": "seki-heartbeat-settled-v0", "settle": "v1.15 (v1.12 agrees on the verdict)", "verdict": s.get("verdict"),
+                            "status": s.get("status"), "view": {"from": view["headers"][0]["height"], "to": tip},
+                            "ledger_entries": entries, "settlement_sha256": hashlib.sha256(canonical(s).encode()).hexdigest(),
+                            "recompute": "anchor_compose.py for each record against its ledger entry (?format=raw and /ots), "
+                                         "header_view_fetch.py --to %d (from runs/<date>/, the tools are in ../../../musubi-v0), then settle_v1_15.py --settle ../../../musubi-v0/run0003/contract.json "
+                                         "--event execution_report.anchored.json --admission admission_*.anchored.json "
+                                         "--relying-key %s=<keys/seki-door.json> --view view.json" % (tip, DOOR_DOMAIN)},
+                           indent=2) + "\n")
+    return "settled: %s %s" % (s.get("verdict"), s.get("status"))
+
+
+def settle(root, chunk_dir):
+    contract = rd(CONTRACT_PATH)
+    days = sorted(d for d in os.listdir(root) if len(d) == 10 and os.path.isdir(os.path.join(root, d))) if os.path.isdir(root) else []
+    bad = 0
+    for d in days:
+        try:
+            msg = settle_day(os.path.join(root, d), contract, chunk_dir)
+        except Exception as e:
+            msg, bad = "FAIL: %s" % e, bad + 1
+        if msg != "skip":
+            print("%s  %s" % (d, msg))
+    return 1 if bad else 0
+
+
+def write_index(root):
+    """runs/README.md: one line per day, from the files, so the folder reads as a log."""
+    if not os.path.isdir(root):
+        return
+    rows = []
+    for d in sorted((x for x in os.listdir(root) if len(x) == 10), reverse=True) if os.path.isdir(root) else []:
+        p = os.path.join(root, d, "RUN.json")
+        if not os.path.exists(p):
+            continue
+        r = json.load(open(p, encoding="utf-8"))
+        calls = {c["service"]: c for c in r.get("calls", [])}
+        sp = os.path.join(root, d, "SETTLED.json")
+        sv = json.load(open(sp, encoding="utf-8")) if os.path.exists(sp) else None
+        cell = lambda s: "%s %s" % ((calls.get(s) or {}).get("decision") or "?", ((calls.get(s) or {}).get("record_sha256") or "")[:8])
+        rows.append("| %s | %s | %s | %s | %s |" % (d, cell("report"), cell("audit"), cell("compare"),
+                                                    ("%s, %s" % (sv["verdict"], sv["status"])) if sv else "waiting for Bitcoin"))
+    text = ("# SEKI heartbeat\n\nOnce a day the agent calls HORIZON SHIELD's own paid tool through the SEKI door under the demonstration "
+            "contract (../../musubi-v0/run0003/contract.json): a report inside its limit, an audit over its limit, a comparison "
+            "the contract prohibits. The door must admit the first and refuse the other two, and every answer is a signed record "
+            "on the public ledger. Once the ledger's batch is confirmed in Bitcoin the day is settled with settle v1.15. "
+            "Principal, agent and door are all The HORIZONs Co., Ltd.; it is a demonstration, not an outside customer, and the "
+            "pilot's tickets carry no monetary value. heartbeat.py and the workflow seki-heartbeat.yml write this folder.\n\n"
+            "| day (UTC) | report (limit 20) | audit 30 (limit 25) | compare (prohibited) | settlement |\n|---|---|---|---|---|\n"
+            + "\n".join(rows) + "\n")
+    with open(os.path.join(root, "README.md"), "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+# --------------------------------------------------------------------------- self test (offline)
+def _selftest():
+    n = 0
+    # locate(): only records[] listings count, newest entry first, and it stops once everything is found
+    batches = {10: {"schema": "nenrin-agreement-batch-v1", "records": [{"sha": "aa" * 32}, {"sha": "bb" * 32}]},
+               9: {"schema": "nenrin-agreement-batch-v1", "records": [{"sha": "cc" * 32}], "note": "dd" * 32},
+               8: {"schema": "nenrin-agreement-batch-v1", "records": [{"sha": "aa" * 32}]}}
+
+    def fake(u):
+        if "/ledger/head" in u:
+            return 200, {}, json.dumps({"n": 10}).encode()
+        m = int(u.split("/ledger/")[1].split("?")[0])
+        return (200, {}, json.dumps(batches[m]).encode()) if m in batches else (404, {}, b"")
+    f = locate(["aa" * 32, "cc" * 32, "dd" * 32], fake)
+    assert f["aa" * 32][0] == 10 and f["cc" * 32][0] == 9 and "dd" * 32 not in f
+    n += 1; print("[1] locate: a sha counts only as a records[] listing, the newest entry wins, a sha in a note is not a listing")
+
+    # extend_view(): final headers kept as chunks written once, the rest fetched from both explorers, a bad chunk is an error
+    import struct
+    chain, prev = {}, "00" * 32
+    for h in range(200, 240):
+        rr = v11._mine(prev, bytes([h % 256]) * 32, salt=h)
+        fl = v11.header_fields(rr)
+        ver, t, bits, nonce = struct.unpack("<i", rr[:4])[0], *struct.unpack("<III", rr[68:80])
+        chain[h] = {"id": v11.header_hash(rr), "height": h, "version": ver, "timestamp": t, "bits": bits, "nonce": nonce,
+                    "previousblockhash": fl["prev"], "merkle_root": fl["merkle"][::-1].hex()}
+        prev = chain[h]["id"]
+    contract = {"lower_bound": {"kind": "bitcoin_block", "height": 205, "hash": chain[205]["id"]},
+                "grant": {"finality": {"depth": 6, "max_target_bits": "207fffff"}}}
+    calls = []
+    tip = [222]
+
+    def explorer(u):
+        calls.append(u)
+        if u.endswith("/blocks/tip/height"):
+            return str(tip[0])
+        h = int(u.rsplit("/", 1)[1])
+        return json.dumps([dict(chain[x]) for x in range(h, max(199, h - 10), -1) if x in chain])
+    srcs = {"a": "A", "b": "B"}
+    d = tempfile.mkdtemp(prefix="hb-self-")
+    cdir = os.path.join(d, "chunks")
+    v = extend_view(contract, cdir, srcs, explorer, chunk=10)
+    assert v["headers"][0]["height"] == 205 and v["headers"][-1]["height"] == 222
+    assert _chunks(cdir) == ["205-214.json"]
+    n += 1; print("[2] extend_view: first run fetches 205..222 from both explorers and keeps one chunk of final headers (205..214)")
+    calls.clear(); tip[0] = 239
+    v = extend_view(contract, cdir, srcs, explorer, chunk=10)
+    asked = sorted({int(u.rsplit("/", 1)[1]) for u in calls if "/blocks/" in u and not u.endswith("tip/height")})
+    assert v["headers"][-1]["height"] == 239 and min(asked) >= 215 and _chunks(cdir) == ["205-214.json", "215-224.json"]
+    n += 1; print("[3] extend_view: the next run asks only from 215 up, adds the chunk 215..224, and the whole view verifies again")
+    c = json.load(open(os.path.join(cdir, "205-214.json"))); c["headers"][3]["hex"] = c["headers"][4]["hex"]
+    json.dump(c, open(os.path.join(cdir, "205-214.json"), "w"))
+    try:
+        extend_view(contract, cdir, srcs, explorer, chunk=10); ok = False
+    except RuntimeError as e:
+        ok = "rejected" in str(e)
+    assert ok
+    n += 1; print("[4] extend_view: a tampered chunk makes the view fail under the contract's rules (an error, never replaced quietly)")
+    import shutil; shutil.rmtree(d)
+
+    # run(): refuses to spend twice on the same day
+    d = tempfile.mkdtemp(prefix="hb-self-")
+    os.makedirs(os.path.join(d, "2026-10-11"))
+    json.dump({"result": "as expected"}, open(os.path.join(d, "2026-10-11", "RUN.json"), "w"))
+    assert run(d, "2026-10-11") == 0
+    n += 1; print("[5] run: a day that already ran is not run again (nothing is spent twice)")
+    write_index(d)
+    assert "2026-10-11" in open(os.path.join(d, "README.md")).read()
+    n += 1; print("[6] write_index: the day appears in runs/README.md")
+    print("ALL PASS (seki heartbeat: %d checks)" % n)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("cmd", nargs="?", choices=["run", "settle", "index"])
+    ap.add_argument("--root", default=os.path.join(HERE, "runs"))
+    ap.add_argument("--date", default=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"))
+    ap.add_argument("--view-chunks", default=os.path.join(HERE, "view-chunks"))
+    ap.add_argument("--selftest", action="store_true")
+    a = ap.parse_args()
+    if a.selftest:
+        _selftest(); return 0
+    if a.cmd == "run":
+        rc = run(a.root, a.date); write_index(a.root); return rc
+    if a.cmd == "settle":
+        rc = settle(a.root, a.view_chunks); write_index(a.root); return rc
+    if a.cmd == "index":
+        write_index(a.root); return 0
+    ap.print_help(); return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

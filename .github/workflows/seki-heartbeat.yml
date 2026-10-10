@@ -1,0 +1,70 @@
+name: seki heartbeat
+
+# Once a day, whether or not anyone else calls it, the first SEKI door is exercised on its own paid path and every
+# earlier day is settled once Bitcoin has confirmed it (workers/hs-ledger/nenrin/seki-heartbeat/heartbeat.py).
+#   23:17 UTC  settle the earlier days that are confirmed, then today's three calls (report admitted, audit and compare
+#              refused). The records reach the ledger before its 00:30 UTC batch.
+# Secrets (repository Actions secrets, never printed): SEKI_AGENT_SEED_B64 (the demonstration contract's contractor key,
+# a 32 byte Ed25519 seed in base64) and HSG_STORE_TOKEN_SEKI_DEMO (the gateway token of the store hs-seki-demo).
+# The door's key is not here; it stays in Cloudflare. Principal, agent and door are all The HORIZONs Co., Ltd.
+# Pushes made with GITHUB_TOKEN do not start other workflows.
+
+on:
+  schedule:
+    - cron: "17 23 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seki-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: install
+        run: python -m pip install --disable-pip-version-check "cryptography==46.0.7"
+      - name: self test (offline)
+        run: python3 workers/hs-ledger/nenrin/seki-heartbeat/heartbeat.py --selftest
+      - name: settle the earlier days Bitcoin has confirmed
+        id: settle
+        continue-on-error: true
+        shell: bash
+        run: python3 workers/hs-ledger/nenrin/seki-heartbeat/heartbeat.py settle | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: today's three calls through the door
+        id: run
+        continue-on-error: true
+        env:
+          SEKI_AGENT_SEED_B64: ${{ secrets.SEKI_AGENT_SEED_B64 }}
+          HSG_STORE_TOKEN: ${{ secrets.HSG_STORE_TOKEN_SEKI_DEMO }}
+        shell: bash
+        run: python3 workers/hs-ledger/nenrin/seki-heartbeat/heartbeat.py run | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: record
+        if: always()
+        run: |
+          git config user.name "hs-seki-heartbeat"
+          git config user.email "contact@the-horizons-innovation.com"
+          D=workers/hs-ledger/nenrin/seki-heartbeat
+          for x in runs view-chunks; do [ -e "$D/$x" ] && git add "$D/$x"; done; true
+          if git diff --cached --quiet; then
+            echo "Nothing new to record." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            git commit -m "seki-heartbeat: $(date -u +%Y-%m-%d) ($(git diff --cached --name-only | wc -l | tr -d ' ') files)"
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push && break
+              sleep 5
+            done
+          fi
+      - name: a failed step is a failed run
+        if: steps.settle.outcome == 'failure' || steps.run.outcome == 'failure'
+        run: |
+          echo "settle: ${{ steps.settle.outcome }}, run: ${{ steps.run.outcome }}"
+          exit 1
