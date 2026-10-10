@@ -197,7 +197,7 @@ def signing_bytes(record, schema=None):
 
 # --- host and domain rules ----------------------------------------------------------------
 
-_LABEL = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
+_LABEL = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?\Z")
 
 
 def norm_domain(d):
@@ -220,7 +220,7 @@ def host_of_https(u):
     """Host of an https URL, lowercase. None when the URL is not https or is unparseable."""
     if not isinstance(u, str):
         return None
-    m = re.match(r"^https://([^/?#\s@]+)(?:[/?#].*)?$", u.strip())
+    m = re.match(r"^https://([^/?#\s@]+)(?:[/?#].*)?\Z", u.strip())
     if not m:
         return None
     host = m.group(1).split(":")[0].lower().rstrip(".")
@@ -612,12 +612,12 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
     # 4. identity of this agreement (v1.1)
     if strict:
         aid = record.get("agreement_id")
-        if not (isinstance(aid, str) and re.match(r"^[0-9a-f]{32}$", aid)):
+        if not (isinstance(aid, str) and re.match(r"^[0-9a-f]{32}\Z", aid)):
             r.refuse("bad_agreement_id", "agreement_id must be 32 lowercase hex characters chosen at random by the parties, found %r; without it two honest agreements with identical terms in the same second are one record" % (aid,))
 
     # 5. agreed_at
     at = record.get("agreed_at")
-    pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$" if strict else r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$"
+    pattern = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z" if strict else r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\Z"
     if not isinstance(at, str) or not re.match(pattern, at):
         r.refuse("bad_agreed_at", "agreed_at must be an ISO-8601 UTC instant%s, found %r"
                  % (" of the form YYYY-MM-DDTHH:MM:SSZ" if strict else " ending in Z", at))
@@ -628,7 +628,7 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
     if lb is not None:
         if not isinstance(lb, dict) or lb.get("kind") != "bitcoin_block" \
                 or not isinstance(lb.get("height"), int) or isinstance(lb.get("height"), bool) \
-                or not (isinstance(lb.get("hash"), str) and re.match(r"^[0-9a-f]{64}$", lb["hash"])):
+                or not (isinstance(lb.get("hash"), str) and re.match(r"^[0-9a-f]{64}\Z", lb["hash"])):
             r.refuse("bad_lower_bound", "lower_bound, when present, must be {kind: bitcoin_block, height: integer, hash: 64 lowercase hex}")
 
     # 6. parties
@@ -690,7 +690,7 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
                 else:
                     pubs.append(pk)
             cs = p.get("agent_card_sha256")
-            if not (isinstance(cs, str) and re.match(r"^[0-9a-f]{64}$", cs)):
+            if not (isinstance(cs, str) and re.match(r"^[0-9a-f]{64}\Z", cs)):
                 r.refuse("bad_card_sha", "%s.agent_card_sha256 must be 64 lowercase hex; a card named by URL alone can be rewritten after the fact" % tag)
             cr = p.get("conduct_record")
             if not isinstance(cr, dict):
@@ -699,7 +699,7 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
                 sha = cr.get("sha256")
                 if sha is None or sha == "":
                     r.refuse("missing_conduct_sha", "%s presented no conduct record; an agreement record without a conduct record on each side is half of the point" % tag)
-                elif not (isinstance(sha, str) and re.match(r"^[0-9a-f]{64}$", sha)):
+                elif not (isinstance(sha, str) and re.match(r"^[0-9a-f]{64}\Z", sha)):
                     r.refuse("bad_conduct_sha", "%s.conduct_record.sha256 must be 64 lowercase hex characters, found %r" % (tag, sha))
                 if not host_of_https(cr.get("url")):
                     r.refuse("missing_field", "%s.conduct_record.url must be an https URL" % tag)
@@ -713,7 +713,7 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
             sha = p.get("conduct_record_sha256")
             if sha is None or sha == "":
                 r.refuse("missing_conduct_sha", "%s presented no conduct record; an agreement record without a conduct record on each side is half of the point" % tag)
-            elif not (isinstance(sha, str) and re.match(r"^[0-9a-f]{64}$", sha)):
+            elif not (isinstance(sha, str) and re.match(r"^[0-9a-f]{64}\Z", sha)):
                 r.refuse("bad_conduct_sha", "%s.conduct_record_sha256 must be 64 lowercase hex characters, found %r" % (tag, sha))
             if not isinstance(p.get("conduct_record_url"), str) or not p.get("conduct_record_url"):
                 r.refuse("missing_field", "%s.conduct_record_url is required" % tag)
@@ -792,7 +792,7 @@ def verify(record, keys=None, recorder_domain=None, now=None, input_text=None,
             if not (payer and payee):
                 r.refuse("terms_contradict_roles", "consideration is money, so the two roles must be payer and payee")
             cur = terms.get("currency")
-            if not (isinstance(cur, str) and re.match(r"^[A-Z]{3}$", cur)):
+            if not (isinstance(cur, str) and re.match(r"^[A-Z]{3}\Z", cur)):
                 r.refuse("bad_currency", "terms.currency must be three upper case letters (ISO 4217), found %r" % (cur,))
             amt = terms.get("amount_minor_units")
             scale = terms.get("minor_unit_scale")

@@ -35,7 +35,7 @@ export const DOES_NOT_ESTABLISH = [
   DOES_NOT_ESTABLISH_V0[4]];
 const RECORD_KEYS = ["schema", "admission_id", "relying_party", "contract_ref", "action_ref", "presentation_ref", "chain_view",
   "revocations_seen", "decision", "reasons", "clause", "rules", "establishes", "does_not_establish", "signatures"];
-const HEX32 = /^[0-9a-f]{32}\n?$/;                     // Python's "$" also matches before one final newline; kept, so the two agree
+const HEX32 = /^[0-9a-f]{32}$/;                         // the reference reads "\Z" (no trailing newline), and so does this
 
 const isObj = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);

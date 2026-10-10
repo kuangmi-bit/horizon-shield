@@ -20,7 +20,11 @@ import { publicKeyProblem } from "../agreement-v0/agreement_verify.mjs";
 
 export const RULES = "musubi-clause-eval-v0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const HEX32 = /^[0-9a-f]{32}$/;
+// clause_eval_v0.py is pinned by its sha256 (every admission names it) and follows babyblueviper1's approver reference,
+// both of which read "$": in Python that also matches before one final newline. So an approval nonce "<32 hex>\n"
+// is well formed there, and it is here too, so that the two runtimes agree. A stricter reading belongs in the next
+// approval version (a2a-approval-v3), agreed with the reference's author, not in a silent edit of a pinned file.
+const HEX32 = /^[0-9a-f]{32}\n?$/;
 const HEX64 = /^[0-9a-f]{64}$/;
 const B64 = /^[A-Za-z0-9+/]*={0,2}$/;
 export const sha256Hex = (buf) => createHash("sha256").update(buf).digest("hex");

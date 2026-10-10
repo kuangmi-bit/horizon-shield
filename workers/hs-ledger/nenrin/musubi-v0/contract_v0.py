@@ -31,8 +31,8 @@ CONTEXT = b"a2a-contract-v0\n"
 SETTLE_CONTEXT = b"a2a-settlement-v0\n"
 
 ROLES = ("principal", "contractor")
-HEX32 = re.compile(r"^[0-9a-f]{32}$")
-HEX64 = re.compile(r"^[0-9a-f]{64}$")
+HEX32 = re.compile(r"^[0-9a-f]{32}\Z")
+HEX64 = re.compile(r"^[0-9a-f]{64}\Z")
 
 # establishes[] may not overclaim (reuse agreement's list: perform/deliver/paid/contract/binding/...)
 # does_not_establish must cover these four subjects (by keyword), or the record is refused.
@@ -134,7 +134,7 @@ def bits_to_target(bits):
 def _target_of(fin):
     """grant.finality.max_target_bits as a target integer, or None when absent or not 8 lowercase hex."""
     s = (fin or {}).get("max_target_bits")
-    if not (isinstance(s, str) and re.match(r"^[0-9a-f]{8}$", s)):
+    if not (isinstance(s, str) and re.match(r"^[0-9a-f]{8}\Z", s)):
         return None
     return bits_to_target(int(s, 16))
 
@@ -146,7 +146,7 @@ def _witness_keys(grant):
     return set(w.get("public_key_ed25519_b64") for w in ws if isinstance(w, dict) and isinstance(w.get("public_key_ed25519_b64"), str))
 
 
-_HEX8 = re.compile(r"^[0-9a-f]{8}$")
+_HEX8 = re.compile(r"^[0-9a-f]{8}\Z")
 
 
 def _strlist(v):

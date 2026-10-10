@@ -146,6 +146,19 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
 
+## 0.5.3 (2026-10-10)
+
+Identifiers and hashes with a trailing newline are refused. Python's `$` also matches before one final newline, so
+`"<32 hex>\n"` passed several patterns in the Python verifiers while the JavaScript ones refused it. The agreement
+verifier now reads `\Z` in its domain label, timestamp, hex and currency rules (before this, the Python port accepted
+the domain `"shop\n.example.com"` and the JavaScript reference did not), and so do the MUSUBI contract door, the
+admission record verifier and their JavaScript twins. The 5,286 agreement vectors, run0002, the outside parties'
+contract d7118f28 and every MUSUBI self-test give the same results as before.
+
+One pattern is left as it was, on purpose: the approval nonce in `clause_eval_v0.py`, which every admission names by
+sha256 and which follows babyblueviper1's approver reference. Its JavaScript twin now reads it the same way, so the two
+runtimes agree; a stricter nonce belongs in the next approval version, agreed with the reference's author.
+
 ## 0.5.2 (2026-10-10)
 
 Admission records (`a2a-admission-v0`) can be checked from the package. A relying party may decide, at its own door and

@@ -46,8 +46,8 @@ DECISIONS = ("admit", "escalate", "refuse")
 REASONS = ("within_grant", "conditional_needs_approval", "prohibited_action", "outside_grant", "amount_over_limit",
            "delegation_exceeds_parent", "contract_expired", "nonce_reused", "grant_revoked", "key_revoked",
            "presentation_unverifiable", "signer_not_on_own_domain", "action_digest_mismatch")
-HEX32 = re.compile(r"^[0-9a-f]{32}$")
-HEX64 = re.compile(r"^[0-9a-f]{64}$")
+HEX32 = re.compile(r"^[0-9a-f]{32}\Z")
+HEX64 = re.compile(r"^[0-9a-f]{64}\Z")
 DOES_NOT_ESTABLISH_V0 = [
     "that HS allowed or blocked anything; the relying party ran the function at its own door",
     "that the agent is who it claims to be beyond what the presented signatures and keys on its own domain show",

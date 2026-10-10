@@ -94,7 +94,7 @@ def keygen(out):
 
 
 PINS = ("contract_id", "nonce", "agreed_at")
-_HEX32 = re.compile(r"^[0-9a-f]{32}$")
+_HEX32 = re.compile(r"^[0-9a-f]{32}\Z")
 
 
 def _check_pins(pins):

@@ -17,7 +17,8 @@
 // parties signed spell it differently. Refused in both.
 //
 // Two habits of the reference that are kept on purpose, so that the two doors cannot be made to disagree:
-//   - Python's "$" also matches before one final newline, so "<32 hex>\n" passes HEX32 there. The same here.
+//   - a value with a trailing newline ("<32 hex>\n") is refused. Until 2026-10-10 the reference read "$", which in
+//     Python also matches before one final newline, and this file copied that; the reference now reads "\Z".
 //   - an input the reference cannot read at all (it raises) is refused; here verifyContract never throws.
 import { createPublicKey, verify as edVerify } from "node:crypto";
 import { readFileSync, realpathSync } from "node:fs";
@@ -32,10 +33,10 @@ export const GRANT_KEYS = ["authorized_actions", "prohibited_actions", "conditio
 const REVOCATION_MODES = ["anchor", "delivery_ack"];
 const REQUIRED_DNE = [["runtime enforcement", ["runtime", "enforce"]], ["HS does not judge liability", ["judge", "liability", "fault"]],
   ["deviation is provable, not prevented", ["deviat"]], ["not a legal contract", ["legal"]]];
-const HEX32 = /^[0-9a-f]{32}\n?$/;
-const HEX64 = /^[0-9a-f]{64}\n?$/;
-const HEX8 = /^[0-9a-f]{8}\n?$/;
-const LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?\n?$/;
+const HEX32 = /^[0-9a-f]{32}$/;
+const HEX64 = /^[0-9a-f]{64}$/;
+const HEX8 = /^[0-9a-f]{8}$/;
+const LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const B64 = /^[A-Za-z0-9+/]*={0,2}$/;
 const SAFE = 9007199254740991;
 
@@ -50,7 +51,7 @@ const body = (rec, drop) => Object.fromEntries(Object.entries(rec).filter(([k]) 
 const same = (a, b) => canonicalOrNull(a) === canonicalOrNull(b);
 function canonicalOrNull(v) { try { return canonical(v); } catch (_e) { return null; } }
 
-// agreement_verify.mjs's normDomain, with the reference's reading of "$" in the label rule.
+// agreement_verify.mjs's normDomain, with the reference's label rule (no trailing newline since 2026-10-10).
 function normDomain(d) {
   const strict = normDomainStrict(d);
   if (strict !== null || !isStr(d) || d === "") return strict;
