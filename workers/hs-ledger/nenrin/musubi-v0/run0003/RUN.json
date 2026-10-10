@@ -1,0 +1,65 @@
+{
+  "schema": "seki-demo-run-v0",
+  "note": "a demonstration: the principal, the contractor and the relying party are all The HORIZONs Co., Ltd.; this contract shows the SEKI door working on a live paid path and is not an arm's-length agreement",
+  "contract_sha256": "e1fa47a049a94fd725efafa0a1d603e51a16158c58d2638d4c9052c1329109c8",
+  "contract_id": "ff78faf5c45d84d0fb3796ed780c0677",
+  "store": "hs-seki-demo",
+  "target": "https://hs-gateway.oga-surf-project.workers.dev/report?store=hs-seki-demo",
+  "door_public_key_ed25519_b64": "wbWKQTE9F1A2ixJzzhqfpITrU7GhDr9G2ri5YYGvCTE=",
+  "door_key_url": "https://shield.the-horizons-innovation.com/keys/seki-door.json",
+  "gateway": "https://hs-gateway.oga-surf-project.workers.dev",
+  "ran_at": "2026-10-10T04:59:12Z",
+  "calls": [
+    {
+      "service": "report",
+      "tickets": 20,
+      "request_sha256": "c5fd9247a487e6dc51148a06e572c6979834ef021a18c3b3b677be70af7c9e50",
+      "nonce": "cccf4e9aeb3fe7cb32646c7247a73b9a",
+      "status": 200,
+      "decision": "admit",
+      "admission_sha256": "2b4c007c46fd0255b10e49388db0d54f50f535c2c9a62219b0c7f1bfffe03f80",
+      "record_sha256": "9044fef2b0d9b02ad2d2994d93fd68ed763019bba13c643ac6d9c670614455c1",
+      "published": "accepted",
+      "tickets_spent": "20",
+      "report_sha256": "748e21885f7f5915e247233ee35347a0577e9bae728ed3679c018622c34e165a",
+      "report_bytes": 188928,
+      "ledger_url": "https://ledger.horizonshield.dev/admission/9044fef2b0d9b02ad2d2994d93fd68ed763019bba13c643ac6d9c670614455c1",
+      "execution_sha256": "e96c164b9ea149e4b2202e962c9dbf72c59b817dd7937bde7b6e7818656f0c74",
+      "execution_url": "https://agreement.horizonshield.dev/execution/e96c164b9ea149e4b2202e962c9dbf72c59b817dd7937bde7b6e7818656f0c74"
+    },
+    {
+      "service": "audit",
+      "tickets": 30,
+      "request_sha256": "1538e02f1a13efcfcb0c297759f8477d4f0ddbd2155ac5bbd8dc30b6ccd49ac0",
+      "nonce": "7e4c914bc4a67f002f21eef396a02147",
+      "status": 403,
+      "decision": "refuse",
+      "admission_sha256": "001374d22fb515cbda4e48c5398daf1d58e8e7da4ee8bb31298aa0dbfb0e21af",
+      "record_sha256": "4d65aa3a28ae4a9c1ae93840802abdb8977c8988bc957d6f75435871d7d138ba",
+      "published": "accepted",
+      "tickets_spent": null,
+      "problem_type": "https://iana.org/assignments/http-problem-types#ae-required",
+      "ledger_url": "https://ledger.horizonshield.dev/admission/4d65aa3a28ae4a9c1ae93840802abdb8977c8988bc957d6f75435871d7d138ba"
+    },
+    {
+      "service": "compare",
+      "tickets": 50,
+      "request_sha256": "62797335dd7f34d058ccd5fee87e5be54dbdbfbbff6c0f643be06a2b66a5564e",
+      "nonce": "784ff88c57c077f2086be4492c425402",
+      "status": 403,
+      "decision": "refuse",
+      "admission_sha256": "afe4928d1ac0ccb5ebccb7cee10f05d2ec0fe287b329928a8e2c5311df55e3f5",
+      "record_sha256": "381d4ec9b5cc5b24c47277e0982f19899744e6e0b9b5d9dc10244666011f4c6e",
+      "published": "accepted",
+      "tickets_spent": null,
+      "problem_type": "https://iana.org/assignments/http-problem-types#ae-required",
+      "ledger_url": "https://ledger.horizonshield.dev/admission/381d4ec9b5cc5b24c47277e0982f19899744e6e0b9b5d9dc10244666011f4c6e"
+    }
+  ],
+  "contract_filed": {
+    "status": 201,
+    "url": "https://agreement.horizonshield.dev/contract/e1fa47a049a94fd725efafa0a1d603e51a16158c58d2638d4c9052c1329109c8"
+  },
+  "tip_height_at_request": 970726,
+  "result": "as expected"
+}

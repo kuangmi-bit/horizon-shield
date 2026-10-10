@@ -73,6 +73,32 @@
   </div>
 </section>
 
+<!-- seki-live:start -->
+<section>
+  <div class="wrap">
+    <div class="kh">Running now</div>
+    <h2>A door in front of our own paid tool</h2>
+    <p class="slead">Since 2026-10-10 a SEKI door stands in front of hs-gateway <code>/report</code>, the tool that sells reports by the ticket. The gateway spends a ticket only after the door admitted that exact call. <a href="https://hs-gateway.oga-surf-project.workers.dev/seki" style="text-decoration:underline">GET /seki</a> shows what the door admits under: the store, the signed contract, the limits and the evaluator.</p>
+    <div class="plain"><b>A demonstration, said plainly.</b> The first contract is between The HORIZONs and its own agent, and the door is ours too. It shows the door working on a live paid path, with records anyone can check. It is not an agreement with anyone outside, and it is not counted as one.</div>
+    <table class="cond5">
+      <tr><td class="n">01</td>
+        <td class="q">report, 20 tickets</td>
+        <td class="h"><b>admit</b> (within_grant): the report was delivered and 20 tickets were spent; the agent filed its execution record naming the admission. <a href="https://ledger.horizonshield.dev/admission/9044fef2b0d9b02ad2d2994d93fd68ed763019bba13c643ac6d9c670614455c1" style="text-decoration:underline">The signed record</a></td></tr>
+      <tr><td class="n">02</td>
+        <td class="q">audit, 30 tickets</td>
+        <td class="h"><b>refuse</b> (amount_over_limit): 403, nothing spent: an audit costs 30 tickets and the signed limit is 25. <a href="https://ledger.horizonshield.dev/admission/4d65aa3a28ae4a9c1ae93840802abdb8977c8988bc957d6f75435871d7d138ba" style="text-decoration:underline">The signed record</a></td></tr>
+      <tr><td class="n">03</td>
+        <td class="q">compare, 50 tickets</td>
+        <td class="h"><b>refuse</b> (prohibited_action): 403, nothing spent: the signed grant prohibits compare. <a href="https://ledger.horizonshield.dev/admission/381d4ec9b5cc5b24c47277e0982f19899744e6e0b9b5d9dc10244666011f4c6e" style="text-decoration:underline">The signed record</a></td></tr>
+    </table>
+    <div class="linkset">
+      <a href="https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/run0003/README.md">The run, its files and how to check them</a>
+      <a href="https://hs-gateway.oga-surf-project.workers.dev/seki">What the door admits under (GET /seki)</a>
+    </div>
+  </div>
+</section>
+<!-- seki-live:end -->
+
 <section>
   <div class="wrap">
     <div class="kh">Why the two halves agree</div>
