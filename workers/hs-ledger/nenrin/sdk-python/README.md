@@ -97,7 +97,7 @@ every case reproduces.
 |---|---|---|
 | `verify_provenance`, `consume_evidence`, `posture_line`, `candidate_evidence_set`, `preflight_report` | one A2A task's provenance graph: the delegation chain observed by third-party witnesses (R1 to R4, witness and edge signatures), the caller's grant and the provider's execution receipt (E1 to E3, caller and provider signatures), the provider's pre-execution intent, the outcome's evidence pointer, and the digest link between the layers | npm nenrin-verify 0.4.4 (`nenrin_verify.mjs`, verifier 0.1.6): the same report, key for key |
 | `agreement_verify.verify`, `nenrin-agreement-verify` | a two-party agreement record (`a2a-agreement-v1`, `v1.1`), including key succession across a rotation | the repository's own Python verifier, unchanged but for one import line and a header comment; it and the JavaScript verifier return the same report on 5,286 frozen cases, and from npm nenrin-verify 0.3.0 the JavaScript command `nenrin-agreement-verify` prints what this one prints |
-| `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.10), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
+| `musubi.load`, `musubi-verify` | MUSUBI (a2a-contract-v0): a contract both parties signed, its settlement against anchored execution records (settle v1 to v1.12), admission records (a2a-admission-v0, the verifying side), offers, bonds, corrections, terms, independence, corroboration, and the spine that threads one contract through all of them | the repository's own files (`musubi-v0/`), byte for byte: MUSUBI is written in Python and has no JavaScript twin, so the guarantee is that installing changes nothing, each of its 18 modules passes its own self-test from the package, and the first settled execution (run0002) recomputes to its published hashes |
 | `tsugi.verify_chain`, `tsugi-verify` | a TSUGI recovery chain (drift, proposal, authorization, execution, verify): every record's schema, hash and Ed25519 signature, order and links, strict mode (a human-approval repair needs an authorization signed by a trusted operator key, unexpired), the random witness draw recomputed from beacon, pool and subject, the commit-then-reveal anchor, the embedded witness observations and the quorum | `tsugi_verify.mjs` (verifier 0.3.1): the same stdout, byte for byte, and the same exit code |
 
 ## How "same report" is checked
@@ -145,6 +145,27 @@ gives values a numeric comparator cannot order, `new URL(s).host`) goes through 
 `report_sha256(report)` is the sha256 of the report with keys sorted by UTF-16 code unit at every depth, no
 whitespace, strings and numbers as JSON.stringify writes them. The JavaScript side of the same hash is
 `tests/parity/js_canon.mjs` (twelve lines).
+
+## 0.5.2 (2026-10-10)
+
+Admission records (`a2a-admission-v0`) can be checked from the package. A relying party may decide, at its own door and
+before an action, whether the action is inside the grant both parties signed, and sign that decision. This release
+carries the side that checks such a record afterwards, not the side that decides:
+
+- `musubi-verify admission_verify_v0`: the record's canonical bytes, the relying party's signature with its key on its
+  own domain, the action digest, the signed action request and the principal's revocation record. Its self-test holds
+  it to its JavaScript twin (`admission_verify_v0.mjs`, shipped beside it) on the same records.
+- `musubi-verify settle_v1_11`: when a contract requires admission before execution, every execution must name an
+  admission that said admit, for the same action digest, anchored before the execution; an admission outside the
+  grant is reported as such.
+- `musubi-verify settle_v1_12`: `grant.limits` (a maximum amount per action, in the bytes both parties signed) is read
+  against the amount each execution states.
+- `contract_v0` accepts `grant.limits` only with `requirements.admission`, typed, and a delegated grant may only lower
+  it. `clause_eval_v0` has the clause `over_limit`.
+
+A contract without `requirements.admission` and without `grant.limits` settles byte for byte as under v1.10 (run0002,
+the outside parties' contract d7118f28 and the 18 scenario corpus). The fixtures the new self-tests read ship with
+them and are pinned by `fixtures/ADMISSION_FIXTURES.sha256`. The other verifiers are unchanged.
 
 ## 0.5.1 (2026-10-09)
 

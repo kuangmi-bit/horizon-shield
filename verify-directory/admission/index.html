@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEKI: a door before an agent acts · HORIZON SHIELD</title>
+<meta name="description" content="SEKI lets the system an AI agent is about to act on decide, before the act, whether the act is inside what both parties signed, and sign that decision. Anyone can check the record afterwards with a public verifier.">
+<link rel="canonical" href="https://shield.the-horizons-innovation.com/verify-directory/admission/">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SEKI: decide before the agent acts, and let anyone check the decision afterwards">
+<meta property="og:description" content="An admission record says what a relying party allowed, before the act, under a contract both parties signed. Settlement checks the act against it with the same public evaluator.">
+<meta property="og:url" content="https://shield.the-horizons-innovation.com/verify-directory/admission/">
+<meta property="og:site_name" content="HORIZON SHIELD">
+<meta property="og:image" content="https://shield.the-horizons-innovation.com/assets/lighthouse-og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/verify-directory/assets/vd.css">
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="logo"><a href="/verify-directory/">HORIZON SHIELD</a> <span class="sub">/ verify</span></div>
+    <nav class="navlinks">
+      <a href="/verify-directory/survey/">Survey</a>
+      <a href="/verify-directory/register/">Register</a>
+      <a href="/verify-directory/failures/">Failures</a>
+      <a href="/verify-directory/operators/">Operators</a>
+      <a href="/verify-directory/method/">Method</a>
+      <a href="/verify-directory/pricing/">Pricing</a>
+    </nav>
+    <a class="langsw" href="/verify-directory/ja/">日本語</a>
+  </div>
+</header>
+
+<div class="wrap"><div class="crumb"><a href="/verify-directory/">verify</a><span class="sep">/</span>admission</div></div>
+
+<main>
+
+<div class="wrap hero">
+  <div class="eyebrow"><span class="pulse"></span>SEKI (関, a checkpoint) &middot; a2a-admission-v0</div>
+  <h1><span class="g">Before the agent acts,</span> the door decides. Afterwards, anyone can check the door.</h1>
+  <p class="lede">An AI agent asks to pay, order or change something under a contract both parties signed. The system it is about to act on runs one function first and gets one of three answers: <b>admit</b>, <b>escalate</b> to a named approver, or <b>refuse</b>. It signs that answer. After the act, settlement reads what was done against what was admitted, <b>with the same public evaluator</b>, and anyone can run that check.</p>
+</div>
+
+<div class="wrap">
+  <div class="plain"><b>What this is not.</b> It does not issue identities and it is not a certificate authority. HORIZON SHIELD does not sit in the path of the action and stops nothing: the relying party runs the door on its own system, for its own resources. HORIZON SHIELD anchors the records it is sent and settles after the fact. It renders no verdict of its own.</div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="kh">The flow</div>
+    <h2>Five steps, each one a record someone signed</h2>
+    <table class="cond5">
+      <tr><td class="n">01</td>
+        <td class="q">Two parties sign a contract with a grant.</td>
+        <td class="h"><code>a2a-contract-v0</code>: what the agent may do, what it may never do, what needs an approver, and optionally <code>grant.limits</code>, a maximum amount per action, inside the bytes both parties signed.</td></tr>
+      <tr><td class="n">02</td>
+        <td class="q">The agent asks before acting.</td>
+        <td class="h">A signed action request: the action, the target, the amount, a nonce and an expiry height, bound to the contract by sha256.</td></tr>
+      <tr><td class="n">03</td>
+        <td class="q">The relying party's door answers.</td>
+        <td class="h"><code>admit</code>, <code>escalate</code> or <code>refuse</code>, with a reason from a closed list. A request without what the door needs gets <code>403 application/problem+json</code> that says what to bring. Results the agent computed about itself are refused, not believed.</td></tr>
+      <tr><td class="n">04</td>
+        <td class="q">The door signs what it decided.</td>
+        <td class="h"><code>a2a-admission-v0</code>, signed with a key served on the relying party's own domain. It names, by sha256, the clause evaluator it ran.</td></tr>
+      <tr><td class="n">05</td>
+        <td class="q">After the act, settlement checks both.</td>
+        <td class="h"><code>settle v1.11</code> and <code>v1.12</code>: was there an admission, did it say admit, is what ran what was admitted, was the admission anchored before the act, was the amount inside the signed limit, and did the door wave through something outside the grant.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kh">Why the two halves agree</div>
+    <h2>One evaluator before the act and after it</h2>
+    <p class="slead">A gate that says yes before the act and an audit that says no afterwards would tell the relying party something false. So the door and the settlement read the grant with the same file, <code>clause_eval_v0.py</code>, which is public. Every admission record carries that file's sha256, so a reader can see which reading was applied.</p>
+    <div class="kv">
+      <div class="r"><div class="k">limits</div><div class="v">A limit lives in the grant both parties signed, never in what the agent presents. An approval does not lift it.</div></div>
+      <div class="r"><div class="k">revocation</div><div class="v">A revocation signed by the principal is obeyed by the door even before it is anchored. Refusing is the safe direction.</div></div>
+      <div class="r"><div class="k">replay</div><div class="v">Each admission is bound to one action digest and one nonce. Running something else under it, or running it twice, is a deviation.</div></div>
+      <div class="r"><div class="k">existing contracts</div><div class="v">A contract without an admission requirement and without limits settles byte for byte as it did before (the first settled execution run0002, the outside parties' contract d7118f28, and the 18 scenario corpus).</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kh">Check it yourself</div>
+    <h2>The record is public. The door is not.</h2>
+    <p class="slead">The implementation of the door is not published. The record format, the evaluator, the settlement and a verifier are, so that nobody has to trust the operator of the door, or us.</p>
+    <pre class="mono" style="white-space:pre-wrap;overflow-wrap:anywhere">pip install "nenrin-verify>=0.5.2"
+musubi-verify admission_verify_v0 --selftest
+musubi-verify settle_v1_12 --selftest</pre>
+    <div class="linkset">
+      <a href="https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/ADMISSION.md">The record, and how to check it</a>
+      <a href="https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/schemas/a2a-admission-v0.schema.json">JSON Schema</a>
+      <a href="https://github.com/ogasurfproject-jpg/horizon-shield/tree/main/workers/hs-ledger/nenrin/musubi-v0">MUSUBI, the contract layer it sits on</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kh">Limits</div>
+    <h2>What an admission record does not show</h2>
+    <p class="slead">Stated at the same size as the claim.</p>
+    <ul class="nots">
+      <li><span class="x">&#10007;</span><span><b>Not that the agent is who it says it is</b>, beyond what the presented signatures and keys on its own domain show.</span></li>
+      <li><span class="x">&#10007;</span><span><b>Not that the action was lawful, safe or wise.</b> Only that it was inside or outside the grant both parties signed.</span></li>
+      <li><span class="x">&#10007;</span><span><b>Not that a revocation published after the door's view of the chain was known.</b> The record says which revocations the door saw and whether each was anchored.</span></li>
+      <li><span class="x">&#10007;</span><span><b>Not a legal authorization, and not a finding of liability.</b> It anchors facts by which others may judge.</span></li>
+      <li><span class="x">&#10007;</span><span><b>Not yet any identity format other than a signed MUSUBI contract.</b> Other formats are read only once they can be checked against their issuer's own fixed test vectors. Until then they are reported as unverified, and the door does not admit on them.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="kh">Putting a door in front of your system</div>
+    <h2>Talk to us</h2>
+    <p class="slead">The door runs on your side, in front of your own API or MCP tools, in Python or JavaScript. We set it up with you and operate the anchoring and the after-the-fact settlement. What is charged is the work of recording and checking. <b>Nothing is charged as a share of a transaction, and nothing depends on whether an action is admitted.</b> Write to <span class="mono">contact@the-horizons-innovation.com</span>.</p>
+  </div>
+</section>
+
+</main>
+<footer>
+  <div class="wrap">
+    <div class="top">Corrections are welcome and are treated as defects. If something on this page is wrong, or the verifier disagrees with a record you hold, say so and it is checked in public. Write to <span class="mono">contact@the-horizons-innovation.com</span>.</div>
+    Operator: The HORIZONs Co., Ltd. (Corporate Number 7021001075279). Supervised by Toshikatsu Oga (<a href="https://orcid.org/0009-0000-9180-903X">ORCID 0009-0000-9180-903X</a>), 30 years on construction sites.<br>
+    <a href="/verify-directory/">Front door</a> &middot; <a href="/verify-directory/survey/">Survey</a> &middot; <a href="/verify-directory/register/">Register</a> &middot; <a href="/verify-directory/failures/">Failures</a> &middot; <a href="/verify-directory/method/">Method</a> &middot; <a href="/verify-directory/admission/">Admission</a> &middot; <a href="/verify-directory/operators/">Operators</a> &middot; <a href="/verify-directory/buyers/">日本語</a> &middot; <a href="/verify-directory/about/">About</a><br>
+    <a href="/verify-directory/recompute/">Recompute a verdict</a> &middot; <a href="https://gate.horizonshield.dev/spec">Verification spec</a> &middot; <a href="/tokusho">Legal notice</a><br>
+    Zero referral fees. Verdicts, scores and listing order are not for sale.<br><br>
+    &copy; 2026 The HORIZONs Co., Ltd. &middot; HORIZON SHIELD
+  </div>
+</footer>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "5a6009e4bfe34dc8ae92f6fc93506de4"}'></script>
+</body>
+</html>

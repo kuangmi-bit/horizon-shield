@@ -32,7 +32,7 @@ REPO = os.path.normpath(os.path.join(ROOT, ".."))
 # network; the package opens no socket unless asked).
 MUSUBI_MODULES = ["contract_v0.py", "settle_v1.py", "settle_v1_1.py", "settle_v1_2.py", "settle_v1_3.py", "settle_v1_4.py",
                   "settle_v1_5.py", "settle_v1_6.py", "settle_v1_7.py", "settle_v1_8.py", "settle_v1_9.py", "settle_v1_10.py",
-                  "clause_eval_v0.py",
+                  "clause_eval_v0.py", "admission_verify_v0.py", "settle_v1_11.py", "settle_v1_12.py",
                   "convergence_v0.py", "spine_verify.py", "terms_v0.py", "independence_v0.py",
                   "corroboration_v0.py", "offer_v0.py", "bond_v0.py", "correction_v0.py", "correction_bundle_v0.py",
                   "anchor_compose.py"]
@@ -44,9 +44,17 @@ MUSUBI_DATA = ["canonical_v0.mjs", "canonical_vectors.json", "anchor_compose_fix
                "fixtures/babyblueviper1_leg1/leg1_vectors.json",
                "fixtures/babyblueviper1_approver_v2/LICENSE", "fixtures/babyblueviper1_approver_v2/README.md",
                "fixtures/babyblueviper1_approver_v2/SHA256SUMS", "fixtures/babyblueviper1_approver_v2/vectors.json",
-               "fixtures/babyblueviper1_approver_v2/verify_approval_v2.py", "fixtures/babyblueviper1_approver_v2/_ed25519.py"]
+               "fixtures/babyblueviper1_approver_v2/verify_approval_v2.py", "fixtures/babyblueviper1_approver_v2/_ed25519.py",
+               # Admission records (SEKI): the verifying side only. The door that writes them is not in this repository.
+               "admission_verify_v0.mjs", "clause_eval_v0.mjs",
+               "fixtures/ADMISSION_FIXTURES.sha256", "fixtures/admission_intake/cases.json",
+               "fixtures/admission_intake/v0_admission_public.json", "fixtures/contract_door/corpus.json",
+               "fixtures/settle_admission/cases.json"]
 # convergence_v0 (settle v1.9) imports recovery-v0/recovery_verify.py by path, so that one file travels too.
+# admission_verify_v0's self-test holds it to its JavaScript twin, which reads ../agreement-v0's three .mjs files.
 VERBATIM = [("musubi-v0/" + f) for f in MUSUBI_MODULES + MUSUBI_DATA] + ["agreement-v0/agreement_verify.py", "agreement-v0/key_succession.py",
+                                                                     "agreement-v0/agreement_verify.mjs", "agreement-v0/agreement_canonical.mjs",
+                                                                     "agreement-v0/key_succession.mjs",
                                                                      "recovery-v0/recovery_verify.py"]
 # The frozen NENRIN corpora, so that nenrin-tsunagi scores a verifier offline exactly as the TSUNAGI board does.
 INTEROP_DIRS = ["interop-v0", "interop-v0.1", "interop-v0.2/edge", "trace-intake-v0", "trace-bind-v0", "trace-span-v0"]

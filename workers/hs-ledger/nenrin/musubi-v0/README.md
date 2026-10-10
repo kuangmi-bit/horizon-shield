@@ -270,7 +270,7 @@ Until v1.9 the only key that could approve a conditional action was the principa
 
 ## Admission records, settle v1.11 and v1.12, and grant.limits (2026-10-10)
 
-A relying party can decide before the act, at its own door, and sign what it decided (`a2a-admission-v0`). Settlement reads the execution against that signed record afterwards. The implementation of the door is not public. The record is: its shape, how to verify it and how settlement reads it are in [ADMISSION.md](ADMISSION.md), and anyone can check a record with `admission_verify_v0.py` and recompute a settlement with the files here.
+A relying party can decide before the act, at its own door, and sign what it decided (`a2a-admission-v0`). Settlement reads the execution against that signed record afterwards. The implementation of the door is not public. The record is: its shape, how to verify it and how settlement reads it are in [ADMISSION.md](ADMISSION.md), and anyone can check a record with `admission_verify_v0.py` and recompute a settlement with the files here. A plain account of what the door does, and what a record does not show: https://shield.the-horizons-innovation.com/verify-directory/admission/
 
 - settle v1.11 applies only when `requirements.admission` is `required_before_execution`; for every other contract it returns settle v1.10's bytes.
 - settle v1.12 applies only when the grant carries `limits`; for every other contract it returns v1.11's bytes.

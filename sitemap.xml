@@ -655,6 +655,12 @@
     <priority>0.8</priority>
   </url>
 <url>
+    <loc>https://shield.the-horizons-innovation.com/verify-directory/admission/</loc>
+    <lastmod>2026-10-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+<url>
     <loc>https://shield.the-horizons-innovation.com/faq/mitsumori-isshiki-uchiwake-nai/</loc>
     <lastmod>2026-09-04</lastmod>
     <changefreq>monthly</changefreq>
