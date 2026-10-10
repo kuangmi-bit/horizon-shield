@@ -26,11 +26,18 @@ function sqlStub() {
   } };
 }
 
+var SALT = "test-salt";
+async function tok(store) {
+  var key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SALT), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  var sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("hs-gateway-store:" + store));
+  return Array.from(new Uint8Array(sig)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+}
 function makeEnv(door) {
   var d = new TicketLedgerDO({ storage: { sql: sqlStub() } }, {});
   var pdfCalls = [], doorCalls = [];
   var env = {
     ADMIN_KEY: "test-admin",
+    GATEWAY_STORE_SALT: SALT,
     TICKETS_DO: { idFromName: function () { return "v1"; }, get: function () { return { fetch: function (u, init) { return d.fetch(new Request(u, init)); } }; } },
     PDFGEN_SVC: { fetch: async function (u, init) { pdfCalls.push({ url: u, body: JSON.parse(init.body) }); return new Response("%PDF-1.7 stub", { headers: { "Content-Type": "application/pdf" } }); } }
   };
@@ -42,9 +49,14 @@ async function grant(env, store, n) {
   var r = await worker.fetch(new Request("https://gw/admin/grant?store=" + store + "&tickets=" + n, { headers: { "X-Admin-Key": "test-admin" } }), env, {});
   return r.json();
 }
-async function balance(env, store) { return (await worker.fetch(new Request("https://gw/balance?store=" + store), env, {})).json(); }
+async function balance(env, store) { return (await worker.fetch(new Request("https://gw/balance?store=" + store, { headers: { "x-store-token": await tok(store) } }), env, {})).json(); }
 async function report(env, store, service, body) {
-  return worker.fetch(new Request("https://gw/report?store=" + store + "&service=" + service, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }), env, {});
+  return worker.fetch(new Request("https://gw/report?store=" + store + "&service=" + service, { method: "POST", headers: { "Content-Type": "application/json", "x-store-token": await tok(store) }, body: JSON.stringify(body) }), env, {});
+}
+async function mcpAsk(env, store) {
+  var r = await worker.fetch(new Request("https://gw/mcp?store=" + encodeURIComponent(store), { method: "POST", headers: { "Content-Type": "application/json", "x-store-token": await tok(store) },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "gateway_ask", arguments: { ask: "外壁塗装 30坪 120万円は適正?" } } }) }), env, { waitUntil: function () {} });
+  return (await r.json()).result.structuredContent;
 }
 var G = SEKI_STORES[0];
 var ADMIT = { applies: true, ok: true, status: 200, decision: "admit", reasons: ["within_grant"], admission_sha256: "ab".repeat(32), record_sha256: "cd".repeat(32), published: { accepted: true } };
@@ -105,7 +117,7 @@ console.log("[a guarded store named by an alias the ticket ledger folds onto it]
 for (var alias of [G + "!", G + " ", G + "/", " " + G, G + "\u00e9", "<" + G + ">"]) {
   var ea = makeEnv(function () { return j(ADMIT); });
   await grant(ea.env, G, 100);
-  var ra = await worker.fetch(new Request("https://gw/report?store=" + encodeURIComponent(alias) + "&service=compare", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }), ea.env, {});
+  var ra = await worker.fetch(new Request("https://gw/report?store=" + encodeURIComponent(alias) + "&service=compare", { method: "POST", headers: { "Content-Type": "application/json", "x-store-token": await tok(alias) }, body: JSON.stringify({}) }), ea.env, {});
   ok("store=" + JSON.stringify(alias) + ": 400, nothing spent from " + G + ", the door not asked, hs-pdf-gen not called",
     ra.status === 400 && (await balance(ea.env, G)).tickets === 100 && ea.doorCalls.length === 0 && ea.pdfCalls.length === 0, ra.status);
 }
@@ -115,6 +127,34 @@ var e4 = makeEnv(function () { return j(ADMIT); });
 await grant(e4.env, G, 10);
 var r4 = await report(e4.env, G, "report", { seki: sub });
 ok("not enough tickets: 402 and the door is not asked, so it admits nothing that cannot be paid for", r4.status === 402 && e4.doorCalls.length === 0);
+
+console.log("[MCP tools/call never spends from a guarded store (audit 2026-10-10, F1)]");
+for (var ms of [G, G + "!", " " + G]) {
+  var em = makeEnv(function () { throw new Error("the door must not be asked"); });
+  em.env.TICKETS_KV = {};
+  await grant(em.env, G, 100);
+  var sc = await mcpAsk(em.env, ms);
+  ok("store=" + JSON.stringify(ms) + ": gateway_ask refused as seki_guarded_store, nothing spent, the door not asked",
+    sc && sc.ok === false && sc.reason === "seki_guarded_store" && sc.spent === 0 && (await balance(em.env, G)).tickets === 100 && em.doorCalls.length === 0, sc);
+}
+var emu = makeEnv(function () { throw new Error("the door must not be asked"); });
+emu.env.TICKETS_KV = {};
+var scu = await mcpAsk(emu.env, "hs-partner-001");
+ok("an unguarded store is not refused for SEKI on the MCP path", !scu || scu.reason !== "seki_guarded_store", scu);
+
+console.log("[the store token is never optional for a guarded store (audit 2026-10-10, F4)]");
+var en = makeEnv(function () { return j(ADMIT); });
+await grant(en.env, G, 100);
+delete en.env.GATEWAY_STORE_SALT;
+var rn = await worker.fetch(new Request("https://gw/report?store=" + G + "&service=report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seki: sub }) }), en.env, {});
+ok("no GATEWAY_STORE_SALT: a guarded store without a token is 401, the door not asked, nothing spent", rn.status === 401 && en.doorCalls.length === 0 && en.pdfCalls.length === 0, rn.status);
+en.env.GATEWAY_STORE_SALT = SALT;
+ok("and its balance is untouched", (await balance(en.env, G)).tickets === 100);
+var eu = makeEnv(function () { throw new Error("the door must not be asked"); });
+await grant(eu.env, "hs-partner-001", 100);
+delete eu.env.GATEWAY_STORE_SALT;
+var ru = await worker.fetch(new Request("https://gw/report?store=hs-partner-001&service=report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ koji_type: "x", teiji_kingaku: 1 }) }), eu.env, {});
+ok("no GATEWAY_STORE_SALT: an unguarded store runs as before (200)", ru.status === 200, ru.status);
 
 console.log("[GET /seki]");
 var e5 = makeEnv(function (u) { return u.endsWith("/policy") ? j({ schema: "seki-door-policy-v0" }) : (u.indexOf("/record/") > 0 ? new Response("{\"a\":1}") : j({}, 404)); });

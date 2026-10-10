@@ -12,6 +12,9 @@
 //   - the call as the door must see it: the service, the store, and the tickets the service costs (PRICES). The door
 //     admits only a request signed for exactly that, so an admission for one service cannot carry another through.
 // A store not in SEKI_STORES is untouched: the door is never asked and /report behaves as before.
+// A guarded store is usable only through /report. MCP tools/call (gateway_ask) does not ask the door, so index.js refuses
+// it for a guarded store before anything is called or spent, and the store token is never optional for a guarded store
+// (audit 2026-10-10, F1 and F4).
 //
 // The first guarded store is a demonstration: The HORIZONs authorizes its own agent, at its own paid tool, so the
 // records show the door working on a live paid path. It is not an outside party and is not counted as one.

@@ -105,7 +105,8 @@ async function storeToken(env, storeId) {
   return await hmacHex(env.GATEWAY_STORE_SALT, "hs-gateway-store:" + storeId);
 }
 async function verifyStoreToken(env, storeId, provided) {
-  if (!env || !env.GATEWAY_STORE_SALT) return true;
+  // 秘密が未設定の環境では店トークンを見ない(従来どおり)。ただし SEKI の門が守る店だけは閉じる(監査 2026-10-10 F4)。
+  if (!env || !env.GATEWAY_STORE_SALT) return !sekiGuarded(storeId);
   if (!storeId || !provided) return false;
   return timingSafeEqualHex(String(provided), await storeToken(env, storeId));
 }
@@ -538,6 +539,12 @@ export default {
     if (rpcMethod === "tools/list") return rpc(id, { tools: TOOLS });
     if (rpcMethod === "tools/call") {
       var storeId = url.searchParams.get("store");
+      // SEKI の門が守る店は /report でしか使えない。MCP の tools/call は門に聞かないので、何も呼ばず何も使わずに断る
+      // (監査 2026-10-10 F1: gateway_ask が門を通らずに守られた店のチケットを 1 枚減らしていた。別名も sekiGuarded が畳んで見る)。
+      if (storeId && sekiGuarded(storeId)) {
+        var _sg = { ok: false, reason: "seki_guarded_store", spent: 0, message: "この店は SEKI の門が守っています。/report に門への申請(seki)を付けて呼んでください。何も使っていません。" };
+        return rpc(id, { content: [{ type: "text", text: JSON.stringify(_sg) }], structuredContent: _sg });
+      }
       if (storeId && env && env.TICKETS_KV) {
         var _stok = url.searchParams.get("t") || request.headers.get("x-store-token") || "";
         if (!(await verifyStoreToken(env, storeId, _stok))) {
