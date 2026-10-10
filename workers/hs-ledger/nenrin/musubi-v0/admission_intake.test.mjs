@@ -1,5 +1,5 @@
 // admission_intake.test.mjs: the intake for a2a-admission-v0 and a2a-revocation-v0, on records made by the Python
-// reference (fixtures/admission_intake/cases.json, written from admit_fixtures.py through admit_v0.py).
+// reference (fixtures/admission_intake/cases.json, written by a relying party's door from fixed test keys; fixtures/ADMISSION_FIXTURES.sha256 lists its sha256).
 // No network: keys come from a stub, storage is a Map. Run: node admission_intake.test.mjs
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -31,7 +31,7 @@ const post = (b) => new Request("https://ledger.horizonshield.dev/x", { method: 
 const edit = (text, f) => { const o = JSON.parse(text); f(o); return musubiCanonical(o); };
 
 // ---- the canonical rule is one rule ----
-for (const k of ["admission_public", "contract_canonical", "revocation_grant", "revocation_key"]) {
+for (const k of ["admission_public", "admission_public_v0", "admission_revoked_without_anchor", "admission_brought_result", "contract_canonical", "revocation_grant", "revocation_key"]) {
   // the intake reads with parseStrict (which keeps an integer an integer) and writes with canonicalUtf8; canonical_v0.mjs is the MUSUBI twin
   t("the intake's reader and writer and musubi-canonical-v0 give the bytes Python wrote for " + k, canonicalUtf8(parseStrict(C[k])) === C[k] && musubiCanonical(JSON.parse(C[k])) === C[k]);
 }
@@ -65,6 +65,23 @@ await refusal("signed by the applicant's key (self admission), relying party's k
 await refusal("decision edited after signing", edit(C.admission_public, (o) => { o.decision = "refuse"; o.reasons = ["prohibited_action"]; }), "bad_signature");
 await refusal("key_url on another domain", edit(C.admission_public, (o) => { o.relying_party.key_url = "https://evil.example/k.json"; }), "signer_not_on_own_domain");
 await refusal("a stated limit removed", edit(C.admission_public, (o) => { o.does_not_establish.pop(); }), "does_not_establish_altered");
+await refusal("a v0.1 record carrying v0's stated limits", edit(C.admission_public, (o) => { o.does_not_establish[2] = "that a revocation published after the chain view was known at admission time"; }), "does_not_establish_altered");
+await refusal("a v0 record relabelled as v0.1", edit(C.admission_public_v0, (o) => { o.rules.version = "0.1"; }), "does_not_establish_altered");
+await refusal("a version of admit() this intake does not know", edit(C.admission_public, (o) => { o.rules.version = "9"; }), "malformed");
+await refusal("rules.version written as v0", edit(C.admission_public, (o) => { o.rules.version = "v0"; }), "malformed");
+await refusal("rules.version a number", edit(C.admission_public, (o) => { o.rules.version = 1; }), "malformed");
+{
+  const ww = world();
+  const r0 = await handleAdmissionIntake(post({ record_canonical: C.admission_public_v0 }), ww.deps);
+  t("a record admit v0 signed is still accepted and stored under its own sha", r0.status === 201 && r0.body.canonical_sha256 === C.admission_public_v0_canonical_sha256 && r0.body.admission_sha256 === C.admission_public_v0_admission_sha256 && r0.body.report.admit_version === "0", r0.body);
+  const r1 = await handleAdmissionIntake(post({ record_canonical: C.admission_revoked_without_anchor }), ww.deps);
+  const rec1 = JSON.parse(C.admission_revoked_without_anchor);
+  t("a v0.1 refusal on an unanchored revocation is stored, and says the revocation carried no anchor", r1.status === 201 && r1.body.report.admit_version === "0.1"
+    && rec1.decision === "refuse" && rec1.revocations_seen.length === 1 && rec1.revocations_seen[0].anchored === false && rec1.revocations_seen[0].height === null, r1.body);
+  const r2 = await handleAdmissionIntake(post({ record_canonical: C.admission_brought_result }), ww.deps);
+  const rec2 = JSON.parse(C.admission_brought_result);
+  t("a v0.1 refusal of a brought result is stored, and names what was brought", r2.status === 201 && rec2.decision === "refuse" && JSON.stringify(rec2.presentation_ref[0].self_declared) === JSON.stringify(["verified"]), r2.body);
+}
 await refusal("a reason outside the closed list", edit(C.admission_public, (o) => { o.reasons = ["looks_fine"]; }), "malformed");
 await refusal("an extra field (a score)", edit(C.admission_public, (o) => { o.score = 97; }), "malformed");
 await refusal("another schema", edit(C.admission_public, (o) => { o.schema = "a2a-admission-v1"; }), "malformed");

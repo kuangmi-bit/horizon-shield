@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ogasurfproject-jpg/horizon-shield/blob/main/workers/hs-ledger/nenrin/musubi-v0/schemas/a2a-admission-v0.schema.json",
   "title": "a2a-admission-v0",
-  "description": "What a relying party's admit() returned for one action under one signed MUSUBI contract, signed by the relying party. Signed bytes: the ASCII line a2a-admission-v0, a newline, then musubi-canonical-v0 of the record without signatures. The reference is admit_v0.py; this schema describes the shape and does not replace verify_admission.",
+  "description": "What a relying party's door returned for one action under one signed MUSUBI contract, signed by the relying party. Signed bytes: the ASCII line a2a-admission-v0, a newline, then musubi-canonical-v0 of the record without signatures. Two versions of this record exist: v0 (no rules.version) and v0.1 (rules.version \"0.1\", 2026-10-10). They differ in presentation_ref (v0.1 may carry self_declared), revocations_seen (v0: sha256 strings; v0.1: objects that say whether each revocation carried an anchor) and the third line of does_not_establish. The reference is admission_verify_v0.py; this schema describes the shape and does not replace verify_admission. The implementation of a relying party's door is not public; a record is checked without it.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -123,17 +123,36 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "v0.1: sha256 of the musubi-canonical-v0 bytes of the material the applicant handed over, null when it has no canonical form. v0: the value the adapter reported."
           },
           "verified": {
             "type": [
               "boolean",
               "null"
             ],
-            "description": "null means not verified. admit never reads null as true."
+            "description": "Computed by admit() from the material (v0.1). null means not verified. admit never reads null as true."
           },
           "self_asserted": {
             "type": "boolean"
+          },
+          "self_declared": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "verified",
+                "within_parent",
+                "limits",
+                "grant",
+                "sha256",
+                "checks",
+                "self_asserted",
+                "delegation",
+                "other"
+              ]
+            },
+            "description": "v0.1 only. The item carried fields other than adapter and material: a result somebody else claims to have computed. The request was refused; these are the names of what was brought."
           }
         }
       }
@@ -162,9 +181,41 @@
     },
     "revocations_seen": {
       "type": "array",
+      "description": "The revocations admit() obeyed. v0: sha256 of each record without its anchor. v0.1: one object per record, saying whether it carried an anchor and the height that anchor states.",
       "items": {
-        "type": "string",
-        "pattern": "^[0-9a-f]{64}$"
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sha256",
+              "anchored",
+              "height"
+            ],
+            "properties": {
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "description": "sha256 of the revocation record without its anchor."
+              },
+              "anchored": {
+                "type": "boolean",
+                "description": "false: the principal signed it and it was obeyed, and its time is not proven."
+              },
+              "height": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "The height its anchor states, as stated; null when it has none. admit() does not check the anchor proof."
+              }
+            }
+          }
+        ]
       }
     },
     "decision": {
@@ -217,6 +268,10 @@
           "type": "string",
           "pattern": "^[0-9a-f]{64}$",
           "description": "sha256 of clause_eval_v0.py, the clause evaluator settle imports too."
+        },
+        "version": {
+          "const": "0.1",
+          "description": "Absent in a record written by admit v0."
         }
       }
     },
@@ -227,12 +282,27 @@
       }
     },
     "does_not_establish": {
-      "const": [
-        "that HS allowed or blocked anything; the relying party ran the function at its own door",
-        "that the agent is who it claims to be beyond what the presented signatures and keys on its own domain show",
-        "that a revocation published after the chain view was known at admission time",
-        "that the action was lawful, safe or wise; only that it was inside or outside the signed grant",
-        "that this record is a legal authorization or determines liability"
+      "oneOf": [
+        {
+          "const": [
+            "that HS allowed or blocked anything; the relying party ran the function at its own door",
+            "that the agent is who it claims to be beyond what the presented signatures and keys on its own domain show",
+            "when a revocation without an anchor was issued, or that no revocation exists beyond those in revocations_seen; a revocation the principal signed is obeyed with or without an anchor, and its time is not proven until it is anchored",
+            "that the action was lawful, safe or wise; only that it was inside or outside the signed grant",
+            "that this record is a legal authorization or determines liability"
+          ],
+          "description": "v0.1"
+        },
+        {
+          "const": [
+            "that HS allowed or blocked anything; the relying party ran the function at its own door",
+            "that the agent is who it claims to be beyond what the presented signatures and keys on its own domain show",
+            "that a revocation published after the chain view was known at admission time",
+            "that the action was lawful, safe or wise; only that it was inside or outside the signed grant",
+            "that this record is a legal authorization or determines liability"
+          ],
+          "description": "v0"
+        }
       ]
     },
     "publication": {

@@ -4,7 +4,7 @@
 MUSUBI settle v1.11: when the contract requires admission before execution, an execution is read against the
 relying party's signed admission (a2a-settlement-v1.11). One rule, and nothing else.
 
-Why this file exists. admit_v0.py lets a relying party decide, at its own door and before the act, whether an action
+Why this file exists. A relying party can decide, at its own door and before the act, whether an action
 is inside the signed grant. That decision is only worth something if settlement can check it afterwards: that an
 admission existed, that it said admit, that what ran is what was admitted, that the admission was not written after
 the fact, and that the relying party did not wave through something outside the grant.
@@ -29,7 +29,7 @@ The rule, for each action in each execution record the lower layers accepted:
 
 An execution record under such a contract carries
     "admission_ref": [{"action", "admission_sha256", "executed": {"action", "target", "amount", "nonce", "expiry_height"}}]
-admission_sha256 is admit_v0.admission_sha256 (the bytes the relying party signed). The lower layers refuse unknown
+admission_sha256 is admission_verify_v0.admission_sha256 (the bytes the relying party signed). The lower layers refuse unknown
 record fields, so for the length of one call this file adds admission_ref to settle v1.3's execution field list and
 restores it in a finally block, the way v1.10 swaps v1.7's classifier. No earlier settle file is edited.
 
@@ -51,7 +51,7 @@ import settle_v1_3 as v13
 import settle_v1_5 as v15
 import settle_v1_10 as v110
 import clause_eval_v0 as ce
-import admit_v0 as A
+import admission_verify_v0 as A
 from contract_v0 import canonical, parse_strict, contract_sha256, EXEC_SCHEMA
 
 SETTLE_SCHEMA = "a2a-settlement-v1.11"
@@ -181,37 +181,51 @@ def settle_v1_11(contract, events, view, admissions=None, relying_keys=None, mod
 
 
 # --------------------------------------------------------------------------- self test
+FIXTURE = os.path.join(HERE, "fixtures", "settle_admission", "cases.json")
+
+
+def load_fixture():
+    """The scenarios the self tests read. They were made by a relying party's door that this repository does not carry
+    (its implementation is not public); the records it signed are here, and anyone can settle them again.
+    Returns (contracts, cases, relying_keys)."""
+    f = parse_strict(open(FIXTURE, encoding="utf-8").read())
+    return f["contracts"], f["cases"], f["relying_keys_pub_b64"]
+
+
+def settle_fixture_case(settle, name, fixture=None, drop_admissions=False):
+    contracts, cases, keys = fixture or load_fixture()
+    c = cases[name]
+    return settle(contracts[c["contract"]], c["events"], c["view"], admissions=[] if drop_admissions else c["admissions"], relying_keys=keys)
+
+
 def _selftest():
-    import subprocess
-    import admit_fixtures as F
-    w = F.World()
+    import hashlib, subprocess
     n = 0
-    P, AP, AN = w.contracts["plain"], w.contracts["admission_plain"], w.contracts["admission_pinned"]
-    KEYS = {F.RP["domain"]: w.pr}
+    fx = load_fixture()
+    contracts, cases, KEYS = fx
+    P, AP, AN = contracts["plain"], contracts["admission_plain"], contracts["admission_pinned"]
     assert admission_required(AP) and admission_required(AN) and not admission_required(P)
-
-    def flow(c, action, exec_action=None, approvals=(), exec_approvals=None, adm_height=98, exec_block=1, sign_key=None, executed_edit=None,
-             with_ref=True, present=True, decision_override=None, nonce="5a" * 16, extra_blocks=None):
-        req = A.build_action_request(c, action, nonce, 500, w.kb, approvals=list(approvals))
-        adm = A.admit(c, req, [{"adapter": "musubi-native", "sha256": contract_sha256(c), "verified": True}], F.VIEW, [], relying_party=F.RP, admission_id="adm")
-        if decision_override:
-            adm["decision"], adm["reasons"] = decision_override
-        A.sign_admission(adm, sign_key or w.kr)
-        executed = {"action": action, "target": None, "amount": None, "nonce": nonce, "expiry_height": 500}
-        if executed_edit:
-            executed.update(executed_edit)
-        ref = [{"action": exec_action or action, "admission_sha256": A.admission_sha256(adm), "executed": executed}]
-        ex = w.ex(c, [exec_action or action], list(approvals if exec_approvals is None else exec_approvals), **({"admission_ref": ref} if with_ref else {}))
-        blocks = [[] for _ in range(exec_block)] + [[ex]] + (extra_blocks or [])
-        recs, view = w.run(blocks, "v11")
-        admissions = [dict(adm, anchor={"height": adm_height})] if (present and adm_height is not None) else ([adm] if present else [])
-        return settle_v1_11(c, recs, view, admissions=admissions, relying_keys=KEYS), adm
-
+    assert A.check_fixtures() == 0
+    run = lambda name: settle_fixture_case(settle_v1_11, name, fx)
     clauses = lambda s: sorted(d["clause"] for d in s["deviations"])
+    decided = lambda name: tuple(cases[name]["admission_decision"] or ())
+
+    # [0] every v1.11 case in the fixture settles to the bytes recorded when it was made
+    mine = sorted(k for k, c in cases.items() if c["expect"]["layer"] == "v1.11")
+    for k in mine:
+        s = run(k)
+        assert hashlib.sha256(canonical(s).encode("utf-8")).hexdigest() == cases[k]["expect"]["settlement_sha256"], k
+        assert (s["verdict"], s["status"], clauses(s)) == (cases[k]["expect"]["verdict"], cases[k]["expect"]["status"], cases[k]["expect"]["clauses"]), k
+    n += 1; print("[0] %d fixture scenarios settle to the recorded bytes" % len(mine))
 
     # [1] no requirement: v1.11 returns v1.10's bytes
-    res10, res11 = F.settle_all(w), F.settle_all(w, settle=settle_v1_11)
-    assert res10 == res11 and len(res10) == 18
+    corpus = sorted(k for k in cases if k.startswith("corpus/"))
+    for k in corpus:
+        c = cases[k]
+        s10 = v110.settle_v1_10(contracts[c["contract"]], c["events"], c["view"])
+        assert canonical(settle_v1_11(contracts[c["contract"]], c["events"], c["view"])) == canonical(s10), k
+        assert hashlib.sha256(canonical(s10).encode("utf-8")).hexdigest() == c["expect"]["settlement_sha256"], k
+    assert len(corpus) == 18
     rr = os.path.join(HERE, "run0002")
     rd = lambda p: parse_strict(open(p, encoding="utf-8").read())
     C2 = rd(os.path.join(HERE, "second_contract_AB.json"))
@@ -222,61 +236,50 @@ def _selftest():
     n += 1; print("[1] contracts with no requirements.admission: v1.11 is v1.10 byte for byte (18 corpus scenarios, run0002 under the second contract 14474983)")
 
     # [2] admitted before, executed as admitted: within_grant
-    s, adm = flow(AP, "read")
+    s = run("v11/read")
     assert s["schema"] == SETTLE_SCHEMA and s["verdict"] == "within_grant" and s["status"] == "final" and s["deviations"] == [], s["deviations"]
     assert s["admission_gate"]["admissions_read"][0]["decision"] == "admit" and s["admission_gate"]["evaluator_sha256"] == ce.evaluator_sha256()
-    s, _ = flow(AP, "refund", approvals=[w.principal_ok(AP, "refund", "11" * 16)])
-    assert s["verdict"] == "within_grant", s["deviations"]
-    s, _ = flow(AN, "emit_witness", approvals=[w.approver_ok(AN)])
-    assert s["verdict"] == "within_grant", s["deviations"]
+    assert run("v11/refund_principal_approved")["verdict"] == "within_grant" and run("v11/emit_approver_approved")["verdict"] == "within_grant"
     n += 1; print("[2] admit before, the same action executed after: within_grant, final (plain, conditional with the principal's approval, gated with the pinned approver's)")
 
     # [3] rule 1: unadmitted
-    assert clauses(flow(AP, "read", with_ref=False)[0]) == ["unadmitted_execution"]
-    assert clauses(flow(AP, "read", present=False)[0]) == ["unadmitted_execution"]
-    assert clauses(flow(AP, "read", sign_key=w.kf)[0]) == ["unadmitted_execution"]
-    assert clauses(flow(AP, "read", sign_key=w.kb)[0]) == ["unadmitted_execution"]
+    for k in ("v11/read_no_admission_ref", "v11/read_admission_not_presented", "v11/read_admission_signed_by_stranger", "v11/read_admission_signed_by_applicant"):
+        assert clauses(run(k)) == ["unadmitted_execution"], (k, clauses(run(k)))
     n += 1; print("[3] no admission_ref, an admission not presented, one signed by a stranger, one signed by the applicant itself: unadmitted_execution")
 
     # [4] rule 2: executed after refusal, or after escalate with no approval
-    s, adm = flow(AP, "delete")
-    assert adm["decision"] == "refuse" and "executed_after_refusal" in clauses(s) and "prohibited" in clauses(s), clauses(s)
-    s, adm = flow(AP, "refund")
-    assert adm["decision"] == "escalate" and clauses(s) == ["conditional", "executed_after_refusal"], clauses(s)
-    s, adm = flow(AP, "refund", exec_approvals=[w.principal_ok(AP, "refund", "12" * 16)])
-    assert adm["decision"] == "escalate" and s["verdict"] == "within_grant", clauses(s)
+    s = run("v11/delete_refused")
+    assert decided("v11/delete_refused")[0] == "refuse" and "executed_after_refusal" in clauses(s) and "prohibited" in clauses(s), clauses(s)
+    s = run("v11/refund_escalated_no_approval")
+    assert decided("v11/refund_escalated_no_approval")[0] == "escalate" and clauses(s) == ["conditional", "executed_after_refusal"], clauses(s)
+    s = run("v11/refund_escalated_approval_carried")
+    assert decided("v11/refund_escalated_approval_carried")[0] == "escalate" and s["verdict"] == "within_grant", clauses(s)
     n += 1; print("[4] executed after refuse: executed_after_refusal (and the grant's own clause); after escalate with no approval: the same; after escalate with the approval carried: within_grant")
 
     # [5] rule 3: something else was executed
-    s, _ = flow(AP, "read", executed_edit={"target": "/other"})
-    assert clauses(s) == ["executed_other_than_admitted"], clauses(s)
-    s, _ = flow(AP, "read", exec_action="emit_witness")
+    assert clauses(run("v11/read_executed_other_target")) == ["executed_other_than_admitted"]
+    s = run("v11/read_admission_used_for_emit")
     assert "unadmitted_execution" in clauses(s) or "executed_other_than_admitted" in clauses(s), clauses(s)
     n += 1; print("[5] the executed target differs from the admitted one: executed_other_than_admitted; another action run on a read admission: not covered by it")
 
     # [6] rule 4: the admission came after
-    assert clauses(flow(AP, "read", adm_height=150)[0]) == ["admission_after_execution"]
-    assert clauses(flow(AP, "read", adm_height=None)[0]) == ["admission_after_execution"]
-    assert flow(AP, "read", adm_height=99)[0]["verdict"] == "within_grant"
+    assert clauses(run("v11/read_admission_anchored_above")) == ["admission_after_execution"]
+    assert clauses(run("v11/read_admission_not_anchored")) == ["admission_after_execution"]
+    assert run("v11/read_admission_same_block")["verdict"] == "within_grant"
     n += 1; print("[6] admission anchored above the execution, or not anchored: admission_after_execution; anchored in the same block or below: fine")
 
     # [7] rule 5: the relying party admitted something outside the grant
-    s, adm = flow(AP, "delete", decision_override=("admit", ["within_grant"]))
+    s = run("v11/delete_admitted_by_mistake")
     assert "admitted_out_of_grant" in clauses(s) and "executed_after_refusal" not in clauses(s), clauses(s)
     why = next(d["why"] for d in s["deviations"] if d["clause"] == "admitted_out_of_grant")
     assert "shop.example" in why and "prohibited" in why
-    s, _ = flow(AP, "transfer", decision_override=("admit", ["within_grant"]))
+    s = run("v11/transfer_admitted_by_mistake")
     assert "admitted_out_of_grant" in clauses(s) and "unauthorized" in clauses(s)
-    s, _ = flow(AP, "refund", decision_override=("admit", ["within_grant"]))
-    assert "admitted_out_of_grant" in clauses(s)
+    assert "admitted_out_of_grant" in clauses(run("v11/refund_admitted_by_mistake"))
     n += 1; print("[7] a relying party signs admit for a prohibited, an unauthorized or an unapproved conditional action: admitted_out_of_grant, naming the domain that signed")
 
     # [8] one admission, two executions
-    req = A.build_action_request(AP, "read", "7b" * 16, 500, w.kb)
-    adm = A.sign_admission(A.admit(AP, req, [{"adapter": "musubi-native", "sha256": contract_sha256(AP), "verified": True}], F.VIEW, [], relying_party=F.RP, admission_id="once"), w.kr)
-    ref = [{"action": "read", "admission_sha256": A.admission_sha256(adm), "executed": {"action": "read", "target": None, "amount": None, "nonce": "7b" * 16, "expiry_height": 500}}]
-    recs, view = w.run([[w.ex(AP, ["read"], ref="1", admission_ref=ref)], [w.ex(AP, ["read"], ref="2", admission_ref=ref)]], "v11b")
-    s = settle_v1_11(AP, recs, view, admissions=[dict(adm, anchor={"height": 98})], relying_keys=KEYS)
+    s = run("v11/one_admission_two_executions")
     assert clauses(s) == ["unadmitted_execution"] and "already used" in s["deviations"][0]["why"], s["deviations"]
     n += 1; print("[8] the same admission named by two executions: the second is unadmitted_execution")
 
@@ -287,21 +290,18 @@ def _selftest():
         raise RuntimeError("boom")
     v110.settle_v1_10 = boom
     try:
-        settle_v1_11(AP, [], view)
+        run("v11/read")
     except RuntimeError:
         pass
     finally:
         v110.settle_v1_10 = real
     assert "admission_ref" not in v13.FIELDS[EXEC_SCHEMA]
-    recs, view = w.run([[w.ex(P, ["read"], admission_ref=[])]], "v11c")
-    s = settle_v1_11(P, recs, view)
+    s = run("v11/no_requirement_refuses_admission_ref")
     assert any(d["clause"] == "nonconforming_record" for d in s["deviations"]), s["deviations"]
     n += 1; print("[9] settle v1.3's field list is restored after a call and after an exception; a contract without the requirement still refuses admission_ref as an unknown field")
 
     # [10] determinism
-    s1, _ = flow(AP, "delete", decision_override=("admit", ["within_grant"]))
-    s2, _ = flow(AP, "delete", decision_override=("admit", ["within_grant"]))
-    assert canonical(s1) == canonical(s2)
+    assert canonical(run("v11/delete_admitted_by_mistake")) == canonical(run("v11/delete_admitted_by_mistake"))
     n += 1; print("[10] the same inputs give the same settlement bytes")
 
     # [11] mutants: each must change a verdict the tests above expect
@@ -309,19 +309,19 @@ def _selftest():
     saved = g["admission_deviations"]
     try:
         g["admission_deviations"] = lambda *a, **k: ([], [])                                  # M1: the rule is skipped
-        killed += flow(AP, "read", with_ref=False)[0]["verdict"] == "within_grant"
+        killed += run("v11/read_no_admission_ref")["verdict"] == "within_grant"
     finally:
         g["admission_deviations"] = saved
     real_eval = ce.evaluate_action
     try:
         ce.evaluate_action = lambda *a, **k: {"class": "authorized", "clauses": [], "approval": None, "why": None}   # M2: the recompute always agrees
-        killed += "admitted_out_of_grant" not in clauses(flow(AP, "delete", decision_override=("admit", ["within_grant"]))[0])
+        killed += "admitted_out_of_grant" not in clauses(run("v11/delete_admitted_by_mistake"))
     finally:
         ce.evaluate_action = real_eval
     real_ver = A.verify_admission
     try:
         A.verify_admission = lambda *a, **k: {"verdict": "accepted", "refusals": []}          # M3: any signature is accepted
-        killed += clauses(flow(AP, "read", sign_key=w.kf)[0]) == []
+        killed += clauses(run("v11/read_admission_signed_by_stranger")) == []
     finally:
         A.verify_admission = real_ver
     assert killed == 3, killed
@@ -331,7 +331,7 @@ def _selftest():
     assert r.returncode == 0 and "SELF-TEST PASSED" in r.stdout, (r.stdout[-300:], r.stderr[-300:])
     n += 1; print("[12] settle_v1_10 self test (and every layer it runs) still passes")
 
-    print("\nSELF-TEST PASSED: MUSUBI settle v1.11, %d checks (no requirement: v1.10 byte for byte; admitted and executed: within_grant; "
+    print("\nSELF-TEST PASSED: MUSUBI settle v1.11, %d checks (fixture bytes; no requirement: v1.10 byte for byte; admitted and executed: within_grant; "
           "unadmitted; after refusal; other than admitted; admission after execution; admitted out of grant; single use; field list restored; "
           "determinism; 3 mutants; v1.10 unchanged)" % n)
 
