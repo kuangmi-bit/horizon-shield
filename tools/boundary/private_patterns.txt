@@ -10,6 +10,17 @@
 (^|/)tatsumaki(/|[^/]*\.(js|mjs|md)$)
 (^|/)_shared/tornado/
 (^|/)workers/hs-ehn-verify/
+# SEKI (the door a relying party runs before an action: the function that decides, its adapters, the gate and their
+# tests): private since 2026-10-10, lives in hs-seki-private. What stays public is the side that checks a record:
+# admission_verify_v0, the settle layers, the contract door, the intake and the schemas.
+(^|/)admit_v0\.(py|mjs)$
+(^|/)admit_(fixtures|bytematch|redteam|consistency|regression)\.py$
+(^|/)adapter_(musubi_native|aps_v2)\.(py|mjs)$
+(^|/)seki_gate(/|[^/]*\.(py|mjs)$)
+(^|/)seki_kit\.py$
+(^|/)make_public_fixtures\.py$
+(^|/)fixtures/aps_agent_passport_system/
+(^|/)hs-seki-private(/|$)
 # Keys and local secrets.
 \.pem$
 (^|/)\.hs_[^/]*$
