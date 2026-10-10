@@ -5588,12 +5588,24 @@ export default {
       if (!session) return json({ error: "mcp_session_id_required" }, 400);
       return new Response(null, { status: 204, headers: { ...CORS_HEADERS, "Mcp-Session-Id": session } });
     }
+    // 2026-10-10. GET /mcp is how a Streamable HTTP client opens the server-to-client SSE stream (MCP 2025-06-18,
+    // transports: the server MUST answer with text/event-stream or with 405 Method Not Allowed). This gate sends no
+    // server-initiated messages, and it used to answer 200 with a JSON description. Clients read that as a stream that
+    // opened and ended, and reopened it at once: about 19 million GET /mcp a day from codex-mcp-client and claude-code
+    // (sampled with wrangler tail, 127 of 128 requests), billed as Workers requests. Now any GET that
+    // does not ask for a page is 405 with Allow, the answer the spec gives for "no stream here"; the SDKs stop on it.
+    // A browser (Accept: text/html) still gets the description, with 200.
     if (path === "/mcp" && request.method === "GET") {
-      return json({
-        ok: true,
+      const info = {
         transport: "MCP over Streamable HTTP (JSON-RPC 2.0)",
         usage: "POST JSON-RPC to this URL. methods: initialize, tools/list, tools/call. Legacy initialize receives Mcp-Session-Id; DELETE with that header closes the compatibility session.",
         tools: MCP_TOOLS.map((t) => t.name)
+      };
+      const accept = (request.headers.get("accept") || "").toLowerCase();
+      if (accept.includes("text/html") && !accept.includes("text/event-stream")) return json({ ok: true, ...info });
+      return new Response(JSON.stringify({ error: "method_not_allowed", why: "this server opens no server-to-client SSE stream; send JSON-RPC with POST", ...info }), {
+        status: 405,
+        headers: { ...CORS_HEADERS, "content-type": "application/json; charset=utf-8", "allow": "POST, DELETE", "cache-control": "no-store" }
       });
     }
 
