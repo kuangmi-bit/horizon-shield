@@ -1,0 +1,9 @@
+{
+  "public_key_ed25519_b64": "loNPCGFrNDfOi4CY9H1kG6SWCxaKCD/OkFgTupG7E8U=",
+  "alg": "ed25519",
+  "domain": "shield.the-horizons-innovation.com",
+  "key_url": "https://shield.the-horizons-innovation.com/keys/seki-agent.json",
+  "role": "contractor of the SEKI demonstration contract: The HORIZONs' own agent (signs a2a-action-request-v0, a2a-execution-v0)",
+  "operator": "The HORIZONs Co., Ltd.",
+  "note": "a demonstration: the principal, the contractor and the relying party are all The HORIZONs Co., Ltd.; this contract shows the SEKI door working on a live paid path and is not an arm's-length agreement"
+}
