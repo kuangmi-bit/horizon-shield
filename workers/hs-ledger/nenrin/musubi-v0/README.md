@@ -277,6 +277,17 @@ A relying party can decide before the act, at its own door, and sign what it dec
 - `grant.limits = {"<action>": {"max_amount": <integer >= 1>, "unit": "JPY"}}` is a grant key since 2026-10-10. `contract_v0` types it at the door, requires the action to be in `authorized_actions` or `conditional`, and refuses limits in a contract that does not require admission (`limits_need_admission`), because the amount of an execution is stated only with its admission. A delegated child may lower a limit, never raise it, drop it or change its unit. `contract_door_v0.mjs` is the same door in JavaScript; `contract_door_check.py` holds the two together.
 - Stated limits: a contract_v0 from before 2026-10-10 refuses the key outright (an undeclared grant key), so both parties need this version to sign a contract with limits. A limit is a cap no approval lifts.
 
+## a2a-approval-v3 and settle v1.13: an approval that names its amount (2026-10-10, Issue #29)
+An a2a-approval-v2 approval carries no amount, so one approval covers any amount up to the cap in `grant.limits`. v3 puts `max_amount` (an integer string in the unit's smallest denomination) and `unit` into the signed bytes, under its own domain tag `a2a-approval-v3`. v2 stays frozen as @babyblueviper1's reference. The format, the bytes and the reasons are in [APPROVAL_V3.md](APPROVAL_V3.md).
+
+    python3 approval_v3.py --selftest      # expect: SELF-TEST PASSED, 6 checks
+    python3 settle_v1_13.py --selftest     # expect: SELF-TEST PASSED, 11 checks
+
+- settle v1.13 applies only when `grant.limits` caps an action a pinned approver gates; for every other contract it returns v1.12's bytes (checked on the fixture's scenarios and run0002).
+- When it applies, a v3 approval counts for the walk, a v2 nonce is read with `\Z` (as their reference reads it since bcf6592, sha256 `72f807a4...`), and an approved execution of a gated, limited action must be covered by a v3 approval naming at least the amount it states, or `amount_not_approved` is raised with the reason.
+- `clause_eval_v0.py`, `clause_eval_v0.mjs` and settle v1.10 to v1.12 are not edited: admission records name `clause_eval_v0.py` by sha256, and a settlement made under an earlier layer must recompute to the same bytes.
+- Stated limits: only approver-gated actions are read; a principal's approval (settle v1.6) still names no amount. The signature proves the approver signed that amount, not that it was the right amount.
+
 ## peer_kit and anchor_direct: a contract with nobody from this project in it (2026-10-02)
 Every MUSUBI contract so far had this project as a party, and every execution reached Bitcoin through its ledger. The adoption count reports both: contracts with an outside party 2, contracts with no party from this project 0. These two files are the whole path for two other parties, with no account, key, server or ledger of ours.
 
