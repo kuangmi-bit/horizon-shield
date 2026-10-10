@@ -421,13 +421,13 @@
   },
   "_repo/musubi-v0/fixtures/babyblueviper1_approver_v2/README.md": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_approver_v2/README.md",
-    "source_sha256": "a96a0293ec42bf764919f123c4c6a463e398f1901337a40911654b57d550623d",
-    "vendored_sha256": "a96a0293ec42bf764919f123c4c6a463e398f1901337a40911654b57d550623d"
+    "source_sha256": "ffbaf9bae4a416b9e8365943d07cb41d8ad35c8587669b722e05275b76be2794",
+    "vendored_sha256": "ffbaf9bae4a416b9e8365943d07cb41d8ad35c8587669b722e05275b76be2794"
   },
   "_repo/musubi-v0/fixtures/babyblueviper1_approver_v2/SHA256SUMS": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_approver_v2/SHA256SUMS",
-    "source_sha256": "31e7dce59d40b9bf8b024118bf4d034e653455765d307d4347f8a2b3970d054e",
-    "vendored_sha256": "31e7dce59d40b9bf8b024118bf4d034e653455765d307d4347f8a2b3970d054e"
+    "source_sha256": "4ec6d933906eaa2d111ec93b44b1cec31feb6f2a295e564fbd94946c4b8c7443",
+    "vendored_sha256": "4ec6d933906eaa2d111ec93b44b1cec31feb6f2a295e564fbd94946c4b8c7443"
   },
   "_repo/musubi-v0/fixtures/babyblueviper1_approver_v2/_ed25519.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_approver_v2/_ed25519.py",
@@ -441,8 +441,8 @@
   },
   "_repo/musubi-v0/fixtures/babyblueviper1_approver_v2/verify_approval_v2.py": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_approver_v2/verify_approval_v2.py",
-    "source_sha256": "31e863c39256a7045ba39f8569654630adf1de69a96713a38dea76382fab8d0d",
-    "vendored_sha256": "31e863c39256a7045ba39f8569654630adf1de69a96713a38dea76382fab8d0d"
+    "source_sha256": "72f807a49b81d47ef1a511d82b17a4826d5059297b311b82868dfc8e45ac0f2b",
+    "vendored_sha256": "72f807a49b81d47ef1a511d82b17a4826d5059297b311b82868dfc8e45ac0f2b"
   },
   "_repo/musubi-v0/fixtures/babyblueviper1_leg1/README.md": {
     "source": "workers/hs-ledger/nenrin/musubi-v0/fixtures/babyblueviper1_leg1/README.md",
