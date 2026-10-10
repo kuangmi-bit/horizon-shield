@@ -36,6 +36,10 @@
     { "tag": "v1", "new_sqlite_classes": ["TicketLedgerDO"] }
   ]
 
+  // --- チケットの販売(vars、secret ではない) ---
+  //   TICKET_SALES : "open" のときだけ /billing/create が注文を作る。無ければ 409 sales_paused_pilot(2026-10-10 から実証期間中は販売停止、
+  //                  運営が /admin/grant で無償で付ける)。売り始めるときに vars に足して deploy する。
+
   // --- secret(平文で書かない。TOshiが wrangler secret put で投入) ---
   //   LEDGER_ADMIN_TOKEN    : hs-ledger /ledger/append 用。未投入なら台帳追記はスキップ(番人モード)。
   //   ADMIN_KEY             : /admin/prepaid の閲覧キー(前払式残高の運営確認用)。

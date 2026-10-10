@@ -17,6 +17,16 @@
 // records show the door working on a live paid path. It is not an outside party and is not counted as one.
 export var SEKI_STORES = ["hs-seki-demo"];
 
+// Tickets at a guarded store during the pilot (TOshi, 2026-10-10): the operator grants them free through /admin/grant and
+// they carry no monetary value; no payment is taken for them. Commercial SEKI will be sold in US dollars and billed after
+// use, decided but not built. Every guarded answer says which of the two it is, so a record of a spend is never read as a
+// payment.
+export var SEKI_TICKETS = {
+  mode: "pilot",
+  monetary_value: false,
+  note: "During the pilot, tickets at a SEKI-guarded store are granted free by the operator and carry no monetary value. No payment is taken for them. Commercial SEKI will be priced in US dollars and billed after use."
+};
+
 // The ticket ledger keeps a store under safeStore(id) (tickets.js: characters outside [A-Za-z0-9._-] are dropped, 40 at
 // most), so "hs-seki-demo!" spends from hs-seki-demo. The guard reads the id the same way, or such an alias would spend
 // a guarded store's tickets without the door (review 2026-10-10).
@@ -66,7 +76,7 @@ export async function sekiAsk(env, store, service, amount, submission) {
 // Headers the gateway adds to a guarded call's answer, so the agent can name the admission in its execution record.
 export function sekiHeaders(out) {
   if (!out) return {};
-  var h = { "X-Seki-Decision": String(out.decision || "") };
+  var h = { "X-Seki-Decision": String(out.decision || ""), "X-Seki-Tickets": SEKI_TICKETS.mode + "; no monetary value" };
   if (out.admission_sha256) h["X-Seki-Admission-Sha256"] = out.admission_sha256;
   if (out.record_sha256) h["X-Seki-Record-Sha256"] = out.record_sha256;
   if (out.published) h["X-Seki-Published"] = out.published.accepted ? "accepted" : "pending";

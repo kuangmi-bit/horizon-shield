@@ -71,6 +71,7 @@ ok("the door was asked once with the call as the gateway will run it", e2.doorCa
   && e2.doorCalls[0].body.amount === PRICES.report && JSON.stringify(e2.doorCalls[0].body.submission) === JSON.stringify(sub), e2.doorCalls[0]);
 ok("the admission is named in the answer's headers", r2.headers.get("X-Seki-Decision") === "admit" && r2.headers.get("X-Seki-Admission-Sha256") === ADMIT.admission_sha256
   && r2.headers.get("X-Seki-Record-Sha256") === ADMIT.record_sha256 && r2.headers.get("X-Seki-Published") === "accepted");
+ok("the answer says its tickets carry no monetary value (pilot)", r2.headers.get("X-Seki-Tickets") === "pilot; no monetary value", r2.headers.get("X-Seki-Tickets"));
 ok("hs-pdf-gen did not receive the seki member", e2.pdfCalls.length === 1 && !("seki" in e2.pdfCalls[0].body) && e2.pdfCalls[0].body.teiji_kingaku === 1200000);
 
 console.log("[a guarded store, the door refuses]");

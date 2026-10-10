@@ -21,7 +21,13 @@ import { routeVertical } from "./router.js";
 import { callDirectory, buildReceipt, appendToLedger } from "./adapter.js";
 import { canAfford, spend, refund, grantTickets, prepaidStatus, getBalance, PRICES, PACKS, packPrice, YEN_PER_TICKET } from "./tickets.js";
 import { TicketLedgerDO } from "./ticket_do.js";
-import { sekiGuarded, sekiAsk, sekiHeaders, sekiRead, ledgerStoreId } from "./seki.js";
+import { sekiGuarded, sekiAsk, sekiHeaders, sekiRead, ledgerStoreId, SEKI_TICKETS } from "./seki.js";
+
+// チケットの販売(2026-10-10 TOshi): 実証期間中は売らない。必要な枚数は運営が /admin/grant で無償で付ける。
+// 売るのは env.TICKET_SALES が "open" のときだけ(wrangler.jsonc の vars。無ければ止まったまま)。
+// 止めた理由: PayPal の戻り先が仮の URL で、承認の後に /billing/capture を呼ぶページも無く、払っても確定せずチケットも入らない。
+// 売り始める前に、戻り先のページ、capture、入金通知から加算までを試験で通すこと。
+function ticketSalesOpen(env) { return !!(env && env.TICKET_SALES === "open"); }
 
 var SERVER = { name: "hs-gateway", title: "HORIZON SHIELD Verifiable Gateway", version: "0.1.0-draft" };
 var SITE = "https://shield.the-horizons-innovation.com";
@@ -279,7 +285,8 @@ export default {
         var plist = {};
         for (var k in PRICES) { plist[k] = { tickets: PRICES[k], yen: PRICES[k] * YEN_PER_TICKET }; }
         var packlist = PACKS.map(function (pk) { var per = pk.yen / pk.tickets; return { tickets: pk.tickets, yen: pk.yen, per_ticket_yen: per, discount_pct: Math.round((1 - per / YEN_PER_TICKET) * 100), label: pk.label }; });
-        return new Response(JSON.stringify({ ok: true, yen_per_ticket: YEN_PER_TICKET, packs: packlist, services: plist, note: "servicesは1処理あたりの消費枚数。packsは購入単位(まとめ買いほど割安)。" }, null, 2), { headers: { "Content-Type": "application/json", ...CORS } });
+        var salesOpen = ticketSalesOpen(env);
+        return new Response(JSON.stringify({ ok: true, ticket_sales: salesOpen ? "open" : "paused_pilot", ticket_sales_note: salesOpen ? null : "実証期間中のため、チケットは販売していません。必要な枚数は運営から無償でお付けします。", yen_per_ticket: YEN_PER_TICKET, packs: salesOpen ? packlist : [], packs_when_sales_open: packlist, services: plist, seki: SEKI_TICKETS, note: "servicesは1処理あたりの消費枚数。packsは購入単位(まとめ買いほど割安)。" }, null, 2), { headers: { "Content-Type": "application/json", ...CORS } });
       }
       // SEKI: what the door in front of /report admits under, and the records it published (src/seki.js).
       if (path === "/seki" || path.indexOf("/seki/record/") === 0) {
@@ -345,6 +352,9 @@ export default {
     // 実 Stripe はまだ繋がない。だが「署名・時刻・冪等の3検証を通らないと grant しない」形を
     // コードで確定させておく。これが穴(3)の塞ぎ。secret 未投入なら 501 で無効(誤発火しない)。
     // hs-billing と同じ HMAC-SHA256(t + "." + rawBody) 方式で揃える。
+    if (path === "/billing/create" && !ticketSalesOpen(env)) {
+      return new Response(JSON.stringify({ ok: false, error: "sales_paused_pilot", message: "実証期間中のため、チケットは販売していません。必要な枚数は運営から無償でお付けします。" }), { status: 409, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS } });
+    }
     if (path === "/billing/create" && env && env.PAYPAL_CLIENT_ID) {
       var cbody = await request.json().catch(function () { return null; });
       var cstore = String(cbody && cbody.store || "").replace(/[^A-Za-z0-9._-]/g, "").slice(0, 40);
