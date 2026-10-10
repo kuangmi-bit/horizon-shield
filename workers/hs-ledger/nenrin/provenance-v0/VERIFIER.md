@@ -141,7 +141,8 @@ self_authorized under the same conditions as step 2a. Then canonical(grant.actio
 canonical(intent.proposed_action) (action_diverged). Any failure adds one refusal preflight_invalid. Then, if
 signatures are required and intent_sig does not verify under intent.provider_id: refusal
 preflight_signature_invalid. Finally, if a receipt reconciled in step 2 and canonical(intent.proposed_action) differs
-from canonical(reconciled.executed_action): finding declared_executed_divergence.
+from canonical(reconciled.executed_action): finding declared_executed_divergence. A degenerate action on either side
+(section 5, missing fields) counts as differing.
 
 **Step 4, evidence.** The target is the reconciled receipt; if none, the primary receipt; if the receipt set is
 empty, skip this step. Let E be target.outcome.evidence. E absent, null or otherwise falsy: finding
@@ -196,6 +197,9 @@ weakness it is said so, with the fix.
   turned into null). If grant.action or the receipt's executed_action (or the intent's proposed_action) is missing,
   null, false, 0 or "", E1 (or the preflight action check) fails with reason action_diverged, so step 2 adds the
   refusal execution_invalid (step 3: preflight_invalid); action_diverged is a reason, not a code in the signature.
+  The same rule decides step 3's last comparison: when an intent is present and a receipt reconciled, a degenerate
+  intent.proposed_action or reconciled.executed_action makes the two differ, and step 3 adds the finding
+  declared_executed_divergence. The reference uses one equality for all three comparisons (actionsEqual).
   This holds even when both sides are the same degenerate value (null against null, 0 against 0). An empty object {}
   is not degenerate: it is an action like any other and is compared canonically, so {} against {} passes E1. An edge whose task_id or hop is
   missing cannot be canonicalized, so edge_sig does not verify. hop.seq must be a JSON integer; any other value fails
