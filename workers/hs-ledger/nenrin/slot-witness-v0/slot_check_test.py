@@ -2,6 +2,7 @@
 """slot_check_test: the reader side of slot-witness-v0. BIP-340 (written separately from the intake's) against the BIP's
 vectors and a real invinoveritas event; every observation the JS intake wrote in fixtures/slot_fixtures.json recomputed
 here; tampering refused by name; and a synthetic ledger with an OpenTimestamps path and a mined regtest header view.
+v0.1: the decider field recomputed on the JS intake's v0.1 observations and on the first live decider-scoped slot.
 No network, standard library only. Run: python3 slot_check_test.py"""
 import base64, copy, hashlib, json, os, sys
 
@@ -64,6 +65,49 @@ spaced = json.dumps(json.loads(FX["cases"][0]["record_jcs"]), indent=1).encode()
 t("the same record not in RFC 8785 form: refused", any("RFC 8785" in p for p in problems(spaced)))
 t("judge: the same id twice is never unique", SC.judge(200, b'{"slot":"s","taken":true,"event_ids":["e","e"]}', "s", "e")[0] == "listed_with_others")
 t("judge: taken with an empty list is not_listed", SC.judge(200, b'{"slot":"s","taken":true,"event_ids":[]}', "s", "e")[0] == "not_listed")
+
+
+# ---- v0.1: the decider field -------------------------------------------------------------------------------------
+FX1 = json.load(open(os.path.join(HERE, "fixtures", "slot_fixtures_v01.json"), encoding="utf-8"))
+for c in FX1["cases"]:
+    raw = c["record_jcs"].encode("utf-8")
+    rep, prob = SC.check_record(raw, hashlib.sha256(raw).hexdigest(), issuers=TEST)
+    exp = c["expect_decider"]
+    dec_ok = rep.get("decider") is None if exp is None else (rep.get("decider") or {}).get(exp[0]) == exp[1]
+    t("v0.1 %s: the JS intake's observation and its decider recompute here" % c["name"], not prob and rep["verdict"] == c["expect_verdict"] and dec_ok, (prob, rep.get("decider")))
+
+
+def mutate1(name, f):
+    obs = json.loads(next(c for c in FX1["cases"] if c["name"] == name)["record_jcs"])
+    f(obs)
+    return SC.VC.jcs(obs).encode("utf-8")
+
+
+t("v0.1: a record claiming no equivocation over bytes that show it: refused", any("decider does not recompute" in p for p in problems(mutate1("equivocation_one_conflict", lambda o: o["decider"].update(equivocation=False)))))
+t("v0.1: a record claiming equivocation over bytes whose conflict does not verify: refused", any("decider does not recompute" in p for p in problems(mutate1("conflict_with_bad_signature", lambda o: o["decider"].update(conflicts_verified=1, equivocation=True)))))
+t("v0.1: a record with the decider field removed: refused", any("carries no decider field" in p for p in problems(mutate1("holder_verifies_no_conflicts", lambda o: o.pop("decider")))))
+t("v0: a record that adds a decider field: refused", any("has no decider field" in p for p in problems(mutate("unique", lambda o: o.update(decider=None)))))
+t("an unknown observation schema: refused", any("schema is neither" in p for p in problems(mutate("unique", lambda o: o.update(schema="nenrin-slot-observation-v9")))))
+
+
+def big_body(o, n):
+    body = json.dumps({"slot": o["request_slot"], "taken": True, "event_ids": [o["receipt_event_id"]], "pad": "x" * n}).encode()
+    o.update(response_b64=base64.b64encode(body).decode(), response_sha256=hashlib.sha256(body).hexdigest(), response_bytes=len(body))
+
+
+t("v0: more than 16384 response bytes kept without truncation: refused", any("more than 16384" in p for p in problems(mutate("unique", lambda o: big_body(o, 20000)))))
+t("v0.1: 20000 response bytes kept whole: accepted", not problems(mutate1("account_scoped_no_decider_claim", lambda o: big_body(o, 20000))))
+
+LIVE = json.load(open(os.path.join(HERE, "fixtures", "invinoveritas_slot_decider_20261010.json"), encoding="utf-8"))
+lb = base64.b64decode(LIVE["response_b64"])
+lrc = LIVE["receipt_content_decider"]
+t("the live slot bytes are the ones the ledger kept (sha256)", hashlib.sha256(lb).hexdigest() == LIVE["response_sha256"])
+t("the live slot (2026-10-10): BIP-340 here (written apart from the intake's) finds both decider signatures valid: equivocation",
+  SC.decider_reading(200, lb, lrc["request_slot"], lrc) == LIVE["expect_decider"], SC.decider_reading(200, lb, lrc["request_slot"], lrc))
+lj = json.loads(lb)
+lj["conflicts"][0]["decider_sig"] = ("1" if lj["conflicts"][0]["decider_sig"][0] == "0" else "0") + lj["conflicts"][0]["decider_sig"][1:]
+d1 = SC.decider_reading(200, json.dumps(lj).encode(), lrc["request_slot"], lrc)
+t("the live bytes with the conflict's signature altered: verified 0, no equivocation", d1["conflicts_verified"] == 0 and d1["equivocation"] is False)
 
 
 # ---- a synthetic ledger: batch, OTS path, mined header view ----------------------------------------------------------
