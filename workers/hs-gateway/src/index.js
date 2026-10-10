@@ -21,6 +21,7 @@ import { routeVertical } from "./router.js";
 import { callDirectory, buildReceipt, appendToLedger } from "./adapter.js";
 import { canAfford, spend, refund, grantTickets, prepaidStatus, getBalance, PRICES, PACKS, packPrice, YEN_PER_TICKET } from "./tickets.js";
 import { TicketLedgerDO } from "./ticket_do.js";
+import { sekiGuarded, sekiAsk, sekiHeaders, sekiRead, ledgerStoreId } from "./seki.js";
 
 var SERVER = { name: "hs-gateway", title: "HORIZON SHIELD Verifiable Gateway", version: "0.1.0-draft" };
 var SITE = "https://shield.the-horizons-innovation.com";
@@ -280,6 +281,12 @@ export default {
         var packlist = PACKS.map(function (pk) { var per = pk.yen / pk.tickets; return { tickets: pk.tickets, yen: pk.yen, per_ticket_yen: per, discount_pct: Math.round((1 - per / YEN_PER_TICKET) * 100), label: pk.label }; });
         return new Response(JSON.stringify({ ok: true, yen_per_ticket: YEN_PER_TICKET, packs: packlist, services: plist, note: "servicesは1処理あたりの消費枚数。packsは購入単位(まとめ買いほど割安)。" }, null, 2), { headers: { "Content-Type": "application/json", ...CORS } });
       }
+      // SEKI: what the door in front of /report admits under, and the records it published (src/seki.js).
+      if (path === "/seki" || path.indexOf("/seki/record/") === 0) {
+        var sr = await sekiRead(env, path);
+        if (!sr) return new Response(JSON.stringify({ ok: false, error: "no_seki_door_here" }), { status: 404, headers: { "Content-Type": "application/json", ...CORS } });
+        return new Response(sr.text, { status: sr.status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...CORS } });
+      }
       if (path === "/balance") {
         var bstore = url.searchParams.get("store");
         var btok = url.searchParams.get("t") || request.headers.get("x-store-token") || "";
@@ -444,6 +451,23 @@ export default {
       var rmap = { "report": { op: "report", path: "/generate-meitsumori" }, "audit": { op: "audit", path: "/generate-estimate-audit" }, "compare": { op: "compare", path: "/generate-compare" } };
       var rcfg = rmap[rservice];
       if (!rcfg) return new Response(JSON.stringify({ ok: false, error: "unknown_service", valid: Object.keys(rmap) }), { status: 400, headers: { "Content-Type": "application/json", ...CORS } });
+      // 2026-10-10 SEKI: a store the door guards runs /report only after the door admitted this exact call (service,
+      // store, the tickets it costs). Anything else is answered and nothing is spent. Other stores are untouched.
+      var rseki = null;
+      var rhasSeki = Object.prototype.hasOwnProperty.call(rpayload, "seki");
+      if (sekiGuarded(rstore) && rstore !== ledgerStoreId(rstore)) {
+        return new Response(JSON.stringify({ ok: false, error: "store_id_not_canonical", why: "a guarded store is named only by its exact id; nothing was spent" }), { status: 400, headers: { "Content-Type": "application/json", ...CORS } });
+      }
+      if (sekiGuarded(rstore)) {
+        // Tickets first, so the door does not admit a call that cannot be paid for.
+        var raf = await canAfford(rstore, rcfg.op, env);
+        if (!raf.ok) return new Response(JSON.stringify({ ok: false, error: "insufficient_tickets", need: raf.need, balance: raf.balance }), { status: 402, headers: { "Content-Type": "application/json", ...CORS } });
+        rseki = await sekiAsk(env, rstore, rservice, PRICES[rcfg.op], rpayload.seki);
+        if (!rseki.ok) return new Response(JSON.stringify(rseki.body), { status: rseki.status, headers: { "Content-Type": rseki.content_type, ...sekiHeaders(rseki), ...CORS } });
+      } else if (rhasSeki) {
+        return new Response(JSON.stringify({ ok: false, error: "no_seki_door_for_this_store", why: "the seki member is read only for a store a SEKI door guards; nothing was spent" }), { status: 400, headers: { "Content-Type": "application/json", ...CORS } });
+      }
+      if (rhasSeki) delete rpayload.seki;
       var rrid = requestId();
       var rsp = await spend(rstore, rcfg.op, env, rrid);
       if (!rsp.ok) {
@@ -472,7 +496,7 @@ export default {
           return new Response(JSON.stringify({ ok: false, error: "pdf_gen_failed", status: pres.status, refunded: true }), { status: 502, headers: { "Content-Type": "application/json", ...CORS } });
         }
         var pdfBuf = await pres.arrayBuffer();
-        return new Response(pdfBuf, { status: 200, headers: { "Content-Type": "application/pdf", "X-Tickets-Spent": String(rsp.spent), "X-Balance-After": String(rsp.balance_after), ...CORS } });
+        return new Response(pdfBuf, { status: 200, headers: { "Content-Type": "application/pdf", "X-Tickets-Spent": String(rsp.spent), "X-Balance-After": String(rsp.balance_after), ...sekiHeaders(rseki), ...CORS } });
       } catch (e) {
         await refund(rstore, env, rrid);
         return new Response(JSON.stringify({ ok: false, error: "pdf_gen_unreachable", detail: String(e && e.message || e), refunded: true }), { status: 502, headers: { "Content-Type": "application/json", ...CORS } });

@@ -21,6 +21,14 @@
 (^|/)make_public_fixtures\.py$
 (^|/)fixtures/aps_agent_passport_system/
 (^|/)hs-seki-private(/|$)
+# The SEKI door worker (hs-seki-door) and the tools of the first door's demonstration: private since 2026-10-10, in
+# hs-seki-private. What is public is hs-gateway's call to the door (workers/hs-gateway/src/seki.js), the door's public
+# keys (keys/seki-*.json) and the records of the run (musubi-v0/run0003).
+(^|/)door_worker/
+(^|/)seki_demo/
+(^|/)door_(core|core_run)\.mjs$
+(^|/)door_config\.json$
+(^|/)chain_view(\.test)?\.mjs$
 # Keys and local secrets.
 \.pem$
 (^|/)\.hs_[^/]*$

@@ -11,7 +11,10 @@
   "services": [
     { "binding": "YAKUMO_SVC", "service": "hs-webmcp" },
     { "binding": "LEDGER_SVC", "service": "hs-ledger" },
-    { "binding": "PDFGEN_SVC", "service": "hs-pdf-gen" }
+    { "binding": "PDFGEN_SVC", "service": "hs-pdf-gen" },
+    // 2026-10-10 SEKI: the door in front of /report for the stores src/seki.js lists. hs-seki-door is private and
+    // has no public route; deploy it before this worker (a binding to a worker that does not exist fails the deploy).
+    { "binding": "SEKI_SVC", "service": "hs-seki-door" }
   ],
 
   // チケット残高・冪等・前払式残高総額を持つ Gateway 専用KV。
