@@ -3,7 +3,8 @@
 //
 // clause_eval_v0.py is the reference. This file follows it function by function so that an admission computed in
 // JavaScript carries the same decision, the same reasons and the same bytes as one computed in Python.
-// admit_bytematch.py runs both over the same inputs and fails on the first byte that differs.
+// A test on the door's side runs both over the same inputs and fails on the first byte that differs; here,
+// admission_verify_v0.py --selftest and contract_door_check.py hold the public twins to their references.
 // The sha256 an admission record names (rules.evaluator_sha256) is the sha256 of the Python reference file, in both
 // runtimes, so a reader has one evaluator to open. This file reads clause_eval_v0.py beside it to compute that.
 //
@@ -15,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { canonical } from "./canonical_v0.mjs";
+import { publicKeyProblem } from "../agreement-v0/agreement_verify.mjs";
 
 export const RULES = "musubi-clause-eval-v0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -36,14 +38,20 @@ export function b64Raw(s, n) {
   return b.length === n && b.toString("base64") === s ? b : null;
 }
 
-export function ed25519Verify(pubB64, sigB64, message) {
+// true, false, or null when the key or the signature is not usable at all: the three answers agreement_verify.py's
+// ed25519_verify gives. A key that is not a point of prime order is unusable (publicKeyProblem, the same check the
+// Python reference runs before it verifies); v0 of this twin did not run it.
+export function ed25519Check(pubB64, sigB64, message) {
   const pk = b64Raw(pubB64, 32), sig = b64Raw(sigB64, 64);
-  if (!pk || !sig) return false;
+  if (!pk || !sig) return null;
+  if (publicKeyProblem(new Uint8Array(pk)) !== null) return null;
   try {
     const key = createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: pk.toString("base64url") }, format: "jwk" });
     return edVerify(null, message, key, sig) === true;
-  } catch (_e) { return false; }
+  } catch (_e) { return null; }
 }
+export const ed25519Verify = (pubB64, sigB64, message) => ed25519Check(pubB64, sigB64, message) === true;
+export const own = (o, k) => (o !== null && typeof o === "object" && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
 
 const body = (rec, drop) => Object.fromEntries(Object.entries(rec).filter(([k]) => !drop.includes(k)));
 export const contractSigningBytes = (c) => Buffer.concat([utf8("a2a-contract-v0\n"), utf8(canonical(body(c, ["signatures"])))]);
@@ -107,13 +115,29 @@ export function clausePath(contract, action) {
   if (kind === "authorized") return "grant.authorized_actions[" + (g.authorized_actions || []).indexOf(action) + "]";
   return null;
 }
+// grant.limits[action] as { max, unit }, or null when the signed grant sets no limit on this action.
+export function limitFor(contract, action) {
+  const { g } = grantSets(contract);
+  const lm = g.limits !== null && typeof g.limits === "object" && !Array.isArray(g.limits) ? g.limits : {};
+  const x = own(lm, action);
+  if (x === null || typeof x !== "object" || Array.isArray(x)) return null;
+  const m = own(x, "max_amount");
+  return { max: isInt(m) ? m : null, unit: own(x, "unit") ?? null };
+}
+// A missing amount and an unreadable max_amount both read as over the limit: a limit nobody can compare against was not kept.
+export function overLimit(contract, action, amount) {
+  const lim = limitFor(contract, action);
+  if (lim === null) return false;
+  if (lim.max === null || !isInt(amount) || amount < 0) return true;
+  return amount > lim.max;
+}
 export function approvalCounts(contract, action, approval) {
   if (!approval || typeof approval !== "object" || Array.isArray(approval) || approval.action !== action) return false;
   if (gatedActions(contract).includes(action)) return verifyApproverApproval(contract, approval)[0] === "approved";
   if (approval.by === "approver") return false;
   return principalApprovalCounts(contract, approval);
 }
-export function evaluateAction(contract, action, { approvals = [], height = null, authorityEnded = false, usedNonces = new Set() } = {}) {
+export function evaluateAction(contract, action, { approvals = [], height = null, authorityEnded = false, usedNonces = new Set(), amount = null } = {}) {
   const s = grantSets(contract);
   const out = { class: classifyAction(contract, action), clauses: [], approval: null };
   if (authorityEnded) { out.clauses.push("revoked"); return out; }
@@ -125,11 +149,10 @@ export function evaluateAction(contract, action, { approvals = [], height = null
       if (height !== null && height > ap.valid_until_height) continue;
       if (ap.single_use && usedNonces.has(ap.nonce)) continue;
       out.approval = { by: ap.by || "principal", nonce: ap.nonce, single_use: ap.single_use };
-      return out;
+      break;
     }
-    out.clauses.push("conditional");
-    return out;
-  }
-  if (!s.authorized.has(action)) out.clauses.push("unauthorized");
+    if (out.approval === null) out.clauses.push("conditional");
+  } else if (!s.authorized.has(action)) out.clauses.push("unauthorized");
+  if (overLimit(contract, action, amount)) out.clauses.push("over_limit");
   return out;
 }

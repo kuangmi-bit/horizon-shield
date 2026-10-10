@@ -268,6 +268,15 @@ Until v1.9 the only key that could approve a conditional action was the principa
 - v1.10 reuses v1.7's walk by pointing the classifier name that walk resolves at call time at its own classifier for the length of one call, restored in a finally block (self check 9). No earlier settle file is edited; `contract_v0` gained the approvers door and the delegation rule above.
 - Stated limits: a settler older than v1.10 ignores the approvers and would count a principal's approval for a gated action (a contract_v0 from before 2026-10-05 refuses the key outright). A stolen approver key signs a valid approval. The signature proves the approver signed, not that it judged well.
 
+## Admission records, settle v1.11 and v1.12, and grant.limits (2026-10-10)
+
+A relying party can decide before the act, at its own door, and sign what it decided (`a2a-admission-v0`). Settlement reads the execution against that signed record afterwards. The implementation of the door is not public. The record is: its shape, how to verify it and how settlement reads it are in [ADMISSION.md](ADMISSION.md), and anyone can check a record with `admission_verify_v0.py` and recompute a settlement with the files here.
+
+- settle v1.11 applies only when `requirements.admission` is `required_before_execution`; for every other contract it returns settle v1.10's bytes.
+- settle v1.12 applies only when the grant carries `limits`; for every other contract it returns v1.11's bytes.
+- `grant.limits = {"<action>": {"max_amount": <integer >= 1>, "unit": "JPY"}}` is a grant key since 2026-10-10. `contract_v0` types it at the door, requires the action to be in `authorized_actions` or `conditional`, and refuses limits in a contract that does not require admission (`limits_need_admission`), because the amount of an execution is stated only with its admission. A delegated child may lower a limit, never raise it, drop it or change its unit. `contract_door_v0.mjs` is the same door in JavaScript; `contract_door_check.py` holds the two together.
+- Stated limits: a contract_v0 from before 2026-10-10 refuses the key outright (an undeclared grant key), so both parties need this version to sign a contract with limits. A limit is a cap no approval lifts.
+
 ## peer_kit and anchor_direct: a contract with nobody from this project in it (2026-10-02)
 Every MUSUBI contract so far had this project as a party, and every execution reached Bitcoin through its ledger. The adoption count reports both: contracts with an outside party 2, contracts with no party from this project 0. These two files are the whole path for two other parties, with no account, key, server or ledger of ours.
 

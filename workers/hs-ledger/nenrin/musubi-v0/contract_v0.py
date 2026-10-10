@@ -95,7 +95,12 @@ def contract_sha256(record):
 # "authorized_prohibited" silently replaced prohibited_actions in the v0 and v1 settle paths).
 GRANT_KEYS = frozenset(("authorized_actions", "prohibited_actions", "conditional", "delegation", "data_access",
                         "max_hops", "privacy", "revocation", "finality", "witnesses", "expiry_height",
-                        "ordering", "approval_policy"))
+                        "ordering", "approval_policy", "limits"))
+# grant.limits (2026-10-10): {"<action>": {"max_amount": positive integer, "unit": "JPY"}}. One action may not carry
+# more than max_amount in one execution. The amount of an execution is stated only in an admission request and in the
+# execution record's admission_ref, so a contract that carries limits must require admission before execution
+# (LIMITS_NEED), or no settle layer could see the amount the limit is about.
+LIMITS_NEED = "required_before_execution"
 
 
 def _delegates(grant):
@@ -242,6 +247,26 @@ def grant_type_problems(grant):
                             bad("every grant.approval_policy.approvers entry needs a non empty list of distinct action names")
                         elif set(acts) - cond_actions:
                             bad("grant.approval_policy.approvers may approve only grant.conditional actions (not %s)" % sorted(set(acts) - cond_actions))
+    lm = grant.get("limits")
+    if lm is not None:
+        if not isinstance(lm, dict):
+            bad("grant.limits must be an object {action: {max_amount, unit}}")
+        else:
+            named = set(x for x in (grant.get("authorized_actions") or []) if isinstance(x, str)) if isinstance(grant.get("authorized_actions"), list) else set()
+            named |= {x.get("action") for x in (grant.get("conditional") or []) if isinstance(x, dict)} if isinstance(grant.get("conditional"), list) else set()
+            for a in sorted(lm, key=str):
+                x = lm[a]
+                if not (isinstance(a, str) and a):
+                    bad("grant.limits keys must be non empty action names")
+                elif a not in named:
+                    bad("grant.limits names %r, which is neither in authorized_actions nor in conditional; a limit on an action the grant does not carry limits nothing" % a)
+                if not isinstance(x, dict) or set(x.keys()) != {"max_amount", "unit"}:
+                    bad("grant.limits[%s] must be an object with exactly max_amount and unit" % a)
+                    continue
+                if _int(x["max_amount"]) is None or x["max_amount"] < 1:
+                    bad("grant.limits[%s].max_amount must be an integer >= 1 (got %s %r); a limit of another type is a limit no reader applies" % (a, type(x["max_amount"]).__name__, x["max_amount"]))
+                if not (isinstance(x["unit"], str) and x["unit"]):
+                    bad("grant.limits[%s].unit must be a non empty string" % a)
     rv = grant.get("revocation")
     if isinstance(rv, dict):
         if set(rv.keys()) - {"effective_at", "ack_window"}:
@@ -376,6 +401,19 @@ def grant_subset(child, parent):
                 v.append("parent sets %s but child has none" % k)
             elif child.get(k) != parent.get(k):
                 v.append("%s changed from %r to %r; no order is defined for it, so it must stay equal" % (k, parent.get(k), child.get(k)))
+    # limits (2026-10-10): a child may only lower a limit the parent set, in the same unit. A child that carries the
+    # action with no limit, where the parent has one, has removed the limit: a violation, the same rule as hops and expiry.
+    pl = parent.get("limits") if isinstance(parent.get("limits"), dict) else {}
+    cl = child.get("limits") if isinstance(child.get("limits"), dict) else {}
+    for a in sorted(pl, key=str):
+        if a in cp or (a not in ca and a not in cc):
+            continue                                            # prohibited or not granted at all: narrower
+        if a not in cl:
+            v.append("parent limits %r to %d %s but child carries it with no limit" % (a, pl[a]["max_amount"], pl[a]["unit"]))
+        elif cl[a]["unit"] != pl[a]["unit"]:
+            v.append("limit for %r changes unit from %r to %r; amounts in different units are not compared" % (a, pl[a]["unit"], cl[a]["unit"]))
+        elif cl[a]["max_amount"] > pl[a]["max_amount"]:
+            v.append("limit for %r is %d, above parent (%d)" % (a, cl[a]["max_amount"], pl[a]["max_amount"]))
     # approvals: the child cannot accept looser approvals than the parent
     pap = parent.get("approval_policy") if isinstance(parent.get("approval_policy"), dict) else {}
     cap = child.get("approval_policy") if isinstance(child.get("approval_policy"), dict) else {}
@@ -548,6 +586,14 @@ def verify_contract(record, parent=None, now=None):
             elif rv.get("effective_at") not in REVOCATION_MODES:
                 r.refuse("revocation_mode_unknown", "grant.revocation.effective_at %r is not a mode any settle "
                                                     "layer reads; known: %s" % (rv.get("effective_at"), sorted(REVOCATION_MODES)))
+
+        # limits need admission (2026-10-10): the amount an execution moved is stated only where an admission is
+        # named, so a limit in a contract that does not require admission is a limit no settle layer can read.
+        if grant.get("limits") is not None:
+            rq = record.get("requirements")
+            if not (isinstance(rq, dict) and rq.get("admission") == LIMITS_NEED):
+                r.refuse("limits_need_admission", "grant.limits is present, so requirements.admission must be %r: the "
+                                                  "amount of an execution is recorded only with its admission" % LIMITS_NEED)
 
     # delegation monotonicity
     pc = record.get("parent_contract")
@@ -981,7 +1027,49 @@ def _selftest():
     assert scan_keys({"a": {"bé": 1}, "c": [{"\t": 2}], "ok": {"x y": 1}}) == [("$.a", "bé"), ("$.c[0]", "\t")]
     print("[10] canonical pin: %d vectors recompute; %s; a float (bond.amount 1000.5) and a non-ASCII key are refused" % (len(vecs), twin_note))
 
-    print("\nSELF-TEST PASSED: MUSUBI a2a-contract-v0, 10 checks (build, sign, verify, tamper, overclaim, settle, delegation on every axis, finality, witness and revocation floors, grant key door, grant type door, canonical pin)")
+    # [9b] grant.limits (2026-10-10): typed at the door, only with requirements.admission, and a child may only lower it.
+    # Counted with the type door, not as an eleventh check: settle_v1_6.py is published, is not edited, and its self
+    # test looks for "10 checks" in this file's last line.
+    def lim_contract(limits, requirements, g_over=None):
+        g = dict(grant, authorized_actions=["read", "observe", "emit_nenrin", "pay"], limits=limits)
+        g.update(g_over or {})
+        c = build_contract(principal, contractor, task, g, establishes, does_not_establish, requirements=requirements)
+        sign_contract(c, ka, pa, principal["domain"]); sign_contract(c, kb, pb, contractor["domain"])
+        return verify_contract(c)
+    need = {"evidence": "nenrin_required", "recovery": "tsugi_required", "admission": LIMITS_NEED}
+    codes = lambda o: sorted({x["code"] for x in o["refusals"]})
+    L = {"pay": {"max_amount": 100000, "unit": "JPY"}}
+    assert lim_contract(L, need)["verdict"] == "accepted"
+    assert lim_contract({"spend": {"max_amount": 5, "unit": "JPY"}}, need)["verdict"] == "accepted"      # a conditional action may carry one
+    assert codes(lim_contract(L, None)) == ["limits_need_admission"]
+    assert codes(lim_contract({}, None)) == ["limits_need_admission"]
+    assert codes(lim_contract(L, {"evidence": "nenrin_required", "admission": "optional"})) == ["limits_need_admission"]
+    wrong = [{"pay": 100000}, {"pay": {"max_amount": "100000", "unit": "JPY"}}, {"pay": {"max_amount": True, "unit": "JPY"}},
+             {"pay": {"max_amount": 0, "unit": "JPY"}}, {"pay": {"max_amount": -1, "unit": "JPY"}}, {"pay": {"max_amount": 100000}},
+             {"pay": {"max_amount": 100000, "unit": ""}}, {"pay": {"max_amount": 100000, "unit": "JPY", "per": "day"}},
+             {"transfer": {"max_amount": 1, "unit": "JPY"}}, {"payment": {"max_amount": 1, "unit": "JPY"}}, [], "100000"]
+    for bad_l in wrong:
+        o = lim_contract(bad_l, need)
+        assert o["verdict"] == "refused" and "grant_type" in codes(o), (bad_l, o)
+        assert grant_subset({"authorized_actions": []}, {"authorized_actions": ["pay"], "limits": bad_l}) != [], bad_l
+    par = {"authorized_actions": ["pay", "read"], "limits": L}
+    sub = lambda **k: grant_subset(dict({"authorized_actions": ["pay"]}, **k), par)
+    assert sub(limits={"pay": {"max_amount": 100000, "unit": "JPY"}}) == [] and sub(limits={"pay": {"max_amount": 1, "unit": "JPY"}}) == []
+    assert any("no limit" in x for x in sub()) and any("above parent" in x for x in sub(limits={"pay": {"max_amount": 100001, "unit": "JPY"}}))
+    assert any("unit" in x for x in sub(limits={"pay": {"max_amount": 1, "unit": "USD"}}))
+    assert grant_subset({"authorized_actions": ["read"]}, par) == []                                     # the action is dropped: narrower
+    assert grant_subset({"authorized_actions": [], "prohibited_actions": ["pay"]}, par) == []
+    assert grant_subset({"authorized_actions": ["read"], "limits": {"read": {"max_amount": 5, "unit": "JPY"}}}, par) == []   # a new limit narrows
+    cnd = grant_subset({"authorized_actions": [], "conditional": [{"action": "pay", "requires": "x"}]}, par)
+    assert any("no limit" in x for x in cnd), cnd
+    for name in ("first_contract_AB.json", "second_contract_AB.json"):
+        pub = parse_strict(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), name), encoding="utf-8").read())
+        assert "limits" not in pub["grant"] and verify_contract(pub) == {"schema": "a2a-contract-verify-v0", "contract_sha256": contract_sha256(pub), "verdict": "accepted", "refusals": [], "findings": []}, name
+    print("[9b] grant.limits: accepted with requirements.admission, refused without it (limits_need_admission); %d wrong shapes refused at the "
+          "type door and unreadable to grant_subset; a child may lower a limit, never raise it, drop it or change its unit; the two "
+          "published contracts carry no limits and verify as before" % len(wrong))
+
+    print("\nSELF-TEST PASSED: MUSUBI a2a-contract-v0, 10 checks (build, sign, verify, tamper, overclaim, settle, delegation on every axis, finality, witness and revocation floors, grant key door, grant type door with grant.limits, canonical pin)")
 
 
 def _write_canonical(path, obj):

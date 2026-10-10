@@ -23,6 +23,14 @@ action, the order the walk in settle v1.6 and v1.7 applies to every recorded act
     not in grant.authorized_actions   -> unauthorized
     otherwise                         -> no deviation
 
+Added on 2026-10-10 (admission v0.1), for grants that carry limits. The walks above never see an amount, so this clause
+has no older statement to be held to; settle v1.12 and admit both read it from here:
+
+    grant.limits names the action and the amount is above max_amount, or no amount is stated  -> over_limit
+
+It is a hard cap. No approval lifts it, and it is read for every action the grant does not prohibit. The only source
+of a limit is the signed grant. An action whose grant carries no limits is read exactly as before.
+
 The walks in settle_v1_6.py and settle_v1_7.py are published and are not edited; they keep their own lines. What
 holds this restatement to them is a test, not a promise: admit_consistency.py runs every scenario through both and
 fails on the first disagreement, and settle v1.11 recomputes every admission with evaluate_action.
@@ -97,7 +105,7 @@ def gated_actions(contract):
 
 
 # --------------------------------------------------------------------------- one action against the grant
-CLAUSES = ("revoked", "after_expiry", "prohibited", "conditional", "unauthorized")
+CLAUSES = ("revoked", "after_expiry", "prohibited", "conditional", "unauthorized", "over_limit")
 
 
 def grant_sets(contract):
@@ -131,6 +139,30 @@ def clause_path(contract, action):
     return None
 
 
+def limit_for(contract, action):
+    """grant.limits[action] as (max_amount, unit), or None when the signed grant sets no limit on this action."""
+    g = contract.get("grant") if isinstance(contract.get("grant"), dict) else {}
+    lm = g.get("limits") if isinstance(g.get("limits"), dict) else {}
+    x = lm.get(action)
+    if not isinstance(x, dict):
+        return None
+    m = x.get("max_amount")
+    return (m if (isinstance(m, int) and not isinstance(m, bool)) else None), x.get("unit")
+
+
+def over_limit(contract, action, amount):
+    """True when the grant limits this action and the amount is above the limit, is not stated, or the limit cannot be read.
+
+    A limit nobody can compare against is not a limit that was kept: a missing amount and an unreadable max_amount both
+    read as over the limit."""
+    lim = limit_for(contract, action)
+    if lim is None:
+        return False
+    if lim[0] is None or not (isinstance(amount, int) and not isinstance(amount, bool)) or amount < 0:
+        return True
+    return amount > lim[0]
+
+
 def approval_counts(contract, action, approval):
     """Does this approvals[] entry count for this conditional action under these terms? (True, None) or (False, reason).
 
@@ -152,13 +184,15 @@ def approval_counts(contract, action, approval):
     return False, {None: "forged_approval", "label_bound": "approval_bound_by_label_only", "other_terms": "approval_for_other_terms"}.get(kind, str(kind))
 
 
-def evaluate_action(contract, action, approvals=(), height=None, authority_ended=False, used_nonces=()):
+def evaluate_action(contract, action, approvals=(), height=None, authority_ended=False, used_nonces=(), amount=None):
     """The clauses one action meets, in the walk's order. Returns {"clauses": [...], "approval": {...} or None, "class": ...}.
 
     approvals        approvals[] entries offered for this action (already carried or anchored before it).
     height           the height the action is, or would be, anchored at; None skips the two height rules.
     authority_ended  True when a principal's revocation took effect at or before that height.
     used_nonces      nonces of single_use approvals already spent by earlier actions.
+    amount           the amount of this one action, in the unit grant.limits states for it. Read only when the grant
+                     limits the action; then a missing amount reads as over the limit.
     An empty clauses list means the action is inside the grant.
     """
     authorized, prohibited, conditional, exp = grant_sets(contract)
@@ -185,12 +219,14 @@ def evaluate_action(contract, action, approvals=(), height=None, authority_ended
                 why = why or "approval_reused"
                 continue
             out["approval"] = {"by": ap.get("by") or "principal", "nonce": ap["nonce"], "single_use": ap["single_use"]}
-            return out
-        out["clauses"].append("conditional")
-        out["why"] = why or "requires %s, no approval" % conditional[action].get("requires")
-        return out
-    if action not in authorized:
+            break
+        else:
+            out["clauses"].append("conditional")
+            out["why"] = why or "requires %s, no approval" % conditional[action].get("requires")
+    elif action not in authorized:
         out["clauses"].append("unauthorized")
+    if over_limit(contract, action, amount):
+        out["clauses"].append("over_limit")
     return out
 
 
@@ -226,11 +262,23 @@ def _selftest():
     assert evaluate_action({}, "anything")["clauses"] == ["unauthorized"]
     n += 1; print("[3] the walk's order for one action: revoked alone; after_expiry and then the grant clauses; an empty grant authorizes nothing")
 
+    L = {"grant": {"authorized_actions": ["pay", "read"], "prohibited_actions": ["wire"], "conditional": [{"action": "pay_large", "requires": "approver"}],
+                   "limits": {"pay": {"max_amount": 100000, "unit": "JPY"}, "pay_large": {"max_amount": 1000000, "unit": "JPY"}}}}
+    lv = lambda a, **k: evaluate_action(L, a, **k)["clauses"]
+    assert lv("pay", amount=100000) == [] and lv("pay", amount=0) == [] and lv("pay", amount=100001) == ["over_limit"]
+    assert lv("pay") == ["over_limit"] and lv("pay", amount=True) == ["over_limit"] and lv("pay", amount=-1) == ["over_limit"]
+    assert lv("read") == [] and lv("read", amount=10 ** 9) == [] and lv("wire", amount=1) == ["prohibited"]
+    assert lv("pay_large", amount=5) == ["conditional"] and lv("pay_large", amount=2000000) == ["conditional", "over_limit"]
+    assert lv("pay", amount=5, authority_ended=True) == ["revoked"] and limit_for(L, "pay") == (100000, "JPY") and limit_for(L, "read") is None
+    assert evaluate_action({"grant": {"authorized_actions": ["pay"], "limits": {"pay": {"max_amount": "100000", "unit": "JPY"}}}}, "pay", amount=1)["clauses"] == ["over_limit"]
+    assert ev("read", amount=10 ** 12) == [] and ev("write", amount=1) == ["conditional"]
+    n += 1; print("[4] grant.limits: at the limit is inside, one above is over_limit, a missing or unreadable amount is over_limit; no approval is asked about it; a grant without limits reads as before")
+
     a, b = evaluator_sha256(), evaluator_sha256()
     assert a == b and len(a) == 64 and a == hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest()
-    n += 1; print("[4] evaluator_sha256 is the sha256 of this file: %s" % a)
+    n += 1; print("[5] evaluator_sha256 is the sha256 of this file: %s" % a)
 
-    print("\nSELF-TEST PASSED: MUSUBI clause evaluator v0, %d checks (babyblueviper1's 9 vectors; grant membership; the walk's order; the file names itself by sha256)" % n)
+    print("\nSELF-TEST PASSED: MUSUBI clause evaluator v0, %d checks (babyblueviper1's 9 vectors; grant membership; the walk's order; limits; the file names itself by sha256)" % n)
 
 
 if __name__ == "__main__":
