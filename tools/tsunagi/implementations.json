@@ -409,7 +409,7 @@
             "@hs/workers/hs-ledger/nenrin/interop-v0.2/action-presence"
           ],
           "parse": "count_line",
-          "total": 7
+          "total": 9
         },
         {
           "corpus": "nenrin-interop-v0.2-action-presence",
@@ -425,7 +425,7 @@
             "@out"
           ],
           "parse": "batch_referee",
-          "total": 7
+          "total": 9
         }
       ],
       "refereed_through": "tools/tsunagi/adapters/py_module_batch.py, which imports the author's module and calls its verify(bundle).signature(); nothing else of this project touches the result"

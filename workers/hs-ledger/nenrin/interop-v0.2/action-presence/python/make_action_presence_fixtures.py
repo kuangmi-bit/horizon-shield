@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Build the interop-v0.2/action-presence corpus.
 
-Five fixtures for the rule VERIFIER.md section 5 settles as "a missing, null, false, 0 or
-'' action fails E1 on its own" -- one per degenerate value, plus the boundary case where the
-value is an empty object and is therefore not degenerate. Two more reach the same rule through
-the intent's proposed_action (step 3) and the declared-versus-executed comparison.
+Nine fixtures for the rule VERIFIER.md section 5 settles as "a missing, null, false, 0 or
+'' action fails E1 on its own" -- one per shape the sentence names (missing, null, false, 0,
+''), plus the boundary case where the value is an empty object and is therefore not
+degenerate. Three more reach the same rule through the intent's proposed_action (step 3) and
+the declared-versus-executed comparison: two with a degenerate value, one with the key
+absent.
 
 Every fixture is freshly signed with keys generated here, and is valid except for the value
 under test, so only that rule can refuse it. The expected verdict signatures come from
@@ -165,6 +167,39 @@ def cases():
         bundle = {"task_id": TASK, "observations": c.walk(r), "grant": g, "receipt": r,
                   "intent": c.intent(g, value)}
         out[name] = (intent, bundle)
+
+    # ---- the shape the section names first: the key is absent ------------
+    c = Case()
+    g = c.grant()
+    r = c.receipt(g)
+    del g["action"]
+    g["grant_ref"] = digest(without(g, GRANT_DERIVED))
+    g["caller_sig"] = c.caller.sign(without(g, GRANT_DERIVED))
+    r["grant_ref"] = g["grant_ref"]
+    del r["executed_action"]
+    r["receipt_id"] = digest(without(r, RECEIPT_DERIVED))
+    r["provider_sig"] = c.provider.sign(without(r, RECEIPT_DERIVED))
+    out["action_missing"] = (
+        "grant.action and receipt.executed_action are both absent (the shape the section "
+        "names first): both sides are missing, so equality would hold, but the key's absence "
+        "fails E1 on its own; refused",
+        {"task_id": TASK, "observations": c.walk(r), "grant": g, "receipt": r})
+
+    c = Case()
+    g = c.grant()
+    r = c.receipt(g)
+    del r["executed_action"]
+    r["receipt_id"] = digest(without(r, RECEIPT_DERIVED))
+    r["provider_sig"] = c.provider.sign(without(r, RECEIPT_DERIVED))
+    i = c.intent(g, ACTION)
+    del i["proposed_action"]
+    i["intent_id"] = digest(without(i, INTENT_DERIVED))
+    i["intent_sig"] = c.provider.sign(without(i, INTENT_DERIVED))
+    out["intent_action_missing"] = (
+        "grant.action is an action, the intent's proposed_action and the receipt's "
+        "executed_action are both absent: E1 refuses, the preflight action check refuses, "
+        "and the declared-versus-executed comparison reports a divergence; refused",
+        {"task_id": TASK, "observations": c.walk(r), "grant": g, "receipt": r, "intent": i})
 
     return out
 
