@@ -20,8 +20,13 @@ import { nostrEventCheck, schnorrVerify, hexToBytes } from "./bip340.mjs";
 // v0.1 (2026-10-11): an observation also reads the slot's decider claim and its conflicts (decider-scoped slots,
 // decision-receipt SPEC v0.4) and keeps up to 64 KiB of the response. v0 observations stay as written and are checked
 // by the v0 rule (slot_check.py reads both).
+// v0.2 (2026-10-11): also reads the slot's log object, the slot's line in the issuer's daily Bitcoin-stamped slot log
+// (SPEC v0.4, slot log), and records whether its Merkle proof holds and the line agrees with the slot bytes (issuer_log).
 export const OBS_SCHEMA_V0 = "nenrin-slot-observation-v0";
-export const OBS_SCHEMA = "nenrin-slot-observation-v0.1";
+export const OBS_SCHEMA_V01 = "nenrin-slot-observation-v0.1";
+export const OBS_SCHEMA = "nenrin-slot-observation-v0.2";
+export const LOG_SCHEMA = "invinoveritas.decision_receipt.slot_log.v1";
+export const MAX_MERKLE_PATH = 64;
 export const BATCH_SCHEMA = "nenrin-slot-witness-batch-v0";
 export const MAX_BYTES = 65536;
 export const MAX_RESPONSE_BYTES_V0 = 16384;
@@ -148,6 +153,59 @@ export async function deciderReading(httpStatus, bodyBytes, slot, receiptContent
   return { pubkey, holder_claim: holder, conflicts_listed: list.length, conflicts_verified: verified, equivocation: valid.size >= 2 };
 }
 
+// v0.2: what the kept bytes say about the issuer's slot log. The slot's "log" object carries the slot's line in the
+// latest daily snapshot, its Merkle path, the snapshot header and log_root = sha256(JCS(header)), the digest the issuer
+// stamps to Bitcoin. null when the bytes are not a 200 slot object; otherwise { status, date, log_root, disagreements }:
+//   absent | not_yet_in_a_snapshot | malformed | proof_fails (leaf, path or log_root do not recompute)
+//   | line_disagrees (the proof holds, the line says something else than the slot bytes) | included
+// It does not check the stamp; slot_check.py --log-anchor reads the issuer's .ots for that.
+const g = (o, k) => (isObj(o) && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : null);
+const isInt = (x) => typeof x === "number" && Number.isInteger(x);
+export async function issuerLogReading(httpStatus, bodyBytes, slot) {
+  if (httpStatus !== 200) return null;
+  let b;
+  try { b = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bodyBytes)); } catch (_e) { return null; }
+  if (!isObj(b)) return null;
+  const out = { status: "absent", date: null, log_root: null, disagreements: [] };
+  if (!Object.prototype.hasOwnProperty.call(b, "log")) return out;
+  const lg = b.log;
+  if (isObj(lg) && lg.status === "not_yet_in_a_snapshot" && !Object.prototype.hasOwnProperty.call(lg, "line")) return { ...out, status: "not_yet_in_a_snapshot" };
+  const h = g(lg, "header"), path = g(lg, "merkle_path");
+  const shape = isObj(lg) && isObj(g(lg, "line")) && HEX64.test(String(g(lg, "leaf"))) && typeof g(lg, "leaf") === "string"
+    && typeof g(lg, "log_root") === "string" && HEX64.test(lg.log_root) && isObj(h)
+    && g(h, "schema") === LOG_SCHEMA && typeof g(h, "date") === "string" && isInt(g(h, "cutoff")) && typeof g(h, "merkle_root") === "string" && HEX64.test(h.merkle_root)
+    && Array.isArray(path) && path.length <= MAX_MERKLE_PATH
+    && path.every((st) => isObj(st) && (g(st, "side") === "L" || g(st, "side") === "R") && typeof g(st, "hash") === "string" && HEX64.test(st.hash));
+  if (!shape) return { ...out, status: "malformed" };
+  const o2 = { ...out, date: h.date, log_root: lg.log_root };
+  const leaf = await sha256hex(jcs(lg.line));
+  let node = leaf;
+  for (const st of path) node = st.side === "R" ? await sha256hex(node + st.hash) : await sha256hex(st.hash + node);
+  if (leaf !== lg.leaf || node !== h.merkle_root || (await sha256hex(jcs(h))) !== lg.log_root) return { ...o2, status: "proof_fails" };
+  const ln = lg.line, dis = [];
+  if (g(ln, "slot") !== slot || g(b, "slot") !== slot) dis.push("slot");
+  for (const k of ["scope", "event_ids", "taken_at"]) if (jcs(g(ln, k)) !== jcs(g(b, k))) dis.push(k);
+  const dc = g(b, "decider_claim");
+  if (jcs(g(ln, "claim_sha256")) !== jcs(isObj(dc) ? await sha256hex(jcs(dc)) : null)) dis.push("claim_sha256");
+  if (jcs(g(ln, "decider_sig")) !== jcs(isObj(dc) ? g(b, "decider_sig") : null)) dis.push("decider_sig");
+  if (!(isInt(g(ln, "taken_at")) && ln.taken_at < h.cutoff)) dis.push("taken_at_not_before_cutoff");
+  const lc = g(ln, "conflicts"), bc = Object.prototype.hasOwnProperty.call(b, "conflicts") ? b.conflicts : [];
+  if (!Array.isArray(lc) || !Array.isArray(bc) || lc.length > MAX_CONFLICTS_READ || bc.length > MAX_CONFLICTS_READ) dis.push("conflicts_unreadable");
+  else {
+    const shown = new Set(), before = new Set();
+    for (const c of bc) {
+      if (!isObj(c) || !isObj(g(c, "decider_claim"))) continue;
+      const e = jcs({ claim_sha256: await sha256hex(jcs(c.decider_claim)), decider_sig: g(c, "decider_sig"), received_at: g(c, "received_at") });
+      shown.add(e);
+      if (isInt(g(c, "received_at")) && c.received_at < h.cutoff) before.add(e);
+    }
+    const logged = new Set(lc.map((c) => jcs(c)));
+    if ([...before].some((e) => !logged.has(e))) dis.push("conflict_shown_by_slot_missing_from_log");
+    if ([...logged].some((e) => !shown.has(e))) dis.push("conflict_in_log_not_shown_by_slot");
+  }
+  return { ...o2, status: dis.length ? "line_disagrees" : "included", disagreements: dis };
+}
+
 async function readCapped(resp, cap) {
   const reader = resp.body ? resp.body.getReader() : null;
   if (!reader) return { bytes: new Uint8Array(await resp.arrayBuffer()).slice(0, cap), truncated: false };
@@ -162,8 +220,8 @@ async function readCapped(resp, cap) {
   return { bytes: out, truncated };
 }
 
-export async function observe(ev, rc, { nowSec, fetchImpl, trigger, previous, version = "0.1" }) {
-  const v0 = version === "0";
+export async function observe(ev, rc, { nowSec, fetchImpl, trigger, previous, version = "0.2" }) {
+  const v0 = version === "0", v01 = version === "0.1";
   const cap = v0 ? MAX_RESPONSE_BYTES_V0 : MAX_RESPONSE_BYTES;
   const url = rc.issuer.slot_url_prefix + encodeURIComponent(rc.slot);
   let status = null, ctype = null, bytes = new Uint8Array(0), truncated = false, fetchError = null;
@@ -175,8 +233,10 @@ export async function observe(ev, rc, { nowSec, fetchImpl, trigger, previous, ve
   const j0 = truncated ? { verdict: "unreadable", event_ids_seen: null } : judge(status, bytes, rc.slot, ev.id);
   const dec = v0 || truncated ? null : await deciderReading(status, bytes, rc.slot, rc.content);
   const prevDec = previous && Object.prototype.hasOwnProperty.call(previous, "decider") ? previous.decider : undefined;
+  const il = v0 || v01 || truncated ? null : await issuerLogReading(status, bytes, rc.slot);
+  const prevIl = previous && Object.prototype.hasOwnProperty.call(previous, "issuer_log") ? previous.issuer_log : undefined;
   const obs = {
-    schema: v0 ? OBS_SCHEMA_V0 : OBS_SCHEMA,
+    schema: v0 ? OBS_SCHEMA_V0 : v01 ? OBS_SCHEMA_V01 : OBS_SCHEMA,
     issuer: rc.issuer.name, issuer_pubkey: ev.pubkey,
     receipt_event_id: ev.id, receipt_created_at: ev.created_at, receipt_content_schema: rc.content_schema,
     request_slot: rc.slot, slot_url: url,
@@ -186,10 +246,12 @@ export async function observe(ev, rc, { nowSec, fetchImpl, trigger, previous, ve
     verdict: j0.verdict, event_ids_seen: j0.event_ids_seen,
     previous_observation: previous ? { sha: previous.sha, observed_at: previous.observed_at, verdict: previous.verdict, event_ids_seen: previous.event_ids_seen } : null,
     changed_since_previous: previous ? JSON.stringify(previous.event_ids_seen) !== JSON.stringify(j0.event_ids_seen) || previous.verdict !== j0.verdict
-      || (!v0 && prevDec !== undefined && JSON.stringify(prevDec) !== JSON.stringify(dec)) : null,
+      || (!v0 && prevDec !== undefined && JSON.stringify(prevDec) !== JSON.stringify(dec))
+      || (!v0 && !v01 && prevIl !== undefined && JSON.stringify(prevIl) !== JSON.stringify(il)) : null,
     receipt_event: JSON.parse(rc.event_jcs),
   };
   if (!v0) obs.decider = dec;
+  if (!v0 && !v01) obs.issuer_log = il;
   return obs;
 }
 
@@ -198,6 +260,7 @@ export const ESTABLISHES = [
   "at observed_at this ledger fetched the issuer's slot endpoint for the receipt's request_slot itself, and response_b64 is exactly the bytes it got (response_sha256)",
   "the verdict is what those bytes say about this receipt: unique when the slot is taken and lists exactly this event id",
   "from v0.1, decider says what the same bytes show about the decider key: whether the claim holding the slot verifies, how many conflicting claims the issuer lists, how many of them verify under the same decider key, and equivocation when two valid decider signatures name one slot",
+  "from v0.2, issuer_log says whether the same bytes carry the slot's line in the issuer's daily slot log with a Merkle proof that recomputes to the stamped log_root, and whether that line agrees with the slot bytes beside it (event ids, claim hash, signature, conflicts before the cutoff)",
   "observations of one slot form a chain (previous_observation), so a slot that later lists a different or a second receipt is visible next to what it listed before",
   "once the daily batch that lists an observation is stamped, that observation existed before that Bitcoin block",
 ];
@@ -206,6 +269,7 @@ export const DOES_NOT_ESTABLISH = [
   "that the request_id behind the slot is the decider's own id; the SPEC leaves that to the relying party",
   "that the decision the receipt commits to was the decider's real choice; it stays caller-reported",
   "which of two conflicting decider claims was the real decision, or that the decider key belongs to any particular person; only that the key signed both",
+  "that the log_root was stamped to Bitcoin, or when; issuer_log checks the proof against the header in the same bytes, and slot_check.py --log-anchor checks the issuer's .ots",
   "what the endpoint served between observations, or to anyone else; only what it served this ledger, when",
   "that the issuer's key was not compromised",
 ];
@@ -224,8 +288,10 @@ export function selfDescription(origin) {
       "the signed content is JSON with a request_slot",
       "the slot endpoint is fetched by this ledger, no redirects followed, " + FETCH_TIMEOUT_MS / 1000 + " s timeout, at most " + MAX_RESPONSE_BYTES + " bytes kept",
       "when the slot holds a decider claim (decider-scoped slot), its decider_sig and up to " + MAX_CONFLICTS_READ + " listed conflicts are checked: BIP-340 by the receipt's decider_pubkey over sha256(JCS(decider_claim)); the result is the observation's decider field",
+      "when the slot carries its log object (the issuer's daily slot log), the line's Merkle path is recomputed to the header and log_root, and the line is compared with the slot bytes; the result is the observation's issuer_log field",
     ],
-    schemas_read: [OBS_SCHEMA_V0 + " (until 2026-10-11: no decider field, at most " + MAX_RESPONSE_BYTES_V0 + " bytes kept)", OBS_SCHEMA],
+    schemas_read: [OBS_SCHEMA_V0 + " (until 2026-10-11: no decider field, at most " + MAX_RESPONSE_BYTES_V0 + " bytes kept)",
+      OBS_SCHEMA_V01 + " (2026-10-11: decider field, no issuer_log field)", OBS_SCHEMA],
     watch: "each (slot, receipt) is observed again about daily for " + WATCH_DAYS + " days after its first observation, at most " + WATCH_MAX_PER_RUN + " per run, oldest first",
     caps: { max_bytes: MAX_BYTES, min_interval_seconds_per_receipt: MIN_INTERVAL_SECONDS, daily_global: DAILY_GLOBAL, daily_per_network: DAILY_PER_NETWORK },
     anchor_policy: "observations are bundled oldest first into a " + BATCH_SCHEMA + " ledger entry daily at 00:30 UTC; the Bitcoin stamp follows on the operator's stamping run",
@@ -262,6 +328,7 @@ async function store(env, obs) {
   const stored = { sha, record_jcs, request_slot: obs.request_slot, receipt_event_id: obs.receipt_event_id, verdict: obs.verdict, observed_at: obs.observed_at, response_sha256: obs.response_sha256 };
   await env.LEDGER.put(PENDING(sha), JSON.stringify(stored));
   const dk = Object.prototype.hasOwnProperty.call(obs, "decider") ? { decider: obs.decider } : {};
+  if (Object.prototype.hasOwnProperty.call(obs, "issuer_log")) dk.issuer_log = obs.issuer_log;
   await env.LEDGER.put(BY_SLOT(slotSha, obs.observed_at, sha), JSON.stringify({ sha, receipt_event_id: obs.receipt_event_id, verdict: obs.verdict, event_ids_seen: obs.event_ids_seen, observed_at: obs.observed_at, ...dk }));
   const lastKey = LAST(slotSha, obs.receipt_event_id);
   const prevRaw = await env.LEDGER.get(lastKey);
@@ -304,7 +371,7 @@ async function handlePost(request, env, origin, nowSec, fetchImpl) {
     sha, status: "pending", url: origin + "/evidence/slot/" + sha, by_slot: origin + "/evidence/slot/s/" + encodeURIComponent(rc.slot),
     issuer: obs.issuer, receipt_event_id: obs.receipt_event_id, request_slot: obs.request_slot,
     observed_at: obs.observed_at, http_status: obs.http_status, verdict: obs.verdict, event_ids_seen: obs.event_ids_seen,
-    changed_since_previous: obs.changed_since_previous, decider: obs.decider ?? null,
+    changed_since_previous: obs.changed_since_previous, decider: obs.decider ?? null, issuer_log: obs.issuer_log ?? null,
     establishes: ESTABLISHES, does_not_establish: DOES_NOT_ESTABLISH,
   }, 201);
 }
@@ -352,6 +419,7 @@ async function handleBySlot(slotEnc, env, origin) {
     distinct_event_id_lists_seen: seen.map((s) => JSON.parse(s)),
     slot_listing_changed: seen.length > 1,
     decider_equivocation_seen: obs.some((o) => o.decider && o.decider.equivocation === true),
+    issuer_log_statuses_seen: [...new Set(obs.filter((o) => o.issuer_log).map((o) => o.issuer_log.status))],
     receipts_submitted_for_this_slot: receipts,
     note: "every observation of this slot, oldest first. slot_listing_changed is true when the issuer's endpoint listed different receipts at different times; two receipts submitted for one slot means two signed receipts name the same request slot",
   });

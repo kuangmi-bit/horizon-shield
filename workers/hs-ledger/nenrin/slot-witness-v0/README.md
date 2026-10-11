@@ -47,7 +47,25 @@ author keeps the slot log on his side. This intake is a witness of that record, 
    `decider` is `null` for an account-scoped slot. A new conflict counts as a change for the watch, and
    `/evidence/slot/s/{request_slot}` reports `decider_equivocation_seen`. Observations written before v0.1 stay
    `nenrin-slot-observation-v0`, with no `decider` field, and are checked by the v0 rule.
-5. Observations go oldest first into a daily `nenrin-slot-witness-batch-v0` ledger entry, stamped to Bitcoin with
+5. From v0.2 (2026-10-11), the observation also has an `issuer_log` field read from the same bytes. The issuer stamps a
+   daily snapshot of every slot to Bitcoin (SPEC v0.4, slot log: lines sorted by slot, `leaf = sha256(line)`, Merkle
+   pairs `sha256(left_hex + right_hex)`, `log_root = sha256(JCS(header))` is what is stamped), and a slot's GET carries
+   `log`: its `line`, `leaf`, `merkle_path`, the `header` and `log_root`. The intake recomputes the proof and compares the
+   line with the slot bytes beside it.
+
+   | `issuer_log.status` | meaning |
+   |---|---|
+   | `absent` | no `log` object |
+   | `not_yet_in_a_snapshot` | the issuer says so (the snapshot is daily) |
+   | `malformed` | a `log` object without the fields the SPEC names, in their forms (at most 64 path steps) |
+   | `proof_fails` | `leaf` is not `sha256(JCS(line))`, the path does not reach `header.merkle_root`, or `log_root` is not `sha256(JCS(header))` |
+   | `line_disagrees` | the proof holds, but the line says something else than the slot: `disagreements` names it (`event_ids`, `claim_sha256`, `decider_sig`, `conflict_shown_by_slot_missing_from_log`, `conflict_in_log_not_shown_by_slot`, ...) |
+   | `included` | the proof holds and the line agrees with the slot bytes |
+
+   A conflict received after the snapshot's `cutoff` may be on the slot and not yet in the log. A change of status counts
+   as a change for the watch, and `/evidence/slot/s/{request_slot}` reports `issuer_log_statuses_seen`. The stamp itself is
+   not checked at intake: `slot_check.py --log-anchor` reads the issuer's `<date>.ots` and checks it stamps the `log_root`.
+6. Observations go oldest first into a daily `nenrin-slot-witness-batch-v0` ledger entry, stamped to Bitcoin with
    OpenTimestamps. `mirror-v0` copies each observation's bytes with the batch.
 
 Reads: `/evidence/slot` (what this is), `/evidence/slot/{sha}` and `?format=raw` (the observation and its exact bytes),
@@ -71,6 +89,7 @@ decider key is; only that the key signed both.
 python3 slot_check.py --sha <observation sha>      # the observation, its batch, its OTS proof (add --headers view.json to check the block)
 python3 slot_check.py --slot <request_slot>        # every observation of the slot, and whether the listing changed
 python3 slot_check.py --record observation.json    # offline, from the bytes ?format=raw served
+python3 slot_check.py --sha <sha> --log-anchor      # also the issuer's .ots for the snapshot the line sits in
 ```
 
 `slot_check.py` verifies BIP-340 with its own code (`bip340.py`, written separately from `bip340.mjs`) and recomputes the
@@ -88,6 +107,15 @@ verdict, and from v0.1 the `decider` field, from the kept bytes. Standard librar
   `fixtures/slot_fixtures_v01.json`: v0.1 observations of decider-scoped slots (holder verifies, equivocation, a conflict
   with a bad signature, by another key, for another slot or repeating the holder, a holder with a bad signature, a slot held by the other claim, a holder naming
   another key, an account-scoped slot), with a test decider key.
+- `fixtures/slot_fixtures_v02.json` (`--v02`): v0.2 observations whose slot bytes carry a slot log object built by the
+  SPEC's rules, with the snapshot file itself where the line is included, so the file, the proof and the slot are
+  checked against each other: absent, not yet, included, included with a conflict, a conflict after the cutoff,
+  a conflict missing from the log, a logged conflict the slot does not show, another event id, an altered path,
+  log_root or header, a header without `cutoff`. The issuer's own `slot_log_check.py` (at 2b0550b7) accepts the
+  included proofs and files and refuses the altered ones.
+- `fixtures/invinoveritas_slot_log_20261010.json`: the same live slot read after the issuer's first non-empty snapshot
+  (2026-10-10, one slot, `log_root` `9214af3a...`): both readers read its `log` as included, as the issuer's own
+  `slot_log_check.py --inclusion` does.
 - `fixtures/invinoveritas_slot_decider_20261010.json`: the first live decider-scoped slot this ledger observed
   (observation `84a7cb5e...`, 2026-10-10T11:27:56Z): the bytes the ledger kept (sha256 `db1802dd...`), holding one claim
   and listing one conflicting claim. Both readers find both decider signatures valid under the same key.
@@ -101,5 +129,5 @@ Tests: `node nenrin/slot-witness-v0/slot_witness_v0.test.mjs` (in `workers/hs-le
 - The slot format is read as a URL-safe string of 16 to 160 characters until a live receipt fixes it.
 - One observation per (slot, receipt) per 6 hours on submission; 200 new observations a day, 20 per network.
 - The watch reads at most 50 pairs a run, oldest observation first, for 30 days after the first observation.
-- The slot's `log` object (the issuer's daily Merkle-rooted, OTS-stamped slot log) is kept in the bytes but not checked
-  yet. Checking a slot's inclusion proof against the stamped root is the next step.
+- `issuer_log` shows that a line sits under a `log_root` and agrees with the slot. That the root was stamped, and when, is
+  `--log-anchor`'s, from the issuer's `.ots`. Neither shows that the issuer kept every claim it was sent.

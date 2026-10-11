@@ -7,9 +7,9 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { schnorrVerify, schnorrSign, hexToBytes, nostrEventCheck } from "./bip340.mjs";
-import { ISSUERS, readReceipt, judge, observe, deciderReading, handleSlotWitness, watchSlots, anchorSlotWitnessPool, BATCH_MAX, MAX_RESPONSE_BYTES, MAX_RESPONSE_BYTES_V0, OBS_SCHEMA, OBS_SCHEMA_V0, WATCH_DAYS } from "./slot_witness_v0.mjs";
+import { ISSUERS, readReceipt, judge, observe, deciderReading, issuerLogReading, handleSlotWitness, watchSlots, anchorSlotWitnessPool, BATCH_MAX, MAX_RESPONSE_BYTES, MAX_RESPONSE_BYTES_V0, OBS_SCHEMA, OBS_SCHEMA_V0, WATCH_DAYS } from "./slot_witness_v0.mjs";
 import { Refusal } from "../trace-pin-v0/trace_pin_v0.mjs";
-import { addTestIssuer, receipt, slotFetch, deciderClaim, DECIDER_SK, TEST_PUB, TEST_PREFIX, NOW } from "./fixtures/gen_fixtures.mjs";
+import { addTestIssuer, receipt, slotFetch, deciderClaim, slotLog, DECIDER_SK, TEST_PUB, TEST_PREFIX, NOW } from "./fixtures/gen_fixtures.mjs";
 
 const R = [];
 const t = (name, ok, detail = "") => R.push({ name, ok: !!ok, detail: String(detail) });
@@ -237,12 +237,45 @@ const call = async (env, method, path, body, now = NOW, ip = "203.0.113.7", f = 
   t("a response a little over " + MAX_RESPONSE_BYTES_V0 + " bytes: cut under v0, kept whole and read under v0.1", o0b.response_truncated === true && o0b.response_bytes === MAX_RESPONSE_BYTES_V0 && o1b.response_truncated === false && o1b.verdict === "unique");
 }
 
+// ---- v0.2: the issuer's slot log ------------------------------------------------------------------------------
+{
+  const A = await deciderClaim(DECIDER_SK, { request_id: "log-e2e" });
+  const ev = await receipt({ slot: A.slot, extra: { decider_pubkey: A.pub, decider_claim: A.claim, decider_sig: A.sig } });
+  const line = { slot: A.slot, scope: "decider", event_ids: [ev.id], taken_at: NOW - 120, claim_sha256: null, decider_sig: A.sig, conflicts: [] };
+  let log = { status: "not_yet_in_a_snapshot" };
+  const f = slotFetch((slot) => ({ slot, taken: true, event_ids: [ev.id], taken_at: NOW - 120, scope: "decider", decider_claim: A.claim, decider_sig: A.sig, conflicts: [], log }));
+  const env = fakeEnv();
+  const p = await call(env, "POST", "/evidence/slot", { event: ev }, NOW, "203.0.113.60", f);
+  t("POST: a v0.2 observation, issuer_log not_yet_in_a_snapshot", p.status === 201 && p.json.issuer_log && p.json.issuer_log.status === "not_yet_in_a_snapshot", JSON.stringify(p.json && p.json.issuer_log));
+  // the snapshot appears: the same slot, now with its line and proof (claim_sha256 is filled from the claim the slot holds)
+  const { jcs } = await import("../trace-pin-v0/trace_pin_v0.mjs");
+  const line2 = { ...line, claim_sha256: createHash("sha256").update(jcs(A.claim)).digest("hex") };
+  const lg2 = await slotLog([line2, { ...line2, slot: "f".repeat(64), event_ids: ["f".repeat(64)] }], { date: "2026-10-10", cutoff: Date.UTC(2026, 9, 11) / 1000 });
+  log = lg2.proof(A.slot);
+  const w = await watchSlots(env, NOW + 21 * 3600, f);
+  t("the watch a day later: the line appeared in the issuer's log, counted as a change", w.observed === 1 && w.changed === 1, JSON.stringify(w));
+  const h = await call(env, "GET", "/evidence/slot/s/" + A.slot);
+  t("the slot history lists the statuses seen, oldest first: not_yet_in_a_snapshot, then included", JSON.stringify(h.json.issuer_log_statuses_seen) === JSON.stringify(["not_yet_in_a_snapshot", "included"]), JSON.stringify(h.json.issuer_log_statuses_seen));
+  const b = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const base = { slot: A.slot, taken: true, event_ids: [ev.id], taken_at: NOW - 120, scope: "decider", decider_claim: A.claim, decider_sig: A.sig, conflicts: [] };
+  const REAL = JSON.parse(readFileSync(HERE + "fixtures/invinoveritas_slot_log_20261010.json", "utf8"));
+  t("the live slot after the issuer's 2026-10-10 snapshot: its log reads as included under log_root 9214af3a...",
+    JSON.stringify(await issuerLogReading(200, new TextEncoder().encode(REAL.body), REAL.slot)) === JSON.stringify(REAL.expect_issuer_log));
+  t("issuerLogReading: an edited line no longer reaches the root", (await issuerLogReading(200, b({ ...base, log: { ...log, line: { ...log.line, taken_at: 1 } } }), A.slot)).status === "proof_fails");
+  t("issuerLogReading: a claim that is not the one in the line disagrees on claim_sha256", (await issuerLogReading(200, b({ ...base, decider_claim: { ...A.claim, claimed_at: 1 }, log }), A.slot)).disagreements.includes("claim_sha256"));
+  t("issuerLogReading: a merkle path longer than 64 steps is malformed", (await issuerLogReading(200, b({ ...base, log: { ...log, merkle_path: Array(65).fill(log.merkle_path[0]) } }), A.slot)).status === "malformed");
+  t("issuerLogReading: a header with another schema is malformed", (await issuerLogReading(200, b({ ...base, log: { ...log, header: { ...log.header, schema: "x" } } }), A.slot)).status === "malformed");
+  t("issuerLogReading: no log is absent; a non-200 answer is null", (await issuerLogReading(200, b(base), A.slot)).status === "absent" && (await issuerLogReading(404, b(base), A.slot)) === null);
+}
+
 // ---- the fixtures slot_check.py reads regenerate byte for byte -------------------------------------------------
 {
   const out = execFileSync(process.execPath, [HERE + "fixtures/gen_fixtures.mjs"], { encoding: "utf8" });
   t("fixtures/slot_fixtures.json (v0) regenerates byte for byte", out === readFileSync(HERE + "fixtures/slot_fixtures.json", "utf8"));
   const out1 = execFileSync(process.execPath, [HERE + "fixtures/gen_fixtures.mjs", "--v01"], { encoding: "utf8" });
   t("fixtures/slot_fixtures_v01.json regenerates byte for byte", out1 === readFileSync(HERE + "fixtures/slot_fixtures_v01.json", "utf8"));
+  const out2 = execFileSync(process.execPath, [HERE + "fixtures/gen_fixtures.mjs", "--v02"], { encoding: "utf8" });
+  t("fixtures/slot_fixtures_v02.json regenerates byte for byte", out2 === readFileSync(HERE + "fixtures/slot_fixtures_v02.json", "utf8"));
 }
 
 delete ISSUERS[TEST_PUB];
