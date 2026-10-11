@@ -2,7 +2,7 @@
   "schema": "gate-record-mirror-v0",
   "mirror_version": "0.1.0",
   "gate": "https://gate.horizonshield.dev",
-  "taken_at": "2026-10-10T21:59:08.058Z",
+  "taken_at": "2026-10-10T21:58:55.884Z",
   "register_sha256": "7dcbea8735e943209d391638059c36c9aab0a26eac90a693bd2fdc8e5506d5e6",
   "endpoints": 11,
   "counts": {

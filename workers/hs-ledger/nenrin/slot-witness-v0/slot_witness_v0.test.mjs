@@ -1,14 +1,15 @@
 // slot_witness_v0.test.mjs: BIP-340 against its own test vectors and a real invinoveritas event, then the slot
 // witness intake on a fake KV and a fake issuer endpoint: each verdict, no redirects, size cap, dedup, caps, the
-// daily watch catching a changed listing, the per-slot history, and the batch oldest first.
+// daily watch catching a changed listing, the per-slot history, and the batch oldest first. v0.1: the decider reading
+// on the first live decider-scoped slot's bytes and on generated ones, v0 observations still written as v0.
 // Offline. Run: node nenrin/slot-witness-v0/slot_witness_v0.test.mjs   (in workers/hs-ledger)   exit 1 on any failure.
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { schnorrVerify, schnorrSign, hexToBytes, nostrEventCheck } from "./bip340.mjs";
-import { ISSUERS, readReceipt, judge, handleSlotWitness, watchSlots, anchorSlotWitnessPool, BATCH_MAX, MAX_RESPONSE_BYTES, WATCH_DAYS } from "./slot_witness_v0.mjs";
+import { ISSUERS, readReceipt, judge, observe, deciderReading, issuerLogReading, handleSlotWitness, watchSlots, anchorSlotWitnessPool, BATCH_MAX, MAX_RESPONSE_BYTES, MAX_RESPONSE_BYTES_V0, OBS_SCHEMA, OBS_SCHEMA_V0, WATCH_DAYS } from "./slot_witness_v0.mjs";
 import { Refusal } from "../trace-pin-v0/trace_pin_v0.mjs";
-import { addTestIssuer, receipt, slotFetch, TEST_PUB, TEST_PREFIX, NOW } from "./fixtures/gen_fixtures.mjs";
+import { addTestIssuer, receipt, slotFetch, deciderClaim, slotLog, DECIDER_SK, TEST_PUB, TEST_PREFIX, NOW } from "./fixtures/gen_fixtures.mjs";
 
 const R = [];
 const t = (name, ok, detail = "") => R.push({ name, ok: !!ok, detail: String(detail) });
@@ -184,10 +185,97 @@ const call = async (env, method, path, body, now = NOW, ip = "203.0.113.7", f = 
   t("a batch of " + BATCH_MAX + " oldest first, the newest left for the next day", anB.body.anchored === BATCH_MAX && anB.body.remaining === 1 && envB.m.has("slotw:pending:" + sha("obs0")));
 }
 
+// ---- v0.1: the decider reading -----------------------------------------------------------------------------------
+{
+  const L = JSON.parse(readFileSync(HERE + "fixtures/invinoveritas_slot_decider_20261010.json", "utf8"));
+  const body = new Uint8Array(Buffer.from(L.response_b64, "base64"));
+  t("the live slot bytes are the ones the ledger kept (sha256)", sha(body) === L.response_sha256);
+  const rc = L.receipt_content_decider;
+  const d = await deciderReading(200, body, rc.request_slot, rc);
+  t("the live slot (2026-10-10): the holder's claim verifies, one conflict listed and it verifies under the same decider key: equivocation", JSON.stringify(d) === JSON.stringify(L.expect_decider), JSON.stringify(d));
+  const j = JSON.parse(Buffer.from(body).toString("utf8"));
+  const mut = (f) => { const x = JSON.parse(JSON.stringify(j)); f(x); return new TextEncoder().encode(JSON.stringify(x)); };
+  const flip = (h) => (h[0] === "0" ? "1" : "0") + h.slice(1);
+  const d1 = await deciderReading(200, mut((x) => { x.conflicts[0].decider_sig = flip(x.conflicts[0].decider_sig); }), rc.request_slot, rc);
+  t("the same bytes with the conflict's signature altered: listed 1, verified 0, no equivocation", d1.conflicts_listed === 1 && d1.conflicts_verified === 0 && d1.equivocation === false);
+  const d2 = await deciderReading(200, mut((x) => { x.conflicts[0].decider_claim.choice_commitment = "0".repeat(64); }), rc.request_slot, rc);
+  t("a conflict whose claim was edited after signing does not verify", d2.conflicts_verified === 0 && d2.equivocation === false);
+  const d3 = await deciderReading(200, mut((x) => { x.conflicts = [x.conflicts[0], x.conflicts[0]]; }), rc.request_slot, rc);
+  t("the same conflict listed twice is still one other claim: equivocation, and both entries counted as listed", d3.conflicts_listed === 2 && d3.equivocation === true);
+  const d4 = await deciderReading(200, mut((x) => { x.conflicts = [{ decider_claim: x.decider_claim, decider_sig: x.decider_sig }]; }), rc.request_slot, rc);
+  t("a conflict that repeats the holder's own claim is not another claim: no equivocation", d4.conflicts_verified === 0 && d4.equivocation === false);
+  const d5 = await deciderReading(200, mut((x) => { x.conflicts[0].decider_claim.request_slot = "f".repeat(64); }), rc.request_slot, rc);
+  t("a conflict naming another slot is not counted", d5.conflicts_verified === 0);
+  t("an account-scoped slot (no decider_claim) reads as null", (await deciderReading(200, mut((x) => { delete x.decider_claim; }), rc.request_slot, rc)) === null);
+  t("a non-200 answer or bytes that are not JSON read as null", (await deciderReading(503, body, rc.request_slot, rc)) === null && (await deciderReading(200, new Uint8Array([0xff]), rc.request_slot, rc)) === null);
+
+  // the intake, end to end, on a generated decider-scoped slot whose conflict appears a day later
+  const A = await deciderClaim(DECIDER_SK, { request_id: "e2e" });
+  const B = await deciderClaim(DECIDER_SK, { request_id: "e2e", choice: "deny", claimed_at: NOW - 30 });
+  const ev = await receipt({ slot: A.slot, extra: { decider_pubkey: A.pub, decider_claim: A.claim, decider_sig: A.sig } });
+  let conflicts = [];
+  const f = slotFetch((slot) => ({ slot, taken: true, event_ids: [ev.id], scope: "decider", decider_claim: A.claim, decider_sig: A.sig, conflicts }));
+  const env = fakeEnv();
+  const p = await call(env, "POST", "/evidence/slot", { event: ev }, NOW, "203.0.113.50", f);
+  t("POST a decider-scoped receipt: v0.1 observation, the holder verifies, no conflicts yet", p.status === 201 && p.json.decider && p.json.decider.holder_claim === "verifies" && p.json.decider.equivocation === false, JSON.stringify(p.json && p.json.decider));
+  const rec = JSON.parse((await call(env, "GET", "/evidence/slot/" + p.json.sha + "?format=raw")).text);
+  t("the record says " + OBS_SCHEMA + " and carries the decider field", rec.schema === OBS_SCHEMA && rec.decider && rec.decider.pubkey === A.pub);
+  conflicts = [{ decider_claim: B.claim, decider_sig: B.sig, received_at: NOW - 30 }];
+  const w = await watchSlots(env, NOW + 21 * 3600, f);
+  t("the watch a day later: the event list is the same, the new conflict is a change", w.observed === 1 && w.changed === 1, JSON.stringify(w));
+  const h = await call(env, "GET", "/evidence/slot/s/" + A.slot);
+  t("the slot history shows equivocation seen, while the listing itself did not change", h.json.decider_equivocation_seen === true && h.json.slot_listing_changed === false && h.json.observations.at(-1).decider.equivocation === true);
+
+  // v0 observations stay as written
+  const ev0 = await receipt({ slot: A.slot, extra: { decider_pubkey: A.pub, decider_claim: A.claim, decider_sig: A.sig } });
+  const rc0 = await readReceipt(ev0);
+  const o0 = await observe(ev0, rc0, { nowSec: NOW, fetchImpl: f, trigger: "submitted", previous: null, version: "0" });
+  t("version 0: schema " + OBS_SCHEMA_V0 + " and no decider field", o0.schema === OBS_SCHEMA_V0 && !("decider" in o0));
+  const big = slotFetch((slot) => JSON.stringify({ slot, taken: true, event_ids: [ev0.id], pad: "x".repeat(MAX_RESPONSE_BYTES_V0) }));
+  const o0b = await observe(ev0, rc0, { nowSec: NOW, fetchImpl: big, trigger: "submitted", previous: null, version: "0" });
+  const o1b = await observe(ev0, rc0, { nowSec: NOW, fetchImpl: big, trigger: "submitted", previous: null });
+  t("a response a little over " + MAX_RESPONSE_BYTES_V0 + " bytes: cut under v0, kept whole and read under v0.1", o0b.response_truncated === true && o0b.response_bytes === MAX_RESPONSE_BYTES_V0 && o1b.response_truncated === false && o1b.verdict === "unique");
+}
+
+// ---- v0.2: the issuer's slot log ------------------------------------------------------------------------------
+{
+  const A = await deciderClaim(DECIDER_SK, { request_id: "log-e2e" });
+  const ev = await receipt({ slot: A.slot, extra: { decider_pubkey: A.pub, decider_claim: A.claim, decider_sig: A.sig } });
+  const line = { slot: A.slot, scope: "decider", event_ids: [ev.id], taken_at: NOW - 120, claim_sha256: null, decider_sig: A.sig, conflicts: [] };
+  let log = { status: "not_yet_in_a_snapshot" };
+  const f = slotFetch((slot) => ({ slot, taken: true, event_ids: [ev.id], taken_at: NOW - 120, scope: "decider", decider_claim: A.claim, decider_sig: A.sig, conflicts: [], log }));
+  const env = fakeEnv();
+  const p = await call(env, "POST", "/evidence/slot", { event: ev }, NOW, "203.0.113.60", f);
+  t("POST: a v0.2 observation, issuer_log not_yet_in_a_snapshot", p.status === 201 && p.json.issuer_log && p.json.issuer_log.status === "not_yet_in_a_snapshot", JSON.stringify(p.json && p.json.issuer_log));
+  // the snapshot appears: the same slot, now with its line and proof (claim_sha256 is filled from the claim the slot holds)
+  const { jcs } = await import("../trace-pin-v0/trace_pin_v0.mjs");
+  const line2 = { ...line, claim_sha256: createHash("sha256").update(jcs(A.claim)).digest("hex") };
+  const lg2 = await slotLog([line2, { ...line2, slot: "f".repeat(64), event_ids: ["f".repeat(64)] }], { date: "2026-10-10", cutoff: Date.UTC(2026, 9, 11) / 1000 });
+  log = lg2.proof(A.slot);
+  const w = await watchSlots(env, NOW + 21 * 3600, f);
+  t("the watch a day later: the line appeared in the issuer's log, counted as a change", w.observed === 1 && w.changed === 1, JSON.stringify(w));
+  const h = await call(env, "GET", "/evidence/slot/s/" + A.slot);
+  t("the slot history lists the statuses seen, oldest first: not_yet_in_a_snapshot, then included", JSON.stringify(h.json.issuer_log_statuses_seen) === JSON.stringify(["not_yet_in_a_snapshot", "included"]), JSON.stringify(h.json.issuer_log_statuses_seen));
+  const b = (o) => new TextEncoder().encode(JSON.stringify(o));
+  const base = { slot: A.slot, taken: true, event_ids: [ev.id], taken_at: NOW - 120, scope: "decider", decider_claim: A.claim, decider_sig: A.sig, conflicts: [] };
+  const REAL = JSON.parse(readFileSync(HERE + "fixtures/invinoveritas_slot_log_20261010.json", "utf8"));
+  t("the live slot after the issuer's 2026-10-10 snapshot: its log reads as included under log_root 9214af3a...",
+    JSON.stringify(await issuerLogReading(200, new TextEncoder().encode(REAL.body), REAL.slot)) === JSON.stringify(REAL.expect_issuer_log));
+  t("issuerLogReading: an edited line no longer reaches the root", (await issuerLogReading(200, b({ ...base, log: { ...log, line: { ...log.line, taken_at: 1 } } }), A.slot)).status === "proof_fails");
+  t("issuerLogReading: a claim that is not the one in the line disagrees on claim_sha256", (await issuerLogReading(200, b({ ...base, decider_claim: { ...A.claim, claimed_at: 1 }, log }), A.slot)).disagreements.includes("claim_sha256"));
+  t("issuerLogReading: a merkle path longer than 64 steps is malformed", (await issuerLogReading(200, b({ ...base, log: { ...log, merkle_path: Array(65).fill(log.merkle_path[0]) } }), A.slot)).status === "malformed");
+  t("issuerLogReading: a header with another schema is malformed", (await issuerLogReading(200, b({ ...base, log: { ...log, header: { ...log.header, schema: "x" } } }), A.slot)).status === "malformed");
+  t("issuerLogReading: no log is absent; a non-200 answer is null", (await issuerLogReading(200, b(base), A.slot)).status === "absent" && (await issuerLogReading(404, b(base), A.slot)) === null);
+}
+
 // ---- the fixtures slot_check.py reads regenerate byte for byte -------------------------------------------------
 {
   const out = execFileSync(process.execPath, [HERE + "fixtures/gen_fixtures.mjs"], { encoding: "utf8" });
-  t("fixtures/slot_fixtures.json regenerates byte for byte", out === readFileSync(HERE + "fixtures/slot_fixtures.json", "utf8"));
+  t("fixtures/slot_fixtures.json (v0) regenerates byte for byte", out === readFileSync(HERE + "fixtures/slot_fixtures.json", "utf8"));
+  const out1 = execFileSync(process.execPath, [HERE + "fixtures/gen_fixtures.mjs", "--v01"], { encoding: "utf8" });
+  t("fixtures/slot_fixtures_v01.json regenerates byte for byte", out1 === readFileSync(HERE + "fixtures/slot_fixtures_v01.json", "utf8"));
+  const out2 = execFileSync(process.execPath, [HERE + "fixtures/gen_fixtures.mjs", "--v02"], { encoding: "utf8" });
+  t("fixtures/slot_fixtures_v02.json regenerates byte for byte", out2 === readFileSync(HERE + "fixtures/slot_fixtures_v02.json", "utf8"));
 }
 
 delete ISSUERS[TEST_PUB];

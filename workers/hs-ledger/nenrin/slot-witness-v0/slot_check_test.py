@@ -2,6 +2,7 @@
 """slot_check_test: the reader side of slot-witness-v0. BIP-340 (written separately from the intake's) against the BIP's
 vectors and a real invinoveritas event; every observation the JS intake wrote in fixtures/slot_fixtures.json recomputed
 here; tampering refused by name; and a synthetic ledger with an OpenTimestamps path and a mined regtest header view.
+v0.1: the decider field recomputed on the JS intake's v0.1 observations and on the first live decider-scoped slot.
 No network, standard library only. Run: python3 slot_check_test.py"""
 import base64, copy, hashlib, json, os, sys
 
@@ -64,6 +65,136 @@ spaced = json.dumps(json.loads(FX["cases"][0]["record_jcs"]), indent=1).encode()
 t("the same record not in RFC 8785 form: refused", any("RFC 8785" in p for p in problems(spaced)))
 t("judge: the same id twice is never unique", SC.judge(200, b'{"slot":"s","taken":true,"event_ids":["e","e"]}', "s", "e")[0] == "listed_with_others")
 t("judge: taken with an empty list is not_listed", SC.judge(200, b'{"slot":"s","taken":true,"event_ids":[]}', "s", "e")[0] == "not_listed")
+
+
+# ---- v0.1: the decider field -------------------------------------------------------------------------------------
+FX1 = json.load(open(os.path.join(HERE, "fixtures", "slot_fixtures_v01.json"), encoding="utf-8"))
+for c in FX1["cases"]:
+    raw = c["record_jcs"].encode("utf-8")
+    rep, prob = SC.check_record(raw, hashlib.sha256(raw).hexdigest(), issuers=TEST)
+    exp = c["expect_decider"]
+    dec_ok = rep.get("decider") is None if exp is None else (rep.get("decider") or {}).get(exp[0]) == exp[1]
+    t("v0.1 %s: the JS intake's observation and its decider recompute here" % c["name"], not prob and rep["verdict"] == c["expect_verdict"] and dec_ok, (prob, rep.get("decider")))
+
+
+def mutate1(name, f):
+    obs = json.loads(next(c for c in FX1["cases"] if c["name"] == name)["record_jcs"])
+    f(obs)
+    return SC.VC.jcs(obs).encode("utf-8")
+
+
+t("v0.1: a record claiming no equivocation over bytes that show it: refused", any("decider does not recompute" in p for p in problems(mutate1("equivocation_one_conflict", lambda o: o["decider"].update(equivocation=False)))))
+t("v0.1: a record claiming equivocation over bytes whose conflict does not verify: refused", any("decider does not recompute" in p for p in problems(mutate1("conflict_with_bad_signature", lambda o: o["decider"].update(conflicts_verified=1, equivocation=True)))))
+t("v0.1: a record with the decider field removed: refused", any("carries no decider field" in p for p in problems(mutate1("holder_verifies_no_conflicts", lambda o: o.pop("decider")))))
+t("v0: a record that adds a decider field: refused", any("has no decider field" in p for p in problems(mutate("unique", lambda o: o.update(decider=None)))))
+t("an unknown observation schema: refused", any("schema is neither" in p for p in problems(mutate("unique", lambda o: o.update(schema="nenrin-slot-observation-v9")))))
+
+
+def big_body(o, n):
+    body = json.dumps({"slot": o["request_slot"], "taken": True, "event_ids": [o["receipt_event_id"]], "pad": "x" * n}).encode()
+    o.update(response_b64=base64.b64encode(body).decode(), response_sha256=hashlib.sha256(body).hexdigest(), response_bytes=len(body))
+
+
+t("v0: more than 16384 response bytes kept without truncation: refused", any("more than 16384" in p for p in problems(mutate("unique", lambda o: big_body(o, 20000)))))
+t("v0.1: 20000 response bytes kept whole: accepted", not problems(mutate1("account_scoped_no_decider_claim", lambda o: big_body(o, 20000))))
+
+LIVE = json.load(open(os.path.join(HERE, "fixtures", "invinoveritas_slot_decider_20261010.json"), encoding="utf-8"))
+lb = base64.b64decode(LIVE["response_b64"])
+lrc = LIVE["receipt_content_decider"]
+t("the live slot bytes are the ones the ledger kept (sha256)", hashlib.sha256(lb).hexdigest() == LIVE["response_sha256"])
+t("the live slot (2026-10-10): BIP-340 here (written apart from the intake's) finds both decider signatures valid: equivocation",
+  SC.decider_reading(200, lb, lrc["request_slot"], lrc) == LIVE["expect_decider"], SC.decider_reading(200, lb, lrc["request_slot"], lrc))
+lj = json.loads(lb)
+lj["conflicts"][0]["decider_sig"] = ("1" if lj["conflicts"][0]["decider_sig"][0] == "0" else "0") + lj["conflicts"][0]["decider_sig"][1:]
+d1 = SC.decider_reading(200, json.dumps(lj).encode(), lrc["request_slot"], lrc)
+t("the live bytes with the conflict's signature altered: verified 0, no equivocation", d1["conflicts_verified"] == 0 and d1["equivocation"] is False)
+
+
+# ---- v0.2: the issuer's slot log ------------------------------------------------------------------------------
+FX2 = json.load(open(os.path.join(HERE, "fixtures", "slot_fixtures_v02.json"), encoding="utf-8"))
+for c in FX2["cases"]:
+    raw = c["record_jcs"].encode("utf-8")
+    rep, prob = SC.check_record(raw, hashlib.sha256(raw).hexdigest(), issuers=TEST)
+    t("v0.2 %s: issuer_log recomputes here as %s" % (c["name"], c["expect_issuer_log_status"]),
+      not prob and (rep.get("issuer_log") or {}).get("status") == c["expect_issuer_log_status"], (prob, rep.get("issuer_log")))
+
+
+def leaf_root_of_file(text):
+    """The snapshot file read on its own, by the SPEC's rules (written here, apart from the reading of the proof)."""
+    rows = text.split("\n")[:-1]
+    level = [hashlib.sha256(r.encode()).hexdigest() for r in rows[1:]]
+    while len(level) > 1:
+        level = [hashlib.sha256((level[i] + (level[i + 1] if i + 1 < len(level) else level[i])).encode()).hexdigest() for i in range(0, len(level), 2)]
+    header = json.loads(rows[0])
+    return header, level[0], hashlib.sha256(rows[0].encode()).hexdigest(), [json.loads(r) for r in rows[1:]]
+
+
+for c in FX2["cases"]:
+    if "snapshot_jsonl" not in c:
+        continue
+    header, root, log_root, lines = leaf_root_of_file(c["snapshot_jsonl"])
+    il = json.loads(c["record_jcs"])["issuer_log"]
+    slot = json.loads(c["record_jcs"])["request_slot"]
+    t("v0.2 %s: the snapshot file's own Merkle root is its header's, its log_root is the one the slot's proof reaches, and it holds the slot's line" % c["name"],
+      root == header["merkle_root"] and log_root == il["log_root"] and SC.VC.jcs(header) == c["snapshot_jsonl"].split("\n")[0]
+      and [x["slot"] for x in lines] == sorted(x["slot"] for x in lines) and any(x["slot"] == slot for x in lines))
+
+
+def mutate2(name, f):
+    obs = json.loads(next(c for c in FX2["cases"] if c["name"] == name)["record_jcs"])
+    f(obs)
+    return SC.VC.jcs(obs).encode("utf-8")
+
+
+t("v0.2: a record claiming included over a proof that fails: refused", any("issuer_log does not recompute" in p for p in problems(mutate2("path_altered", lambda o: o["issuer_log"].update(status="included")))))
+t("v0.2: a record hiding a conflict the log omits: refused", any("issuer_log does not recompute" in p for p in problems(mutate2("conflict_shown_but_missing_from_the_log", lambda o: o["issuer_log"].update(status="included", disagreements=[])))))
+t("v0.2: a record with the issuer_log field removed: refused", any("carries no issuer_log field" in p for p in problems(mutate2("included", lambda o: o.pop("issuer_log")))))
+t("v0.1: a record that adds an issuer_log field: refused", any("has no issuer_log field" in p for p in problems(mutate1("holder_verifies_no_conflicts", lambda o: o.update(issuer_log=None)))))
+
+inc = json.loads(next(c for c in FX2["cases"] if c["name"] == "included")["record_jcs"])
+ib = json.loads(base64.b64decode(inc["response_b64"]))
+
+
+def il_of(f):
+    b = copy.deepcopy(ib)
+    f(b)
+    return SC.issuer_log_reading(200, json.dumps(b).encode(), inc["request_slot"])
+
+
+t("issuer_log: a line edited after the snapshot (another slot) no longer reaches the root: proof_fails", il_of(lambda b: b["log"]["line"].update(slot="0" * 64))["status"] == "proof_fails")
+t("issuer_log: slot bytes for another slot beside a valid proof disagree on slot", "slot" in il_of(lambda b: b.update(slot="0" * 64))["disagreements"])
+t("issuer_log: a merkle path longer than 64 steps is malformed", il_of(lambda b: b["log"].update(merkle_path=b["log"]["merkle_path"] * 40))["status"] == "malformed")
+t("issuer_log: a step with side X is malformed", il_of(lambda b: b["log"]["merkle_path"][0].update(side="X"))["status"] == "malformed")
+t("issuer_log: another schema in the header is malformed", il_of(lambda b: b["log"]["header"].update(schema="x"))["status"] == "malformed")
+t("issuer_log: no log key is absent, a non-200 or non-JSON answer is null", il_of(lambda b: b.pop("log"))["status"] == "absent"
+  and SC.issuer_log_reading(503, b"{}", "s") is None and SC.issuer_log_reading(200, b"\xff", "s") is None)
+
+REAL = json.load(open(os.path.join(HERE, "fixtures", "invinoveritas_slot_log_20261010.json"), encoding="utf-8"))
+t("the live slot after the issuer's 2026-10-10 snapshot: its log reads as included under log_root 9214af3a...",
+  SC.issuer_log_reading(200, REAL["body"].encode("utf-8"), REAL["slot"]) == REAL["expect_issuer_log"], SC.issuer_log_reading(200, REAL["body"].encode("utf-8"), REAL["slot"]))
+rb = json.loads(REAL["body"])
+rb["log"]["line"]["conflicts"] = []
+t("the same live bytes with the logged conflict removed from the line: the proof fails", SC.issuer_log_reading(200, json.dumps(rb).encode(), REAL["slot"])["status"] == "proof_fails")
+
+# --log-anchor: the issuer's .ots for the snapshot, read with anchor_compose (the same reader as the ledger's own stamps)
+lroot = bytes.fromhex(inc["issuer_log"]["log_root"])
+ltree = [(0xf0, b"cal", [(0x08, None, [("att", "bitcoin", 101)])])]
+lots = AC.OTS_MAGIC + b"\x01" + b"\x08" + lroot + AC._ser(ltree)
+lmerkle = AC._run(ltree, lroot)
+hdrs, prev = [], "00" * 32
+for hgt in (100, 101, 102):
+    rawh = v11._mine(prev, lmerkle if hgt == 101 else hashlib.sha256(b"x%d" % hgt).digest(), t=1791700000 + (hgt - 101) * 600, salt=hgt)
+    hdrs.append({"height": hgt, "hex": rawh.hex()})
+    prev = v11.header_hash(rawh)
+ots_route = {SC.LOG_URL + "2026-10-10.ots": lots}
+fetch_ots = lambda u: (200, ots_route[u]) if u in ots_route else (_ for _ in ()).throw(OSError("404 " + u))
+la, lp = SC.log_anchor(inc["issuer_log"], fetch_ots, view={"headers": hdrs}, floor_bits="207fffff")
+t("--log-anchor: the issuer's .ots stamps the log_root, Bitcoin attestation at 101, block checked against the header view", not lp and la.get("log_anchored") and la["log_block_height"] == 101, (la, lp))
+other_ots = AC.OTS_MAGIC + b"\x01" + b"\x08" + bytes(32) + AC._ser(ltree)
+la, lp = SC.log_anchor(inc["issuer_log"], lambda u: (200, other_ots), view=None)
+t("--log-anchor: an .ots stamping another digest is refused", any("not the log_root" in p for p in lp))
+la, lp = SC.log_anchor({"status": "not_yet_in_a_snapshot"}, fetch_ots)
+t("--log-anchor: nothing to anchor before the line is in a snapshot", any("no included line" in p for p in lp))
 
 
 # ---- a synthetic ledger: batch, OTS path, mined header view ----------------------------------------------------------
