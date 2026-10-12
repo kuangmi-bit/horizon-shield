@@ -1,16 +1,16 @@
 {
-  "drill_at": "2026-10-11T10:01:52Z",
+  "drill_at": "2026-10-12T10:51:08Z",
   "fence": {
     "host": "ledger.horizonshield.dev",
     "reachable": false,
     "why": "sinkholed:0.0.0.0"
   },
   "outcome": "custodian_unavailable",
-  "report_sha256": "b57b5f2114a538ff7e85a737a16a422141821306623da18c44387e80f647c17f",
+  "report_sha256": "cebddb6abd2037c479b58b1b32bce08bd49bcc93fb20491fbaa7c233792f5224",
   "schema": "nenrin-survive-drill-v0",
   "source": {
     "requested": "swh"
   },
   "version": "0.1.0",
-  "why": "RuntimeError: Software Heritage vault did not finish: failed"
+  "why": "RuntimeError: Software Heritage vault did not finish: new"
 }
