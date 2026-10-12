@@ -1,6 +1,6 @@
 {
   "schema": "hs-adoption-count-v1",
-  "measured_at": "2026-10-09T22:19:08Z",
+  "measured_at": "2026-10-12T06:07:02Z",
   "metrics": {
     "independent_implementations": {
       "count": 14,
@@ -159,9 +159,9 @@
     "independent_witnesses": {
       "count": 3,
       "ledger": {
-        "ledger_n": 76,
-        "ledger_head": "3fb7f87902e98b41b56a91146888d2f084aeb76e426d18eafd5b206f2b0c684a",
-        "witness_batches": 17,
+        "ledger_n": 88,
+        "ledger_head": "bbbb357ee6f20a870fdfe5a50eb842674573dba06229593bfb85b304f0497e72",
+        "witness_batches": 20,
         "unreadable_entries": [],
         "signed_domains": {
           "api.babyblueviper.com": [
@@ -171,7 +171,10 @@
           "kuangmi-bit.github.io": [
             71,
             73,
-            75
+            75,
+            77,
+            79,
+            84
           ],
           "pipavlo82.github.io": [
             65,
@@ -209,7 +212,7 @@
     },
     "external_contracts": {
       "count": 3,
-      "signed_by_both": 3,
+      "signed_by_both": 4,
       "with_an_outside_party": 3,
       "with_no_party_from_us": 1,
       "settled_final_recomputed": 1,
@@ -224,6 +227,15 @@
           "outside_parties": [
             "api.babyblueviper.com"
           ]
+        },
+        {
+          "contract_id": "ff78faf5c45d84d0fb3796ed780c0677",
+          "file": "workers/hs-ledger/nenrin/musubi-v0/run0003/contract.json",
+          "parties": [
+            "the-horizons-innovation.com",
+            "shield.the-horizons-innovation.com"
+          ],
+          "outside_parties": []
         },
         {
           "contract_id": "8f113a3ea64a109085de8a83f47121eb",
