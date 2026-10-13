@@ -1,16 +1,154 @@
 {
-  "drill_at": "2026-10-12T10:51:08Z",
+  "anchors": {
+    "confirmed": 88,
+    "explorers": [
+      "blockstream.info",
+      "mempool.space"
+    ],
+    "failed": [],
+    "first_block": 959118,
+    "last_block": 971024,
+    "pending": []
+  },
+  "chain": {
+    "broken_at": null,
+    "head": "bbbb357ee6f20a870fdfe5a50eb842674573dba06229593bfb85b304f0497e72",
+    "rebuilt_through": 88,
+    "stamped_heads": [
+      {
+        "carried_by": 58,
+        "head_n": 57,
+        "result": "match"
+      },
+      {
+        "carried_by": 61,
+        "head_n": 60,
+        "result": "match"
+      },
+      {
+        "carried_by": 65,
+        "head_n": 64,
+        "result": "match"
+      },
+      {
+        "carried_by": 66,
+        "head_n": 65,
+        "result": "match"
+      },
+      {
+        "carried_by": 67,
+        "head_n": 66,
+        "result": "match"
+      },
+      {
+        "carried_by": 68,
+        "head_n": 67,
+        "result": "match"
+      },
+      {
+        "carried_by": 70,
+        "head_n": 69,
+        "result": "match"
+      },
+      {
+        "carried_by": 71,
+        "head_n": 70,
+        "result": "match"
+      },
+      {
+        "carried_by": 72,
+        "head_n": 71,
+        "result": "match"
+      },
+      {
+        "carried_by": 73,
+        "head_n": 72,
+        "result": "match"
+      },
+      {
+        "carried_by": 74,
+        "head_n": 73,
+        "result": "match"
+      },
+      {
+        "carried_by": 75,
+        "head_n": 74,
+        "result": "match"
+      },
+      {
+        "carried_by": 76,
+        "head_n": 75,
+        "result": "match"
+      },
+      {
+        "carried_by": 77,
+        "head_n": 76,
+        "result": "match"
+      },
+      {
+        "carried_by": 78,
+        "head_n": 77,
+        "result": "match"
+      },
+      {
+        "carried_by": 79,
+        "head_n": 78,
+        "result": "match"
+      },
+      {
+        "carried_by": 82,
+        "head_n": 81,
+        "result": "match"
+      },
+      {
+        "carried_by": 84,
+        "head_n": 83,
+        "result": "match"
+      },
+      {
+        "carried_by": 87,
+        "head_n": 86,
+        "result": "match"
+      }
+    ],
+    "stamped_heads_matched": 19
+  },
+  "digests": {
+    "failed": [],
+    "ok": 88
+  },
+  "does_not_establish": [
+    "that any claim in the ledger is true",
+    "that the copy is complete past its highest entry; the newest entries may not have reached the custodian yet",
+    "that two explorers agreeing is Bitcoin consensus; check headers against your own node for that",
+    "anything about entries whose proofs are still pending; they are listed, not counted"
+  ],
+  "drill_at": "2026-10-13T10:37:30Z",
+  "entries": 88,
+  "establishes": [
+    "these ledger bytes were rebuilt from the named custodian without connecting to any operator host",
+    "every digest, the jidec-chain-v1 head, the stamped heads and the Bitcoin anchors were recomputed from the copy and two public explorers"
+  ],
   "fence": {
     "host": "ledger.horizonshield.dev",
     "reachable": false,
     "why": "sinkholed:0.0.0.0"
   },
-  "outcome": "custodian_unavailable",
-  "report_sha256": "cebddb6abd2037c479b58b1b32bce08bd49bcc93fb20491fbaa7c233792f5224",
+  "outcome": "rebuilt",
+  "range": [
+    1,
+    88
+  ],
+  "report_sha256": "3019137189b8a67011904b43490d77f84c71bd9e5759085d249f536c068b1efc",
   "schema": "nenrin-survive-drill-v0",
   "source": {
-    "requested": "swh"
+    "archive_sha256": "73bd06354d13cb459c7a7bbb0b59c9f5dfd90dcb42f8b22f173ec5c276665e09",
+    "custodian": "software-heritage",
+    "directory": "swh:1:dir:02fbcbbdfbe63abe78e40232d3eef85dc1fccd3f",
+    "operator_controlled": false,
+    "revision": "d118ad9e3d9fc79b4abe82f804f188b7852c08b5",
+    "snapshot": "2badc01671ebf9bc1e0990e9fe302f5baf835392",
+    "visit_date": "2026-10-13T10:36:51.651000+00:00"
   },
-  "version": "0.1.0",
-  "why": "RuntimeError: Software Heritage vault did not finish: new"
+  "version": "0.1.0"
 }
