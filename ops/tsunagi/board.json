@@ -1,5 +1,5 @@
 {
-  "board_sha256": "e84661f3c9a915eb6ecdca023a7ccf86d2f630255c6df5f213b784bdd953d247",
+  "board_sha256": "9949326e27b8e116d90880522196cb07be46d04e71c023e8b35dc40cb99ab946",
   "differential": {
     "agree": 40,
     "bundles": 40,
@@ -20,7 +20,7 @@
     "a2aproject-a2a-python": {
       "author": "a2aproject (the official A2A Python SDK)",
       "clone_error": null,
-      "commit": "0ee47d7baa47a706e33934a4e4c3d46bad16298f",
+      "commit": "a4c4fc91a22778f3d805e5e592bf690915a33033",
       "id": "a2aproject-a2a-python",
       "language": "Python",
       "license": "Apache-2.0",
@@ -30,7 +30,7 @@
     "babyblueviper1-approval-v2": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "id": "babyblueviper1-approval-v2",
       "language": "Python",
       "license": "MIT",
@@ -40,7 +40,7 @@
     "babyblueviper1-nenrin-cleanroom": {
       "author": "babyblueviper1",
       "clone_error": null,
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "id": "babyblueviper1-nenrin-cleanroom",
       "language": "Python",
       "license": "MIT",
@@ -50,7 +50,7 @@
     "hs-ledger-trace-pin": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "id": "hs-ledger-trace-pin",
       "language": "JavaScript",
       "license": null,
@@ -60,7 +60,7 @@
     "hs-nenrin-go": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "id": "hs-nenrin-go",
       "language": "Go",
       "license": null,
@@ -70,7 +70,7 @@
     "hs-nenrin-pypi": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "id": "hs-nenrin-pypi",
       "language": "Python",
       "license": null,
@@ -80,7 +80,7 @@
     "hs-nenrin-reference": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "id": "hs-nenrin-reference",
       "language": "JavaScript",
       "license": null,
@@ -90,7 +90,7 @@
     "hs-settle-v1.10-approval": {
       "author": "ogasurfproject-jpg",
       "clone_error": null,
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "id": "hs-settle-v1.10-approval",
       "language": "Python",
       "license": null,
@@ -128,7 +128,7 @@
       "repo": "https://github.com/probityai/agent-evidence-vectors.git"
     }
   },
-  "measured_at": "2026-10-13T23:07:36Z",
+  "measured_at": "2026-10-14T21:56:34Z",
   "pairs": [
     {
       "a": "babyblueviper1-approval-v2",
@@ -197,10 +197,10 @@
       "what": "the edge vectors, read in Go and in Python by different people, compared case by case"
     }
   ],
-  "repository_commit": "0b879e5289870ba024eabf323938c90f528e5132",
+  "repository_commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
   "runs": [
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -246,7 +246,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -340,7 +340,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -572,7 +572,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -756,7 +756,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-bind-v0",
       "exit": 0,
       "expected_total": 28,
@@ -940,7 +940,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-span-v0",
       "exit": 0,
       "expected_total": 16,
@@ -1052,7 +1052,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1094,11 +1094,11 @@
       },
       "reproduced": 5,
       "scored_by": "board",
-      "seconds": 10.7,
+      "seconds": 10.5,
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -1192,7 +1192,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -1424,7 +1424,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -1608,7 +1608,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-bind-v0",
       "exit": 0,
       "expected_total": 28,
@@ -1792,7 +1792,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-span-v0",
       "exit": 0,
       "expected_total": 16,
@@ -1904,7 +1904,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -1950,7 +1950,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -2044,7 +2044,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -2276,7 +2276,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -2460,7 +2460,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-bind-v0",
       "exit": 0,
       "expected_total": 28,
@@ -2644,7 +2644,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-span-v0",
       "exit": 0,
       "expected_total": 16,
@@ -2756,7 +2756,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "nenrin-trace-intake-v0",
       "exit": 0,
       "expected_total": 28,
@@ -3360,7 +3360,7 @@
       "status": "ran"
     },
     {
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "corpus": "nenrin-interop-v0",
       "exit": 0,
       "expected_total": 5,
@@ -3406,7 +3406,7 @@
       "status": "ran"
     },
     {
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "corpus": "nenrin-interop-v0.1",
       "exit": 0,
       "expected_total": 13,
@@ -3500,7 +3500,7 @@
       "status": "ran"
     },
     {
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "corpus": "nenrin-interop-v0.2-edge",
       "exit": 0,
       "expected_total": 36,
@@ -3732,7 +3732,7 @@
       "status": "ran"
     },
     {
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -3794,7 +3794,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "9d4cf2c7782fe79b68c7679b4967180ebdb9e0bd",
+      "commit": "5abe7a646ca2361a9009a18957f62215d23fa2dd",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -3891,7 +3891,7 @@
       "status": "ran"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -3953,7 +3953,7 @@
       "stdout_sha256": "e3f642d81ab22703d58821a9e9502724e00b1e603ccfa70987445465f7d33b59"
     },
     {
-      "commit": "0b879e5289870ba024eabf323938c90f528e5132",
+      "commit": "4cf1fcf464776400a1da5d01bd9c2e93469e5059",
       "corpus": "musubi-approval-v2",
       "exit": 0,
       "expected_total": 9,
@@ -4156,7 +4156,7 @@
       "stdout_sha256": "bf88276f294a4815a0a88d888b87a8b744fcae33710dcfef6ce2f6042112c93b"
     },
     {
-      "commit": "0ee47d7baa47a706e33934a4e4c3d46bad16298f",
+      "commit": "a4c4fc91a22778f3d805e5e592bf690915a33033",
       "corpus": "a2a-card-sign-v01/s0-control",
       "exit": 0,
       "expected_total": 10,
@@ -4167,9 +4167,9 @@
       "per_vector": null,
       "reproduced": 10,
       "scored_by": "implementation",
-      "seconds": 2.1,
+      "seconds": 1.9,
       "status": "ran",
-      "stdout_sha256": "aa3b08c10d6f5981ebf0d46e1ee770eeab66e44245d950bc97237a8e5c384f79"
+      "stdout_sha256": "e173149ae4a7d07bf2a0a59558af27878c827af0bd7e82bda6c485ccd7a63e9f"
     },
     {
       "commit": "0016e8e4bb226788e124c70f2a07796a9f503712",
@@ -4352,7 +4352,7 @@
       },
       "reproduced": 28,
       "scored_by": "board",
-      "seconds": 0.1,
+      "seconds": 0.0,
       "status": "ran"
     }
   ],
