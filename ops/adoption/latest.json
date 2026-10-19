@@ -1,6 +1,6 @@
 {
   "schema": "hs-adoption-count-v1",
-  "measured_at": "2026-10-12T06:07:02Z",
+  "measured_at": "2026-10-19T04:50:41Z",
   "metrics": {
     "independent_implementations": {
       "count": 14,
@@ -159,14 +159,15 @@
     "independent_witnesses": {
       "count": 3,
       "ledger": {
-        "ledger_n": 88,
-        "ledger_head": "bbbb357ee6f20a870fdfe5a50eb842674573dba06229593bfb85b304f0497e72",
-        "witness_batches": 20,
+        "ledger_n": 119,
+        "ledger_head": "07f166f3ad5dda91a21f86bf5067935803007731540f8946a7b0c21c3b97d072",
+        "witness_batches": 27,
         "unreadable_entries": [],
         "signed_domains": {
           "api.babyblueviper.com": [
             57,
-            61
+            61,
+            107
           ],
           "kuangmi-bit.github.io": [
             71,
@@ -174,7 +175,14 @@
             75,
             77,
             79,
-            84
+            84,
+            89,
+            96,
+            100,
+            103,
+            107,
+            111,
+            116
           ],
           "pipavlo82.github.io": [
             65,
@@ -329,7 +337,7 @@
           "repo": "kuangmi-bit/conduct-witness",
           "created_from_template": true,
           "reproduce_success_last_30_days": true,
-          "last_success": "2026-10-06T10:40:17Z"
+          "last_success": "2026-10-12T13:32:02Z"
         }
       ],
       "method": "GitHub search for repositories named like conduct-witness, kept when template_repository is ogasurfproject-jpg/conduct-witness-template and reproduce.yml has a successful run in the last 30 days"
