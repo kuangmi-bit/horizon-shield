@@ -1,3 +1,10 @@
+# DISABLED 2026-10-21 — GitHub Pages is not enabled on this repository
+# (GET /repos/kuangmi-bit/horizon-shield/pages returns 404), so this workflow
+# failed on every push to main with "Get Pages site failed". It is inherited
+# from the upstream template and would publish a second copy of the site from
+# this fork. Rename back to static.yml after enabling Pages if that is ever
+# wanted.
+
 # Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
 
