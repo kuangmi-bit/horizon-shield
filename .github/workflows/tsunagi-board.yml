@@ -70,5 +70,14 @@ jobs:
             exit 0
           fi
           git commit -m "tsunagi: nightly board $(date -u +%Y-%m-%d)"
-          git pull --rebase origin main
-          git push
+          # Another scheduled job can push between our fetch and our push; the
+          # remote then rejects with "cannot lock ref ... is at X but expected Y".
+          # Rebase onto whatever landed and retry a few times instead of failing.
+          for attempt in 1 2 3 4; do
+            git pull --rebase origin main || exit 1
+            if git push; then exit 0; fi
+            echo "push attempt $attempt rejected; retrying after a short wait" | tee -a "$GITHUB_STEP_SUMMARY"
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not push the board after 4 attempts"
+          exit 1
