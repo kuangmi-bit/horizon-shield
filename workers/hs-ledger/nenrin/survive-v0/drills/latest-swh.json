@@ -1,13 +1,13 @@
 {
   "anchors": {
-    "confirmed": 257,
+    "confirmed": 258,
     "explorers": [
       "blockstream.info",
       "mempool.space"
     ],
     "failed": [],
     "first_block": 959118,
-    "last_block": 974877,
+    "last_block": 975030,
     "pending": [
       166,
       167,
@@ -22,13 +22,21 @@
       268,
       269,
       270,
-      271
+      271,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279,
+      280
     ]
   },
   "chain": {
     "broken_at": null,
-    "head": "0b732e0f6a6ffd47138da825c64059192626f05985c59bacdd8b0b4dd09468c5",
-    "rebuilt_through": 271,
+    "head": "db9c454abc40dbe1123c11de501529401b6b4e2a36a3338540ceb69cfcfba8d6",
+    "rebuilt_through": 280,
     "stamped_heads": [
       {
         "carried_by": 58,
@@ -384,13 +392,23 @@
         "carried_by": 270,
         "head_n": 266,
         "result": "match"
+      },
+      {
+        "carried_by": 273,
+        "head_n": 272,
+        "result": "match"
+      },
+      {
+        "carried_by": 276,
+        "head_n": 272,
+        "result": "match"
       }
     ],
-    "stamped_heads_matched": 71
+    "stamped_heads_matched": 73
   },
   "digests": {
     "failed": [],
-    "ok": 271
+    "ok": 280
   },
   "does_not_establish": [
     "that any claim in the ledger is true",
@@ -398,8 +416,8 @@
     "that two explorers agreeing is Bitcoin consensus; check headers against your own node for that",
     "anything about entries whose proofs are still pending; they are listed, not counted"
   ],
-  "drill_at": "2026-11-08T10:24:18Z",
-  "entries": 271,
+  "drill_at": "2026-11-09T11:33:02Z",
+  "entries": 280,
   "establishes": [
     "these ledger bytes were rebuilt from the named custodian without connecting to any operator host",
     "every digest, the jidec-chain-v1 head, the stamped heads and the Bitcoin anchors were recomputed from the copy and two public explorers"
@@ -412,18 +430,18 @@
   "outcome": "rebuilt",
   "range": [
     1,
-    271
+    280
   ],
-  "report_sha256": "f93f12eccd871558bd1f3642563f1ddc2e7de51c96d5645fc73200728d8b860e",
+  "report_sha256": "d3cf999b3f9a7fbbc4c8751fc6e18eed22430464a7d9f12710b42bd2183236cb",
   "schema": "nenrin-survive-drill-v0",
   "source": {
-    "archive_sha256": "be9bcbd70dcbc47482710f44828c42b3a788fb9d11e9f50f15f79576ba370f48",
+    "archive_sha256": "6ec04339d289268f5f96376cd9a3a2b7d3b6a0b03cc3bc7207bee791b907ee8a",
     "custodian": "software-heritage",
-    "directory": "swh:1:dir:15976d6b9c6f4d45aae91a4f57be9662c87abd57",
+    "directory": "swh:1:dir:2ca2fd06ba8fc16c9365a4665e84d2e6878e943f",
     "operator_controlled": false,
-    "revision": "d1984cec1dcd1592ad094967f58b393fb1ae6805",
-    "snapshot": "cde8a5d6289d9902d54e4767f671909bc996912a",
-    "visit_date": "2026-11-08T03:18:49.332000+00:00"
+    "revision": "e41715d75704e92455400707df895efd82bf4ecf",
+    "snapshot": "dbb04b0dc4dbe55e371c590b007d2d6ddc21bc0c",
+    "visit_date": "2026-11-09T11:32:30.863000+00:00"
   },
   "version": "0.1.0"
 }
