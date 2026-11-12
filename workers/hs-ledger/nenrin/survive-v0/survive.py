@@ -268,7 +268,8 @@ def header_merkle_root(height, get=http_get, cache=None):
         except Refused:
             raise
         except Exception as ex:
-            roots[host_of(base)] = "error: " + type(ex).__name__
+            roots[host_of(base)] = "error: %s (http=%s)" % (
+                type(ex).__name__, getattr(ex, "code", None))
         time.sleep(0.2)
     cache[height] = roots
     return roots
@@ -295,9 +296,12 @@ def check_anchors(d, entries, get=http_get):
         if not btc:
             pending.append(n); continue
         good = None
+        observations = []
         for msg, a in sorted(btc, key=lambda x: x[1].height):
             want = msg[::-1].hex()
             roots = header_merkle_root(a.height, get, cache)
+            observations.append({"height": a.height, "expected": want,
+                                 "explorers": dict(roots)})
             vals = list(roots.values())
             if len(vals) == len(EXPLORERS) and all(v == want for v in vals):
                 good = a.height; break
@@ -305,7 +309,8 @@ def check_anchors(d, entries, get=http_get):
             confirmed.append({"n": n, "block": good})
         else:
             failed.append({"n": n, "why": "merkle_root_not_confirmed_by_both_explorers",
-                           "heights": sorted(a.height for _, a in btc)})
+                           "heights": sorted(a.height for _, a in btc),
+                           "observations": observations})
     return {"confirmed": len(confirmed), "pending": pending, "failed": failed,
             "first_block": min((c["block"] for c in confirmed), default=None),
             "last_block": max((c["block"] for c in confirmed), default=None),

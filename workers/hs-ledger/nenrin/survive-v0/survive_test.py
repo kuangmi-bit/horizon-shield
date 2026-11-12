@@ -6,6 +6,7 @@ One case uses a real proof: fixtures/ledger66.ots is the OpenTimestamps proof of
 served for blocks 969240 and 969244 on 2026-09-30. The rest are synthetic ledgers that break one thing each.
 """
 import io, json, os, shutil, subprocess, sys, tempfile
+from urllib.error import HTTPError
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -120,6 +121,28 @@ try:
     d = os.path.join(tmp, "disagree"); _, roots, _ = build_ledger(d)
     r = run(d, Explorer(roots, disagree={("mempool.space", 800001): "ab" * 32}))
     ok("entry 1 not confirmed, named", r["outcome"] == "findings" and r["anchors"]["failed"][0]["n"] == 1, r["anchors"])
+
+    obs = r["anchors"]["failed"][0]["observations"][0]
+    ok("mismatch evidence preserves expected root and both explorer values",
+       obs == {"height": 800001, "expected": roots[800001],
+               "explorers": {"blockstream.info": roots[800001], "mempool.space": "ab" * 32}}, obs)
+
+    print("5b. explorer timeout and HTTP error retain evidence and remain findings")
+    for error_type in (TimeoutError, HTTPError):
+        delegate = Explorer(roots)
+        def unavailable(url, **kwargs):
+            if S.host_of(url) == "mempool.space":
+                if error_type is HTTPError:
+                    raise HTTPError(url, 503, "unavailable", None, None)
+                raise TimeoutError("timeout")
+            return delegate(url, **kwargs)
+        r = run(d, unavailable)
+        failures = r["anchors"]["failed"]
+        ok("unavailable explorer is not silently passed", r["outcome"] == "findings" and len(failures) == 4)
+        obs = failures[0]["observations"][0]
+        expected_error = "error: %s (http=%s)" % (error_type.__name__, 503 if error_type is HTTPError else None)
+        ok("error evidence identifies explorer, exception and HTTP status",
+           obs["expected"] == roots[800001] and obs["explorers"]["mempool.space"] == expected_error, obs)
 
     print("6. the proof is for other bytes")
     d = os.path.join(tmp, "wrongots"); _, roots, _ = build_ledger(d)

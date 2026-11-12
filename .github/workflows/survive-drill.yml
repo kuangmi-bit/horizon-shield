@@ -79,7 +79,18 @@ jobs:
             exit 0
           fi
           git commit -m "survive-v0: keep $(date -u +%Y-%m-%d) ($(echo "$NEW" | wc -l | tr -d ' ') files)"
-          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+          PUSHED=0
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              PUSHED=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$PUSHED" != "1" ]; then
+            echo "::error::failed to persist evidence after 3 attempts"
+            exit 1
+          fi
           echo "COMMITTED=1" >> "$GITHUB_ENV"
       - name: ask Software Heritage to archive the repository (does not fail the job)
         if: env.COMMITTED == '1'
@@ -123,7 +134,9 @@ jobs:
       - name: install the one dependency (pinned)
         run: pip install -r "$SV/requirements.txt"
       - name: test the drill (offline)
-        run: python3 "$SV/survive_test.py"
+        run: |
+          python3 "$SV/survive_test.py"
+          python3 "$SV/workflow_test.py"
       - name: fence the operator off (names resolve to 0.0.0.0)
         run: |
           for h in horizonshield.dev www.horizonshield.dev ledger.horizonshield.dev gate.horizonshield.dev mcp.horizonshield.dev \
@@ -168,7 +181,18 @@ jobs:
           git add "$SV/drills"
           git diff --cached --quiet && exit 0
           git commit -m "survive-v0: drill $(date -u +%Y-%m-%d)"
-          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
+          PUSHED=0
+          for i in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              PUSHED=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$PUSHED" != "1" ]; then
+            echo "::error::failed to persist evidence after 3 attempts"
+            exit 1
+          fi
       - name: red when the copy disagrees with itself or with Bitcoin, or cannot be rebuilt at all
         # 2026-10-09 (red team R3-3): a copy that is gone used to leave this step green. Now red when any copy has
         # findings, when any copy is empty, or when no copy could be rebuilt. One custodian being unavailable while
