@@ -1,12 +1,12 @@
 {
-  "drill_at": "2026-11-11T10:58:58Z",
+  "drill_at": "2026-11-12T11:10:39Z",
   "fence": {
     "host": "ledger.horizonshield.dev",
     "reachable": false,
     "why": "sinkholed:0.0.0.0"
   },
   "outcome": "custodian_unavailable",
-  "report_sha256": "a5bae41b24fc5b9f11915b4ce801a3abb08fe2a4efba7cbcc2eee09037e43183",
+  "report_sha256": "bae1a74303fba1223ec055938d78becdc4deb24e213827629cd981396b5cffcd",
   "schema": "nenrin-survive-drill-v0",
   "source": {
     "requested": "swh"
