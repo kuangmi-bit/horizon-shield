@@ -1,16 +1,16 @@
 {
-  "drill_at": "2026-11-14T10:27:12Z",
+  "drill_at": "2026-11-15T10:54:37Z",
   "fence": {
     "host": "ledger.horizonshield.dev",
     "reachable": false,
     "why": "sinkholed:0.0.0.0"
   },
   "outcome": "custodian_unavailable",
-  "report_sha256": "7c1faa6c8f0aef50741b991a37524259670b91cac953c1c7e53345c312dd9e90",
+  "report_sha256": "9e0fbd3d2dea992f05efde046bafb5af2a276168cbd65e40cb862e0fdcc4b27e",
   "schema": "nenrin-survive-drill-v0",
   "source": {
     "requested": "swh"
   },
   "version": "0.1.0",
-  "why": "RuntimeError: Software Heritage vault did not finish: new"
+  "why": "TimeoutError: The read operation timed out"
 }
