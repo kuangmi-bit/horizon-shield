@@ -500,7 +500,7 @@
     "that two explorers agreeing is Bitcoin consensus; check headers against your own node for that",
     "anything about entries whose proofs are still pending; they are listed, not counted"
   ],
-  "drill_at": "2026-11-16T11:48:46Z",
+  "drill_at": "2026-11-17T11:56:29Z",
   "entries": 333,
   "establishes": [
     "these ledger bytes were rebuilt from the named custodian without connecting to any operator host",
@@ -516,10 +516,10 @@
     1,
     333
   ],
-  "report_sha256": "2ca47d652bb2d31839d7c153426dec2f42c3fa4b70261e760cc485eeb9b412e7",
+  "report_sha256": "dbb65cba71114a2c9412a96629069e892369ca5624adb0b7c20c6934e2c1c335",
   "schema": "nenrin-survive-drill-v0",
   "source": {
-    "archive_sha256": "98706a3ec1b95656376a1287c728c6a65ca36033472e2cfb2d770cbbd7c88991",
+    "archive_sha256": "2bf6f601bd887e5799c9cbe263174d6288d76869fbc3edb96a10567406cdbf4b",
     "custodian": "github",
     "note": "the operator can delete this account; this source proves the copy's form, not its survival",
     "operator_controlled": true,
