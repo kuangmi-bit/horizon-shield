@@ -1,6 +1,6 @@
 {
   "schema": "hs-status-v0",
-  "generated_at": "2026-11-22T08:14:19.178Z",
+  "generated_at": "2026-11-22T16:28:05.783Z",
   "measured_from": "one GitHub Actions hosted runner per run (GitHub does not say where; usually the United States)",
   "cadence": "every endpoint once an hour, one after another",
   "timeout_ms": 20000,
@@ -14,10 +14,10 @@
       "url": "https://mcp.horizonshield.dev/mcp",
       "tool": "get_price_range",
       "last": {
-        "at": "2026-11-22T08:14:19.178Z",
+        "at": "2026-11-22T16:28:05.783Z",
         "ok": true,
         "error": null,
-        "call_ms": 469
+        "call_ms": 480
       },
       "reach_24h_pct": 100,
       "reach_24h": {
@@ -40,7 +40,7 @@
       "server_version": "1.1.0",
       "protocol_version": "2025-06-18",
       "tool_count": 15,
-      "last_initialize_ms": 124
+      "last_initialize_ms": 193
     },
     {
       "id": "ccdb",
@@ -48,10 +48,10 @@
       "url": "https://ccdb.horizonshield.dev/mcp",
       "tool": "search_jccdb_items",
       "last": {
-        "at": "2026-11-22T08:14:19.178Z",
+        "at": "2026-11-22T16:28:05.783Z",
         "ok": true,
         "error": null,
-        "call_ms": 1896
+        "call_ms": 1776
       },
       "reach_24h_pct": 100,
       "reach_24h": {
@@ -68,13 +68,13 @@
         "ok": 22,
         "of": 23
       },
-      "call_p50_ms_7d": 1896,
+      "call_p50_ms_7d": 1880,
       "call_p95_ms_7d": 2478,
       "server_name": "horizon-shield-construction-cost-data",
       "server_version": "1.0.0",
       "protocol_version": "2025-06-18",
       "tool_count": 15,
-      "last_initialize_ms": 108
+      "last_initialize_ms": 142
     },
     {
       "id": "gate",
@@ -82,10 +82,10 @@
       "url": "https://gate.horizonshield.dev/mcp",
       "tool": "get_conditions",
       "last": {
-        "at": "2026-11-22T08:14:19.178Z",
+        "at": "2026-11-22T16:28:05.783Z",
         "ok": true,
         "error": null,
-        "call_ms": 25
+        "call_ms": 41
       },
       "reach_24h_pct": 100,
       "reach_24h": {
@@ -102,13 +102,13 @@
         "ok": 23,
         "of": 23
       },
-      "call_p50_ms_7d": 38,
+      "call_p50_ms_7d": 41,
       "call_p95_ms_7d": 110,
       "server_name": "hs-verify-gate",
       "server_version": "0.4.24",
       "protocol_version": "2025-06-18",
       "tool_count": 6,
-      "last_initialize_ms": 84
+      "last_initialize_ms": 98
     },
     {
       "id": "jidec",
@@ -116,10 +116,10 @@
       "url": "https://jidec.horizonshield.dev/mcp",
       "tool": "nenrin_ledger_head",
       "last": {
-        "at": "2026-11-22T08:14:19.178Z",
+        "at": "2026-11-22T16:28:05.783Z",
         "ok": true,
         "error": null,
-        "call_ms": 2428
+        "call_ms": 2813
       },
       "reach_24h_pct": 100,
       "reach_24h": {
@@ -142,7 +142,7 @@
       "server_version": "1.4.0",
       "protocol_version": "2025-11-25",
       "tool_count": 13,
-      "last_initialize_ms": 51
+      "last_initialize_ms": 162
     },
     {
       "id": "yakumo-contractors",
@@ -150,10 +150,10 @@
       "url": "https://hearing.horizonshield.dev/mcp",
       "tool": "mall_overview",
       "last": {
-        "at": "2026-11-22T08:14:19.178Z",
+        "at": "2026-11-22T16:28:05.783Z",
         "ok": true,
         "error": null,
-        "call_ms": 588
+        "call_ms": 830
       },
       "reach_24h_pct": 100,
       "reach_24h": {
@@ -176,7 +176,7 @@
       "server_version": "2.3.2-rmw-20261013",
       "protocol_version": "2025-06-18",
       "tool_count": 6,
-      "last_initialize_ms": 77
+      "last_initialize_ms": 121
     },
     {
       "id": "ledger",
@@ -184,10 +184,10 @@
       "url": "https://ledger.horizonshield.dev/health",
       "tool": null,
       "last": {
-        "at": "2026-11-22T08:14:19.178Z",
+        "at": "2026-11-22T16:28:05.783Z",
         "ok": true,
         "error": null,
-        "call_ms": 128
+        "call_ms": 200
       },
       "reach_24h_pct": 100,
       "reach_24h": {
@@ -213,5 +213,5 @@
       "last_initialize_ms": null
     }
   ],
-  "status_sha256": "f84b8e10759350cc5a4d21d666d12e55d035d08d5d0653d26f9a0a5a9ef8ad42"
+  "status_sha256": "dbf9fd35031145a5156f5b1233600de5019a7926d9c471748f1157aca80c3a94"
 }
